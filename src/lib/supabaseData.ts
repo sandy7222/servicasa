@@ -97,6 +97,8 @@ export function mapOrder(
     scheduledDate: row.scheduled_date,
     createdAt: row.created_at,
     completedAt: row.completed_at ?? undefined,
+    workStartedAt: row.work_started_at ?? undefined,
+    workElapsedSeconds: Number(row.work_elapsed_seconds ?? 0),
     clientId: row.customer_id,
     clientName: row.client_name,
     clientPhone: row.client_phone,

@@ -55,6 +55,7 @@ import {
 } from '../types';
 
 type MaterialCategory = MaterialInventory['category'];
+type OrderQuickFilter = 'all' | 'active' | 'in_progress' | 'paused' | 'urgent' | 'completed';
 
 function toDateInputValue(value: string) {
   if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
@@ -190,6 +191,7 @@ export const AdminHubView: React.FC = () => {
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [techFilter, setTechFilter] = useState<string>('all');
   const [serviceFilter, setServiceFilter] = useState<string>('all');
+  const [quickFilter, setQuickFilter] = useState<OrderQuickFilter>('all');
 
   // Modals state
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
@@ -434,6 +436,17 @@ export const AdminHubView: React.FC = () => {
     return { total, active, inProgress, paused, completed, urgent };
   }, [orders]);
 
+  const applyQuickFilter = (filter: Exclude<OrderQuickFilter, 'all'>) => {
+    const shouldClear = quickFilter === filter;
+    setActiveTab('orders');
+    setQuickFilter(shouldClear ? 'all' : filter);
+    setSearchQuery('');
+    setStatusFilter('all');
+    setPriorityFilter('all');
+    setTechFilter('all');
+    setServiceFilter('all');
+  };
+
   // Filtered Orders
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
@@ -448,6 +461,16 @@ export const AdminHubView: React.FC = () => {
       // Status
       const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
 
+      const matchesQuickFilter =
+        quickFilter === 'all' ||
+        (quickFilter === 'active' && order.status !== 'completed' && order.status !== 'cancelled') ||
+        (quickFilter === 'in_progress' && order.status === 'in_progress') ||
+        (quickFilter === 'paused' && order.status === 'paused') ||
+        (quickFilter === 'urgent' &&
+          (order.priority === 'urgente' || order.priority === 'alta') &&
+          order.status !== 'completed') ||
+        (quickFilter === 'completed' && order.status === 'completed');
+
       // Priority
       const matchesPriority = priorityFilter === 'all' || order.priority === priorityFilter;
 
@@ -460,9 +483,16 @@ export const AdminHubView: React.FC = () => {
       // Service
       const matchesService = serviceFilter === 'all' || order.serviceType === serviceFilter;
 
-      return matchesSearch && matchesStatus && matchesPriority && matchesTech && matchesService;
+      return (
+        matchesSearch &&
+        matchesStatus &&
+        matchesQuickFilter &&
+        matchesPriority &&
+        matchesTech &&
+        matchesService
+      );
     });
-  }, [orders, searchQuery, statusFilter, priorityFilter, techFilter, serviceFilter]);
+  }, [orders, searchQuery, statusFilter, quickFilter, priorityFilter, techFilter, serviceFilter]);
 
   const openEditOrder = (order: ServiceOrder) => {
     setOrderToEdit(order);
@@ -908,7 +938,17 @@ export const AdminHubView: React.FC = () => {
           {/* Metric Cards Row - High Density compact cards */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 mt-4">
             {/* Activas */}
-            <div className="bg-slate-900 text-slate-100 p-3 rounded-lg border border-slate-800 shadow-xs flex flex-col justify-between">
+            <button
+              type="button"
+              onClick={() => applyQuickFilter('active')}
+              aria-pressed={quickFilter === 'active'}
+              title="Filtrar órdenes activas"
+              className={`bg-slate-900 text-slate-100 p-3 rounded-lg border shadow-xs flex flex-col justify-between text-left transition-all focus:outline-none focus:ring-2 focus:ring-teal-400 focus:ring-offset-2 ${
+                quickFilter === 'active'
+                  ? 'border-teal-400 ring-2 ring-teal-400/70'
+                  : 'border-slate-800 hover:border-teal-400 hover:-translate-y-0.5'
+              }`}
+            >
               <div className="flex items-center justify-between text-[11px] text-slate-400 mb-1">
                 <span className="font-semibold uppercase tracking-wider font-mono">Activas</span>
                 <Clock className="w-3.5 h-3.5 text-teal-400" />
@@ -918,10 +958,20 @@ export const AdminHubView: React.FC = () => {
                 <span className="text-[10px] text-teal-400 font-mono font-semibold">Total: {metrics.total}</span>
               </div>
               <div className="text-[10px] text-slate-400 mt-0.5 truncate">En gestión operativa</div>
-            </div>
+            </button>
 
             {/* En curso */}
-            <div className="bg-white p-3 rounded-lg border border-emerald-300 shadow-2xs flex flex-col justify-between">
+            <button
+              type="button"
+              onClick={() => applyQuickFilter('in_progress')}
+              aria-pressed={quickFilter === 'in_progress'}
+              title="Filtrar órdenes en curso"
+              className={`bg-white p-3 rounded-lg border shadow-2xs flex flex-col justify-between text-left transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 ${
+                quickFilter === 'in_progress'
+                  ? 'border-emerald-500 ring-2 ring-emerald-300'
+                  : 'border-emerald-300 hover:border-emerald-500 hover:-translate-y-0.5'
+              }`}
+            >
               <div className="flex items-center justify-between text-[11px] text-emerald-800 mb-1">
                 <span className="font-semibold uppercase tracking-wider font-mono">En Curso</span>
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -931,10 +981,20 @@ export const AdminHubView: React.FC = () => {
                 <span className="text-[10px] text-emerald-600 font-semibold font-mono">En sitio</span>
               </div>
               <div className="text-[10px] text-emerald-700 mt-0.5 truncate">Trabajo activo</div>
-            </div>
+            </button>
 
             {/* Pausadas */}
-            <div className="bg-white p-3 rounded-lg border border-amber-300 shadow-2xs flex flex-col justify-between">
+            <button
+              type="button"
+              onClick={() => applyQuickFilter('paused')}
+              aria-pressed={quickFilter === 'paused'}
+              title="Filtrar órdenes pausadas"
+              className={`bg-white p-3 rounded-lg border shadow-2xs flex flex-col justify-between text-left transition-all focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 ${
+                quickFilter === 'paused'
+                  ? 'border-amber-500 ring-2 ring-amber-300'
+                  : 'border-amber-300 hover:border-amber-500 hover:-translate-y-0.5'
+              }`}
+            >
               <div className="flex items-center justify-between text-[11px] text-amber-800 mb-1">
                 <span className="font-semibold uppercase tracking-wider font-mono">Pausadas</span>
                 <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
@@ -944,10 +1004,20 @@ export const AdminHubView: React.FC = () => {
                 <span className="text-[10px] text-amber-700 font-mono font-semibold">Insumos</span>
               </div>
               <div className="text-[10px] text-amber-700 mt-0.5 truncate">En espera</div>
-            </div>
+            </button>
 
             {/* Urgentes / Altas */}
-            <div className="bg-white p-3 rounded-lg border border-rose-300 shadow-2xs flex flex-col justify-between">
+            <button
+              type="button"
+              onClick={() => applyQuickFilter('urgent')}
+              aria-pressed={quickFilter === 'urgent'}
+              title="Filtrar órdenes urgentes y de alta prioridad"
+              className={`bg-white p-3 rounded-lg border shadow-2xs flex flex-col justify-between text-left transition-all focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-2 ${
+                quickFilter === 'urgent'
+                  ? 'border-rose-500 ring-2 ring-rose-300'
+                  : 'border-rose-300 hover:border-rose-500 hover:-translate-y-0.5'
+              }`}
+            >
               <div className="flex items-center justify-between text-[11px] text-rose-800 mb-1">
                 <span className="font-semibold uppercase tracking-wider font-mono">Urgentes</span>
                 <Flame className="w-3.5 h-3.5 text-rose-600" />
@@ -957,10 +1027,20 @@ export const AdminHubView: React.FC = () => {
                 <span className="text-[10px] text-rose-600 font-mono font-semibold">Alta prioridad</span>
               </div>
               <div className="text-[10px] text-rose-700 mt-0.5 truncate">Atención prioritaria</div>
-            </div>
+            </button>
 
             {/* Finalizadas */}
-            <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-2xs col-span-2 sm:col-span-1 flex flex-col justify-between">
+            <button
+              type="button"
+              onClick={() => applyQuickFilter('completed')}
+              aria-pressed={quickFilter === 'completed'}
+              title="Filtrar órdenes finalizadas"
+              className={`bg-white p-3 rounded-lg border shadow-2xs col-span-2 sm:col-span-1 flex flex-col justify-between text-left transition-all focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 ${
+                quickFilter === 'completed'
+                  ? 'border-teal-500 ring-2 ring-teal-200'
+                  : 'border-slate-200 hover:border-teal-500 hover:-translate-y-0.5'
+              }`}
+            >
               <div className="flex items-center justify-between text-[11px] text-[#003875] mb-1">
                 <span className="font-semibold uppercase tracking-wider font-mono">Finalizadas</span>
                 <CheckCircle2 className="w-3.5 h-3.5 text-teal-600" />
@@ -970,7 +1050,7 @@ export const AdminHubView: React.FC = () => {
                 <span className="text-[10px] text-teal-700 font-mono font-semibold">Cerradas</span>
               </div>
               <div className="text-[10px] text-slate-500 mt-0.5 truncate">Con firma digital</div>
-            </div>
+            </button>
           </div>
 
           {/* Sub Navigation Tabs - High density */}

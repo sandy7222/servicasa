@@ -463,12 +463,16 @@ export async function persistUpdateOrderStatus(input: {
   eventDescription: string;
   author: string;
   completedAt?: string | null;
+  workStartedAt?: string | null;
+  workElapsedSeconds?: number;
 }) {
   const { error } = await supabase
     .from('service_orders')
     .update({
       status: input.status,
       completed_at: input.completedAt ?? null,
+      work_started_at: input.workStartedAt ?? null,
+      work_elapsed_seconds: input.workElapsedSeconds ?? 0,
     })
     .eq('id', input.orderId);
   throwIfError(error);

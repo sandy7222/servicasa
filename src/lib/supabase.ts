@@ -72,6 +72,8 @@ export type DbServiceOrder = {
   scheduled_date: string;
   created_at: string;
   completed_at: string | null;
+  work_started_at: string | null;
+  work_elapsed_seconds: number | null;
   customer_id: string;
   client_name: string;
   client_phone: string;

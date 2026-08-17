@@ -77,19 +77,12 @@ export const TechnicianView: React.FC = () => {
   const [isPauseModalOpen, setIsPauseModalOpen] = useState(false);
   const [pauseReason, setPauseReason] = useState('');
 
-  // Live Timer / Stopwatch for technician
-  const [isStopwatchRunning, setIsStopwatchRunning] = useState(false);
-  const [stopwatchSeconds, setStopwatchSeconds] = useState(0);
-
+  // The clock is calculated from the persisted start timestamp, never from browser state.
+  const [clockNow, setClockNow] = useState(() => Date.now());
   useEffect(() => {
-    let interval: any = null;
-    if (isStopwatchRunning) {
-      interval = setInterval(() => {
-        setStopwatchSeconds((s) => s + 1);
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [isStopwatchRunning]);
+    const interval = window.setInterval(() => setClockNow(Date.now()), 1000);
+    return () => window.clearInterval(interval);
+  }, []);
 
   const formatStopwatch = (totalSec: number) => {
     const hrs = Math.floor(totalSec / 3600);
@@ -98,17 +91,26 @@ export const TechnicianView: React.FC = () => {
     return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   };
 
-  const handleStopwatchSave = () => {
-    if (!activeOrder) return;
-    const mins = Math.max(1, Math.round(stopwatchSeconds / 60));
-    addTimeLog(activeOrder.id, mins, `Cronómetro de campo: ${formatStopwatch(stopwatchSeconds)}`);
-    setStopwatchSeconds(0);
-    setIsStopwatchRunning(false);
+  const getElapsedSeconds = (order: ServiceOrder) => {
+    const accumulated = order.workElapsedSeconds ?? 0;
+    if (order.status !== 'in_progress' || !order.workStartedAt) return accumulated;
+
+    const startedAt = new Date(order.workStartedAt).getTime();
+    if (Number.isNaN(startedAt)) return accumulated;
+    return accumulated + Math.max(0, Math.floor((clockNow - startedAt) / 1000));
+  };
+
+  const handleStartOrResumeService = (order: ServiceOrder) => {
+    updateOrderStatus(order.id, 'in_progress');
+  };
+
+  const handlePauseService = (order: ServiceOrder, reason: string) => {
+    return updateOrderStatus(order.id, 'paused', reason);
   };
 
   // Conditions for closing verification
   const checkClosingConditions = (order: ServiceOrder) => {
-    const hasTimeLog = order.timeLogs.length > 0;
+    const hasTimeLog = order.timeLogs.length > 0 || getElapsedSeconds(order) > 0;
     const isChecklistComplete =
       order.checklist.length > 0 && order.checklist.every((i) => i.completed);
     const hasSignature = !!order.customerSignature?.signatureDataUrl;
@@ -203,41 +205,15 @@ export const TechnicianView: React.FC = () => {
               </div>
             </div>
 
-            {/* Live Stopwatch Quick Widget */}
-            <div className="bg-slate-900/90 px-3 py-1.5 rounded-lg border border-slate-800 flex items-center gap-2.5">
+            {/* Visible timer only: its state comes from the service order in Supabase. */}
+            <div className="bg-slate-900/90 px-3 py-1.5 rounded-lg border border-slate-800 flex items-center gap-2.5" aria-live="polite">
               <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-teal-300">
-                <Timer className={`w-3.5 h-3.5 ${isStopwatchRunning ? 'text-teal-400 animate-spin' : 'text-slate-400'}`} />
-                <span className="text-xs tracking-wider">{formatStopwatch(stopwatchSeconds)}</span>
+                <Timer className={`w-3.5 h-3.5 ${activeOrder?.status === 'in_progress' && activeOrder.workStartedAt ? 'text-teal-400 animate-spin' : 'text-slate-400'}`} />
+                <span className="text-xs tracking-wider">{activeOrder ? formatStopwatch(getElapsedSeconds(activeOrder)) : '00:00:00'}</span>
               </div>
-              <div className="flex items-center gap-1">
-                {!isStopwatchRunning ? (
-                  <button
-                    onClick={() => setIsStopwatchRunning(true)}
-                    className="p-1 bg-teal-500 hover:bg-teal-400 text-slate-950 rounded text-xs font-bold transition-colors"
-                    title="Iniciar cronómetro de trabajo"
-                  >
-                    <Play className="w-3 h-3" />
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => setIsStopwatchRunning(false)}
-                    className="p-1 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded text-xs font-bold transition-colors"
-                    title="Pausar cronómetro"
-                  >
-                    <Pause className="w-3 h-3" />
-                  </button>
-                )}
-
-                {stopwatchSeconds > 0 && (
-                  <button
-                    onClick={handleStopwatchSave}
-                    className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-teal-300 rounded text-[11px] font-mono font-bold border border-slate-700 transition-colors"
-                    title="Guardar tiempo transcurrido en la orden activa"
-                  >
-                    Cargar
-                  </button>
-                )}
-              </div>
+              <span className={`text-[10px] font-bold ${activeOrder?.status === 'in_progress' ? 'text-teal-300' : 'text-slate-400'}`}>
+                {activeOrder?.status === 'in_progress' ? 'EN CURSO' : 'PAUSADO'}
+              </span>
             </div>
           </div>
         </div>
@@ -326,7 +302,7 @@ export const TechnicianView: React.FC = () => {
                     <div className="flex items-center gap-1.5 shrink-0">
                       {activeOrder.status === 'assigned' && (
                         <button
-                          onClick={() => updateOrderStatus(activeOrder.id, 'in_progress')}
+                          onClick={() => handleStartOrResumeService(activeOrder)}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-lg shadow-xs transition-colors"
                         >
                           <Play className="w-3 h-3" />
@@ -356,7 +332,7 @@ export const TechnicianView: React.FC = () => {
 
                       {activeOrder.status === 'paused' && (
                         <button
-                          onClick={() => updateOrderStatus(activeOrder.id, 'in_progress')}
+                          onClick={() => handleStartOrResumeService(activeOrder)}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-lg shadow-xs transition-colors"
                         >
                           <Play className="w-3 h-3" />
@@ -438,7 +414,7 @@ export const TechnicianView: React.FC = () => {
                                 cond.hasTimeLog ? 'text-emerald-600 font-bold' : 'text-slate-300'
                               }`}
                             />
-                            <span>1. Tiempo ({activeOrder.timeLogs.length})</span>
+                            <span>1. Tiempo ({formatStopwatch(getElapsedSeconds(activeOrder))})</span>
                           </div>
 
                           <div
@@ -504,7 +480,7 @@ export const TechnicianView: React.FC = () => {
                       }`}
                     >
                       <Clock className="w-3.5 h-3.5" />
-                      <span>Tiempo ({activeOrder.timeLogs.length})</span>
+                      <span>Tiempo ({formatStopwatch(getElapsedSeconds(activeOrder))})</span>
                     </button>
 
                     <button
@@ -618,6 +594,13 @@ export const TechnicianView: React.FC = () => {
                     {/* 2. TIME REGISTRATION */}
                     {activeTab === 'time' && (
                       <div className="space-y-3">
+                        <div className="flex items-center justify-between gap-3 bg-teal-50 border border-teal-200 rounded-lg px-3 py-2">
+                          <div>
+                            <h4 className="text-xs font-bold text-teal-950">Cronómetro del servicio</h4>
+                            <p className="text-[10px] text-teal-800">Se guarda automáticamente al iniciar, pausar, reanudar o finalizar.</p>
+                          </div>
+                          <span className="font-mono font-bold text-teal-900 text-sm">{formatStopwatch(getElapsedSeconds(activeOrder))}</span>
+                        </div>
                         {activeOrder.status !== 'completed' && (
                           <form
                             onSubmit={handleAddTimeLogSubmit}
@@ -942,9 +925,11 @@ export const TechnicianView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => {
-                  updateOrderStatus(activeOrder.id, 'paused', pauseReason);
-                  setIsPauseModalOpen(false);
-                  setPauseReason('');
+                  const result = handlePauseService(activeOrder, pauseReason);
+                  if (result.success) {
+                    setIsPauseModalOpen(false);
+                    setPauseReason('');
+                  }
                 }}
                 className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-md shadow-xs transition-colors"
               >

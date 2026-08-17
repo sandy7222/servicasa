@@ -121,6 +121,10 @@ export interface ServiceOrder {
   scheduledDate: string;
   createdAt: string;
   completedAt?: string;
+  /** Inicio de la sesión de trabajo actualmente en curso. */
+  workStartedAt?: string;
+  /** Segundos de trabajo acumulados en sesiones ya pausadas o finalizadas. */
+  workElapsedSeconds?: number;
   clientId: string;
   clientName: string;
   clientPhone: string;
@@ -197,4 +201,3 @@ export interface CurrentUser {
 }
 
 export type CurrentUserData = CurrentUser;
-

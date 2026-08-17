@@ -293,8 +293,13 @@ export function validateOrderId(orderId: string): void {
     throw new SecurityError('ID de orden inválido', 'INVALID_ORDER_ID');
   }
 
-  // Orders should match format SC-XXX or tmp-XXXXX
-  if (!/^(SC-\d+|tmp-\d+)$/.test(orderId)) {
+  // Supabase persists orders as UUIDs. Legacy demo and optimistic IDs remain
+  // accepted so existing local data can continue to work during the transition.
+  const isSupabaseUuid =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(orderId);
+  const isLegacyOrTemporaryId = /^(SC-\d+|tmp-\d+)$/.test(orderId);
+
+  if (!isSupabaseUuid && !isLegacyOrTemporaryId) {
     throw new SecurityError('Formato de ID de orden inválido', 'INVALID_ORDER_ID');
   }
 }

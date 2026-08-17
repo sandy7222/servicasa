@@ -308,6 +308,17 @@ export const securityTests = {
     }
   },
 
+  'supabase_uuid_order_id_accepted': () => {
+    try {
+      validateOrderId('9f4ba762-e4f5-4edb-a5e0-b5c0631a8dbc');
+      console.log('✓ PASS: Supabase UUID order ID accepted');
+      return true;
+    } catch (err) {
+      console.error('✗ FAIL: Supabase UUID rejected:', err);
+      return false;
+    }
+  },
+
   'temp_order_id_accepted': () => {
     try {
       validateOrderId('tmp-1234567890');

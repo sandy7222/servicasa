@@ -706,7 +706,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // STRICT COMPLETION REQUIREMENTS
     if (newStatus === 'completed') {
-      const hasTimeLog = order.timeLogs.length > 0;
+      const runningSeconds = order.workStartedAt
+        ? Math.max(0, Math.floor((Date.now() - new Date(order.workStartedAt).getTime()) / 1000))
+        : 0;
+      const hasTimeLog = order.timeLogs.length > 0 || (order.workElapsedSeconds ?? 0) + runningSeconds > 0;
       const allChecklistDone =
         order.checklist.length > 0 && order.checklist.every((item) => item.completed);
       const hasSignature = !!order.customerSignature?.signatureDataUrl;
@@ -754,6 +757,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       author: currentUser?.name ?? 'Sistema',
     };
 
+    const transitionAt = new Date();
+    const transitionAtIso = transitionAt.toISOString();
+    const elapsedAtTransition = order.workStartedAt
+      ? Math.max(0, Math.floor((transitionAt.getTime() - new Date(order.workStartedAt).getTime()) / 1000))
+      : 0;
+    let nextWorkStartedAt = order.workStartedAt;
+    let nextWorkElapsedSeconds = order.workElapsedSeconds ?? 0;
+
+    if (newStatus === 'in_progress') {
+      nextWorkStartedAt = transitionAtIso;
+    } else if (newStatus === 'paused' || newStatus === 'completed' || newStatus === 'cancelled') {
+      nextWorkElapsedSeconds += elapsedAtTransition;
+      nextWorkStartedAt = undefined;
+    }
+
     setOrders((prev) =>
       prev.map((o) => {
         if (o.id === orderId) {
@@ -761,6 +779,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             ...o,
             status: newStatus,
             completedAt: newStatus === 'completed' ? formatNow() : o.completedAt,
+            workStartedAt: nextWorkStartedAt,
+            workElapsedSeconds: nextWorkElapsedSeconds,
             events: [newEvent, ...o.events],
           };
         }
@@ -776,7 +796,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           eventType,
           eventDescription,
           author: currentUser?.name ?? 'Sistema',
-          completedAt: newStatus === 'completed' ? new Date().toISOString() : null,
+          completedAt: newStatus === 'completed' ? transitionAtIso : null,
+          workStartedAt: nextWorkStartedAt ?? null,
+          workElapsedSeconds: nextWorkElapsedSeconds,
         })
       ).catch((err) => {
         showToast(friendlyErrorMessage(err, 'Error al guardar estado'), 'error');
@@ -1366,7 +1388,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const client = customers.find((c) => c.id === data.clientId) || customers[0];
     const tech = technicians.find((t) => t.id === data.assignedTechnicianId);
 
-    const newId = `SC-${Math.floor(800 + orders.length + 1)}`;
+    // Keep local mode aligned with Supabase, which generates UUID primary keys.
+    const newId = crypto.randomUUID();
     const nowStr = formatNow();
 
     const defaultChecklists: Record<ServiceType, string[]> = {
