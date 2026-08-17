@@ -1,0 +1,7 @@
+-- Applied remotely via MCP (project ayszrtieplmqscqtabsu)
+-- Name: servicasa_foundation_schema
+-- Tables: profiles, technicians, customers, materials, service_orders,
+--         order_checklist_items, order_time_logs, order_notes,
+--         order_materials_used, order_events, order_signatures
+-- Auth: trigger handle_new_user on auth.users → public.profiles
+-- RLS: enabled on all public tables with role-scoped policies
