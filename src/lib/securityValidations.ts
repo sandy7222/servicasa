@@ -305,6 +305,38 @@ export function validateOrderId(orderId: string): void {
 }
 
 /**
+ * Validates the approval signature. Unlike regular customer-order access,
+ * this action can never be performed by an administrator or technician:
+ * it represents the customer's explicit acceptance of the work.
+ */
+export function validateCustomerSignatureAccess(
+  currentUser: CurrentUserData | null,
+  order: ServiceOrder | undefined
+): void {
+  if (!currentUser) {
+    throw new SecurityError('Usuario no autenticado', 'AUTH_REQUIRED');
+  }
+
+  if (!order) {
+    throw new SecurityError('Orden no encontrada', 'ORDER_NOT_FOUND');
+  }
+
+  if (currentUser.role !== 'customer') {
+    throw new SecurityError(
+      'La firma de conformidad solo puede registrarla la cuenta del cliente.',
+      'SIGNATURE_CUSTOMER_ONLY'
+    );
+  }
+
+  if (!currentUser.customerId || order.clientId !== currentUser.customerId) {
+    throw new SecurityError(
+      'Solo el cliente titular de esta orden puede registrar la firma.',
+      'SIGNATURE_ORDER_ACCESS_DENIED'
+    );
+  }
+}
+
+/**
  * Validates that user ID format is safe
  */
 export function validateUserId(userId: string): void {

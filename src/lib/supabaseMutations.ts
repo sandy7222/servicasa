@@ -1,5 +1,6 @@
 import type {
   Customer,
+  CustomerServiceRequestInput,
   MaterialInventory,
   OrderEventType,
   OrderPriority,
@@ -332,6 +333,49 @@ export async function persistCreateOrder(input: {
   return full;
 }
 
+/**
+ * Customer-side request creation deliberately stores an initial request only.
+ * It never marks money as paid and never assigns a technician. A server-side
+ * Mercado Pago endpoint will be the only authority that changes payment state.
+ */
+export async function persistCreateCustomerRequest(input: {
+  request: CustomerServiceRequestInput;
+  customer: Customer;
+}): Promise<ServiceOrder> {
+  const requestedDescription = `${input.request.description.trim()}\n\nDisponibilidad solicitada: ${input.request.appointmentWindow}`;
+  const { data, error } = await supabase
+    .from('service_orders')
+    .insert({
+      title: input.request.title.trim(),
+      description: requestedDescription,
+      service_type: input.request.serviceType,
+      priority: input.request.priority,
+      // The legacy enum does not have "pending". The separate service_status
+      // holds the real lifecycle value introduced by the payments migration.
+      status: 'assigned',
+      service_status: 'pending',
+      work_mode: input.request.workMode,
+      quote_status: 'none',
+      payment_status: 'pending',
+      visit_deposit_amount: input.request.workMode === 'diagnosis' ? 30000 : 0,
+      total_quoted_amount: input.request.workMode === 'direct' ? Number(input.request.requestedTotal ?? 0) : 0,
+      total_paid_amount: 0,
+      extra_amount: 0,
+      scheduled_date: input.request.scheduledDate,
+      customer_id: input.customer.id,
+      client_name: input.customer.name,
+      client_phone: input.customer.phone,
+      client_address: input.request.address.trim(),
+      client_neighborhood: input.request.neighborhood.trim() || input.customer.neighborhood || 'A confirmar',
+      assigned_technician_id: null,
+      assigned_technician_name: null,
+    })
+    .select('*')
+    .single();
+  throwIfError(error);
+  return mapOrder(data as DbServiceOrder);
+}
+
 export async function fetchOrderById(orderId: string): Promise<ServiceOrder | null> {
   const { data, error } = await supabase.from('service_orders').select('*').eq('id', orderId).maybeSingle();
   throwIfError(error);
@@ -627,16 +671,16 @@ export async function persistSignature(input: {
   comments?: string;
   author: string;
 }) {
-  const { error } = await supabase.from('order_signatures').upsert(
-    {
-      order_id: input.orderId,
-      signer_name: input.signerName,
-      signature_data_url: input.signatureDataUrl,
-      comments: input.comments ?? null,
-      signed_at: new Date().toISOString(),
-    },
-    { onConflict: 'order_id' }
-  );
+  // A conformity signature is an acceptance record, not editable work data.
+  // Insert (rather than upsert) makes a second attempt fail instead of silently
+  // replacing the customer's original approval.
+  const { error } = await supabase.from('order_signatures').insert({
+    order_id: input.orderId,
+    signer_name: input.signerName,
+    signature_data_url: input.signatureDataUrl,
+    comments: input.comments ?? null,
+    signed_at: new Date().toISOString(),
+  });
   throwIfError(error);
 
   await supabase.from('order_events').insert({

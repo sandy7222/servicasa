@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { DEMO_USERS, useApp } from '../context/AppContext';
 import { CurrentUserData } from '../types';
+import { VisitFeeSettings } from '../components/admin/VisitFeeSettings';
 
 export const SettingsView: React.FC = () => {
   const { currentUser, setCurrentUser, navigate, resetDemoData, orders, materials, customers, technicians, usingRemoteData, refreshRemoteData, dataLoading, remoteBusy } =
@@ -107,6 +108,8 @@ export const SettingsView: React.FC = () => {
             )}
           </div>
         </div>
+
+        {currentUser.role === 'admin' && <VisitFeeSettings />}
 
         {/* Change User / Role Quick Grid */}
         <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-xs space-y-3">

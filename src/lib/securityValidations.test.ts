@@ -11,6 +11,7 @@ import {
   validateOrderCreationAccess,
   validateOrderModificationAccess,
   validateCustomerOrderAccess,
+  validateCustomerSignatureAccess,
   validateTechnicianOrderAccess,
   validateTechnicianAssignmentAccess,
   validateOrderId,
@@ -304,6 +305,63 @@ export const securityTests = {
       return true;
     } catch (err) {
       console.error('✗ FAIL: Valid ID rejected:', err);
+      return false;
+    }
+  },
+
+  // ========== Customer Signature Tests ==========
+  'customer_can_sign_own_order': () => {
+    try {
+      validateCustomerSignatureAccess(customerUser1, orderAssignedToTech1);
+      console.log('✓ PASS: Customer can sign own order');
+      return true;
+    } catch (err) {
+      console.error('✗ FAIL: Customer signature denied:', err);
+      return false;
+    }
+  },
+
+  'technician_cannot_sign_customer_order': () => {
+    try {
+      validateCustomerSignatureAccess(technicianUser1, orderAssignedToTech1);
+      console.error('✗ FAIL: Technician should not sign customer order');
+      return false;
+    } catch (err) {
+      if (err instanceof SecurityError && err.code === 'SIGNATURE_CUSTOMER_ONLY') {
+        console.log('✓ PASS: Technician signature denied');
+        return true;
+      }
+      console.error('✗ FAIL: Wrong error:', err);
+      return false;
+    }
+  },
+
+  'admin_cannot_sign_customer_order': () => {
+    try {
+      validateCustomerSignatureAccess(adminUser, orderAssignedToTech1);
+      console.error('✗ FAIL: Admin should not sign customer order');
+      return false;
+    } catch (err) {
+      if (err instanceof SecurityError && err.code === 'SIGNATURE_CUSTOMER_ONLY') {
+        console.log('✓ PASS: Admin signature denied');
+        return true;
+      }
+      console.error('✗ FAIL: Wrong error:', err);
+      return false;
+    }
+  },
+
+  'customer_cannot_sign_another_customers_order': () => {
+    try {
+      validateCustomerSignatureAccess(customerUser1, orderAssignedToTech2);
+      console.error('✗ FAIL: Customer should not sign another customer order');
+      return false;
+    } catch (err) {
+      if (err instanceof SecurityError && err.code === 'SIGNATURE_ORDER_ACCESS_DENIED') {
+        console.log('✓ PASS: Cross-customer signature denied');
+        return true;
+      }
+      console.error('✗ FAIL: Wrong error:', err);
       return false;
     }
   },

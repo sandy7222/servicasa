@@ -26,7 +26,6 @@ import {
 import confetti from 'canvas-confetti';
 import { useApp } from '../context/AppContext';
 import { PriorityBadge, ServiceBadge, StatusBadge } from '../components/common/Badge';
-import { SignaturePad } from '../components/common/SignaturePad';
 import { ServiceOrder } from '../types';
 import { formatElapsedTime, getOrderElapsedSeconds } from '../lib/workTimer';
 
@@ -41,7 +40,6 @@ export const TechnicianView: React.FC = () => {
     addTimeLog,
     addTechnicalNote,
     addUsedMaterial,
-    saveCustomerSignature,
     showToast,
   } = useApp();
 
@@ -162,18 +160,6 @@ export const TechnicianView: React.FC = () => {
     if (!activeOrder || !techNoteText.trim()) return;
     addTechnicalNote(activeOrder.id, techNoteText);
     setTechNoteText('');
-  };
-
-  const handleSaveSignature = (sigData: {
-    signerName: string;
-    signatureDataUrl: string;
-    comments?: string;
-  }) => {
-    if (!activeOrder) return;
-    const ok = saveCustomerSignature(activeOrder.id, sigData);
-    if (ok) {
-      showToast('Firma registrada con éxito. Ahora podés finalizar el servicio.', 'success');
-    }
   };
 
   return (
@@ -865,16 +851,27 @@ export const TechnicianView: React.FC = () => {
                             Esta orden fue completada.
                           </div>
                         ) : (
-                          <div>
-                            <div className="mb-2 text-xs text-slate-600">
-                              Pedile al cliente <strong>{activeOrder.clientName}</strong> que revise
-                              el trabajo y firme en el recuadro a continuación para certificar su
-                              conformidad.
+                          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                            <div className="flex gap-3">
+                              <div className="mt-0.5 rounded-lg bg-amber-100 p-2 text-amber-700">
+                                <Lock className="h-4 w-4" />
+                              </div>
+                              <div className="space-y-1">
+                                <h4 className="text-sm font-bold text-amber-950">
+                                  Firma pendiente del cliente
+                                </h4>
+                                <p className="text-xs leading-relaxed text-amber-900">
+                                  Por seguridad, la conformidad solo puede ser registrada por{' '}
+                                  <strong>{activeOrder.clientName}</strong> desde su cuenta de
+                                  cliente autenticada. El técnico no puede dibujar ni reemplazar
+                                  esta firma.
+                                </p>
+                              </div>
                             </div>
-                            <SignaturePad
-                              initialSignerName={activeOrder.clientName}
-                              onSave={handleSaveSignature}
-                            />
+                            <div className="mt-3 rounded-lg border border-amber-200 bg-white/70 px-3 py-2 text-xs text-slate-700">
+                              Avisale al cliente que ingrese a <strong>Mi servicio</strong>, revise
+                              el avance y firme cuando esté conforme.
+                            </div>
                           </div>
                         )}
                       </div>

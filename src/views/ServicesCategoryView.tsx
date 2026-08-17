@@ -13,7 +13,7 @@ import { useApp } from '../context/AppContext';
 import { ServiceBadge } from '../components/common/Badge';
 
 export const ServicesCategoryView: React.FC = () => {
-  const { navigate, services, currentPath } = useApp();
+  const { navigate, services, currentPath, currentUser, showToast } = useApp();
 
   // Extraer la categoría del path (ej: "#/services-category/Plomería")
   const selectedCategory = useMemo(() => {
@@ -184,7 +184,27 @@ export const ServicesCategoryView: React.FC = () => {
                   <button
                     onClick={() => {
                       localStorage.setItem('servicasa_selectedServiceId', srv.id);
-                      navigate('/hub');
+                      // The order editor belongs to Admin Hub. Sending visitors
+                      // directly there caused a protected-route redirect that
+                      // looked like the button had done nothing.
+                      if (!currentUser) {
+                        sessionStorage.setItem('servicasa_pending_service_id', srv.id);
+                        navigate('/auth');
+                        return;
+                      }
+
+                      if (currentUser.role === 'admin') {
+                        navigate('/hub');
+                        return;
+                      }
+
+                      localStorage.removeItem('servicasa_selectedServiceId');
+                      showToast(
+                        'Ingresaste como cliente. El pedido debe cargarse desde el portal del cliente.',
+                        'info',
+                        'Servicio seleccionado'
+                      );
+                      navigate('/customer');
                     }}
                     className="w-full px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-colors shadow-xs"
                   >

@@ -49,6 +49,35 @@ export type ServiceItemInput = {
 export type OrderPriority = 'baja' | 'media' | 'alta' | 'urgente';
 
 export type OrderStatus = 'assigned' | 'in_progress' | 'paused' | 'completed' | 'cancelled';
+export type WorkMode = 'diagnosis' | 'direct';
+export type ServiceStatus = 'pending' | 'assigned' | 'en_route' | 'in_progress' | 'paused' | 'completed' | 'cancelled';
+export type QuoteStatus = 'none' | 'draft' | 'sent' | 'accepted' | 'rejected';
+export type PaymentStatus = 'pending' | 'deposit_paid' | 'balance_pending' | 'paid_in_full' | 'refunded';
+
+export interface QuoteItem {
+  id: string;
+  itemType: 'labor' | 'material';
+  description: string;
+  quantity: number;
+  unit: string;
+  unitPrice: number;
+  subtotal: number;
+}
+
+export interface OrderQuote {
+  id: string;
+  version: number;
+  status: Exclude<QuoteStatus, 'none'>;
+  notes?: string;
+  subtotalLabor: number;
+  subtotalMaterials: number;
+  totalAmount: number;
+  visitDepositCredit: number;
+  remainingAmount: number;
+  validUntil?: string;
+  sentAt?: string;
+  items: QuoteItem[];
+}
 
 export type OrderEventType =
   | 'assigned'
@@ -118,6 +147,15 @@ export interface ServiceOrder {
   serviceType: ServiceType;
   priority: OrderPriority;
   status: OrderStatus;
+  workMode?: WorkMode;
+  serviceStatus?: ServiceStatus;
+  quoteStatus?: QuoteStatus;
+  paymentStatus?: PaymentStatus;
+  visitDepositAmount?: number;
+  totalQuotedAmount?: number;
+  totalPaidAmount?: number;
+  extraAmount?: number;
+  quotes?: OrderQuote[];
   scheduledDate: string;
   createdAt: string;
   completedAt?: string;
@@ -139,6 +177,21 @@ export interface ServiceOrder {
   customerSignature: CustomerSignature | null;
   events: OrderEvent[];
 }
+
+/** Payload created from the customer portal before payment or technician assignment. */
+export type CustomerServiceRequestInput = {
+  title: string;
+  description: string;
+  serviceType: ServiceType;
+  priority: OrderPriority;
+  scheduledDate: string;
+  appointmentWindow: string;
+  address: string;
+  neighborhood: string;
+  workMode: WorkMode;
+  /** Informative catalog price. The payment endpoint must recalculate it server-side. */
+  requestedTotal?: number;
+};
 
 export interface Technician {
   id: string;
@@ -198,6 +251,7 @@ export interface CurrentUser {
   technicianId?: string;
   customerId?: string;
   avatarText: string;
+  avatarUrl?: string;
 }
 
 export type CurrentUserData = CurrentUser;

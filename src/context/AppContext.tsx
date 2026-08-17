@@ -21,10 +21,11 @@ import {
   requireTechnician,
   validateOrderCreationAccess,
   validateOrderModificationAccess,
-  validateCustomerOrderAccess,
+  validateCustomerSignatureAccess,
   validateTechnicianOrderAccess,
   validateTechnicianAssignmentAccess,
   validateOrderId,
+  requireCustomer,
   SecurityError,
 } from '../lib/securityValidations';
 import {
@@ -35,6 +36,7 @@ import {
   persistAssignTechnician,
   persistCreateAccountInvite,
   persistCreateCustomer,
+  persistCreateCustomerRequest,
   persistCreateMaterial,
   persistCreateOrder,
   persistCreateTechnician,
@@ -56,6 +58,7 @@ import { friendlyErrorMessage } from '../components/common/AppStatus';
 import {
   CurrentUserData,
   Customer,
+  CustomerServiceRequestInput,
   MaterialInventory,
   OrderEventType,
   OrderStatus,
@@ -118,6 +121,7 @@ interface AppContextType {
     scheduledDate: string;
     customChecklist?: string[];
   }) => string;
+  createCustomerRequest: (request: CustomerServiceRequestInput) => Promise<string>;
 
   updateOrder: (
     orderId: string,
@@ -1232,7 +1236,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const order = orders.find((o) => o.id === orderId);
     try {
       validateOrderId(orderId);
-      validateCustomerOrderAccess(currentUser, order);
+      validateCustomerSignatureAccess(currentUser, order);
     } catch (err) {
       const msg = err instanceof SecurityError ? err.message : 'No autorizado';
       showToast(msg, 'error', 'Seguridad');
@@ -1241,6 +1245,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     if (!signature.signerName.trim() || !signature.signatureDataUrl) {
       showToast('Debe ingresar el nombre del firmante y trazar la firma.', 'warning');
+      return false;
+    }
+
+    if (order.customerSignature?.signatureDataUrl) {
+      showToast('Esta orden ya cuenta con una firma de conformidad registrada.', 'warning');
       return false;
     }
 
@@ -1535,6 +1544,50 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setOrders((prev) => [newOrder, ...prev]);
     showToast(`Orden ${newId} generada exitosamente`, 'success', 'Nueva orden creada');
     return newId;
+  };
+
+  const createCustomerRequest = async (request: CustomerServiceRequestInput): Promise<string> => {
+    requireCustomer(currentUser);
+    if (!currentUser?.customerId) throw new SecurityError('Tu cuenta no está vinculada a un cliente.', 'CUSTOMER_LINK_REQUIRED');
+
+    const customer = customers.find((item) => item.id === currentUser.customerId);
+    if (!customer) throw new SecurityError('No se encontró tu perfil de cliente.', 'CUSTOMER_NOT_FOUND');
+
+    if (usingRemoteData) {
+      const created = await withRemote(() => persistCreateCustomerRequest({ request, customer }));
+      setOrders((previous) => [created, ...previous.filter((order) => order.id !== created.id)]);
+      return created.id;
+    }
+
+    const created: ServiceOrder = {
+      id: crypto.randomUUID(),
+      title: request.title.trim(),
+      description: `${request.description.trim()}\n\nDisponibilidad solicitada: ${request.appointmentWindow}`,
+      serviceType: request.serviceType,
+      priority: request.priority,
+      status: 'assigned',
+      serviceStatus: 'pending',
+      quoteStatus: 'none',
+      paymentStatus: 'pending',
+      workMode: request.workMode,
+      visitDepositAmount: request.workMode === 'diagnosis' ? 30000 : 0,
+      totalQuotedAmount: request.workMode === 'direct' ? request.requestedTotal ?? 0 : 0,
+      totalPaidAmount: 0,
+      extraAmount: 0,
+      scheduledDate: request.scheduledDate,
+      createdAt: new Date().toISOString(),
+      clientId: customer.id,
+      clientName: customer.name,
+      clientPhone: customer.phone,
+      clientAddress: request.address.trim(),
+      clientNeighborhood: request.neighborhood.trim() || customer.neighborhood,
+      assignedTechnicianId: null,
+      assignedTechnicianName: null,
+      checklist: [], timeLogs: [], technicalNotes: [], usedMaterials: [], customerSignature: null,
+      events: [],
+    };
+    setOrders((previous) => [created, ...previous]);
+    return created.id;
   };
 
   const addCustomer = (data: Omit<Customer, 'id'>): string => {
@@ -2029,6 +2082,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         showToast,
         hideToast,
         createOrder,
+        createCustomerRequest,
         updateOrder,
         deleteOrder,
         updateOrderStatus,

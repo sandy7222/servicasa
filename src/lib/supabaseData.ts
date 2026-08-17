@@ -32,6 +32,7 @@ export function profileToCurrentUser(profile: DbProfile): CurrentUserData {
     technicianId: profile.technician_id ?? undefined,
     customerId: profile.customer_id ?? undefined,
     avatarText: profile.avatar_text || profile.full_name.slice(0, 2).toUpperCase(),
+    avatarUrl: profile.avatar_url ?? undefined,
   };
 }
 
@@ -94,6 +95,14 @@ export function mapOrder(
     serviceType: row.service_type as ServiceType,
     priority: row.priority as OrderPriority,
     status: row.status as OrderStatus,
+    workMode: row.work_mode ?? undefined,
+    serviceStatus: row.service_status as ServiceOrder['serviceStatus'],
+    quoteStatus: row.quote_status as ServiceOrder['quoteStatus'],
+    paymentStatus: row.payment_status as ServiceOrder['paymentStatus'],
+    visitDepositAmount: row.visit_deposit_amount == null ? undefined : Number(row.visit_deposit_amount),
+    totalQuotedAmount: row.total_quoted_amount == null ? undefined : Number(row.total_quoted_amount),
+    totalPaidAmount: row.total_paid_amount == null ? undefined : Number(row.total_paid_amount),
+    extraAmount: row.extra_amount == null ? undefined : Number(row.extra_amount),
     scheduledDate: row.scheduled_date,
     createdAt: row.created_at,
     completedAt: row.completed_at ?? undefined,
@@ -118,7 +127,7 @@ export function mapOrder(
 export async function fetchProfile(userId: string): Promise<DbProfile | null> {
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, full_name, email, role, avatar_text, technician_id, customer_id')
+    .select('id, full_name, email, role, avatar_text, avatar_url, technician_id, customer_id')
     .eq('id', userId)
     .maybeSingle();
 

@@ -120,6 +120,13 @@ const AppContent: React.FC = () => {
           </Protected>
         );
       default:
+        if (pathOnly.startsWith('/customer/orders/')) {
+          return (
+            <Protected roles={['admin', 'customer']}>
+              <CustomerView />
+            </Protected>
+          );
+        }
         if (pathOnly.startsWith('/services-category/')) {
           return <ServicesCategoryView />;
         }

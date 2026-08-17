@@ -14,6 +14,8 @@ import {
   ShieldCheck,
   Calendar,
   AlertCircle,
+  ChevronRight,
+  ArrowLeft,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useApp } from '../context/AppContext';
@@ -21,9 +23,11 @@ import { PriorityBadge, ServiceBadge, StatusBadge } from '../components/common/B
 import { SignaturePad } from '../components/common/SignaturePad';
 import { ServiceOrder } from '../types';
 import { formatElapsedTime, getOrderElapsedSeconds } from '../lib/workTimer';
+import { CustomerProfilePanel } from '../components/client/CustomerProfilePanel';
+import { ServiceRequestForm } from '../components/client/ServiceRequestForm';
 
 export const CustomerView: React.FC = () => {
-  const { orders, currentUser, saveCustomerSignature, showToast } = useApp();
+  const { orders, currentUser, saveCustomerSignature, showToast, currentPath, navigate } = useApp();
 
   const customerId = currentUser?.customerId || '';
   const customerOrders = orders.filter((o) => o.clientId === customerId);
@@ -38,8 +42,11 @@ export const CustomerView: React.FC = () => {
     return () => window.clearInterval(interval);
   }, []);
 
-  const activeOrder =
-    customerOrders.find((o) => o.id === selectedOrderId) || customerOrders[0];
+  const orderIdFromPath = currentPath.match(/^\/customer\/orders\/([^/?]+)/)?.[1];
+  const isDetailPage = Boolean(orderIdFromPath);
+  const activeOrder = isDetailPage
+    ? customerOrders.find((order) => order.id === orderIdFromPath)
+    : customerOrders.find((order) => order.id === selectedOrderId) || customerOrders[0];
 
   const completedChecklistCount = activeOrder?.checklist.filter((item) => item.completed).length ?? 0;
   const checklistTotal = activeOrder?.checklist.length ?? 0;
@@ -94,6 +101,12 @@ export const CustomerView: React.FC = () => {
       </div>
 
       <main className="max-w-7xl mx-auto px-3 sm:px-5 lg:px-6 pt-4">
+        {!isDetailPage && <><CustomerProfilePanel /><div className="h-4" /><ServiceRequestForm /><div className="h-4" /></>}
+        {isDetailPage && (
+          <button type="button" onClick={() => navigate('/customer')} className="mb-4 inline-flex items-center gap-1.5 text-xs font-bold text-teal-700 hover:text-teal-800">
+            <ArrowLeft className="w-4 h-4" /> Volver a mis servicios
+          </button>
+        )}
         {customerOrders.length === 0 ? (
           <div className="bg-white rounded-xl p-8 border border-slate-200 text-center max-w-md mx-auto mt-4 shadow-xs">
             <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center mx-auto mb-2.5">
@@ -104,28 +117,28 @@ export const CustomerView: React.FC = () => {
               Actualmente no tenés órdenes asociadas a esta cuenta demo.
             </p>
           </div>
+        ) : isDetailPage && !activeOrder ? (
+          <div className="bg-white rounded-xl p-8 border border-slate-200 text-center max-w-md mx-auto shadow-xs">
+            <AlertCircle className="w-6 h-6 text-amber-500 mx-auto mb-2" />
+            <h2 className="text-sm font-bold text-slate-900">No encontramos ese servicio</h2>
+            <p className="text-xs text-slate-500 mt-1">Puede que no pertenezca a tu cuenta o que ya no esté disponible.</p>
+          </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          <div className={`grid grid-cols-1 gap-4 ${isDetailPage ? '' : 'lg:grid-cols-12'}`}>
             {/* Left Column: My Orders List (4 cols) */}
-            <div className="lg:col-span-4 space-y-2">
+            {!isDetailPage && <div className="lg:col-span-4 space-y-2">
               <h2 className="text-[11px] font-bold uppercase tracking-wider text-slate-500 font-mono px-1">
                 Mis Servicios a Domicilio ({customerOrders.length})
               </h2>
 
               <div className="space-y-2">
                 {customerOrders.map((ord) => {
-                  const isSelected = activeOrder?.id === ord.id;
-                  const hasSigned = !ord.customerSignature;
-
                   return (
-                    <div
+                    <button
+                      type="button"
                       key={ord.id}
-                      onClick={() => setSelectedOrderId(ord.id)}
-                      className={`p-3 rounded-xl border cursor-pointer transition-all ${
-                        isSelected
-                          ? 'bg-white border-teal-500 shadow-xs ring-1 ring-teal-500/20'
-                          : 'bg-white border-slate-200 hover:bg-slate-50 hover:border-slate-300'
-                      }`}
+                      onClick={() => navigate(`/customer/orders/${encodeURIComponent(ord.id)}`)}
+                      className="w-full p-3 rounded-xl border cursor-pointer transition-all text-left bg-white border-slate-200 hover:bg-slate-50 hover:border-teal-400 hover:shadow-xs"
                     >
                       <div className="flex items-center justify-between gap-1.5 mb-1">
                         <span className="font-mono text-[11px] font-bold text-slate-800 bg-slate-100 px-1.5 py-0.2 rounded border border-slate-200">
@@ -152,16 +165,17 @@ export const CustomerView: React.FC = () => {
                             </span>
                           )}
                         </div>
+                        <div className="mt-2 inline-flex items-center gap-1 text-[11px] font-bold text-teal-700">Ver detalle y seguimiento <ChevronRight className="w-3.5 h-3.5" /></div>
                       </div>
-                    </div>
+                    </button>
                   );
                 })}
               </div>
-            </div>
+            </div>}
 
             {/* Right Column: Service Summary & Signature Area (8 cols) */}
-            {activeOrder && (
-              <div className="lg:col-span-8 space-y-3">
+            {isDetailPage && activeOrder && (
+              <div className="lg:col-span-12 max-w-4xl mx-auto w-full space-y-3">
                 {/* Header card */}
                 <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-xs space-y-3">
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 pb-3 border-b border-slate-100">

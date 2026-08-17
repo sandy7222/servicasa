@@ -23,6 +23,7 @@ export type DbProfile = {
   email: string;
   role: UserRole;
   avatar_text: string | null;
+  avatar_url?: string | null;
   technician_id: string | null;
   customer_id: string | null;
 };
@@ -81,4 +82,12 @@ export type DbServiceOrder = {
   client_neighborhood: string;
   assigned_technician_id: string | null;
   assigned_technician_name: string | null;
+  work_mode?: 'diagnosis' | 'direct' | null;
+  service_status?: string | null;
+  quote_status?: string | null;
+  payment_status?: string | null;
+  visit_deposit_amount?: number | null;
+  total_quoted_amount?: number | null;
+  total_paid_amount?: number | null;
+  extra_amount?: number | null;
 };
