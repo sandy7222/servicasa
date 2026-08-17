@@ -28,6 +28,7 @@ import { useApp } from '../context/AppContext';
 import { PriorityBadge, ServiceBadge, StatusBadge } from '../components/common/Badge';
 import { SignaturePad } from '../components/common/SignaturePad';
 import { ServiceOrder } from '../types';
+import { formatElapsedTime, getOrderElapsedSeconds } from '../lib/workTimer';
 
 export const TechnicianView: React.FC = () => {
   const {
@@ -84,21 +85,16 @@ export const TechnicianView: React.FC = () => {
     return () => window.clearInterval(interval);
   }, []);
 
-  const formatStopwatch = (totalSec: number) => {
-    const hrs = Math.floor(totalSec / 3600);
-    const mins = Math.floor((totalSec % 3600) / 60);
-    const secs = totalSec % 60;
-    return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-  };
+  const getElapsedSeconds = (order: ServiceOrder) => getOrderElapsedSeconds(order, clockNow);
+  const formatStopwatch = formatElapsedTime;
 
-  const getElapsedSeconds = (order: ServiceOrder) => {
-    const accumulated = order.workElapsedSeconds ?? 0;
-    if (order.status !== 'in_progress' || !order.workStartedAt) return accumulated;
-
-    const startedAt = new Date(order.workStartedAt).getTime();
-    if (Number.isNaN(startedAt)) return accumulated;
-    return accumulated + Math.max(0, Math.floor((clockNow - startedAt) / 1000));
-  };
+  // Orders that were already in progress before the persistent timer existed
+  // receive their start timestamp at the first opening after this upgrade.
+  useEffect(() => {
+    if (activeOrder?.status === 'in_progress' && !activeOrder.workStartedAt) {
+      updateOrderStatus(activeOrder.id, 'in_progress');
+    }
+  }, [activeOrder?.id, activeOrder?.status, activeOrder?.workStartedAt]);
 
   const handleStartOrResumeService = (order: ServiceOrder) => {
     updateOrderStatus(order.id, 'in_progress');

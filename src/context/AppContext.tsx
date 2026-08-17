@@ -418,6 +418,41 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   }, []);
 
+  // Refresh operational data immediately when another user changes an order.
+  // The database publication is enabled separately in Supabase for these tables.
+  useEffect(() => {
+    if (!usingRemoteData || !isSupabaseConfigured) return;
+
+    let refreshTimeout: number | undefined;
+    const refreshCatalog = () => {
+      if (refreshTimeout) window.clearTimeout(refreshTimeout);
+      refreshTimeout = window.setTimeout(() => {
+        void withRemote(async () => {
+          const catalog = await fetchCatalog();
+          setTechnicians(catalog.technicians);
+          setCustomers(catalog.customers);
+          setMaterials(catalog.materials);
+          setOrders(catalog.orders);
+        }).catch((err) => console.error('[ServiCasa] Realtime refresh failed', err));
+      }, 250);
+    };
+
+    const channel = supabase
+      .channel('servicasa-operational-live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'service_orders' }, refreshCatalog)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'order_checklist_items' }, refreshCatalog)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'order_time_logs' }, refreshCatalog)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'order_materials_used' }, refreshCatalog)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'order_events' }, refreshCatalog)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'order_signatures' }, refreshCatalog)
+      .subscribe();
+
+    return () => {
+      if (refreshTimeout) window.clearTimeout(refreshTimeout);
+      void supabase.removeChannel(channel);
+    };
+  }, [usingRemoteData]);
+
   // Sync with browser hash routing
   useEffect(() => {
     const handleHashChange = () => {
@@ -664,8 +699,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const currentStatus = order.status;
 
-    // No-op if same status
-    if (currentStatus === newStatus) {
+    // No-op if same status, except legacy in-progress orders that do not yet
+    // have the persistent timer start timestamp.
+    const needsTimerRecovery =
+      currentStatus === 'in_progress' && newStatus === 'in_progress' && !order.workStartedAt;
+    if (currentStatus === newStatus && !needsTimerRecovery) {
       return { success: true, message: `La orden ya está en estado ${newStatus}.` };
     }
 
@@ -731,7 +769,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     let eventDescription = `Estado cambiado a ${newStatus}`;
 
     if (newStatus === 'in_progress') {
-      if (currentStatus === 'paused') {
+      if (needsTimerRecovery) {
+        eventType = 'started';
+        eventDescription = 'Cronómetro de trabajo sincronizado para una orden en curso.';
+      } else if (currentStatus === 'paused') {
         eventType = 'resumed';
         eventDescription = 'Trabajo en campo reanudado por el técnico.';
       } else {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   UserCheck,
   CheckCircle2,
@@ -20,6 +20,7 @@ import { useApp } from '../context/AppContext';
 import { PriorityBadge, ServiceBadge, StatusBadge } from '../components/common/Badge';
 import { SignaturePad } from '../components/common/SignaturePad';
 import { ServiceOrder } from '../types';
+import { formatElapsedTime, getOrderElapsedSeconds } from '../lib/workTimer';
 
 export const CustomerView: React.FC = () => {
   const { orders, currentUser, saveCustomerSignature, showToast } = useApp();
@@ -30,6 +31,12 @@ export const CustomerView: React.FC = () => {
   const [selectedOrderId, setSelectedOrderId] = useState<string>(() => {
     return customerOrders[0]?.id || '';
   });
+  const [clockNow, setClockNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const interval = window.setInterval(() => setClockNow(Date.now()), 1000);
+    return () => window.clearInterval(interval);
+  }, []);
 
   const activeOrder =
     customerOrders.find((o) => o.id === selectedOrderId) || customerOrders[0];
@@ -205,13 +212,19 @@ export const CustomerView: React.FC = () => {
                         </h3>
                       </div>
                       <span className="font-mono text-xs font-bold text-teal-700">
-                        {activeOrder.timeLogs.reduce((acc, curr) => acc + curr.minutes, 0)} min total
+                        {formatElapsedTime(getOrderElapsedSeconds(activeOrder, clockNow))}
                       </span>
                     </div>
 
+                    <p className="text-[10px] text-teal-700 font-medium">
+                      {activeOrder.status === 'in_progress' ? 'El técnico se encuentra trabajando en este momento.' : 'Tiempo acumulado del servicio.'}
+                    </p>
+
                     {activeOrder.timeLogs.length === 0 ? (
                       <p className="text-xs text-slate-400 italic py-1">
-                        El técnico aún no ha cargado registros de tiempo.
+                        {getOrderElapsedSeconds(activeOrder, clockNow) > 0
+                          ? 'El cronómetro del servicio se actualiza automáticamente.'
+                          : 'El técnico aún no inició el cronómetro del servicio.'}
                       </p>
                     ) : (
                       <div className="space-y-1.5">

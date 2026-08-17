@@ -41,6 +41,7 @@ import { useApp } from '../context/AppContext';
 import { PriorityBadge, ServiceBadge, StatusBadge } from '../components/common/Badge';
 import { Timeline } from '../components/common/Timeline';
 import { EntityActionsMenu } from '../components/common/EntityActionsMenu';
+import { formatElapsedTime, getOrderElapsedSeconds } from '../lib/workTimer';
 import {
   OrderPriority,
   OrderStatus,
@@ -192,6 +193,12 @@ export const AdminHubView: React.FC = () => {
   const [techFilter, setTechFilter] = useState<string>('all');
   const [serviceFilter, setServiceFilter] = useState<string>('all');
   const [quickFilter, setQuickFilter] = useState<OrderQuickFilter>('all');
+  const [clockNow, setClockNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const interval = window.setInterval(() => setClockNow(Date.now()), 1000);
+    return () => window.clearInterval(interval);
+  }, []);
 
   // Modals state
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
@@ -2208,6 +2215,21 @@ export const AdminHubView: React.FC = () => {
                   <ServiceBadge service={selectedOrder.serviceType} size="sm" />
                 </div>
               </div>
+            </div>
+
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-teal-200 bg-teal-50 px-4 py-3 text-xs">
+              <div className="flex items-center gap-2 text-teal-950">
+                <Clock className="w-4 h-4 text-teal-700" />
+                <div>
+                  <div className="font-bold">Tiempo operativo del servicio</div>
+                  <div className="text-[10px] text-teal-800">
+                    {selectedOrder.status === 'in_progress' ? 'El técnico está trabajando en este momento.' : 'Tiempo acumulado hasta la última pausa o finalización.'}
+                  </div>
+                </div>
+              </div>
+              <span className="font-mono font-black text-teal-900 text-sm">
+                {formatElapsedTime(getOrderElapsedSeconds(selectedOrder, clockNow))}
+              </span>
             </div>
 
             {/* Checklist progress */}
