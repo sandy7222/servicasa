@@ -25,6 +25,8 @@ import { ServiceOrder } from '../types';
 import { formatElapsedTime, getOrderElapsedSeconds } from '../lib/workTimer';
 import { CustomerProfilePanel } from '../components/client/CustomerProfilePanel';
 import { ServiceRequestForm } from '../components/client/ServiceRequestForm';
+import { QuoteViewer } from '../components/client/QuoteViewer';
+import { AssignedTechnicianCard } from '../components/client/AssignedTechnicianCard';
 
 export const CustomerView: React.FC = () => {
   const { orders, currentUser, saveCustomerSignature, showToast, currentPath, navigate } = useApp();
@@ -218,6 +220,17 @@ export const CustomerView: React.FC = () => {
                     </div>
                   </div>
                 </div>
+
+                {activeOrder.adminIncidentStatus === 'open' && (
+                  <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950">
+                    <div className="font-bold flex items-center gap-1.5"><AlertCircle className="w-4 h-4" /> Servicio en revisión por ServiCasa</div>
+                    <p className="mt-1">{activeOrder.adminIncidentReason || 'Estamos revisando una incidencia de esta orden.'}</p>
+                  </div>
+                )}
+
+                <AssignedTechnicianCard technicianId={activeOrder.assignedTechnicianId} />
+
+                <QuoteViewer order={activeOrder} />
 
                 {/* Read-only work progress: lets the customer follow the agreed service transparently. */}
                 <section className="bg-white rounded-xl p-4 border border-slate-200 shadow-xs space-y-3" aria-label="Progreso del trabajo técnico">

@@ -450,7 +450,6 @@ export async function persistUpdateOrder(input: {
   description: string;
   serviceType: ServiceType;
   priority: OrderPriority;
-  status: OrderStatus;
   scheduledDate: string;
   customer: Customer;
   technician?: { id: string; name: string } | null;
@@ -468,7 +467,6 @@ export async function persistUpdateOrder(input: {
       description: input.description,
       service_type: input.serviceType,
       priority: input.priority,
-      status: input.status,
       scheduled_date: scheduled,
       customer_id: input.customer.id,
       client_name: input.customer.name,
@@ -477,7 +475,6 @@ export async function persistUpdateOrder(input: {
       client_neighborhood: input.customer.neighborhood,
       assigned_technician_id: input.technician?.id ?? null,
       assigned_technician_name: input.technician?.name ?? null,
-      completed_at: input.status === 'completed' ? new Date().toISOString() : null,
     })
     .eq('id', input.orderId);
   throwIfError(error);
@@ -498,6 +495,74 @@ export async function persistUpdateOrder(input: {
 export async function persistDeleteOrder(orderId: string) {
   const { error } = await supabase.from('service_orders').delete().eq('id', orderId);
   throwIfError(error);
+}
+
+export async function persistAdminCancelOrder(input: { orderId: string; reason: string; author: string; actorProfileId?: string; workElapsedSeconds: number }) {
+  const now = new Date().toISOString();
+  const { error } = await supabase.from('service_orders').update({
+    status: 'cancelled', cancellation_reason: input.reason, cancelled_at: now,
+    cancelled_by: input.actorProfileId ?? null, work_started_at: null,
+    work_elapsed_seconds: input.workElapsedSeconds,
+  }).eq('id', input.orderId);
+  throwIfError(error);
+  const { error: eventError } = await supabase.from('order_events').insert({
+    order_id: input.orderId, type: 'cancelled',
+    description: `Cancelación administrativa. Motivo: ${input.reason}`, author: input.author,
+  });
+  throwIfError(eventError);
+}
+
+export async function persistAdminIncident(input: { orderId: string; reason: string; author: string; actorProfileId?: string; pauseSettlements: boolean }) {
+  const now = new Date().toISOString();
+  const { error } = await supabase.from('service_orders').update({
+    admin_incident_status: 'open', admin_incident_reason: input.reason,
+    admin_incident_opened_at: now, admin_incident_opened_by: input.actorProfileId ?? null,
+    admin_incident_resolved_at: null, admin_incident_resolved_by: null,
+  }).eq('id', input.orderId);
+  throwIfError(error);
+  if (input.pauseSettlements) {
+    const { error: settlementError } = await supabase.from('technician_settlements')
+      .update({ status: 'in_review', dispute_reason: input.reason })
+      .eq('order_id', input.orderId)
+      .in('status', ['pending_release', 'released', 'scheduled']);
+    throwIfError(settlementError);
+  }
+  const { error: eventError } = await supabase.from('order_events').insert({
+    order_id: input.orderId, type: 'note_added',
+    description: `Incidencia abierta por administración${input.pauseSettlements ? ' y liquidación puesta en revisión' : ''}. Motivo: ${input.reason}`,
+    author: input.author,
+  });
+  throwIfError(eventError);
+}
+
+export async function persistResolveAdminIncident(input: { orderId: string; author: string; actorProfileId?: string }) {
+  const now = new Date().toISOString();
+  const { error } = await supabase.from('service_orders').update({
+    admin_incident_status: 'resolved', admin_incident_resolved_at: now,
+    admin_incident_resolved_by: input.actorProfileId ?? null,
+  }).eq('id', input.orderId);
+  throwIfError(error);
+  const { error: eventError } = await supabase.from('order_events').insert({
+    order_id: input.orderId, type: 'note_added',
+    description: 'Incidencia resuelta por administración. Las liquidaciones retenidas requieren revisión administrativa antes de liberarse.',
+    author: input.author,
+  });
+  throwIfError(eventError);
+}
+
+export async function persistAdminExceptionalClose(input: { orderId: string; reason: string; author: string; actorProfileId?: string; workElapsedSeconds: number }) {
+  const now = new Date().toISOString();
+  const { error } = await supabase.from('service_orders').update({
+    status: 'completed', completed_at: now, work_started_at: null,
+    work_elapsed_seconds: input.workElapsedSeconds, admin_exception_reason: input.reason,
+    admin_exception_closed_at: now, admin_exception_closed_by: input.actorProfileId ?? null,
+  }).eq('id', input.orderId);
+  throwIfError(error);
+  const { error: eventError } = await supabase.from('order_events').insert({
+    order_id: input.orderId, type: 'completed',
+    description: `Cierre excepcional realizado por administración. Motivo: ${input.reason}`, author: input.author,
+  });
+  throwIfError(eventError);
 }
 
 export async function persistUpdateOrderStatus(input: {

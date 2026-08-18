@@ -33,6 +33,10 @@ import {
   persistAddNote,
   persistAddTimeLog,
   persistAddUsedMaterial,
+  persistAdminCancelOrder,
+  persistAdminExceptionalClose,
+  persistAdminIncident,
+  persistResolveAdminIncident,
   persistAssignTechnician,
   persistCreateAccountInvite,
   persistCreateCustomer,
@@ -55,6 +59,7 @@ import {
   persistUpdateTechnician,
 } from '../lib/supabaseMutations';
 import { friendlyErrorMessage } from '../components/common/AppStatus';
+import { canExecutePaidWork } from '../lib/workTimer';
 import {
   CurrentUserData,
   Customer,
@@ -130,7 +135,6 @@ interface AppContextType {
       description: string;
       serviceType: ServiceType;
       priority: OrderPriority;
-      status: OrderStatus;
       clientId: string;
       assignedTechnicianId?: string | null;
       scheduledDate: string;
@@ -138,6 +142,10 @@ interface AppContextType {
   ) => void;
 
   deleteOrder: (orderId: string) => void;
+  cancelOrderAsAdmin: (orderId: string, reason: string) => void;
+  reportOrderIncident: (orderId: string, reason: string, pauseSettlements: boolean) => void;
+  resolveOrderIncident: (orderId: string) => void;
+  closeOrderExceptionally: (orderId: string, reason: string) => void;
   
   updateOrderStatus: (
     orderId: string,
@@ -449,6 +457,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       .on('postgres_changes', { event: '*', schema: 'public', table: 'order_materials_used' }, refreshCatalog)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'order_events' }, refreshCatalog)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'order_signatures' }, refreshCatalog)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'order_quotes' }, refreshCatalog)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'order_quote_items' }, refreshCatalog)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'order_diagnosis_photos' }, refreshCatalog)
       .subscribe();
 
     return () => {
@@ -733,6 +744,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return { success: false, message: msg };
     }
 
+    if (newStatus === 'in_progress' && !canExecutePaidWork(order)) {
+      const msg = order.workMode === 'diagnosis'
+        ? 'El cronómetro se habilita al aceptar el presupuesto y confirmarse el pago.'
+        : 'El cronómetro se habilita cuando se confirme el pago completo.';
+      showToast(msg, 'warning', 'Pago pendiente');
+      return { success: false, message: msg };
+    }
+
     // Validate specific transitions:
     if (currentStatus === 'assigned' && newStatus !== 'in_progress' && newStatus !== 'cancelled') {
       const msg = `Una orden asignada debe iniciarse primero (in_progress) antes de cambiar a ${newStatus}.`;
@@ -868,6 +887,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const tech = technicians.find((t) => t.id === technicianId);
     if (!tech) return;
+    if (usingRemoteData && (tech.validationStatus !== 'approved' || !tech.canReceiveOrders)) {
+      showToast('Este técnico todavía no está habilitado para recibir órdenes.', 'warning', 'Validación pendiente');
+      return;
+    }
 
     const newEvent = {
       id: `ev-${Date.now()}`,
@@ -1307,7 +1330,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       description: string;
       serviceType: ServiceType;
       priority: OrderPriority;
-      status: OrderStatus;
       clientId: string;
       assignedTechnicianId?: string | null;
       scheduledDate: string;
@@ -1342,7 +1364,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 description: patch.description,
                 serviceType: patch.serviceType,
                 priority: patch.priority,
-                status: patch.status,
                 scheduledDate: patch.scheduledDate,
                 clientId: client.id,
                 clientName: client.name,
@@ -1351,7 +1372,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 clientNeighborhood: client.neighborhood,
                 assignedTechnicianId: tech?.id ?? null,
                 assignedTechnicianName: tech?.name ?? null,
-                completedAt: patch.status === 'completed' ? o.completedAt || formatNow() : undefined,
               }
             : o
         )
@@ -1367,7 +1387,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             description: patch.description,
             serviceType: patch.serviceType,
             priority: patch.priority,
-            status: patch.status,
             scheduledDate: patch.scheduledDate,
             customer: client,
             technician: tech ? { id: tech.id, name: tech.name } : null,
@@ -1415,6 +1434,77 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setOrders((prev) => prev.filter((o) => o.id !== orderId));
     showToast('Orden eliminada', 'success');
   };
+
+  const adminOrderAction = (orderId: string, reason: string, action: 'cancel' | 'incident' | 'resolve_incident' | 'exceptional_close', pauseSettlements = false) => {
+    try {
+      requireAdmin(currentUser);
+      validateOrderId(orderId);
+    } catch (err) {
+      showToast(err instanceof SecurityError ? err.message : 'No autorizado', 'error', 'Seguridad');
+      return;
+    }
+    const order = orders.find((item) => item.id === orderId);
+    if (!order) return;
+    const cleanedReason = reason.trim();
+    if (action !== 'resolve_incident' && cleanedReason.length < 8) {
+      showToast('Ingresá un motivo de al menos 8 caracteres.', 'warning', 'Motivo requerido');
+      return;
+    }
+    if ((action === 'cancel' || action === 'exceptional_close') && ['completed', 'cancelled'].includes(order.status)) {
+      showToast('Esta acción no está disponible para una orden cerrada o cancelada.', 'warning');
+      return;
+    }
+    const now = new Date();
+    const elapsed = (order.workElapsedSeconds ?? 0) + (order.workStartedAt ? Math.max(0, Math.floor((now.getTime() - new Date(order.workStartedAt).getTime()) / 1000)) : 0);
+    const event = {
+      id: `ev-admin-${Date.now()}`,
+      type: (action === 'cancel' ? 'cancelled' : action === 'exceptional_close' ? 'completed' : 'note_added') as OrderEventType,
+      description: action === 'cancel'
+        ? `Cancelación administrativa. Motivo: ${cleanedReason}`
+        : action === 'exceptional_close'
+          ? `Cierre excepcional realizado por administración. Motivo: ${cleanedReason}`
+          : action === 'incident'
+            ? `Incidencia abierta por administración${pauseSettlements ? ' y liquidación puesta en revisión' : ''}. Motivo: ${cleanedReason}`
+            : 'Incidencia resuelta por administración. Las liquidaciones retenidas requieren revisión administrativa antes de liberarse.',
+      timestamp: now.toISOString(), author: currentUser?.name ?? 'Administración',
+    };
+    setOrders((previous) => previous.map((item) => item.id !== orderId ? item : {
+      ...item,
+      status: action === 'cancel' ? 'cancelled' : action === 'exceptional_close' ? 'completed' : item.status,
+      completedAt: action === 'exceptional_close' ? now.toISOString() : item.completedAt,
+      workStartedAt: action === 'cancel' || action === 'exceptional_close' ? undefined : item.workStartedAt,
+      workElapsedSeconds: action === 'cancel' || action === 'exceptional_close' ? elapsed : item.workElapsedSeconds,
+      cancellationReason: action === 'cancel' ? cleanedReason : item.cancellationReason,
+      cancelledAt: action === 'cancel' ? now.toISOString() : item.cancelledAt,
+      adminIncidentStatus: action === 'incident' ? 'open' : action === 'resolve_incident' ? 'resolved' : item.adminIncidentStatus,
+      adminIncidentReason: action === 'incident' ? cleanedReason : item.adminIncidentReason,
+      adminIncidentOpenedAt: action === 'incident' ? now.toISOString() : item.adminIncidentOpenedAt,
+      adminIncidentResolvedAt: action === 'resolve_incident' ? now.toISOString() : item.adminIncidentResolvedAt,
+      adminExceptionReason: action === 'exceptional_close' ? cleanedReason : item.adminExceptionReason,
+      adminExceptionClosedAt: action === 'exceptional_close' ? now.toISOString() : item.adminExceptionClosedAt,
+      events: [event, ...item.events],
+    }));
+    if (usingRemoteData) {
+      void withRemote(async () => {
+        const common = { orderId, author: currentUser?.name ?? 'Administración', actorProfileId: currentUser?.id };
+        if (action === 'cancel') await persistAdminCancelOrder({ ...common, reason: cleanedReason, workElapsedSeconds: elapsed });
+        if (action === 'incident') await persistAdminIncident({ ...common, reason: cleanedReason, pauseSettlements });
+        if (action === 'resolve_incident') await persistResolveAdminIncident(common);
+        if (action === 'exceptional_close') await persistAdminExceptionalClose({ ...common, reason: cleanedReason, workElapsedSeconds: elapsed });
+      }).catch((err) => showToast(friendlyErrorMessage(err, 'No se pudo guardar la acción administrativa'), 'error'));
+    }
+    showToast(
+      action === 'cancel' ? 'Orden cancelada y novedad registrada para cliente y técnico.'
+        : action === 'incident' ? 'Incidencia registrada. Cliente y técnico la verán en la orden.'
+          : action === 'resolve_incident' ? 'Incidencia marcada como resuelta.' : 'Orden cerrada excepcionalmente con motivo registrado.',
+      'success', 'Acción administrativa'
+    );
+  };
+
+  const cancelOrderAsAdmin = (orderId: string, reason: string) => adminOrderAction(orderId, reason, 'cancel');
+  const reportOrderIncident = (orderId: string, reason: string, pauseSettlements: boolean) => adminOrderAction(orderId, reason, 'incident', pauseSettlements);
+  const resolveOrderIncident = (orderId: string) => adminOrderAction(orderId, '', 'resolve_incident');
+  const closeOrderExceptionally = (orderId: string, reason: string) => adminOrderAction(orderId, reason, 'exceptional_close');
 
   const createOrder = (data: {
     title: string;
@@ -2085,6 +2175,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         createCustomerRequest,
         updateOrder,
         deleteOrder,
+        cancelOrderAsAdmin,
+        reportOrderIncident,
+        resolveOrderIncident,
+        closeOrderExceptionally,
         updateOrderStatus,
         assignTechnician,
         toggleChecklistItem,

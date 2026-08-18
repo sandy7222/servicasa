@@ -53,15 +53,18 @@ export type WorkMode = 'diagnosis' | 'direct';
 export type ServiceStatus = 'pending' | 'assigned' | 'en_route' | 'in_progress' | 'paused' | 'completed' | 'cancelled';
 export type QuoteStatus = 'none' | 'draft' | 'sent' | 'accepted' | 'rejected';
 export type PaymentStatus = 'pending' | 'deposit_paid' | 'balance_pending' | 'paid_in_full' | 'refunded';
+export type AdminIncidentStatus = 'none' | 'open' | 'resolved';
 
 export interface QuoteItem {
   id: string;
+  categoryId?: string;
   itemType: 'labor' | 'material';
   description: string;
   quantity: number;
   unit: string;
   unitPrice: number;
   subtotal: number;
+  notes?: string;
 }
 
 export interface OrderQuote {
@@ -155,6 +158,14 @@ export interface ServiceOrder {
   totalQuotedAmount?: number;
   totalPaidAmount?: number;
   extraAmount?: number;
+  cancellationReason?: string;
+  cancelledAt?: string;
+  adminIncidentStatus?: AdminIncidentStatus;
+  adminIncidentReason?: string;
+  adminIncidentOpenedAt?: string;
+  adminIncidentResolvedAt?: string;
+  adminExceptionReason?: string;
+  adminExceptionClosedAt?: string;
   quotes?: OrderQuote[];
   scheduledDate: string;
   createdAt: string;
@@ -207,6 +218,17 @@ export interface Technician {
   province: string;
   profileId?: string | null;
   customerId?: string | null;
+  workPhone?: string;
+  bio?: string;
+  educationLevel?: 'idoneo' | 'curso_certificado' | 'tecnico' | 'tecnico_superior' | 'ingeniero' | 'otro';
+  degreeTitle?: string;
+  institutionName?: string;
+  publicAvatarPath?: string;
+  validationStatus?: 'pending' | 'approved' | 'observed' | 'suspended';
+  validationNotes?: string;
+  isEnabled?: boolean;
+  canReceiveOrders?: boolean;
+  isAvailable?: boolean;
 }
 
 export type TechnicianInput = {

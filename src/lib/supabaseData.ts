@@ -19,6 +19,7 @@ import type {
   DbMaterial,
   DbProfile,
   DbServiceOrder,
+  DbOrderQuote,
   DbTechnician,
 } from './supabase';
 import { supabase } from './supabase';
@@ -50,6 +51,17 @@ export function mapTechnician(row: DbTechnician): Technician {
     zone: row.zone ?? '',
     province: row.province ?? '',
     profileId: row.profile_id ?? null,
+    workPhone: row.work_phone ?? undefined,
+    bio: row.bio ?? undefined,
+    educationLevel: row.education_level ?? undefined,
+    degreeTitle: row.degree_title ?? undefined,
+    institutionName: row.institution_name ?? undefined,
+    publicAvatarPath: row.public_avatar_path ?? undefined,
+    validationStatus: row.validation_status ?? undefined,
+    validationNotes: row.validation_notes ?? undefined,
+    isEnabled: row.is_enabled ?? undefined,
+    canReceiveOrders: row.can_receive_orders ?? false,
+    isAvailable: row.is_available ?? undefined,
   };
 }
 
@@ -84,8 +96,9 @@ export function mapOrder(
     timeLogs?: TimeLog[];
     technicalNotes?: TechnicalNote[];
     usedMaterials?: UsedMaterial[];
-    customerSignature?: ServiceOrder['customerSignature'];
+  customerSignature?: ServiceOrder['customerSignature'];
     events?: OrderEvent[];
+    quotes?: ServiceOrder['quotes'];
   }
 ): ServiceOrder {
   return {
@@ -103,6 +116,14 @@ export function mapOrder(
     totalQuotedAmount: row.total_quoted_amount == null ? undefined : Number(row.total_quoted_amount),
     totalPaidAmount: row.total_paid_amount == null ? undefined : Number(row.total_paid_amount),
     extraAmount: row.extra_amount == null ? undefined : Number(row.extra_amount),
+    cancellationReason: row.cancellation_reason ?? undefined,
+    cancelledAt: row.cancelled_at ?? undefined,
+    adminIncidentStatus: row.admin_incident_status ?? 'none',
+    adminIncidentReason: row.admin_incident_reason ?? undefined,
+    adminIncidentOpenedAt: row.admin_incident_opened_at ?? undefined,
+    adminIncidentResolvedAt: row.admin_incident_resolved_at ?? undefined,
+    adminExceptionReason: row.admin_exception_reason ?? undefined,
+    adminExceptionClosedAt: row.admin_exception_closed_at ?? undefined,
     scheduledDate: row.scheduled_date,
     createdAt: row.created_at,
     completedAt: row.completed_at ?? undefined,
@@ -121,6 +142,7 @@ export function mapOrder(
     usedMaterials: extras?.usedMaterials ?? [],
     customerSignature: extras?.customerSignature ?? null,
     events: extras?.events ?? [],
+    quotes: extras?.quotes ?? [],
   };
 }
 
@@ -158,17 +180,20 @@ export async function fetchCatalog() {
     materials: [] as Array<Record<string, unknown>>,
     events: [] as Array<Record<string, unknown>>,
     signatures: [] as Array<Record<string, unknown>>,
+    quotes: [] as DbOrderQuote[],
+    quoteItems: [] as Array<Record<string, unknown>>,
   };
 
   let kids = emptyKids;
   if (orderIds.length > 0) {
-    const [checklist, timeLogs, notes, materials, events, signatures] = await Promise.all([
+    const [checklist, timeLogs, notes, materials, events, signatures, quotes] = await Promise.all([
       supabase.from('order_checklist_items').select('*').in('order_id', orderIds).order('sort_order'),
       supabase.from('order_time_logs').select('*').in('order_id', orderIds).order('created_at', { ascending: false }),
       supabase.from('order_notes').select('*').in('order_id', orderIds).order('created_at', { ascending: false }),
       supabase.from('order_materials_used').select('*').in('order_id', orderIds).order('added_at', { ascending: false }),
       supabase.from('order_events').select('*').in('order_id', orderIds).order('created_at', { ascending: false }),
       supabase.from('order_signatures').select('*').in('order_id', orderIds),
+      supabase.from('order_quotes').select('*').in('order_id', orderIds).order('version', { ascending: false }),
     ]);
     if (checklist.error) throw checklist.error;
     if (timeLogs.error) throw timeLogs.error;
@@ -176,6 +201,14 @@ export async function fetchCatalog() {
     if (materials.error) throw materials.error;
     if (events.error) throw events.error;
     if (signatures.error) throw signatures.error;
+    if (quotes.error) throw quotes.error;
+
+    const quoteRows = (quotes.data ?? []) as DbOrderQuote[];
+    const quoteIds = quoteRows.map((quote) => quote.id);
+    const { data: quoteItems, error: quoteItemsError } = quoteIds.length
+      ? await supabase.from('order_quote_items').select('*').in('quote_id', quoteIds).order('sort_order')
+      : { data: [], error: null };
+    if (quoteItemsError) throw quoteItemsError;
 
     kids = {
       checklist: (checklist.data ?? []) as Array<Record<string, unknown>>,
@@ -184,6 +217,8 @@ export async function fetchCatalog() {
       materials: (materials.data ?? []) as Array<Record<string, unknown>>,
       events: (events.data ?? []) as Array<Record<string, unknown>>,
       signatures: (signatures.data ?? []) as Array<Record<string, unknown>>,
+      quotes: quoteRows,
+      quoteItems: (quoteItems ?? []) as Array<Record<string, unknown>>,
     };
   }
 
@@ -194,6 +229,7 @@ export async function fetchCatalog() {
     const matRows = kids.materials.filter((r) => r.order_id === row.id);
     const eventRows = kids.events.filter((r) => r.order_id === row.id);
     const sig = kids.signatures.find((s) => s.order_id === row.id);
+    const quoteRows = kids.quotes.filter((quote) => quote.order_id === row.id);
 
     return mapOrder(row, {
       checklist: checklistRows.map((r) => ({
@@ -239,6 +275,30 @@ export async function fetchCatalog() {
             comments: (sig.comments as string | null) ?? undefined,
           }
         : null,
+      quotes: quoteRows.map((quote) => ({
+        id: quote.id,
+        version: quote.version,
+        status: quote.status,
+        notes: quote.notes ?? undefined,
+        subtotalLabor: Number(quote.subtotal_labor),
+        subtotalMaterials: Number(quote.subtotal_materials),
+        totalAmount: Number(quote.total_amount),
+        visitDepositCredit: Number(quote.visit_deposit_credit),
+        remainingAmount: Number(quote.remaining_amount),
+        validUntil: quote.valid_until ?? undefined,
+        sentAt: quote.sent_at ?? undefined,
+        items: kids.quoteItems.filter((item) => item.quote_id === quote.id).map((item) => ({
+          id: String(item.id),
+          categoryId: (item.category_id as string | null) ?? undefined,
+          itemType: item.item_type as 'labor' | 'material',
+          description: String(item.description),
+          quantity: Number(item.quantity),
+          unit: String(item.unit),
+          unitPrice: Number(item.unit_price),
+          subtotal: Number(item.subtotal),
+          notes: (item.notes as string | null) ?? undefined,
+        })),
+      })),
     });
   });
 

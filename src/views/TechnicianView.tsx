@@ -22,12 +22,32 @@ import {
   AlertTriangle,
   RotateCcw,
   X,
+  Navigation,
+  UserRound,
+  Landmark,
+  BarChart3,
+  History,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useApp } from '../context/AppContext';
 import { PriorityBadge, ServiceBadge, StatusBadge } from '../components/common/Badge';
 import { ServiceOrder } from '../types';
-import { formatElapsedTime, getOrderElapsedSeconds } from '../lib/workTimer';
+import { canExecutePaidWork, formatElapsedTime, getOrderElapsedSeconds } from '../lib/workTimer';
+import { QuoteBuilder } from '../components/technician/QuoteBuilder';
+import { ProfessionalProfile } from '../components/technician/ProfessionalProfile';
+import { EarningsView } from '../components/technician/EarningsView';
+import { AvailabilityView } from '../components/technician/AvailabilityView';
+import { WorkHistoryView } from '../components/technician/WorkHistoryView';
+import { TechnicianStatisticsView } from '../components/technician/TechnicianStatisticsView';
+
+// Google Maps URLs are cross-platform and require no Maps API key.
+// The browser/Maps app obtains the technician's location; ServiCasa never stores it.
+const directionsUrl = (order: ServiceOrder) => {
+  const destination = [order.clientAddress, order.clientNeighborhood, 'Argentina']
+    .filter(Boolean)
+    .join(', ');
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}&travelmode=driving`;
+};
 
 export const TechnicianView: React.FC = () => {
   const {
@@ -41,7 +61,25 @@ export const TechnicianView: React.FC = () => {
     addTechnicalNote,
     addUsedMaterial,
     showToast,
+    navigate,
+    currentPath,
   } = useApp();
+
+  if (currentPath.split('?')[0] === '/technician/profile') {
+    return <ProfessionalProfile />;
+  }
+  if (currentPath.split('?')[0] === '/technician/earnings') {
+    return <EarningsView />;
+  }
+  if (currentPath.split('?')[0] === '/technician/availability') {
+    return <AvailabilityView />;
+  }
+  if (currentPath.split('?')[0] === '/technician/history') {
+    return <WorkHistoryView />;
+  }
+  if (currentPath.split('?')[0] === '/technician/statistics') {
+    return <TechnicianStatisticsView />;
+  }
 
   const techId = currentUser?.technicianId || '';
   const assignedOrders = orders.filter((o) => o.assignedTechnicianId === techId);
@@ -60,8 +98,8 @@ export const TechnicianView: React.FC = () => {
 
   const activeOrder = orders.find((o) => o.id === selectedOrderId) || assignedOrders[0];
 
-  // Tab inside order details: 'checklist' | 'time' | 'materials' | 'notes' | 'signature'
-  const [activeTab, setActiveTab] = useState<'checklist' | 'time' | 'materials' | 'notes' | 'signature'>('checklist');
+  // Tab inside order details: 'checklist' | 'time' | 'materials' | 'notes' | 'quote' | 'signature'
+  const [activeTab, setActiveTab] = useState<'checklist' | 'time' | 'materials' | 'notes' | 'quote' | 'signature'>('checklist');
 
   // Form states
   const [newChecklistText, setNewChecklistText] = useState('');
@@ -89,12 +127,22 @@ export const TechnicianView: React.FC = () => {
   // Orders that were already in progress before the persistent timer existed
   // receive their start timestamp at the first opening after this upgrade.
   useEffect(() => {
-    if (activeOrder?.status === 'in_progress' && !activeOrder.workStartedAt) {
+    if (activeOrder?.status === 'in_progress' && !activeOrder.workStartedAt && canExecutePaidWork(activeOrder)) {
       updateOrderStatus(activeOrder.id, 'in_progress');
     }
   }, [activeOrder?.id, activeOrder?.status, activeOrder?.workStartedAt]);
 
   const handleStartOrResumeService = (order: ServiceOrder) => {
+    if (!canExecutePaidWork(order)) {
+      showToast(
+        order.workMode === 'diagnosis'
+          ? 'El trabajo se iniciará automáticamente al confirmarse el pago del presupuesto aceptado.'
+          : 'El trabajo se iniciará automáticamente al confirmarse el pago completo.',
+        'info',
+        'Esperando pago'
+      );
+      return;
+    }
     updateOrderStatus(order.id, 'in_progress');
   };
 
@@ -197,6 +245,21 @@ export const TechnicianView: React.FC = () => {
                 {activeOrder?.status === 'in_progress' ? 'EN CURSO' : 'PAUSADO'}
               </span>
             </div>
+            <button onClick={() => navigate('/technician/profile')} className="hidden sm:inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-bold text-slate-200 hover:border-teal-500/60 hover:text-teal-300">
+              <UserRound className="w-3.5 h-3.5" /> Mi perfil
+            </button>
+            <button onClick={() => navigate('/technician/earnings')} className="hidden sm:inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-bold text-slate-200 hover:border-teal-500/60 hover:text-teal-300">
+              <Landmark className="w-3.5 h-3.5" /> Mis ganancias
+            </button>
+            <button onClick={() => navigate('/technician/availability')} className="hidden sm:inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-bold text-slate-200 hover:border-teal-500/60 hover:text-teal-300">
+              <Calendar className="w-3.5 h-3.5" /> Disponibilidad
+            </button>
+            <button onClick={() => navigate('/technician/history')} className="hidden md:inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-bold text-slate-200 hover:border-teal-500/60 hover:text-teal-300">
+              <History className="w-3.5 h-3.5" /> Historial
+            </button>
+            <button onClick={() => navigate('/technician/statistics')} className="hidden lg:inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-bold text-slate-200 hover:border-teal-500/60 hover:text-teal-300">
+              <BarChart3 className="w-3.5 h-3.5" /> Estadísticas
+            </button>
           </div>
         </div>
       </div>
@@ -254,6 +317,15 @@ export const TechnicianView: React.FC = () => {
                           <PriorityBadge priority={ord.priority} />
                           <span className="font-mono">{ord.scheduledDate}</span>
                         </div>
+                        <a
+                          href={directionsUrl(ord)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(event) => event.stopPropagation()}
+                          className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-bold text-teal-700 hover:text-teal-800"
+                        >
+                          <Navigation className="w-3.5 h-3.5" /> Cómo llegar
+                        </a>
                       </div>
                     </div>
                   );
@@ -282,7 +354,7 @@ export const TechnicianView: React.FC = () => {
 
                     {/* Quick State Action Buttons */}
                     <div className="flex items-center gap-1.5 shrink-0">
-                      {activeOrder.status === 'assigned' && (
+                      {activeOrder.status === 'assigned' && canExecutePaidWork(activeOrder) && (
                         <button
                           onClick={() => handleStartOrResumeService(activeOrder)}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-lg shadow-xs transition-colors"
@@ -290,6 +362,12 @@ export const TechnicianView: React.FC = () => {
                           <Play className="w-3 h-3" />
                           <span>Iniciar Servicio</span>
                         </button>
+                      )}
+
+                      {activeOrder.status === 'assigned' && !canExecutePaidWork(activeOrder) && (
+                        <span className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-900">
+                          {activeOrder.workMode === 'diagnosis' ? 'Esperando aceptación y pago' : 'Esperando pago confirmado'}
+                        </span>
                       )}
 
                       {activeOrder.status === 'in_progress' && (
@@ -312,7 +390,7 @@ export const TechnicianView: React.FC = () => {
                         </div>
                       )}
 
-                      {activeOrder.status === 'paused' && (
+                      {activeOrder.status === 'paused' && canExecutePaidWork(activeOrder) && (
                         <button
                           onClick={() => handleStartOrResumeService(activeOrder)}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-lg shadow-xs transition-colors"
@@ -347,6 +425,25 @@ export const TechnicianView: React.FC = () => {
                       <span className="text-slate-400 block text-[10px] font-medium uppercase tracking-wider">Teléfono:</span>
                       <span className="text-slate-700 font-mono text-xs">{activeOrder.clientPhone}</span>
                     </div>
+                  </div>
+
+                  {activeOrder.adminIncidentStatus === 'open' && (
+                    <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950">
+                      <div className="font-bold flex items-center gap-1.5"><AlertTriangle className="w-4 h-4" /> Orden en revisión por administración</div>
+                      <p className="mt-1">{activeOrder.adminIncidentReason || 'Hay una incidencia registrada. Consultá con administración antes de continuar.'}</p>
+                    </div>
+                  )}
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <a
+                      href={directionsUrl(activeOrder)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-teal-200 bg-teal-50 px-3 py-2 text-xs font-bold text-teal-800 hover:bg-teal-100"
+                    >
+                      <Navigation className="w-4 h-4" /> Abrir navegación al domicilio
+                    </a>
+                    <span className="text-[10px] text-slate-400">Google Maps usa la ubicación del dispositivo; ServiCasa no la registra.</span>
                   </div>
 
                   {/* Closing Requirements Progress Meter */}
@@ -488,6 +585,20 @@ export const TechnicianView: React.FC = () => {
                       <FileText className="w-3.5 h-3.5" />
                       <span>Notas ({activeOrder.technicalNotes.length})</span>
                     </button>
+
+                    {activeOrder.workMode === 'diagnosis' && (
+                      <button
+                        onClick={() => setActiveTab('quote')}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-md transition-all whitespace-nowrap ${
+                          activeTab === 'quote'
+                            ? 'bg-[#0F172A] text-teal-300 shadow-xs'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                        }`}
+                      >
+                        <FileText className="w-3.5 h-3.5" />
+                        <span>Presupuesto</span>
+                      </button>
+                    )}
 
                     <button
                       onClick={() => setActiveTab('signature')}
@@ -813,6 +924,8 @@ export const TechnicianView: React.FC = () => {
                         </div>
                       </div>
                     )}
+
+                    {activeTab === 'quote' && <QuoteBuilder order={activeOrder} />}
 
                     {/* 5. SIGNATURE & CONFORMITY */}
                     {activeTab === 'signature' && (

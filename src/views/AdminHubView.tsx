@@ -9,6 +9,8 @@ import {
   UserCheck,
   Clock,
   AlertTriangle,
+  Ban,
+  CircleAlert,
   Flame,
   CheckCircle2,
   Calendar,
@@ -42,9 +44,10 @@ import { PriorityBadge, ServiceBadge, StatusBadge } from '../components/common/B
 import { Timeline } from '../components/common/Timeline';
 import { EntityActionsMenu } from '../components/common/EntityActionsMenu';
 import { formatElapsedTime, getOrderElapsedSeconds } from '../lib/workTimer';
+import { TechnicianValidation } from '../components/admin/TechnicianValidation';
+import { PayoutScheduler } from '../components/admin/PayoutScheduler';
 import {
   OrderPriority,
-  OrderStatus,
   ServiceItem,
   ServiceItemInput,
   ServiceOrder,
@@ -160,9 +163,11 @@ export const AdminHubView: React.FC = () => {
     serviceCategories,
     createOrder,
     updateOrder,
-    deleteOrder,
+    cancelOrderAsAdmin,
+    reportOrderIncident,
+    resolveOrderIncident,
+    closeOrderExceptionally,
     assignTechnician,
-    updateOrderStatus,
     updateMaterialStock,
     addMaterialToInventory,
     updateMaterial,
@@ -205,7 +210,13 @@ export const AdminHubView: React.FC = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [orderToEdit, setOrderToEdit] = useState<ServiceOrder | null>(null);
-  const [orderPendingDelete, setOrderPendingDelete] = useState<ServiceOrder | null>(null);
+  const [orderToCancel, setOrderToCancel] = useState<ServiceOrder | null>(null);
+  const [cancelReason, setCancelReason] = useState('');
+  const [orderForIncident, setOrderForIncident] = useState<ServiceOrder | null>(null);
+  const [incidentReason, setIncidentReason] = useState('');
+  const [pauseIncidentSettlement, setPauseIncidentSettlement] = useState(true);
+  const [orderForExceptionalClose, setOrderForExceptionalClose] = useState<ServiceOrder | null>(null);
+  const [exceptionalCloseReason, setExceptionalCloseReason] = useState('');
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [orderToAssign, setOrderToAssign] = useState<ServiceOrder | null>(null);
   const [isNewCustomerModalOpen, setIsNewCustomerModalOpen] = useState(false);
@@ -240,7 +251,6 @@ export const AdminHubView: React.FC = () => {
   const [editOrderDesc, setEditOrderDesc] = useState('');
   const [editOrderService, setEditOrderService] = useState<ServiceType>('Plomería');
   const [editOrderPriority, setEditOrderPriority] = useState<OrderPriority>('alta');
-  const [editOrderStatus, setEditOrderStatus] = useState<OrderStatus>('assigned');
   const [editOrderClientId, setEditOrderClientId] = useState('');
   const [editOrderTechId, setEditOrderTechId] = useState('');
   const [editOrderDate, setEditOrderDate] = useState(() => new Date().toISOString().slice(0, 10));
@@ -507,7 +517,6 @@ export const AdminHubView: React.FC = () => {
     setEditOrderDesc(order.description);
     setEditOrderService(order.serviceType);
     setEditOrderPriority(order.priority);
-    setEditOrderStatus(order.status);
     setEditOrderClientId(order.clientId);
     setEditOrderTechId(order.assignedTechnicianId ?? '');
     setEditOrderDate(toDateInputValue(order.scheduledDate));
@@ -543,7 +552,6 @@ export const AdminHubView: React.FC = () => {
       description: editOrderDesc.trim() || 'Servicio técnico a domicilio',
       serviceType: editOrderService,
       priority: editOrderPriority,
-      status: editOrderStatus,
       clientId: editOrderClientId,
       assignedTechnicianId: editOrderTechId || null,
       scheduledDate: editOrderDate,
@@ -551,14 +559,6 @@ export const AdminHubView: React.FC = () => {
 
     setIsEditModalOpen(false);
     setOrderToEdit(null);
-  };
-
-  const handleConfirmDeleteOrder = () => {
-    if (!orderPendingDelete) return;
-    const id = orderPendingDelete.id;
-    deleteOrder(id);
-    if (selectedOrderId === id) setSelectedOrderId(null);
-    setOrderPendingDelete(null);
   };
 
   const handleCreateCustomerSubmit = (e: React.FormEvent) => {
@@ -1235,6 +1235,7 @@ export const AdminHubView: React.FC = () => {
                     const completedChecklistCount = order.checklist.filter((c) => c.completed).length;
                     const totalChecklist = order.checklist.length;
                     const hasSignature = !!order.customerSignature;
+                    const quoteRejected = order.quotes?.some((quote) => quote.status === 'rejected');
 
                     return (
                       <div
@@ -1248,6 +1249,11 @@ export const AdminHubView: React.FC = () => {
                               {order.id}
                             </span>
                             <StatusBadge status={order.status} size="sm" />
+                            {quoteRejected && (
+                              <span className="rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-800">
+                                Presupuesto rechazado · seña en revisión
+                              </span>
+                            )}
                             <PriorityBadge priority={order.priority} />
                             <ServiceBadge service={order.serviceType} size="sm" />
                           </div>
@@ -1331,14 +1337,16 @@ export const AdminHubView: React.FC = () => {
                             <span>Editar</span>
                           </button>
 
-                          <button
-                            onClick={() => setOrderPendingDelete(order)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-700 text-xs font-semibold rounded-md transition-colors border border-slate-200"
-                            title="Eliminar orden"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                            <span>Eliminar</span>
-                          </button>
+                          {order.status !== 'completed' && order.status !== 'cancelled' && (
+                            <button
+                              onClick={() => { setOrderToCancel(order); setCancelReason(''); }}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-700 text-xs font-semibold rounded-md transition-colors border border-slate-200"
+                              title="Cancelar orden con motivo"
+                            >
+                              <Ban className="w-3 h-3" />
+                              <span>Cancelar</span>
+                            </button>
+                          )}
 
                           <button
                             onClick={() => setSelectedOrderId(order.id)}
@@ -1476,6 +1484,7 @@ export const AdminHubView: React.FC = () => {
                   );
                 })}
               </div>
+
             )}
           </div>
         )}
@@ -1483,6 +1492,8 @@ export const AdminHubView: React.FC = () => {
         {/* ================= TAB 3: TECHNICIANS ================= */}
         {activeTab === 'technicians' && (
           <div className="space-y-3">
+            <TechnicianValidation />
+            <PayoutScheduler />
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-sm font-bold text-slate-900">Cuadrilla de Técnicos</h2>
@@ -1587,6 +1598,9 @@ export const AdminHubView: React.FC = () => {
                         </div>
 
                         <div className="mt-2 flex flex-wrap gap-1">
+                          <span className={`px-1.5 py-0.2 rounded border font-mono font-bold text-[10px] ${t.isAvailable ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>
+                            {t.isAvailable ? 'Disponible' : 'No disponible'}
+                          </span>
                           {alsoCustomer && (
                             <span className="px-1.5 py-0.2 rounded bg-blue-50 text-blue-800 border border-blue-200 font-mono font-bold text-[10px]">
                               También cliente
@@ -2217,6 +2231,13 @@ export const AdminHubView: React.FC = () => {
               </div>
             </div>
 
+            {selectedOrder.adminIncidentStatus === 'open' && (
+              <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950">
+                <div className="font-bold flex items-center gap-1.5"><CircleAlert className="w-4 h-4" /> Incidencia en revisión</div>
+                <p className="mt-1">{selectedOrder.adminIncidentReason}</p>
+              </div>
+            )}
+
             <div className="flex items-center justify-between gap-3 rounded-xl border border-teal-200 bg-teal-50 px-4 py-3 text-xs">
               <div className="flex items-center gap-2 text-teal-950">
                 <Clock className="w-4 h-4 text-teal-700" />
@@ -2337,14 +2358,25 @@ export const AdminHubView: React.FC = () => {
                   <Pencil className="w-3.5 h-3.5" />
                   Editar
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setOrderPendingDelete(selectedOrder)}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-700 text-xs font-semibold rounded-lg transition-colors border border-slate-200"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  Eliminar
-                </button>
+                {selectedOrder.status !== 'completed' && selectedOrder.status !== 'cancelled' && (
+                  <button type="button" onClick={() => { setOrderToCancel(selectedOrder); setCancelReason(''); }} className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-700 text-xs font-semibold rounded-lg transition-colors border border-slate-200">
+                    <Ban className="w-3.5 h-3.5" /> Cancelar
+                  </button>
+                )}
+                {selectedOrder.adminIncidentStatus === 'open' ? (
+                  <button type="button" onClick={() => resolveOrderIncident(selectedOrder.id)} className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-semibold rounded-lg border border-emerald-200">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Resolver incidencia
+                  </button>
+                ) : (
+                  <button type="button" onClick={() => { setOrderForIncident(selectedOrder); setIncidentReason(''); setPauseIncidentSettlement(true); }} className="inline-flex items-center gap-1.5 px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-semibold rounded-lg border border-amber-200">
+                    <CircleAlert className="w-3.5 h-3.5" /> Abrir incidencia
+                  </button>
+                )}
+                {selectedOrder.status !== 'completed' && selectedOrder.status !== 'cancelled' && (
+                  <button type="button" onClick={() => { setOrderForExceptionalClose(selectedOrder); setExceptionalCloseReason(''); }} className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg border border-slate-200">
+                    <AlertTriangle className="w-3.5 h-3.5" /> Cierre excepcional
+                  </button>
+                )}
               </div>
               <button
                 type="button"
@@ -2601,19 +2633,9 @@ export const AdminHubView: React.FC = () => {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Estado</label>
-                <select
-                  value={editOrderStatus}
-                  onChange={(e) => setEditOrderStatus(e.target.value as OrderStatus)}
-                  className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
-                >
-                  <option value="assigned">Asignada</option>
-                  <option value="in_progress">En curso</option>
-                  <option value="paused">Pausada</option>
-                  <option value="completed">Completada</option>
-                  <option value="cancelled">Cancelada</option>
-                </select>
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+                <div className="font-bold text-slate-800 mb-1">Estado operativo protegido</div>
+                La edición no cambia el estado. Inicio, pausa y finalización se gestionan desde el flujo técnico con tiempo, checklist y firma del cliente. Usá las acciones excepcionales del detalle solo cuando corresponda.
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -2690,46 +2712,33 @@ export const AdminHubView: React.FC = () => {
         </div>
       )}
 
-      {/* ================= MODAL: DELETE ORDER CONFIRM ================= */}
-      {orderPendingDelete && (
-        <div
-          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150"
-          onClick={() => setOrderPendingDelete(null)}
-        >
-          <div
-            className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-150"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-start gap-3 mb-4">
-              <span className="p-2 rounded-lg bg-rose-50 text-rose-600 border border-rose-200">
-                <Trash2 className="w-5 h-5" />
-              </span>
-              <div>
-                <h3 className="text-base font-bold text-slate-900">Eliminar orden</h3>
-                <p className="text-xs text-slate-600 mt-1">
-                  Vas a eliminar{' '}
-                  <strong className="font-mono">{orderPendingDelete.id}</strong> —{' '}
-                  {orderPendingDelete.title}. Esta acción no se puede deshacer.
-                </p>
-              </div>
-            </div>
+      {orderToCancel && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60" onClick={() => setOrderToCancel(null)}>
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex gap-3 mb-4"><Ban className="w-6 h-6 text-rose-600 shrink-0" /><div><h3 className="font-bold text-slate-900">Cancelar orden</h3><p className="text-xs text-slate-600 mt-1">Se avisará dentro de la orden al cliente y al técnico. El motivo quedará en el historial y no se podrá reactivar directamente.</p></div></div>
+            <textarea autoFocus value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} rows={3} placeholder="Motivo de la cancelación *" className="w-full rounded-lg border border-slate-300 p-3 text-sm" />
+            <div className="mt-4 flex justify-end gap-2"><button onClick={() => setOrderToCancel(null)} className="px-4 py-2 rounded-lg bg-slate-100 text-xs font-semibold">Volver</button><button disabled={cancelReason.trim().length < 8} onClick={() => { cancelOrderAsAdmin(orderToCancel.id, cancelReason); setOrderToCancel(null); }} className="px-4 py-2 rounded-lg bg-rose-600 disabled:opacity-50 text-white text-xs font-bold">Confirmar cancelación</button></div>
+          </div>
+        </div>
+      )}
 
-            <div className="flex items-center justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setOrderPendingDelete(null)}
-                className="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-semibold"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmDeleteOrder}
-                className="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold shadow-xs"
-              >
-                Sí, eliminar
-              </button>
-            </div>
+      {orderForIncident && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60" onClick={() => setOrderForIncident(null)}>
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex gap-3 mb-4"><CircleAlert className="w-6 h-6 text-amber-600 shrink-0" /><div><h3 className="font-bold text-slate-900">Abrir incidencia / reclamo</h3><p className="text-xs text-slate-600 mt-1">El aviso quedará visible para las partes dentro de esta orden.</p></div></div>
+            <textarea autoFocus value={incidentReason} onChange={(e) => setIncidentReason(e.target.value)} rows={3} placeholder="Explicá el motivo de la incidencia *" className="w-full rounded-lg border border-slate-300 p-3 text-sm" />
+            <label className="mt-3 flex gap-2 rounded-lg bg-amber-50 border border-amber-200 p-3 text-xs text-amber-950"><input type="checkbox" checked={pauseIncidentSettlement} onChange={(e) => setPauseIncidentSettlement(e.target.checked)} className="mt-0.5" /><span><strong>Pausar liquidación al técnico.</strong><br />Las liquidaciones no pagadas pasarán a revisión hasta que administración las revise.</span></label>
+            <div className="mt-4 flex justify-end gap-2"><button onClick={() => setOrderForIncident(null)} className="px-4 py-2 rounded-lg bg-slate-100 text-xs font-semibold">Volver</button><button disabled={incidentReason.trim().length < 8} onClick={() => { reportOrderIncident(orderForIncident.id, incidentReason, pauseIncidentSettlement); setOrderForIncident(null); }} className="px-4 py-2 rounded-lg bg-amber-600 disabled:opacity-50 text-white text-xs font-bold">Registrar incidencia</button></div>
+          </div>
+        </div>
+      )}
+
+      {orderForExceptionalClose && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60" onClick={() => setOrderForExceptionalClose(null)}>
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex gap-3 mb-4"><AlertTriangle className="w-6 h-6 text-amber-600 shrink-0" /><div><h3 className="font-bold text-slate-900">Cierre excepcional</h3><p className="text-xs text-slate-600 mt-1">Usalo solo ante una intervención administrativa documentada. Saltea el flujo técnico normal y quedará auditado con el motivo.</p></div></div>
+            <textarea autoFocus value={exceptionalCloseReason} onChange={(e) => setExceptionalCloseReason(e.target.value)} rows={3} placeholder="Motivo excepcional de cierre *" className="w-full rounded-lg border border-slate-300 p-3 text-sm" />
+            <div className="mt-4 flex justify-end gap-2"><button onClick={() => setOrderForExceptionalClose(null)} className="px-4 py-2 rounded-lg bg-slate-100 text-xs font-semibold">Volver</button><button disabled={exceptionalCloseReason.trim().length < 8} onClick={() => { closeOrderExceptionally(orderForExceptionalClose.id, exceptionalCloseReason); setOrderForExceptionalClose(null); }} className="px-4 py-2 rounded-lg bg-slate-900 disabled:opacity-50 text-white text-xs font-bold">Cerrar excepcionalmente</button></div>
           </div>
         </div>
       )}

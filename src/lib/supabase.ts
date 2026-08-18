@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import type { UserRole } from '../types';
+import type { Technician, UserRole } from '../types';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
@@ -41,6 +41,17 @@ export type DbTechnician = {
   zone: string;
   province: string;
   profile_id: string | null;
+  work_phone?: string | null;
+  bio?: string | null;
+  education_level?: Technician['educationLevel'] | null;
+  degree_title?: string | null;
+  institution_name?: string | null;
+  public_avatar_path?: string | null;
+  validation_status?: Technician['validationStatus'] | null;
+  validation_notes?: string | null;
+  is_enabled?: boolean | null;
+  can_receive_orders?: boolean | null;
+  is_available?: boolean | null;
 };
 
 export type DbCustomer = {
@@ -90,4 +101,27 @@ export type DbServiceOrder = {
   total_quoted_amount?: number | null;
   total_paid_amount?: number | null;
   extra_amount?: number | null;
+  cancellation_reason?: string | null;
+  cancelled_at?: string | null;
+  admin_incident_status?: 'none' | 'open' | 'resolved' | null;
+  admin_incident_reason?: string | null;
+  admin_incident_opened_at?: string | null;
+  admin_incident_resolved_at?: string | null;
+  admin_exception_reason?: string | null;
+  admin_exception_closed_at?: string | null;
+};
+
+export type DbOrderQuote = {
+  id: string;
+  order_id: string;
+  version: number;
+  status: 'draft' | 'sent' | 'accepted' | 'rejected';
+  notes: string | null;
+  subtotal_labor: number;
+  subtotal_materials: number;
+  total_amount: number;
+  visit_deposit_credit: number;
+  remaining_amount: number;
+  valid_until: string | null;
+  sent_at: string | null;
 };

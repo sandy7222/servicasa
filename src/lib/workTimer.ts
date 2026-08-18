@@ -1,6 +1,16 @@
 import type { ServiceOrder } from '../types';
 
 /**
+ * New payment-aware orders can execute only after the platform confirms the
+ * payment. Legacy orders without workMode remain usable during migration.
+ */
+export function canExecutePaidWork(order: ServiceOrder): boolean {
+  if (!order.workMode) return true;
+  if (order.workMode === 'direct') return order.paymentStatus === 'paid_in_full';
+  return order.quoteStatus === 'accepted' && order.paymentStatus === 'paid_in_full';
+}
+
+/**
  * The database is the source of truth: elapsed time is the saved total plus
  * the interval since work_started_at only while the order is in progress.
  */

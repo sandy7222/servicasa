@@ -44,7 +44,10 @@ const Protected: React.FC<{ children: React.ReactNode; roles?: UserRole[] }> = (
     }
   }, [authReady, isAuthenticated, navigate, roles, currentUser]);
 
-  if (!authReady || dataLoading) {
+  // Keep the current route and the view mounted during background refreshes.
+  // Otherwise any write (for example, adding a quote item) unmounts the
+  // technician/customer screen and loses its selected tab or detail route.
+  if (!authReady || (dataLoading && !currentUser)) {
     return (
       <FullPageLoader
         message={!authReady ? 'Conectando con Supabase…' : 'Cargando datos del proyecto…'}
@@ -102,6 +105,11 @@ const AppContent: React.FC = () => {
           </Protected>
         );
       case '/technician':
+      case '/technician/profile':
+      case '/technician/earnings':
+      case '/technician/availability':
+      case '/technician/history':
+      case '/technician/statistics':
         return (
           <Protected roles={['admin', 'technician']}>
             <TechnicianView />
