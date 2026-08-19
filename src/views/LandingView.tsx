@@ -165,7 +165,7 @@ export const LandingView: React.FC = () => {
               {/* Headline with Official Brand Identity */}
               <div className="flex flex-col lg:flex-row items-center lg:items-start gap-4">
                 <div className="p-3 bg-white rounded-2xl shadow-xl border border-white/20 shrink-0">
-                  <Logo size="xl" layout="vertical" showText={false} variant="light" />
+                  <Logo size="2xl" layout="vertical" showText={false} variant="light" />
                 </div>
                 <div>
                   <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white leading-tight">

@@ -34,24 +34,16 @@ export const LogoEmblem: React.FC<{
   size?: number;
   variant?: 'light' | 'dark' | 'white';
 }> = ({ className = 'w-10 h-10', size = 48, variant = 'light' }) => {
-  // En tamaños compactos se recorta el wordmark incorporado para priorizar
-  // el símbolo, que conserva legibilidad en la barra superior.
-  const filterClass = '';
   return (
-    <span
-      className={`relative block overflow-hidden rounded-md bg-black ${className}`}
+    <img
+      src={logoTecniUrbano}
+      alt="TecniUrbano"
+      width={size}
+      height={size}
+      className={`object-contain rounded-md ${className}`}
       id="tecniurbano-logo-emblem"
-      aria-hidden="true"
-    >
-      <img
-        src={logoTecniUrbano}
-        alt=""
-        width={size}
-        height={size}
-        className={`absolute inset-0 h-full w-full scale-[1.55] object-cover object-[center_35%] ${filterClass}`}
-        draggable={false}
-      />
-    </span>
+      draggable={false}
+    />
   );
 };
 
