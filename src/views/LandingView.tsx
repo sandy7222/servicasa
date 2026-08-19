@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { Logo } from '../components/common/Logo';
 import { useApp } from '../context/AppContext';
+import logoTecniUrbano from '../assets/logo-tecniurbano.png';
 
 const CATEGORY_ICON_MAP: Record<string, { icon: React.ReactNode; bg: string; border: string }> = {
   Wrench: { icon: <Wrench className="w-6 h-6 text-sky-600" />, bg: 'bg-sky-50', border: 'border-sky-200' },
@@ -156,16 +157,15 @@ export const LandingView: React.FC = () => {
                   : 'max-w-3xl space-y-5 text-center'
               }
             >
-              {/* Official Brand Emblem Pill */}
-              <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-semibold text-teal-300">
-                <Logo size="xs" showText={false} variant="white" />
-                <span>Gestión Integral de Servicios Técnicos a Domicilio</span>
-              </div>
-
               {/* Headline with Official Brand Identity */}
               <div className="flex flex-col lg:flex-row items-center lg:items-start gap-4">
-                <div className="p-3 bg-white rounded-2xl shadow-xl border border-white/20 shrink-0">
-                  <Logo size="2xl" layout="vertical" showText={false} variant="light" />
+                <div className="shrink-0 overflow-hidden rounded-2xl shadow-xl border border-white/20">
+                  <img
+                    src={logoTecniUrbano}
+                    alt="Logo de TecniUrbano"
+                    className="w-40 h-40 sm:w-44 sm:h-44 object-contain"
+                    draggable={false}
+                  />
                 </div>
                 <div>
                   <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white leading-tight">
