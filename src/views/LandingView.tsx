@@ -158,21 +158,21 @@ export const LandingView: React.FC = () => {
               }
             >
               {/* Headline with Official Brand Identity */}
-              <div className="flex flex-col lg:flex-row items-center lg:items-start gap-4">
+              <div className={DEMO_MODE ? 'flex flex-col lg:flex-row items-center lg:items-start gap-4' : 'flex flex-col items-center gap-3'}>
                 <div className="shrink-0 overflow-hidden rounded-2xl shadow-xl border border-white/20">
                   <img
                     src={logoTecniUrbano}
                     alt="Logo de TecniUrbano"
-                    className="w-40 h-40 sm:w-44 sm:h-44 object-contain"
+                    className={DEMO_MODE ? 'w-40 h-40 sm:w-44 sm:h-44 object-contain' : 'w-48 h-48 sm:w-56 sm:h-56 object-contain'}
                     draggable={false}
                   />
                 </div>
                 <div>
-                  <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white leading-tight">
+                  <h1 className={DEMO_MODE ? 'text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white leading-tight' : 'sr-only'}>
                     <span className="text-white">Tecni</span>
                     <span className="text-teal-400">Urbano</span>
                   </h1>
-                  <span className="block text-base sm:text-lg font-bold text-teal-300 tracking-wide mt-0.5">
+                  <span className={`block text-base sm:text-lg font-bold text-teal-300 tracking-wide ${DEMO_MODE ? 'mt-0.5' : ''}`}>
                     Servicios a domicilio
                   </span>
                 </div>
@@ -184,7 +184,7 @@ export const LandingView: React.FC = () => {
               </p>
 
               {/* Action Buttons */}
-              <div className="pt-2 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3.5">
+              <div className={`pt-2 flex flex-col sm:flex-row items-center justify-center gap-3.5 ${DEMO_MODE ? 'lg:justify-start' : ''}`}>
                 <button
                   onClick={() => navigate('/auth')}
                   className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-sm shadow-lg shadow-teal-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all"
