@@ -9,3 +9,4 @@ coverage/
 .cursor/mcp.json
 .cursor/*token*
 .cursor/acces*
+.codex/
