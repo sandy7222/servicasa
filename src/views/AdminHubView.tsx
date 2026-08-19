@@ -1075,15 +1075,12 @@ export const AdminHubView: React.FC = () => {
             </button>
 
             <button
-              onClick={() => setActiveTab('customers')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
-                activeTab === 'customers'
-                  ? 'bg-[#0F172A] text-teal-300 shadow-xs border border-slate-800'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
+              onClick={() => { window.location.hash = '#/admin/clientes'; }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all bg-slate-100 text-slate-600 hover:bg-slate-200"
+              title="Abrir planilla completa de clientes"
             >
               <Users className="w-3.5 h-3.5" />
-              <span>Clientes ({customers.length})</span>
+              <span>Clientes · planilla ({customers.length})</span>
             </button>
 
             <button

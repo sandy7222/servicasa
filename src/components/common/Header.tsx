@@ -16,6 +16,7 @@ import {
 import { Logo } from './Logo';
 import { useApp } from '../../context/AppContext';
 import { RoleSwitcherModal } from './RoleSwitcherModal';
+import { DEMO_MODE } from '../../lib/featureFlags';
 
 export const Header: React.FC = () => {
   const { currentPath, navigate, currentUser, orders, isAuthenticated, logout, authLoading, usingRemoteData } =
@@ -119,28 +120,51 @@ export const Header: React.FC = () => {
             <div className="hidden sm:flex items-center gap-2">
               {isAuthenticated && currentUser ? (
                 <>
-                  <button
-                    onClick={() => setIsSwitcherOpen(true)}
-                    className="flex items-center gap-2 px-2.5 py-1 rounded-lg border border-slate-700 bg-slate-800/80 hover:bg-slate-800 hover:border-teal-500/50 transition-all text-left group"
-                    title={usingRemoteData ? 'Sesión Supabase' : 'Cambiar rol demo'}
-                  >
-                    <div className="w-6 h-6 rounded-md bg-gradient-to-tr from-teal-500 to-blue-600 text-white flex items-center justify-center font-bold text-[11px] shadow-xs">
-                      {currentUser.avatarText}
-                    </div>
-                    <div className="flex flex-col">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-semibold text-slate-200 group-hover:text-teal-300 transition-colors">
-                          {currentUser.name}
-                        </span>
-                        <span
-                          className={`text-[9px] uppercase font-mono font-bold px-1.5 py-0.2 rounded border ${roleInfo.bg}`}
-                        >
-                          {roleInfo.label}
-                        </span>
+                  {DEMO_MODE ? (
+                    <button
+                      onClick={() => setIsSwitcherOpen(true)}
+                      className="flex items-center gap-2 px-2.5 py-1 rounded-lg border border-slate-700 bg-slate-800/80 hover:bg-slate-800 hover:border-teal-500/50 transition-all text-left group"
+                      title={usingRemoteData ? 'Sesión Supabase' : 'Cambiar rol demo'}
+                    >
+                      <div className="w-6 h-6 rounded-md bg-gradient-to-tr from-teal-500 to-blue-600 text-white flex items-center justify-center font-bold text-[11px] shadow-xs">
+                        {currentUser.avatarText}
+                      </div>
+                      <div className="flex flex-col">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-semibold text-slate-200 group-hover:text-teal-300 transition-colors">
+                            {currentUser.name}
+                          </span>
+                          <span
+                            className={`text-[9px] uppercase font-mono font-bold px-1.5 py-0.2 rounded border ${roleInfo.bg}`}
+                          >
+                            {roleInfo.label}
+                          </span>
+                        </div>
+                      </div>
+                      <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-teal-400 transition-colors ml-0.5" />
+                    </button>
+                  ) : (
+                    <div
+                      className="flex items-center gap-2 px-2.5 py-1 rounded-lg border border-slate-700 bg-slate-800/80"
+                      title="Sesión Supabase"
+                    >
+                      <div className="w-6 h-6 rounded-md bg-gradient-to-tr from-teal-500 to-blue-600 text-white flex items-center justify-center font-bold text-[11px] shadow-xs">
+                        {currentUser.avatarText}
+                      </div>
+                      <div className="flex flex-col">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-semibold text-slate-200">
+                            {currentUser.name}
+                          </span>
+                          <span
+                            className={`text-[9px] uppercase font-mono font-bold px-1.5 py-0.2 rounded border ${roleInfo.bg}`}
+                          >
+                            {roleInfo.label}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                    <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-teal-400 transition-colors ml-0.5" />
-                  </button>
+                  )}
 
                   <button
                     onClick={() => void logout()}
@@ -163,13 +187,20 @@ export const Header: React.FC = () => {
 
             {/* Mobile menu trigger */}
             <div className="flex md:hidden items-center gap-1.5">
-              <button
-                onClick={() => setIsSwitcherOpen(true)}
-                className="px-2 py-1 text-xs font-bold rounded-md border border-teal-500/30 bg-teal-500/10 text-teal-300 flex items-center gap-1.5"
-              >
-                <span className={`w-1.5 h-1.5 rounded-full ${roleInfo.dot}`} />
-                <span>{roleInfo.label}</span>
-              </button>
+              {DEMO_MODE ? (
+                <button
+                  onClick={() => setIsSwitcherOpen(true)}
+                  className="px-2 py-1 text-xs font-bold rounded-md border border-teal-500/30 bg-teal-500/10 text-teal-300 flex items-center gap-1.5"
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full ${roleInfo.dot}`} />
+                  <span>{roleInfo.label}</span>
+                </button>
+              ) : (
+                <span className="px-2 py-1 text-xs font-bold rounded-md border border-teal-500/30 bg-teal-500/10 text-teal-300 flex items-center gap-1.5">
+                  <span className={`w-1.5 h-1.5 rounded-full ${roleInfo.dot}`} />
+                  <span>{roleInfo.label}</span>
+                </span>
+              )}
 
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -194,15 +225,17 @@ export const Header: React.FC = () => {
                   <div className="text-[10px] text-slate-400 font-mono">{currentUser?.email || 'Sin sesión'}</div>
                 </div>
               </div>
-              <button
-                onClick={() => {
-                  setIsMobileMenuOpen(false);
-                  setIsSwitcherOpen(true);
-                }}
-                className="text-[11px] font-semibold text-teal-300 bg-teal-500/15 border border-teal-500/30 px-2 py-0.5 rounded"
-              >
-                Cambiar Rol
-              </button>
+              {DEMO_MODE && (
+                <button
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    setIsSwitcherOpen(true);
+                  }}
+                  className="text-[11px] font-semibold text-teal-300 bg-teal-500/15 border border-teal-500/30 px-2 py-0.5 rounded"
+                >
+                  Cambiar Rol
+                </button>
+              )}
             </div>
 
             <div className="grid grid-cols-1 gap-1">
@@ -251,11 +284,13 @@ export const Header: React.FC = () => {
         )}
       </header>
 
-      {/* Role Switcher Modal */}
-      <RoleSwitcherModal
-        isOpen={isSwitcherOpen}
-        onClose={() => setIsSwitcherOpen(false)}
-      />
+      {/* Role Switcher Modal (solo en modo demo) */}
+      {DEMO_MODE && (
+        <RoleSwitcherModal
+          isOpen={isSwitcherOpen}
+          onClose={() => setIsSwitcherOpen(false)}
+        />
+      )}
     </>
   );
 };

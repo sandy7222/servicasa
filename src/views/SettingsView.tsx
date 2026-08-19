@@ -16,6 +16,7 @@ import {
 import { DEMO_USERS, useApp } from '../context/AppContext';
 import { CurrentUserData } from '../types';
 import { VisitFeeSettings } from '../components/admin/VisitFeeSettings';
+import { DEMO_MODE } from '../lib/featureFlags';
 
 export const SettingsView: React.FC = () => {
   const { currentUser, setCurrentUser, navigate, resetDemoData, orders, materials, customers, technicians, usingRemoteData, refreshRemoteData, dataLoading, remoteBusy } =
@@ -111,7 +112,8 @@ export const SettingsView: React.FC = () => {
 
         {currentUser.role === 'admin' && <VisitFeeSettings />}
 
-        {/* Change User / Role Quick Grid */}
+        {/* Change User / Role Quick Grid (solo en modo demo) */}
+        {DEMO_MODE && (
         <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-xs space-y-3">
           <div className="flex items-center justify-between pb-2 border-b border-slate-100">
             <div>
@@ -179,6 +181,7 @@ export const SettingsView: React.FC = () => {
             })}
           </div>
         </div>
+        )}
 
         {/* System & Architecture Info */}
         <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-xs space-y-3">
@@ -213,15 +216,19 @@ export const SettingsView: React.FC = () => {
 
           <div className="pt-1 flex items-center justify-between">
             <p className="text-[11px] text-slate-500">
-              Los cambios persisten en memoria local reactiva.
+              {usingRemoteData
+                ? 'Los datos viven en Supabase.'
+                : 'Los cambios persisten en memoria local reactiva.'}
             </p>
-            <button
-              onClick={resetDemoData}
-              className="inline-flex items-center gap-1 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold rounded-lg border border-rose-200 transition-colors"
-            >
-              <RotateCcw className="w-3 h-3" />
-              <span>Restablecer Datos</span>
-            </button>
+            {DEMO_MODE && !usingRemoteData && (
+              <button
+                onClick={resetDemoData}
+                className="inline-flex items-center gap-1 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold rounded-lg border border-rose-200 transition-colors"
+              >
+                <RotateCcw className="w-3 h-3" />
+                <span>Restablecer Datos</span>
+              </button>
+            )}
           </div>
         </div>
       </main>

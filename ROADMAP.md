@@ -2,7 +2,7 @@
 
 Hoja de ruta hacia el lanzamiento en internet (Vercel + Supabase).
 
-**Posición actual:** Fase 2 casi cerrada (CRUD persistido) · **siguiente:** Fase 3 (endurecer seguridad / build)
+**Posición actual:** Fase 2 cerrada (CRUD persistido + modo demo aislado) · **siguiente:** cerrar Fase 3 (checklist manual de los 3 roles)
 
 ---
 
@@ -62,7 +62,8 @@ Pasar de una **demo de interfaz** (datos mock + `localStorage`) a una app en pro
 - [x] Timeline / eventos persistidos
 - [x] Guard de rutas por rol
 - [x] Manejo de errores y estados de carga (mejorar UX)
-- [ ] Retirar o aislar el modo demo (flag opcional)
+- [x] Retirar o aislar el modo demo (flag opcional)
+  - _Decisión:_ se mantiene la fuente de datos demo (`DEMO_USERS`, `resetDemoData`) pero toda la UI que la expone (tarjeta de accesos rápidos en Landing, cuentas de prueba en `/auth`, selector de roles en Header/Settings, botón "Restablecer Datos") queda condicionada a `DEMO_MODE` (`src/lib/featureFlags.ts`). Con `VITE_DEMO_MODE=false` en Vercel, ese código queda fuera del bundle de producción por tree-shaking.
 
 **Salida:** los 3 roles usan la misma base remota desde la UI.
 

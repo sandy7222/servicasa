@@ -277,3 +277,86 @@ export interface CurrentUser {
 }
 
 export type CurrentUserData = CurrentUser;
+
+// ===== Reclamos y Garantías =====
+
+export type ClaimType = 'warranty' | 'complaint' | 'dispute' | 'no_show' | 'damage' | 'other';
+
+export type ClaimStatus =
+  | 'open'
+  | 'in_progress'
+  | 'waiting_client'
+  | 'waiting_technician'
+  | 'resolved'
+  | 'closed'
+  | 'escalated';
+
+export type ClaimPriority = 'low' | 'medium' | 'high' | 'urgent';
+
+export type ClaimResolutionType =
+  | 'full_refund'
+  | 'partial_refund'
+  | 'redo_work'
+  | 'send_another_technician'
+  | 'credit_note'
+  | 'no_action'
+  | 'other';
+
+export type ClaimSettlementAction = 'release' | 'cancel' | 'retain';
+
+export interface ClaimMessage {
+  id: string;
+  senderType: 'admin' | 'client' | 'technician' | 'system';
+  channel: 'in_app' | 'phone' | 'email' | 'whatsapp' | 'internal_note';
+  message: string;
+  isInternal: boolean;
+  author?: string;
+  createdAt: string;
+}
+
+export interface ClaimHistory {
+  id: string;
+  changeType: string;
+  previousValue?: string;
+  newValue?: string;
+  notes?: string;
+  author?: string;
+  createdAt: string;
+}
+
+export interface ClaimCase {
+  id: string;
+  caseNumber: string;
+  orderId?: string | null;
+  customerId?: string | null;
+  customerName?: string;
+  technicianId?: string | null;
+  technicianName?: string | null;
+  type: ClaimType;
+  status: ClaimStatus;
+  priority: ClaimPriority;
+  subject: string;
+  description?: string;
+  resolutionType?: ClaimResolutionType | null;
+  resolutionAmount?: number | null;
+  resolutionNotes?: string | null;
+  settlementPaused: boolean;
+  openedAt: string;
+  resolvedAt?: string | null;
+  closedAt?: string | null;
+  messages: ClaimMessage[];
+  history: ClaimHistory[];
+}
+
+export type ClaimInput = {
+  orderId?: string | null;
+  customerId?: string | null;
+  technicianId?: string | null;
+  customerName?: string;
+  technicianName?: string;
+  type: ClaimType;
+  priority: ClaimPriority;
+  subject: string;
+  description?: string;
+  pauseSettlement?: boolean;
+};

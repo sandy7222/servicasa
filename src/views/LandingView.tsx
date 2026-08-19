@@ -1,4 +1,5 @@
 import React from 'react';
+import { DEMO_MODE } from '../lib/featureFlags';
 import {
   Wrench,
   Zap,
@@ -143,9 +144,21 @@ export const LandingView: React.FC = () => {
         <div className="absolute bottom-0 left-10 w-80 h-80 bg-sky-400/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+          <div
+            className={
+              DEMO_MODE
+                ? 'grid grid-cols-1 lg:grid-cols-12 gap-12 items-center'
+                : 'flex justify-center'
+            }
+          >
             {/* Left Column */}
-            <div className="lg:col-span-7 space-y-5 text-center lg:text-left">
+            <div
+              className={
+                DEMO_MODE
+                  ? 'lg:col-span-7 space-y-5 text-center lg:text-left'
+                  : 'max-w-3xl space-y-5 text-center'
+              }
+            >
               {/* Official Brand Emblem Pill */}
               <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-semibold text-teal-300">
                 <Logo size="xs" showText={false} variant="white" />
@@ -215,7 +228,8 @@ export const LandingView: React.FC = () => {
               </div>
             </div>
 
-            {/* Right Column: Interactive Role Selector Card */}
+            {/* Right Column: Interactive Role Selector Card (solo en modo demo) */}
+            {DEMO_MODE && (
             <div className="lg:col-span-5">
               <div className="bg-white/95 backdrop-blur-md rounded-2xl p-6 sm:p-7 shadow-2xl border border-white/30 text-slate-800">
                 <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-5">
@@ -309,6 +323,7 @@ export const LandingView: React.FC = () => {
                 </div>
               </div>
             </div>
+            )}
           </div>
         </div>
       </section>

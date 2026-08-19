@@ -125,3 +125,52 @@ export type DbOrderQuote = {
   valid_until: string | null;
   sent_at: string | null;
 };
+
+export type DbSupportCase = {
+  id: string;
+  case_number: string;
+  customer_id: string | null;
+  order_id: string | null;
+  technician_id: string | null;
+  customer_name: string | null;
+  technician_name: string | null;
+  case_type: string;
+  status: string;
+  priority: string;
+  subject: string;
+  description: string | null;
+  resolution_type: string | null;
+  resolution_amount: number | null;
+  resolution_notes: string | null;
+  settlement_paused: boolean;
+  settlement_id: string | null;
+  opened_by: string | null;
+  opened_at: string;
+  resolved_by: string | null;
+  resolved_at: string | null;
+  closed_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type DbSupportCaseMessage = {
+  id: string;
+  case_id: string;
+  sender_type: 'admin' | 'client' | 'technician' | 'system';
+  channel: 'in_app' | 'phone' | 'email' | 'whatsapp' | 'internal_note';
+  message: string;
+  is_internal: boolean;
+  created_by: string | null;
+  created_at: string;
+};
+
+export type DbSupportCaseHistory = {
+  id: string;
+  case_id: string;
+  changed_by: string | null;
+  change_type: string;
+  previous_value: string | null;
+  new_value: string | null;
+  notes: string | null;
+  created_at: string;
+};

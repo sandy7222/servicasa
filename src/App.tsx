@@ -14,6 +14,8 @@ import { TechnicianView } from './views/TechnicianView';
 import { CustomerView } from './views/CustomerView';
 import { SettingsView } from './views/SettingsView';
 import { ServicesCategoryView } from './views/ServicesCategoryView';
+import { ClientsTable } from './components/admin/ClientsTable';
+import { ClientFicha } from './components/admin/ClientFicha';
 import type { UserRole } from './types';
 
 const Protected: React.FC<{ children: React.ReactNode; roles?: UserRole[] }> = ({
@@ -104,6 +106,12 @@ const AppContent: React.FC = () => {
             <AdminHubView />
           </Protected>
         );
+      case '/admin/clientes':
+        return (
+          <Protected roles={['admin']}>
+            <ClientsTable onOpen={(customerId) => window.location.hash = `#/admin/clientes/${customerId}`} />
+          </Protected>
+        );
       case '/technician':
       case '/technician/profile':
       case '/technician/earnings':
@@ -132,6 +140,14 @@ const AppContent: React.FC = () => {
           return (
             <Protected roles={['admin', 'customer']}>
               <CustomerView />
+            </Protected>
+          );
+        }
+        if (pathOnly.startsWith('/admin/clientes/')) {
+          const customerId = pathOnly.replace('/admin/clientes/', '');
+          return (
+            <Protected roles={['admin']}>
+              <ClientFicha customerId={customerId} onBack={() => window.location.hash = '#/admin/clientes'} />
             </Protected>
           );
         }

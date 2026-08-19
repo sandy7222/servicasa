@@ -11,6 +11,7 @@ import {
 import { Logo } from '../components/common/Logo';
 import { useApp } from '../context/AppContext';
 import { DEMO_CREDENTIALS } from '../lib/supabaseData';
+import { DEMO_MODE } from '../lib/featureFlags';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { friendlyErrorMessage } from '../components/common/AppStatus';
 import { fetchAccountInvite, type AccountInvitePreview } from '../lib/supabaseMutations';
@@ -207,7 +208,7 @@ export const AuthView: React.FC = () => {
             )}
           </button>
 
-          {!inviteMode && (
+          {!inviteMode && DEMO_MODE && (
           <div className="pt-2 border-t border-slate-100">
             <p className="text-[11px] font-mono uppercase tracking-wider text-slate-500 mb-2">
               Cuentas de prueba
