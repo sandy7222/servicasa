@@ -87,7 +87,7 @@ export const CustomerView: React.FC = () => {
               <div>
                 <div className="flex items-center gap-2">
                   <h1 className="text-sm sm:text-base font-bold text-white tracking-tight">
-                    Portal del Cliente — ServiCasa
+                    Portal del Cliente — TecniUrbano
                   </h1>
                   <span className="text-[10px] font-mono font-bold px-2 py-0.2 rounded bg-teal-500/15 text-teal-300 border border-teal-500/30">
                     {currentUser?.name}
@@ -223,7 +223,7 @@ export const CustomerView: React.FC = () => {
 
                 {activeOrder.adminIncidentStatus === 'open' && (
                   <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950">
-                    <div className="font-bold flex items-center gap-1.5"><AlertCircle className="w-4 h-4" /> Servicio en revisión por ServiCasa</div>
+                    <div className="font-bold flex items-center gap-1.5"><AlertCircle className="w-4 h-4" /> Servicio en revisión por TecniUrbano</div>
                     <p className="mt-1">{activeOrder.adminIncidentReason || 'Estamos revisando una incidencia de esta orden.'}</p>
                   </div>
                 )}

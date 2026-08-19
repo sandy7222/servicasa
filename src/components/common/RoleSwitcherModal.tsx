@@ -38,7 +38,7 @@ export const RoleSwitcherModal: React.FC<RoleSwitcherModalProps> = ({ isOpen, on
           <div>
             <h3 className="text-sm font-bold text-slate-900 font-mono uppercase tracking-wider">Simulador de Usuarios</h3>
             <p className="text-[11px] text-slate-500">
-              Cambiá de perfil en tiempo real para probar el ciclo completo de ServiCasa
+              Cambiá de perfil en tiempo real para probar el ciclo completo de TecniUrbano
             </p>
           </div>
           <button

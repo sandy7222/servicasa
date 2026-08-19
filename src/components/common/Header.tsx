@@ -82,7 +82,7 @@ export const Header: React.FC = () => {
                 onClick={() => navigate('/')}
                 className="cursor-pointer flex items-center gap-2 group transition-transform hover:scale-[1.02]"
               >
-                <Logo size="md" showTagline={false} variant="white" />
+                <Logo size="md" showText={true} showTagline={false} variant="white" />
               </div>
               <div className="hidden lg:flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-800/80 border border-slate-700/60 text-[10px] font-mono text-slate-400">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -294,4 +294,3 @@ export const Header: React.FC = () => {
     </>
   );
 };
-

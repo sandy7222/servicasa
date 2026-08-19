@@ -7,7 +7,7 @@ export const FullPageLoader: React.FC<{ message?: string }> = ({
   <div className="min-h-[50vh] flex flex-col items-center justify-center gap-3 px-4 text-center">
     <Loader2 className="w-8 h-8 text-teal-600 animate-spin" />
     <p className="text-sm font-medium text-slate-600">{message}</p>
-    <p className="text-[11px] font-mono text-slate-400">ServiCasa · Supabase</p>
+    <p className="text-[11px] font-mono text-slate-400">TecniUrbano · Supabase</p>
   </div>
 );
 

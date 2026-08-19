@@ -162,7 +162,7 @@ const AppContent: React.FC = () => {
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-800 antialiased selection:bg-teal-500 selection:text-white">
       <Header />
       <InlineBusyBar active={remoteBusy} />
-      {!authReady ? <FullPageLoader message="Iniciando ServiCasa…" /> : <div className="flex-1">{renderView()}</div>}
+      {!authReady ? <FullPageLoader message="Iniciando TecniUrbano…" /> : <div className="flex-1">{renderView()}</div>}
       <Toast />
     </div>
   );

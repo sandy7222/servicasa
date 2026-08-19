@@ -41,7 +41,7 @@ import { WorkHistoryView } from '../components/technician/WorkHistoryView';
 import { TechnicianStatisticsView } from '../components/technician/TechnicianStatisticsView';
 
 // Google Maps URLs are cross-platform and require no Maps API key.
-// The browser/Maps app obtains the technician's location; ServiCasa never stores it.
+// The browser/Maps app obtains the technician's location; TecniUrbano never stores it.
 const directionsUrl = (order: ServiceOrder) => {
   const destination = [order.clientAddress, order.clientNeighborhood, 'Argentina']
     .filter(Boolean)
@@ -443,7 +443,7 @@ export const TechnicianView: React.FC = () => {
                     >
                       <Navigation className="w-4 h-4" /> Abrir navegación al domicilio
                     </a>
-                    <span className="text-[10px] text-slate-400">Google Maps usa la ubicación del dispositivo; ServiCasa no la registra.</span>
+                    <span className="text-[10px] text-slate-400">Google Maps usa la ubicación del dispositivo; TecniUrbano no la registra.</span>
                   </div>
 
                   {/* Closing Requirements Progress Meter */}

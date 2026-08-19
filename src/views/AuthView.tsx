@@ -111,7 +111,7 @@ export const AuthView: React.FC = () => {
             <Logo size="xl" layout="vertical" showTagline={true} />
           </div>
           <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
-            {inviteMode ? 'Creá tu cuenta ServiCasa' : 'Acceso a ServiCasa'}
+            {inviteMode ? 'Creá tu cuenta TecniUrbano' : 'Acceso a TecniUrbano'}
           </h2>
           <p className="text-xs text-slate-500 mt-1">
             {inviteMode

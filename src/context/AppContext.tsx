@@ -1551,7 +1551,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         'Limpieza y terminación prolija',
       ],
       'Mantenimiento general': [
-        'Revisión integral según protocolo ServiCasa',
+        'Revisión integral según protocolo TecniUrbano',
         'Limpieza, lubricación y reemplazo de juntas/filtros',
         'Comprobación de rendimiento operativo',
       ],
@@ -1704,7 +1704,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...data,
     };
     setCustomers((prev) => [...prev, newCli]);
-    showToast(`Cliente ${data.name} registrado en ServiCasa`, 'success');
+    showToast(`Cliente ${data.name} registrado en TecniUrbano`, 'success');
     return newId;
   };
 
@@ -1880,7 +1880,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     }
 
-    showToast(`Técnico ${data.name} registrado en ServiCasa`, 'success');
+    showToast(`Técnico ${data.name} registrado en TecniUrbano`, 'success');
     return newId;
   };
 

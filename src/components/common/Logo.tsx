@@ -1,5 +1,5 @@
 import React from 'react';
-import logoServicasa from '../../assets/logo-servicasa.png';
+import logoTecniUrbano from '../../assets/logo-tecniurbano.png';
 
 interface LogoProps {
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
@@ -28,30 +28,36 @@ const TAGLINE_SIZES = {
   '2xl': 'text-lg',
 } as const;
 
-/** Marca oficial (PNG). El archivo ya incluye el wordmark ServiCasa. */
+/** Marca oficial (PNG). El archivo ya incluye el wordmark TecniUrbano. */
 export const LogoEmblem: React.FC<{
   className?: string;
   size?: number;
   variant?: 'light' | 'dark' | 'white';
 }> = ({ className = 'w-10 h-10', size = 48, variant = 'light' }) => {
-  // El PNG es azul con fondo transparente. Sobre fondos oscuros lo pasamos a
-  // blanco (monocromo) para que tenga contraste; sobre fondos claros se mantiene azul.
-  const filterClass = variant === 'white' ? 'brightness-0 invert' : '';
+  // En tamaños compactos se recorta el wordmark incorporado para priorizar
+  // el símbolo, que conserva legibilidad en la barra superior.
+  const filterClass = '';
   return (
-    <img
-      src={logoServicasa}
-      alt="ServiCasa"
-      width={size}
-      height={size}
-      className={`object-contain rounded-md ${filterClass} ${className}`}
-      id="servicasa-logo-emblem"
-      draggable={false}
-    />
+    <span
+      className={`relative block overflow-hidden rounded-md bg-black ${className}`}
+      id="tecniurbano-logo-emblem"
+      aria-hidden="true"
+    >
+      <img
+        src={logoTecniUrbano}
+        alt=""
+        width={size}
+        height={size}
+        className={`absolute inset-0 h-full w-full scale-[1.55] object-cover object-[center_35%] ${filterClass}`}
+        draggable={false}
+      />
+    </span>
   );
 };
 
 export const Logo: React.FC<LogoProps> = ({
   size = 'md',
+  showText = true,
   showTagline = false,
   layout = 'horizontal',
   className = '',
@@ -68,15 +74,22 @@ export const Logo: React.FC<LogoProps> = ({
     </span>
   ) : null;
 
+  const name = showText ? (
+    <span className={`font-black tracking-tight leading-none ${size === 'xs' ? 'text-xs' : size === 'sm' ? 'text-sm' : 'text-base'} ${variant === 'white' ? 'text-white' : 'text-[#083b92]'}`}>
+      Tecni<span className="text-teal-400">Urbano</span>
+    </span>
+  ) : null;
+
   if (layout === 'vertical') {
     return (
       <div
         className={`inline-flex flex-col items-center justify-center text-center select-none ${className}`}
-        id="servicasa-brand-logo-vertical"
+        id="tecniurbano-brand-logo-vertical"
       >
         <div className="shrink-0 transition-transform duration-200 hover:scale-105 mb-1.5">
           <LogoEmblem className={current.className} size={current.px} variant={variant} />
         </div>
+        {name}
         {tagline}
       </div>
     );
@@ -85,12 +98,12 @@ export const Logo: React.FC<LogoProps> = ({
   return (
     <div
       className={`inline-flex items-center gap-2.5 sm:gap-3 select-none ${className}`}
-      id="servicasa-brand-logo"
+      id="tecniurbano-brand-logo"
     >
       <div className="shrink-0 transition-transform duration-200 hover:scale-105">
         <LogoEmblem className={current.className} size={current.px} variant={variant} />
       </div>
-      {tagline ? <div className="flex flex-col justify-center leading-none">{tagline}</div> : null}
+      {(name || tagline) ? <div className="flex flex-col justify-center gap-1 leading-none">{name}{tagline}</div> : null}
     </div>
   );
 };
@@ -103,7 +116,7 @@ export const LogoBadge: React.FC<{
   return (
     <div
       className={`flex flex-col items-center justify-center p-3 rounded-2xl ${className}`}
-      id="servicasa-official-badge"
+      id="tecniurbano-official-badge"
     >
       <Logo
         size={size === 'sm' ? 'md' : size === 'md' ? 'xl' : '2xl'}

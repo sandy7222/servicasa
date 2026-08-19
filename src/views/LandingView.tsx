@@ -39,10 +39,7 @@ const CATEGORY_ICON_MAP: Record<string, { icon: React.ReactNode; bg: string; bor
 };
 
 export const LandingView: React.FC = () => {
-  const { navigate, orders, serviceCategories, services } = useApp();
-
-  const activeOrdersCount = orders.filter((o) => o.status !== 'completed' && o.status !== 'cancelled').length;
-  const completedOrdersCount = orders.filter((o) => o.status === 'completed').length;
+  const { navigate, serviceCategories, services } = useApp();
 
   const getServiceVisuals = (category: { name: string; icon?: string }) => {
     if (category.icon && CATEGORY_ICON_MAP[category.icon]) {
@@ -136,7 +133,7 @@ export const LandingView: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800" id="servicasa-landing-view">
+    <div className="min-h-screen bg-slate-50 text-slate-800" id="tecniurbano-landing-view">
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-b from-blue-950 via-[#003875] to-[#00264d] text-white pt-12 pb-20 sm:pt-16 sm:pb-28">
         {/* Subtle background glow circles */}
@@ -172,8 +169,8 @@ export const LandingView: React.FC = () => {
                 </div>
                 <div>
                   <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white leading-tight">
-                    <span className="text-white">Servi</span>
-                    <span className="text-teal-400">Casa</span>
+                    <span className="text-white">Tecni</span>
+                    <span className="text-teal-400">Urbano</span>
                   </h1>
                   <span className="block text-base sm:text-lg font-bold text-teal-300 tracking-wide mt-0.5">
                     Servicios a domicilio
@@ -205,27 +202,6 @@ export const LandingView: React.FC = () => {
                 </button>
               </div>
 
-              {/* Quick stats pills */}
-              <div className="pt-6 grid grid-cols-3 gap-3 border-t border-white/15 max-w-lg mx-auto lg:mx-0">
-                <div>
-                  <div className="text-xl sm:text-2xl font-black text-white">100%</div>
-                  <div className="text-[11px] text-blue-200 uppercase font-medium tracking-wider">
-                    En memoria
-                  </div>
-                </div>
-                <div>
-                  <div className="text-xl sm:text-2xl font-black text-teal-300">{activeOrdersCount}</div>
-                  <div className="text-[11px] text-blue-200 uppercase font-medium tracking-wider">
-                    Órdenes activas
-                  </div>
-                </div>
-                <div>
-                  <div className="text-xl sm:text-2xl font-black text-emerald-300">3 Roles</div>
-                  <div className="text-[11px] text-blue-200 uppercase font-medium tracking-wider">
-                    Admin / Tech / Cliente
-                  </div>
-                </div>
-              </div>
             </div>
 
             {/* Right Column: Interactive Role Selector Card (solo en modo demo) */}
@@ -336,7 +312,7 @@ export const LandingView: React.FC = () => {
               Nuestra Cobertura Especializada
             </h2>
             <p className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-              Servicios de ServiCasa
+              Servicios de TecniUrbano
             </p>
             <p className="text-sm text-slate-600 mt-2">
               Soluciones técnicas integrales para hogares y consorcios con mano de obra calificada.
