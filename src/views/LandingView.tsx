@@ -366,20 +366,12 @@ export const LandingView: React.FC = () => {
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate('/auth')}
-              className="px-4 py-2 bg-teal-500 hover:bg-teal-400 text-slate-950 text-xs font-bold rounded-lg shadow-xs transition-colors"
-            >
-              Ingresar al sistema
-            </button>
-            <button
-              onClick={() => navigate('/hub')}
-              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-lg border border-slate-700 transition-colors"
-            >
-              Admin Hub
-            </button>
-          </div>
+          <button
+            onClick={() => navigate('/auth')}
+            className="px-4 py-2 bg-teal-500 hover:bg-teal-400 text-slate-950 text-xs font-bold rounded-lg shadow-xs transition-colors"
+          >
+            Ingresar al sistema
+          </button>
         </div>
       </footer>
     </div>
