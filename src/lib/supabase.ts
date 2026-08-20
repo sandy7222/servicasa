@@ -85,6 +85,13 @@ export type DbService = {
   active: boolean;
 };
 
+export type DbSystemSetting = {
+  key: string;
+  value: unknown;
+  updated_at: string;
+  updated_by: string | null;
+};
+
 export type DbServiceOrder = {
   id: string;
   title: string;

@@ -188,6 +188,20 @@ export async function fetchPublicServices(): Promise<ServiceItem[]> {
   return (data as DbService[]).map(mapService);
 }
 
+const VISIT_DEPOSIT_FALLBACK = 30000;
+
+/** Single source of truth for the diagnosis visit deposit amount (system_settings). */
+export async function fetchVisitDepositAmount(): Promise<number> {
+  const { data, error } = await supabase
+    .from('system_settings')
+    .select('value')
+    .eq('key', 'visit_deposit_amount')
+    .maybeSingle();
+  if (error || !data) return VISIT_DEPOSIT_FALLBACK;
+  const value = Number(data.value);
+  return Number.isFinite(value) && value >= 0 ? value : VISIT_DEPOSIT_FALLBACK;
+}
+
 export async function fetchCatalog() {
   const [techRes, custRes, matRes, orderRes, svcRes] = await Promise.all([
     supabase.from('technicians').select('*').order('name'),

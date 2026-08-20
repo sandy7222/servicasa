@@ -2767,6 +2767,13 @@ export const AdminHubView: React.FC = () => {
               <strong>"{orderToAssign.title}"</strong>.
             </p>
 
+            {orderToAssign.workMode === 'direct' && orderToAssign.paymentStatus !== 'paid_in_full' && (
+              <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950">
+                <strong className="block">Pago pendiente</strong>
+                Esta orden es de precio fijo y el cliente todavía no completó el pago. No se puede asignar un técnico hasta que Mercado Pago confirme el cobro.
+              </div>
+            )}
+
             <div className="space-y-2.5">
               {technicians.map((t) => {
                 const isCurrent = orderToAssign.assignedTechnicianId === t.id;

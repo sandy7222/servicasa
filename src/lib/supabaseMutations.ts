@@ -272,6 +272,14 @@ export async function persistDeleteMaterial(materialId: string) {
   throwIfError(error);
 }
 
+export async function persistUpdateVisitDepositAmount(amount: number): Promise<void> {
+  const { error } = await supabase
+    .from('system_settings')
+    .update({ value: amount, updated_at: new Date().toISOString() })
+    .eq('key', 'visit_deposit_amount');
+  throwIfError(error);
+}
+
 export async function persistCreateService(input: ServiceItemInput): Promise<ServiceItem> {
   const { data, error } = await supabase
     .from('services')
@@ -384,6 +392,7 @@ export async function persistCreateOrder(input: {
 export async function persistCreateCustomerRequest(input: {
   request: CustomerServiceRequestInput;
   customer: Customer;
+  visitDepositAmount: number;
 }): Promise<ServiceOrder> {
   const requestedDescription = `${input.request.description.trim()}\n\nDisponibilidad solicitada: ${input.request.appointmentWindow}`;
   const { data, error } = await supabase
@@ -400,7 +409,7 @@ export async function persistCreateCustomerRequest(input: {
       work_mode: input.request.workMode,
       quote_status: 'none',
       payment_status: 'pending',
-      visit_deposit_amount: input.request.workMode === 'diagnosis' ? 30000 : 0,
+      visit_deposit_amount: input.request.workMode === 'diagnosis' ? input.visitDepositAmount : 0,
       total_quoted_amount: input.request.workMode === 'direct' ? Number(input.request.requestedTotal ?? 0) : 0,
       total_paid_amount: 0,
       extra_amount: 0,

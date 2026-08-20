@@ -12,6 +12,7 @@ import {
   fetchCatalog,
   fetchProfile,
   fetchPublicServices,
+  fetchVisitDepositAmount,
   profileToCurrentUser,
   signInWithPassword,
   signOut,
@@ -61,6 +62,7 @@ import {
   persistUpdateOrderStatus,
   persistUpdateService,
   persistUpdateTechnician,
+  persistUpdateVisitDepositAmount,
 } from '../lib/supabaseMutations';
 import { friendlyErrorMessage } from '../components/common/AppStatus';
 import { canExecutePaidWork } from '../lib/workTimer';
@@ -97,6 +99,8 @@ interface AppContextType {
   materials: MaterialInventory[];
   services: ServiceItem[];
   serviceCategories: ServiceCategory[];
+  visitDepositAmount: number;
+  updateVisitDepositAmount: (amount: number) => Promise<void>;
   currentUser: CurrentUserData | null;
   authReady: boolean;
   authLoading: boolean;
@@ -299,6 +303,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   });
 
+  // Single source of truth for the diagnosis visit deposit (system_settings).
+  // 30000 here is only the pre-fetch default, matching the previous hardcoded
+  // behavior until the real value loads.
+  const [visitDepositAmount, setVisitDepositAmount] = useState(30000);
+
   const [serviceCategories, setServiceCategories] = useState<ServiceCategory[]>(() => {
     try {
       const saved = localStorage.getItem(`${STORAGE_KEY}_serviceCategories`);
@@ -368,6 +377,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setOrders(catalog.orders);
       setUsingRemoteData(true);
       setCurrentUserState(profileToCurrentUser(profile));
+      fetchVisitDepositAmount().then(setVisitDepositAmount).catch(() => {});
     } catch (err) {
       const message = friendlyErrorMessage(err, 'No se pudieron cargar los datos remotos.');
       setDataError(message);
@@ -399,6 +409,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setServices(publicServices);
     } catch (err) {
       console.warn('[TecniUrbano] No se pudo cargar el catálogo público de servicios', err);
+    }
+  };
+
+  const updateVisitDepositAmount = async (amount: number): Promise<void> => {
+    if (!usingRemoteData) {
+      setVisitDepositAmount(amount);
+      showToast('Seña actualizada (modo demo, no persiste en Supabase)', 'info');
+      return;
+    }
+    try {
+      await persistUpdateVisitDepositAmount(amount);
+      setVisitDepositAmount(amount);
+      showToast('Seña de diagnóstico actualizada', 'success', 'Configuración guardada');
+    } catch (err) {
+      showToast(friendlyErrorMessage(err, 'No se pudo actualizar la seña'), 'error');
+      throw err;
     }
   };
 
@@ -910,6 +936,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!tech) return;
     if (usingRemoteData && (tech.validationStatus !== 'approved' || !tech.canReceiveOrders)) {
       showToast('Este técnico todavía no está habilitado para recibir órdenes.', 'warning', 'Validación pendiente');
+      return;
+    }
+
+    const order = orders.find((o) => o.id === orderId);
+    if (order?.workMode === 'direct' && order.paymentStatus !== 'paid_in_full') {
+      showToast(
+        'Esta orden es de precio fijo y el cliente todavía no completó el pago. No se puede asignar un técnico hasta que el cobro se confirme.',
+        'warning',
+        'Pago pendiente'
+      );
       return;
     }
 
@@ -1665,7 +1701,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!customer) throw new SecurityError('No se encontró tu perfil de cliente.', 'CUSTOMER_NOT_FOUND');
 
     if (usingRemoteData) {
-      const created = await withRemote(() => persistCreateCustomerRequest({ request, customer }));
+      const created = await withRemote(() =>
+        persistCreateCustomerRequest({ request, customer, visitDepositAmount })
+      );
       setOrders((previous) => [created, ...previous.filter((order) => order.id !== created.id)]);
       return created.id;
     }
@@ -1681,7 +1719,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       quoteStatus: 'none',
       paymentStatus: 'pending',
       workMode: request.workMode,
-      visitDepositAmount: request.workMode === 'diagnosis' ? 30000 : 0,
+      visitDepositAmount: request.workMode === 'diagnosis' ? visitDepositAmount : 0,
       totalQuotedAmount: request.workMode === 'direct' ? request.requestedTotal ?? 0 : 0,
       totalPaidAmount: 0,
       extraAmount: 0,
@@ -2215,6 +2253,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         materials,
         services,
         serviceCategories,
+        visitDepositAmount,
+        updateVisitDepositAmount,
         currentUser,
         authReady,
         authLoading,

@@ -2,13 +2,15 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { CalendarDays, CheckCircle2, ClipboardPlus, CreditCard, MapPin, Search, Wrench } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { FIXED_PRICE_SERVICES, formatArs, type FixedPriceService } from '../../lib/pricing';
+import { redirectToPayment } from '../../lib/paymentClient';
 import type { OrderPriority, ServiceType, WorkMode } from '../../types';
 
 const DATE_TODAY = new Date().toISOString().slice(0, 10);
 
-/** A request starts a service workflow; it does not process a payment in the browser. */
+/** A request starts a service workflow; the actual charge happens via a
+ * server-side Mercado Pago redirect right after the order is created. */
 export const ServiceRequestForm: React.FC = () => {
-  const { currentUser, customers, services, createCustomerRequest, showToast } = useApp();
+  const { currentUser, customers, services, createCustomerRequest, showToast, visitDepositAmount } = useApp();
   const customer = customers.find((item) => item.id === currentUser?.customerId);
   const [mode, setMode] = useState<WorkMode>('diagnosis');
   const [serviceType, setServiceType] = useState<ServiceType>('Electricidad');
@@ -81,7 +83,7 @@ export const ServiceRequestForm: React.FC = () => {
 
     setSubmitting(true);
     try {
-      await createCustomerRequest({
+      const orderId = await createCustomerRequest({
         title: requestTitle,
         description: description.trim(),
         serviceType,
@@ -95,7 +97,34 @@ export const ServiceRequestForm: React.FC = () => {
       });
       setSent(true);
       setTitle(''); setDescription(''); setSelectedService(null); setQuantity(1);
-      showToast('Solicitud enviada. Aún no se realizó ningún cobro.', 'success', 'Pedido recibido');
+
+      if (mode === 'diagnosis') {
+        showToast('Solicitud registrada. Te llevamos a pagar la seña de forma segura...', 'info', 'Pedido recibido');
+        try {
+          await redirectToPayment(orderId, 'visit_deposit');
+        } catch (paymentError) {
+          showToast(
+            paymentError instanceof Error
+              ? `Tu solicitud se guardó, pero no pudimos iniciar el pago: ${paymentError.message}`
+              : 'Tu solicitud se guardó, pero no pudimos iniciar el pago de la seña. Contactá a soporte.',
+            'error',
+            'No se pudo iniciar el pago'
+          );
+        }
+      } else {
+        showToast('Solicitud registrada. Te llevamos a pagar de forma segura...', 'info', 'Pedido recibido');
+        try {
+          await redirectToPayment(orderId, 'full_advance');
+        } catch (paymentError) {
+          showToast(
+            paymentError instanceof Error
+              ? `Tu solicitud se guardó, pero no pudimos iniciar el pago: ${paymentError.message}`
+              : 'Tu solicitud se guardó, pero no pudimos iniciar el pago. Contactá a soporte.',
+            'error',
+            'No se pudo iniciar el pago'
+          );
+        }
+      }
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'No se pudo enviar la solicitud.', 'error', 'Solicitud no enviada');
     } finally {
@@ -116,7 +145,7 @@ export const ServiceRequestForm: React.FC = () => {
       <div className="grid sm:grid-cols-2 gap-2">
         <button type="button" onClick={() => chooseMode('diagnosis')} className={`text-left rounded-xl border p-3 transition ${mode === 'diagnosis' ? 'border-teal-500 bg-teal-50/60 ring-1 ring-teal-500/20' : 'border-slate-200 hover:bg-slate-50'}`}>
           <span className="inline-flex items-center gap-1 text-xs font-bold text-slate-900"><Search className="w-3.5 h-3.5 text-teal-700" />No sé exactamente qué necesito</span>
-          <span className="block mt-1 text-[11px] text-slate-600">Visita de diagnóstico. La seña vigente es {formatArs(30000)} y se descuenta si aceptás el presupuesto.</span>
+          <span className="block mt-1 text-[11px] text-slate-600">Visita de diagnóstico. La seña vigente es {formatArs(visitDepositAmount)} y se descuenta si aceptás el presupuesto.</span>
         </button>
         <button type="button" onClick={() => chooseMode('direct')} className={`text-left rounded-xl border p-3 transition ${mode === 'direct' ? 'border-teal-500 bg-teal-50/60 ring-1 ring-teal-500/20' : 'border-slate-200 hover:bg-slate-50'}`}>
           <span className="inline-flex items-center gap-1 text-xs font-bold text-slate-900"><Wrench className="w-3.5 h-3.5 text-teal-700" />Sé qué trabajo necesito</span>
