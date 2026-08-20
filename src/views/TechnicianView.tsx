@@ -261,6 +261,26 @@ export const TechnicianView: React.FC = () => {
               <BarChart3 className="w-3.5 h-3.5" /> Estadísticas
             </button>
           </div>
+
+          {/* Mobile-only quick access: the buttons above are hidden below sm, so without this
+              strip there is no way to reach these sub-pages from a phone. */}
+          <div className="flex sm:hidden items-center gap-1.5 overflow-x-auto pb-2 -mx-3 px-3 mt-2">
+            {[
+              { path: '/technician/profile', label: 'Mi perfil', icon: UserRound },
+              { path: '/technician/earnings', label: 'Ganancias', icon: Landmark },
+              { path: '/technician/availability', label: 'Disponibilidad', icon: Calendar },
+              { path: '/technician/history', label: 'Historial', icon: History },
+              { path: '/technician/statistics', label: 'Estadísticas', icon: BarChart3 },
+            ].map(({ path, label, icon: Icon }) => (
+              <button
+                key={path}
+                onClick={() => navigate(path)}
+                className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1.5 text-[11px] font-bold text-slate-200 whitespace-nowrap"
+              >
+                <Icon className="w-3.5 h-3.5" /> {label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 

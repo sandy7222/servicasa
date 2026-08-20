@@ -183,12 +183,12 @@ export const ServicesCategoryView: React.FC = () => {
 
                   <button
                     onClick={() => {
-                      localStorage.setItem('servicasa_selectedServiceId', srv.id);
+                      localStorage.setItem('tecniurbano_selectedServiceId', srv.id);
                       // The order editor belongs to Admin Hub. Sending visitors
                       // directly there caused a protected-route redirect that
                       // looked like the button had done nothing.
                       if (!currentUser) {
-                        sessionStorage.setItem('servicasa_pending_service_id', srv.id);
+                        sessionStorage.setItem('tecniurbano_pending_service_id', srv.id);
                         navigate('/auth');
                         return;
                       }
@@ -198,7 +198,7 @@ export const ServicesCategoryView: React.FC = () => {
                         return;
                       }
 
-                      localStorage.removeItem('servicasa_selectedServiceId');
+                      localStorage.removeItem('tecniurbano_selectedServiceId');
                       showToast(
                         'Ingresaste como cliente. El pedido debe cargarse desde el portal del cliente.',
                         'info',

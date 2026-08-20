@@ -38,10 +38,10 @@ export const ServiceRequestForm: React.FC = () => {
   const directTotal = selectedService ? selectedService.unitPrice * quantity : 0;
 
   useEffect(() => {
-    const pendingServiceId = localStorage.getItem('servicasa_selectedServiceId');
+    const pendingServiceId = localStorage.getItem('tecniurbano_selectedServiceId');
     if (!pendingServiceId) return;
     const catalogItem = services.find((service) => service.id === pendingServiceId);
-    localStorage.removeItem('servicasa_selectedServiceId');
+    localStorage.removeItem('tecniurbano_selectedServiceId');
     if (!catalogItem) return;
     setServiceType(catalogItem.category);
     setTitle(catalogItem.name);

@@ -23,7 +23,7 @@ import type { CurrentUserData, ServiceOrder } from '../types';
 const adminUser: CurrentUserData = {
   id: 'admin-1',
   name: 'Administrador',
-  email: 'admin@servicasa.com.ar',
+  email: 'admin@tecniurbano.com.ar',
   role: 'admin',
   technicianId: null,
   customerId: null,
@@ -33,7 +33,7 @@ const adminUser: CurrentUserData = {
 const technicianUser1: CurrentUserData = {
   id: 'tech-1',
   name: 'Carlos',
-  email: 'carlos@servicasa.com.ar',
+  email: 'carlos@tecniurbano.com.ar',
   role: 'technician',
   technicianId: 'tec-001',
   customerId: null,
@@ -43,7 +43,7 @@ const technicianUser1: CurrentUserData = {
 const technicianUser2: CurrentUserData = {
   id: 'tech-2',
   name: 'María',
-  email: 'maria@servicasa.com.ar',
+  email: 'maria@tecniurbano.com.ar',
   role: 'technician',
   technicianId: 'tec-002',
   customerId: null,
@@ -53,7 +53,7 @@ const technicianUser2: CurrentUserData = {
 const customerUser1: CurrentUserData = {
   id: 'cust-1',
   name: 'Julián',
-  email: 'julian@servicasa.com.ar',
+  email: 'julian@tecniurbano.com.ar',
   role: 'customer',
   technicianId: null,
   customerId: 'cust-001',
@@ -63,7 +63,7 @@ const customerUser1: CurrentUserData = {
 const customerUser2: CurrentUserData = {
   id: 'cust-2',
   name: 'Florencia',
-  email: 'florencia@servicasa.com.ar',
+  email: 'florencia@tecniurbano.com.ar',
   role: 'customer',
   technicianId: null,
   customerId: 'cust-002',

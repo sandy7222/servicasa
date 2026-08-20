@@ -1,4 +1,4 @@
-# ServiCasa
+# TecniUrbano
 
 Plataforma web para la gestión integral de servicios técnicos a domicilio. Conecta tres roles —**administrador**, **técnico** y **cliente**— en un mismo flujo operativo: órdenes de servicio, inventario, checklist en campo, registro de tiempo, materiales usados y firma de conformidad.
 
@@ -41,9 +41,9 @@ Abrí `http://localhost:3000`.
 
 | Rol | Email | Password |
 | --- | --- | --- |
-| Admin | `admin@servicasa.com.ar` | `ServiCasa2026!` |
-| Técnico | `carlos.mendez@servicasa.com.ar` | `ServiCasa2026!` |
-| Cliente | `julian.albarracin@gmail.com` | `ServiCasa2026!` |
+| Admin | `admin@tecniurbano.com.ar` | `TecniUrbano2026!` |
+| Técnico | `carlos.mendez@tecniurbano.com.ar` | `TecniUrbano2026!` |
+| Cliente | `julian.albarracin@gmail.com` | `TecniUrbano2026!` |
 
 ## Schema Supabase (público)
 

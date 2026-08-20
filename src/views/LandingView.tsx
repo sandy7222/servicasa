@@ -1,5 +1,4 @@
 import React from 'react';
-import { DEMO_MODE } from '../lib/featureFlags';
 import {
   Wrench,
   Zap,
@@ -12,8 +11,6 @@ import {
   Clock,
   FileSignature,
   Star,
-  Users,
-  Shield,
   Sparkles,
   PhoneCall,
   MapPin,
@@ -142,164 +139,46 @@ export const LandingView: React.FC = () => {
         <div className="absolute bottom-0 left-10 w-80 h-80 bg-sky-400/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div
-            className={
-              DEMO_MODE
-                ? 'grid grid-cols-1 lg:grid-cols-12 gap-12 items-center'
-                : 'flex justify-center'
-            }
-          >
-            {/* Left Column */}
-            <div
-              className={
-                DEMO_MODE
-                  ? 'lg:col-span-7 space-y-5 text-center lg:text-left'
-                  : 'max-w-3xl space-y-5 text-center'
-              }
-            >
+          <div className="flex justify-center">
+            <div className="max-w-3xl space-y-6 text-center">
               {/* Headline with Official Brand Identity */}
-              <div className={DEMO_MODE ? 'flex flex-col lg:flex-row items-center lg:items-start gap-4' : 'flex flex-col items-center gap-3'}>
+              <div className="flex flex-col items-center gap-3">
                 <div className="shrink-0 overflow-hidden rounded-2xl shadow-xl border border-white/20">
                   <img
                     src={logoTecniUrbano}
                     alt="Logo de TecniUrbano"
-                    className={DEMO_MODE ? 'w-40 h-40 sm:w-44 sm:h-44 object-contain' : 'w-48 h-48 sm:w-56 sm:h-56 object-contain'}
+                    className="w-48 h-48 sm:w-56 sm:h-56 object-contain"
                     draggable={false}
                   />
                 </div>
                 <div>
-                  <h1 className={DEMO_MODE ? 'text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white leading-tight' : 'sr-only'}>
+                  {/* El logo ya incluye el wordmark; este h1 queda solo para accesibilidad/SEO. */}
+                  <h1 className="sr-only">
                     <span className="text-white">Tecni</span>
                     <span className="text-teal-400">Urbano</span>
                   </h1>
-                  <span className={`block text-base sm:text-lg font-bold text-teal-300 tracking-wide ${DEMO_MODE ? 'mt-0.5' : ''}`}>
+                  <span className="block text-base sm:text-lg font-bold text-teal-300 tracking-wide">
                     Servicios a domicilio
                   </span>
                 </div>
               </div>
 
-              <p className="text-sm sm:text-base text-blue-100/90 max-w-2xl leading-relaxed">
+              <p className="text-sm sm:text-base text-blue-100/90 max-w-2xl leading-relaxed mx-auto">
                 La plataforma operativa que conecta a administradores, técnicos en campo y clientes
                 para resolver reparaciones, instalaciones y urgencias del hogar con trazabilidad total.
               </p>
 
-              {/* Action Buttons */}
-              <div className={`pt-2 flex flex-col sm:flex-row items-center justify-center gap-3.5 ${DEMO_MODE ? 'lg:justify-start' : ''}`}>
+              {/* Único CTA principal */}
+              <div className="pt-2 flex justify-center">
                 <button
                   onClick={() => navigate('/auth')}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-sm shadow-lg shadow-teal-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-8 py-4 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-base shadow-lg shadow-teal-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all"
                 >
                   <span>Ingresar al sistema</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-
-                <button
-                  onClick={() => navigate('/hub')}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-semibold text-sm backdrop-blur-xs transition-colors"
-                >
-                  <Shield className="w-4 h-4 text-sky-300" />
-                  <span>Ver Panel de Administración</span>
+                  <ArrowRight className="w-5 h-5" />
                 </button>
               </div>
-
             </div>
-
-            {/* Right Column: Interactive Role Selector Card (solo en modo demo) */}
-            {DEMO_MODE && (
-            <div className="lg:col-span-5">
-              <div className="bg-white/95 backdrop-blur-md rounded-2xl p-6 sm:p-7 shadow-2xl border border-white/30 text-slate-800">
-                <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-5">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-[#003875] text-white flex items-center justify-center">
-                      <Users className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-bold text-slate-900">Accesos Demo Rápidos</h3>
-                      <p className="text-[11px] text-slate-500">Seleccioná tu rol para comenzar</p>
-                    </div>
-                  </div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
-                    Listo para probar
-                  </span>
-                </div>
-
-                <div className="space-y-3">
-                  {/* Admin option */}
-                  <div
-                    onClick={() => navigate('/auth')}
-                    className="p-3.5 rounded-xl border border-slate-200 hover:border-[#003875] hover:bg-blue-50/50 cursor-pointer transition-all flex items-center justify-between group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-blue-100 text-[#003875] flex items-center justify-center font-bold">
-                        <Shield className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <div className="text-xs font-bold text-slate-900 group-hover:text-[#003875] transition-colors">
-                          Rol Administrador
-                        </div>
-                        <div className="text-[11px] text-slate-500">
-                          Panel de órdenes, inventario, clientes y métricas
-                        </div>
-                      </div>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-[#003875] group-hover:translate-x-0.5 transition-all" />
-                  </div>
-
-                  {/* Technician option */}
-                  <div
-                    onClick={() => navigate('/auth')}
-                    className="p-3.5 rounded-xl border border-slate-200 hover:border-teal-500 hover:bg-teal-50/50 cursor-pointer transition-all flex items-center justify-between group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center font-bold">
-                        <Wrench className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <div className="text-xs font-bold text-slate-900 group-hover:text-teal-700 transition-colors">
-                          Rol Técnico en Campo (Carlos)
-                        </div>
-                        <div className="text-[11px] text-slate-500">
-                          Checklist, tiempos, materiales y solicitud de firma
-                        </div>
-                      </div>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-teal-700 group-hover:translate-x-0.5 transition-all" />
-                  </div>
-
-                  {/* Customer option */}
-                  <div
-                    onClick={() => navigate('/auth')}
-                    className="p-3.5 rounded-xl border border-slate-200 hover:border-sky-500 hover:bg-sky-50/50 cursor-pointer transition-all flex items-center justify-between group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center font-bold">
-                        <UserCheck className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <div className="text-xs font-bold text-slate-900 group-hover:text-sky-700 transition-colors">
-                          Rol Cliente (Julián)
-                        </div>
-                        <div className="text-[11px] text-slate-500">
-                          Resumen del servicio, detalle de repuestos y firma digital
-                        </div>
-                      </div>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-sky-700 group-hover:translate-x-0.5 transition-all" />
-                  </div>
-                </div>
-
-                <div className="mt-4 pt-3 border-t border-slate-100 text-center">
-                  <button
-                    onClick={() => navigate('/auth')}
-                    className="text-xs font-bold text-[#003875] hover:text-teal-600 transition-colors inline-flex items-center gap-1"
-                  >
-                    <span>Ver todos los usuarios y perfiles demo</span>
-                    <ArrowRight className="w-3 h-3" />
-                  </button>
-                </div>
-              </div>
-            </div>
-            )}
           </div>
         </div>
       </section>

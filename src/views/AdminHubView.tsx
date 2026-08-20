@@ -268,7 +268,7 @@ export const AdminHubView: React.FC = () => {
 
   // Handle pre-filled service from landing page
   useEffect(() => {
-    const selectedServiceId = localStorage.getItem('servicasa_selectedServiceId');
+    const selectedServiceId = localStorage.getItem('tecniurbano_selectedServiceId');
     if (selectedServiceId) {
       const selectedService = services.find((s) => s.id === selectedServiceId);
       if (selectedService) {
@@ -277,7 +277,7 @@ export const AdminHubView: React.FC = () => {
         setNewOrderService(selectedService.category as ServiceType);
         setIsCreateModalOpen(true);
       }
-      localStorage.removeItem('servicasa_selectedServiceId');
+      localStorage.removeItem('tecniurbano_selectedServiceId');
     }
   }, [services]);
 

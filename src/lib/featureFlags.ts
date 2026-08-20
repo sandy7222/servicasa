@@ -1,7 +1,7 @@
 // src/lib/featureFlags.ts
 
 /**
- * Feature flags para ServiCasa.
+ * Feature flags para TecniUrbano.
  * 
  * DEMO_MODE: 
  * - true (default): Muestra accesos rápidos, usuarios de prueba y usa mockData.

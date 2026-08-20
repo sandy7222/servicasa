@@ -1,4 +1,4 @@
-# agent.md — Estado del proyecto ServiCasa
+# agent.md — Estado del proyecto TecniUrbano
 
 Documento de contexto para agentes y desarrolladores. Actualizar cuando cambie el alcance, el stack o el estado de integración.
 
@@ -6,7 +6,7 @@ Documento de contexto para agentes y desarrolladores. Actualizar cuando cambie e
 
 ---
 
-## Qué es ServiCasa
+## Qué es TecniUrbano
 
 Aplicación web de gestión de servicios técnicos a domicilio (plomería, electricidad, reparaciones, mantenimiento, instalación). Opera con tres roles:
 
@@ -36,10 +36,10 @@ Objetivo de producto: pasar de demo UI a producto usable en producción, con bac
 
 | Rol | Email | Password |
 | --- | --- | --- |
-| Admin | `admin@servicasa.com.ar` | `ServiCasa2026!` |
-| Técnico | `carlos.mendez@servicasa.com.ar` | `ServiCasa2026!` |
-| Técnico | `maria.rodriguez@servicasa.com.ar` | `ServiCasa2026!` |
-| Cliente | `julian.albarracin@gmail.com` | `ServiCasa2026!` |
+| Admin | `admin@tecniurbano.com.ar` | `TecniUrbano2026!` |
+| Técnico | `carlos.mendez@tecniurbano.com.ar` | `TecniUrbano2026!` |
+| Técnico | `maria.rodriguez@tecniurbano.com.ar` | `TecniUrbano2026!` |
+| Cliente | `julian.albarracin@gmail.com` | `TecniUrbano2026!` |
 
 ---
 
@@ -47,7 +47,7 @@ Objetivo de producto: pasar de demo UI a producto usable en producción, con bac
 
 - React 19, TypeScript, Vite (`vite.config.ts`, puerto **3000**)
 - Tailwind CSS 4 (`@tailwindcss/vite`)
-- Estado: `AppContext` + clave `servicasa_app_state_v1` en `localStorage`
+- Estado: `AppContext` + clave `tecniurbano_app_state_v1` en `localStorage`
 - Datos iniciales: `src/data/mockData.ts`
 - Tipos: `src/types/index.ts`
 - Ruteo simple por `currentPath` en contexto (no React Router)

@@ -1,4 +1,4 @@
-# Roadmap — ServiCasa
+# Roadmap — TecniUrbano
 
 Hoja de ruta hacia el lanzamiento en internet (Vercel + Supabase).
 
@@ -96,7 +96,7 @@ Pasar de una **demo de interfaz** (datos mock + `localStorage`) a una app en pro
 - [ ] Smoke test post-deploy (login + crear orden + firma)
 - [ ] Actualizar `README` / `agent.md` con URL y credenciales de demo (si aplica)
 
-**Salida:** ServiCasa en internet.
+**Salida:** TecniUrbano en internet.
 
 ---
 

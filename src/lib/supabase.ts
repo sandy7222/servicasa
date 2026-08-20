@@ -6,7 +6,7 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undef
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.warn(
-    '[ServiCasa] Faltan VITE_SUPABASE_URL o VITE_SUPABASE_ANON_KEY. Revisá .env.local'
+    '[TecniUrbano] Faltan VITE_SUPABASE_URL o VITE_SUPABASE_ANON_KEY. Revisá .env.local'
   );
 }
 

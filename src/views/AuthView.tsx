@@ -8,7 +8,6 @@ import {
   Info,
   Loader2,
 } from 'lucide-react';
-import { Logo } from '../components/common/Logo';
 import { useApp } from '../context/AppContext';
 import { DEMO_CREDENTIALS } from '../lib/supabaseData';
 import { DEMO_MODE } from '../lib/featureFlags';
@@ -29,8 +28,8 @@ export const AuthView: React.FC = () => {
   const [inviteLoading, setInviteLoading] = useState(Boolean(inviteToken));
   const [inviteError, setInviteError] = useState<string | null>(null);
 
-  const [email, setEmail] = useState('admin@servicasa.com.ar');
-  const [password, setPassword] = useState('ServiCasa2026!');
+  const [email, setEmail] = useState('admin@tecniurbano.com.ar');
+  const [password, setPassword] = useState('TecniUrbano2026!');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -104,14 +103,11 @@ export const AuthView: React.FC = () => {
   const roleLabel = invite?.kind === 'technician' ? 'técnico' : 'cliente';
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-10 sm:py-16 px-4 sm:px-6 lg:px-8" id="servicasa-auth-view">
+    <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-10 sm:py-16 px-4 sm:px-6 lg:px-8" id="tecniurbano-auth-view">
       <div className="max-w-md w-full mx-auto">
         <div className="text-center mb-6">
-          <div className="inline-block p-3 rounded-2xl bg-white border border-slate-200/80 shadow-xs mb-3">
-            <Logo size="xl" layout="vertical" showTagline={true} />
-          </div>
           <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
-            {inviteMode ? 'Creá tu cuenta TecniUrbano' : 'Acceso a TecniUrbano'}
+            {inviteMode ? 'Creá tu cuenta' : 'Iniciá sesión'}
           </h2>
           <p className="text-xs text-slate-500 mt-1">
             {inviteMode
@@ -244,7 +240,7 @@ export const AuthView: React.FC = () => {
           <span>
             {inviteMode
               ? 'El enlace vence a los 14 días y solo sirve para este email.'
-              : 'Contraseña de prueba: ServiCasa2026!'}
+              : 'Contraseña de prueba: TecniUrbano2026!'}
           </span>
         </div>
       </div>

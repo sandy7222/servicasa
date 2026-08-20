@@ -51,7 +51,7 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({
         ctx.scale(dpr, dpr);
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
-        ctx.strokeStyle = '#003875'; // ServiCasa Deep Blue Ink
+        ctx.strokeStyle = '#003875'; // TecniUrbano Deep Blue Ink
         ctx.lineWidth = 2.5;
 
         // Restore if had drawings

@@ -199,14 +199,14 @@ export const DEMO_USERS: Record<string, CurrentUserData> = {
   admin: {
     id: 'user-admin',
     name: 'Sebastián Borrego',
-    email: 'admin@servicasa.com.ar',
+    email: 'admin@tecniurbano.com.ar',
     role: 'admin',
     avatarText: 'SB',
   },
   'tech-carlos': {
     id: 'user-tech-carlos',
     name: 'Carlos Méndez',
-    email: 'carlos.mendez@servicasa.com.ar',
+    email: 'carlos.mendez@tecniurbano.com.ar',
     role: 'technician',
     technicianId: 'tech-carlos',
     avatarText: 'CM',
@@ -214,7 +214,7 @@ export const DEMO_USERS: Record<string, CurrentUserData> = {
   'tech-maria': {
     id: 'user-tech-maria',
     name: 'María Rodríguez',
-    email: 'maria.rodriguez@servicasa.com.ar',
+    email: 'maria.rodriguez@tecniurbano.com.ar',
     role: 'technician',
     technicianId: 'tech-maria',
     avatarText: 'MR',
@@ -245,7 +245,7 @@ export const DEMO_USERS: Record<string, CurrentUserData> = {
   },
 };
 
-const STORAGE_KEY = 'servicasa_app_state_v1';
+const STORAGE_KEY = 'tecniurbano_app_state_v1';
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
@@ -445,12 +445,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           setCustomers(catalog.customers);
           setMaterials(catalog.materials);
           setOrders(catalog.orders);
-        }).catch((err) => console.error('[ServiCasa] Realtime refresh failed', err));
+        }).catch((err) => console.error('[TecniUrbano] Realtime refresh failed', err));
       }, 250);
     };
 
     const channel = supabase
-      .channel('servicasa-operational-live')
+      .channel('tecniurbano-operational-live')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'service_orders' }, refreshCatalog)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'order_checklist_items' }, refreshCatalog)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'order_time_logs' }, refreshCatalog)
@@ -559,11 +559,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       const { user } = await signInWithPassword(email.trim(), password);
       if (!user) throw new Error('No se pudo iniciar sesión.');
-      const pendingInvite = sessionStorage.getItem('servicasa_pending_invite');
+      const pendingInvite = sessionStorage.getItem('tecniurbano_pending_invite');
       if (pendingInvite) {
         try {
           await redeemAccountInvite(pendingInvite);
-          sessionStorage.removeItem('servicasa_pending_invite');
+          sessionStorage.removeItem('tecniurbano_pending_invite');
         } catch (inviteErr) {
           console.warn(inviteErr);
         }
@@ -607,7 +607,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (!user) throw new Error('No se pudo crear la cuenta.');
 
       if (!session) {
-        sessionStorage.setItem('servicasa_pending_invite', input.token);
+        sessionStorage.setItem('tecniurbano_pending_invite', input.token);
         showToast(
           'Revisá tu email para confirmar la cuenta. Después ingresá y se vinculará tu ficha.',
           'info',

@@ -60,7 +60,7 @@ export function ClientsTable({ onOpen }: { onOpen: (customerId: string) => void 
   const order = (key: SortKey) => { setPage(1); setSort((previous) => ({ key, direction: previous.key === key && previous.direction === 'asc' ? 'desc' : 'asc' })); };
   const indicator = (key: SortKey) => sort.key === key ? (sort.direction === 'asc' ? ' ▲' : ' ▼') : '';
 
-  const exportRows = () => downloadCsv('servicasa-clientes.csv', [
+  const exportRows = () => downloadCsv('tecniurbano-clientes.csv', [
     ['Cliente', 'Email', 'Teléfono', 'Órdenes', 'Completadas', 'Total abonado', 'Garantías activas', 'Última orden'],
     ...filtered.map((row) => [row.customer.name, row.customer.email, row.customer.phone, String(row.totalOrders), String(row.completedOrders), String(row.totalSpent), String(row.warranties), row.lastOrder ? new Date(row.lastOrder).toLocaleDateString('es-AR') : '—']),
   ]);

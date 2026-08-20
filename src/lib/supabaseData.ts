@@ -361,8 +361,8 @@ export async function signOut() {
 }
 
 export const DEMO_CREDENTIALS: { role: UserRole; label: string; email: string; password: string }[] = [
-  { role: 'admin', label: 'Admin', email: 'admin@servicasa.com.ar', password: 'ServiCasa2026!' },
-  { role: 'technician', label: 'Carlos (técnico)', email: 'carlos.mendez@servicasa.com.ar', password: 'ServiCasa2026!' },
-  { role: 'technician', label: 'María (técnica)', email: 'maria.rodriguez@servicasa.com.ar', password: 'ServiCasa2026!' },
-  { role: 'customer', label: 'Julián (cliente)', email: 'julian.albarracin@gmail.com', password: 'ServiCasa2026!' },
+  { role: 'admin', label: 'Admin', email: 'admin@tecniurbano.com.ar', password: 'TecniUrbano2026!' },
+  { role: 'technician', label: 'Carlos (técnico)', email: 'carlos.mendez@tecniurbano.com.ar', password: 'TecniUrbano2026!' },
+  { role: 'technician', label: 'María (técnica)', email: 'maria.rodriguez@tecniurbano.com.ar', password: 'TecniUrbano2026!' },
+  { role: 'customer', label: 'Julián (cliente)', email: 'julian.albarracin@gmail.com', password: 'TecniUrbano2026!' },
 ];
