@@ -4,7 +4,6 @@ import {
   Wrench,
   UserCheck,
   Settings,
-  LogIn,
   LogOut,
   Menu,
   X,
@@ -184,15 +183,7 @@ export const Header: React.FC = () => {
                     Salir
                   </button>
                 </>
-              ) : (
-                <button
-                  onClick={() => navigate('/auth')}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-teal-600 hover:bg-teal-500 active:bg-teal-700 rounded-lg shadow-xs transition-colors border border-teal-500/50"
-                >
-                  <LogIn className="w-3.5 h-3.5" />
-                  <span>Ingresar</span>
-                </button>
-              )}
+              ) : null}
             </div>
 
             {/* Mobile menu trigger */}
@@ -280,32 +271,21 @@ export const Header: React.FC = () => {
             </div>
             )}
 
+            {isAuthenticated && (
             <div className="pt-2 border-t border-slate-800">
-              {isAuthenticated ? (
-                <button
-                  onClick={() => {
-                    void logout();
-                    setIsMobileMenuOpen(false);
-                  }}
-                  disabled={authLoading}
-                  className="w-full flex items-center justify-center gap-2 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 rounded-lg font-semibold text-xs disabled:opacity-60"
-                >
-                  <LogOut className="w-3.5 h-3.5" />
-                  <span>Cerrar sesión</span>
-                </button>
-              ) : (
-                <button
-                  onClick={() => {
-                    navigate('/auth');
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="w-full flex items-center justify-center gap-2 py-2 bg-teal-600 text-white rounded-lg font-semibold text-xs shadow-xs"
-                >
-                  <LogIn className="w-3.5 h-3.5" />
-                  <span>Ingresar</span>
-                </button>
-              )}
+              <button
+                onClick={() => {
+                  void logout();
+                  setIsMobileMenuOpen(false);
+                }}
+                disabled={authLoading}
+                className="w-full flex items-center justify-center gap-2 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 rounded-lg font-semibold text-xs disabled:opacity-60"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Cerrar sesión</span>
+              </button>
             </div>
+            )}
           </div>
         )}
       </header>

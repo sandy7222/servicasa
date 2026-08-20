@@ -366,12 +366,6 @@ export const LandingView: React.FC = () => {
             </p>
           </div>
 
-          <button
-            onClick={() => navigate('/auth')}
-            className="px-4 py-2 bg-teal-500 hover:bg-teal-400 text-slate-950 text-xs font-bold rounded-lg shadow-xs transition-colors"
-          >
-            Ingresar al sistema
-          </button>
         </div>
       </footer>
     </div>
