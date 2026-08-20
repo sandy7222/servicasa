@@ -1,47 +1,26 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import crypto from 'node:crypto';
 import { Payment } from 'mercadopago';
 import { mpClient } from '../_lib/mercadopago';
 import { supabaseAdmin } from '../_lib/supabaseAdmin';
 
 /**
- * Validates the Mercado Pago webhook signature per their documented recipe:
- * https://www.mercadopago.com.ar/developers/en/docs/your-integrations/notifications/webhooks#editor_5
+ * Legacy IPN notifications (the only format available on this MP account —
+ * no "Pagos" event exists separate from "Pagos (legacy)"). MP sends
+ * ?topic=payment&id=<payment_id> with NO signature header at all; there is
+ * nothing to validate on the request itself.
  *
- * manifest = "id:{data.id};request-id:{x-request-id};ts:{ts};"
- * expected  = HMAC_SHA256(manifest, MP_WEBHOOK_SECRET)
- * We never trust the notification payload itself — after verifying the
- * signature we re-fetch the payment from Mercado Pago's API by id.
+ * Security model instead relies on never trusting the notification payload:
+ * we always re-fetch the payment from Mercado Pago's API using our own
+ * MP_ACCESS_TOKEN, and only act on that authenticated response. We then only
+ * update a transaction if the fetched payment's external_reference matches a
+ * payment_transactions.id we generated ourselves (a random uuid) — an
+ * attacker spamming arbitrary payment ids can, at worst, trigger a lookup
+ * that finds nothing to update.
+ *
+ * This endpoint's URL itself is not public: Vercel Deployment Protection
+ * still gates every request behind the ?x-vercel-protection-bypass secret
+ * configured in the Mercado Pago webhook URL.
  */
-function isValidSignature(req: VercelRequest, dataId: string): boolean {
-  const secret = process.env.MP_WEBHOOK_SECRET;
-  if (!secret) {
-    console.error('[payments/webhook] MP_WEBHOOK_SECRET no configurado — rechazando notificación.');
-    return false;
-  }
-
-  const signatureHeader = req.headers['x-signature'];
-  const requestId = req.headers['x-request-id'];
-  if (typeof signatureHeader !== 'string' || typeof requestId !== 'string') return false;
-
-  const parts = Object.fromEntries(
-    signatureHeader.split(',').map((piece) => {
-      const [key, value] = piece.split('=').map((s) => s.trim());
-      return [key, value];
-    })
-  );
-  const ts = parts.ts;
-  const v1 = parts.v1;
-  if (!ts || !v1) return false;
-
-  const manifest = `id:${dataId.toLowerCase()};request-id:${requestId};ts:${ts};`;
-  const expected = crypto.createHmac('sha256', secret).update(manifest).digest('hex');
-
-  const a = Buffer.from(expected, 'hex');
-  const b = Buffer.from(v1, 'hex');
-  return a.length === b.length && crypto.timingSafeEqual(a, b);
-}
-
 function mapStatus(mpStatus: string | undefined): 'pending' | 'approved' | 'rejected' | 'cancelled' | 'refunded' {
   switch (mpStatus) {
     case 'approved':
@@ -59,26 +38,23 @@ function mapStatus(mpStatus: string | undefined): 'pending' | 'approved' | 'reje
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST');
+  if (req.method !== 'GET' && req.method !== 'POST') {
+    res.setHeader('Allow', 'GET, POST');
     return res.status(405).end();
   }
 
-  const type = (req.query.type ?? req.body?.type) as string | undefined;
-  const dataId = (req.query['data.id'] ?? req.body?.data?.id) as string | undefined;
+  // Legacy IPN uses topic/id; tolerate type/data.id too in case this account
+  // ever gets access to the newer webhook format.
+  const topic = (req.query.topic ?? req.query.type) as string | undefined;
+  const paymentId = (req.query.id ?? req.query['data.id']) as string | undefined;
 
-  if (type !== 'payment' || !dataId) {
-    // Not a payment notification (Mercado Pago also sends other topics) — nothing to do.
+  if (topic !== 'payment' || !paymentId) {
+    // Other topics (merchant_order, etc.) or malformed calls — nothing to do.
     return res.status(200).json({ received: true, ignored: true });
   }
 
-  if (!isValidSignature(req, String(dataId))) {
-    console.error('[payments/webhook] Firma inválida, notificación rechazada.');
-    return res.status(401).json({ error: 'Firma inválida.' });
-  }
-
   try {
-    const payment = await new Payment(mpClient).get({ id: dataId });
+    const payment = await new Payment(mpClient).get({ id: paymentId });
     const transactionId = payment.external_reference;
     if (!transactionId) {
       console.error('[payments/webhook] Pago sin external_reference', payment.id);
@@ -87,7 +63,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const feeAmount = (payment.fee_details ?? []).reduce((sum, fee) => sum + (fee.amount ?? 0), 0);
 
-    const { error } = await supabaseAdmin
+    const { error, count } = await supabaseAdmin
       .from('payment_transactions')
       .update({
         status: mapStatus(payment.status),
@@ -98,12 +74,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         provider_payload: payment,
         paid_at: payment.status === 'approved' ? payment.date_approved ?? new Date().toISOString() : null,
         updated_at: new Date().toISOString(),
-      })
+      }, { count: 'exact' })
       .eq('id', transactionId);
 
     if (error) {
       console.error('[payments/webhook] Error actualizando payment_transactions', error);
       return res.status(500).json({ error: 'No se pudo registrar el pago.' });
+    }
+    if (!count) {
+      // external_reference didn't match anything we created — ignore, not an error.
+      console.warn('[payments/webhook] Sin transacción propia para external_reference', transactionId);
+      return res.status(200).json({ received: true, warning: 'transacción no encontrada' });
     }
 
     // Intentionally does not touch service_orders / create any order here —
