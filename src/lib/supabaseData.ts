@@ -172,6 +172,22 @@ export async function fetchProfile(userId: string): Promise<DbProfile | null> {
   return data as DbProfile | null;
 }
 
+/**
+ * Public catalog read — works for anonymous visitors too (services has an
+ * `anon` SELECT policy, unlike every other table in this project). Used so
+ * the Landing / services-category pages show the real Supabase catalog
+ * instead of the local mockData.ts fallback even before anyone logs in.
+ */
+export async function fetchPublicServices(): Promise<ServiceItem[]> {
+  const { data, error } = await supabase
+    .from('services')
+    .select('*')
+    .eq('active', true)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data as DbService[]).map(mapService);
+}
+
 export async function fetchCatalog() {
   const [techRes, custRes, matRes, orderRes, svcRes] = await Promise.all([
     supabase.from('technicians').select('*').order('name'),

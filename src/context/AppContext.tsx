@@ -11,6 +11,7 @@ import { isSupabaseConfigured, supabase } from '../lib/supabase';
 import {
   fetchCatalog,
   fetchProfile,
+  fetchPublicServices,
   profileToCurrentUser,
   signInWithPassword,
   signOut,
@@ -385,7 +386,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setTechnicians(INITIAL_TECHNICIANS);
     setCustomers(INITIAL_CUSTOMERS);
     setMaterials(INITIAL_MATERIALS);
-    setServices(INITIAL_SERVICES);
+    void loadPublicServices();
+  };
+
+  // Anonymous visitors never authenticate, so they never hit applyRemoteSession
+  // below — without this, the Landing / services-category pages would show
+  // mockData.ts forever instead of the real Supabase catalog.
+  const loadPublicServices = async () => {
+    if (!isSupabaseConfigured) return;
+    try {
+      const publicServices = await fetchPublicServices();
+      setServices(publicServices);
+    } catch (err) {
+      console.warn('[TecniUrbano] No se pudo cargar el catálogo público de servicios', err);
+    }
   };
 
   useEffect(() => {
@@ -396,6 +410,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     let mounted = true;
+
+    void loadPublicServices();
 
     supabase.auth.getSession().then(async ({ data }) => {
       try {
