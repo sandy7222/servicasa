@@ -5,14 +5,16 @@ import type {
   OrderEventType,
   OrderPriority,
   OrderStatus,
+  ServiceItem,
+  ServiceItemInput,
   ServiceOrder,
   ServiceType,
   Technician,
   TechnicianInput,
 } from '../types';
 import { supabase } from './supabase';
-import { mapCustomer, mapMaterial, mapOrder, mapTechnician } from './supabaseData';
-import type { DbCustomer, DbMaterial, DbServiceOrder, DbTechnician } from './supabase';
+import { mapCustomer, mapMaterial, mapOrder, mapService, mapTechnician } from './supabaseData';
+import type { DbCustomer, DbMaterial, DbService, DbServiceOrder, DbTechnician } from './supabase';
 
 function throwIfError(error: { message: string } | null) {
   if (error) throw new Error(error.message);
@@ -267,6 +269,47 @@ export async function persistUpdateMaterialStock(materialId: string, stock: numb
 
 export async function persistDeleteMaterial(materialId: string) {
   const { error } = await supabase.from('materials').delete().eq('id', materialId);
+  throwIfError(error);
+}
+
+export async function persistCreateService(input: ServiceItemInput): Promise<ServiceItem> {
+  const { data, error } = await supabase
+    .from('services')
+    .insert({
+      name: input.name,
+      description: input.description,
+      price: input.price,
+      category: input.category,
+      estimated_duration_minutes: input.estimatedDurationMinutes ?? 60,
+      features: input.features && input.features.length > 0 ? input.features : ['Garantía de servicio', 'Personal calificado'],
+      active: input.active !== undefined ? input.active : true,
+    })
+    .select('*')
+    .single();
+  throwIfError(error);
+  return mapService(data as DbService);
+}
+
+export async function persistUpdateService(
+  serviceId: string,
+  patch: Partial<ServiceItemInput>
+): Promise<ServiceItem> {
+  const update: Record<string, unknown> = {};
+  if (patch.name !== undefined) update.name = patch.name;
+  if (patch.description !== undefined) update.description = patch.description;
+  if (patch.price !== undefined) update.price = patch.price;
+  if (patch.category !== undefined) update.category = patch.category;
+  if (patch.estimatedDurationMinutes !== undefined) update.estimated_duration_minutes = patch.estimatedDurationMinutes;
+  if (patch.features !== undefined) update.features = patch.features;
+  if (patch.active !== undefined) update.active = patch.active;
+
+  const { data, error } = await supabase.from('services').update(update).eq('id', serviceId).select('*').single();
+  throwIfError(error);
+  return mapService(data as DbService);
+}
+
+export async function persistDeleteService(serviceId: string) {
+  const { error } = await supabase.from('services').delete().eq('id', serviceId);
   throwIfError(error);
 }
 

@@ -5,6 +5,8 @@
  * directly. It only asks the server to create a payment preference and then
  * redirects the customer to the URL returned by that trusted server.
  */
+import { supabase } from './supabase';
+
 export type PaymentType = 'visit_deposit' | 'balance_payment' | 'full_advance' | 'extra_payment';
 
 export type PaymentLinkResponse = {
@@ -17,10 +19,16 @@ export async function requestPaymentLink(
   paymentType: PaymentType,
   quoteId?: string
 ): Promise<PaymentLinkResponse> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData.session?.access_token;
+  if (!accessToken) throw new Error('Tu sesión expiró. Volvé a iniciar sesión e intentá de nuevo.');
+
   const response = await fetch('/api/payments/create', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
     body: JSON.stringify({ orderId, paymentType, quoteId }),
   });
 

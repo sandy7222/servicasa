@@ -43,10 +43,12 @@ import {
   persistCreateCustomerRequest,
   persistCreateMaterial,
   persistCreateOrder,
+  persistCreateService,
   persistCreateTechnician,
   persistDeleteCustomer,
   persistDeleteMaterial,
   persistDeleteOrder,
+  persistDeleteService,
   persistDeleteTechnician,
   persistSignature,
   redeemAccountInvite,
@@ -56,6 +58,7 @@ import {
   persistUpdateMaterialStock,
   persistUpdateOrder,
   persistUpdateOrderStatus,
+  persistUpdateService,
   persistUpdateTechnician,
 } from '../lib/supabaseMutations';
 import { friendlyErrorMessage } from '../components/common/AppStatus';
@@ -182,9 +185,9 @@ interface AppContextType {
   deleteMaterial: (materialId: string) => void;
 
   // Services CRUD
-  addService: (service: ServiceItemInput) => string;
+  addService: (service: ServiceItemInput) => void;
   updateService: (serviceId: string, patch: Partial<ServiceItemInput>) => void;
-  deleteService: (serviceId: string) => { success: boolean; message: string };
+  deleteService: (serviceId: string) => void;
 
   // Service Categories CRUD
   addServiceCategory: (category: ServiceCategoryInput) => string;
@@ -360,6 +363,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setTechnicians(catalog.technicians);
       setCustomers(catalog.customers);
       setMaterials(catalog.materials);
+      setServices(catalog.services);
       setOrders(catalog.orders);
       setUsingRemoteData(true);
       setCurrentUserState(profileToCurrentUser(profile));
@@ -444,6 +448,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           setTechnicians(catalog.technicians);
           setCustomers(catalog.customers);
           setMaterials(catalog.materials);
+          setServices(catalog.services);
           setOrders(catalog.orders);
         }).catch((err) => console.error('[TecniUrbano] Realtime refresh failed', err));
       }, 250);
@@ -2067,10 +2072,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showToast('Material eliminado', 'success');
   };
 
-  const addService = (input: ServiceItemInput): string => {
-    const id = `srv-${Date.now().toString(36)}`;
-    const newService: ServiceItem = {
-      id,
+  const addService = (input: ServiceItemInput): void => {
+    const normalized: ServiceItemInput = {
       name: input.name.trim(),
       description: input.description.trim(),
       price: Number(input.price) || 0,
@@ -2079,25 +2082,71 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       features: input.features && input.features.length > 0 ? input.features : ['Garantía de servicio', 'Personal calificado'],
       active: input.active !== undefined ? input.active : true,
     };
+
+    if (usingRemoteData) {
+      void withRemote(async () => {
+        try {
+          const created = await persistCreateService(normalized);
+          setServices((prev) => [created, ...prev]);
+          showToast(`Servicio "${created.name}" guardado en Supabase`, 'success', 'Catálogo de servicios');
+        } catch (err) {
+          showToast(friendlyErrorMessage(err, 'Error al crear servicio'), 'error');
+        }
+      });
+      return;
+    }
+
+    const newService: ServiceItem = { id: `srv-${Date.now().toString(36)}`, ...normalized };
     setServices((prev) => [newService, ...prev]);
     showToast(`Servicio "${newService.name}" creado con éxito`, 'success', 'Catálogo de servicios');
-    return id;
   };
 
   const updateService = (serviceId: string, patch: Partial<ServiceItemInput>) => {
-    setServices((prev) =>
-      prev.map((s) => (s.id === serviceId ? { ...s, ...patch } : s))
-    );
+    const applyLocal = () => {
+      setServices((prev) => prev.map((s) => (s.id === serviceId ? { ...s, ...patch } : s)));
+    };
+
+    if (usingRemoteData) {
+      void withRemote(async () => {
+        try {
+          const updated = await persistUpdateService(serviceId, patch);
+          setServices((prev) => prev.map((s) => (s.id === serviceId ? updated : s)));
+          showToast('Servicio actualizado en Supabase', 'success', 'Catálogo de servicios');
+        } catch (err) {
+          showToast(friendlyErrorMessage(err, 'No se pudo actualizar el servicio'), 'error');
+        }
+      });
+      applyLocal();
+      return;
+    }
+
+    applyLocal();
     showToast('Servicio actualizado con éxito', 'success', 'Catálogo de servicios');
   };
 
-  const deleteService = (serviceId: string): { success: boolean; message: string } => {
+  const deleteService = (serviceId: string): void => {
     const target = services.find((s) => s.id === serviceId);
-    if (!target) return { success: false, message: 'Servicio no encontrado' };
+    if (!target) {
+      showToast('Servicio no encontrado', 'error');
+      return;
+    }
+
+    if (usingRemoteData) {
+      void withRemote(async () => {
+        try {
+          await persistDeleteService(serviceId);
+          setServices((prev) => prev.filter((s) => s.id !== serviceId));
+          showToast(`Servicio "${target.name}" eliminado de Supabase`, 'info', 'Catálogo de servicios');
+        } catch (err) {
+          showToast(friendlyErrorMessage(err, 'No se pudo eliminar el servicio'), 'error');
+        }
+      });
+      setServices((prev) => prev.filter((s) => s.id !== serviceId));
+      return;
+    }
 
     setServices((prev) => prev.filter((s) => s.id !== serviceId));
     showToast(`Servicio "${target.name}" eliminado`, 'info', 'Catálogo de servicios');
-    return { success: true, message: 'Servicio eliminado correctamente' };
   };
 
   const addServiceCategory = (input: ServiceCategoryInput): string => {

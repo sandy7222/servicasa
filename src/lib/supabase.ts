@@ -74,6 +74,17 @@ export type DbMaterial = {
   cost_estimate: number;
 };
 
+export type DbService = {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  category: string;
+  estimated_duration_minutes: number;
+  features: string[];
+  active: boolean;
+};
+
 export type DbServiceOrder = {
   id: string;
   title: string;

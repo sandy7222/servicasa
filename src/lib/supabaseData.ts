@@ -5,6 +5,7 @@ import type {
   OrderEvent,
   OrderPriority,
   OrderStatus,
+  ServiceItem,
   ServiceOrder,
   ServiceType,
   TechnicalNote,
@@ -18,6 +19,7 @@ import type {
   DbCustomer,
   DbMaterial,
   DbProfile,
+  DbService,
   DbServiceOrder,
   DbOrderQuote,
   DbTechnician,
@@ -86,6 +88,19 @@ export function mapMaterial(row: DbMaterial): MaterialInventory {
     stock: row.stock,
     unit: row.unit,
     costEstimate: Number(row.cost_estimate),
+  };
+}
+
+export function mapService(row: DbService): ServiceItem {
+  return {
+    id: row.id,
+    name: row.name,
+    description: row.description,
+    price: Number(row.price),
+    category: row.category,
+    estimatedDurationMinutes: row.estimated_duration_minutes,
+    features: row.features ?? [],
+    active: row.active,
   };
 }
 
@@ -158,17 +173,19 @@ export async function fetchProfile(userId: string): Promise<DbProfile | null> {
 }
 
 export async function fetchCatalog() {
-  const [techRes, custRes, matRes, orderRes] = await Promise.all([
+  const [techRes, custRes, matRes, orderRes, svcRes] = await Promise.all([
     supabase.from('technicians').select('*').order('name'),
     supabase.from('customers').select('*').order('name'),
     supabase.from('materials').select('*').order('name'),
     supabase.from('service_orders').select('*').order('created_at', { ascending: false }),
+    supabase.from('services').select('*').order('created_at', { ascending: false }),
   ]);
 
   if (techRes.error) throw techRes.error;
   if (custRes.error) throw custRes.error;
   if (matRes.error) throw matRes.error;
   if (orderRes.error) throw orderRes.error;
+  if (svcRes.error) throw svcRes.error;
 
   const orderRows = (orderRes.data ?? []) as DbServiceOrder[];
   const orderIds = orderRows.map((o) => o.id);
@@ -329,6 +346,7 @@ export async function fetchCatalog() {
     })),
     customers,
     materials: (matRes.data as DbMaterial[]).map(mapMaterial),
+    services: (svcRes.data as DbService[]).map(mapService),
     orders,
   };
 }

@@ -28,8 +28,8 @@ export const AuthView: React.FC = () => {
   const [inviteLoading, setInviteLoading] = useState(Boolean(inviteToken));
   const [inviteError, setInviteError] = useState<string | null>(null);
 
-  const [email, setEmail] = useState('admin@tecniurbano.com.ar');
-  const [password, setPassword] = useState('TecniUrbano2026!');
+  const [email, setEmail] = useState(DEMO_MODE ? 'admin@tecniurbano.com.ar' : '');
+  const [password, setPassword] = useState(DEMO_MODE ? 'TecniUrbano2026!' : '');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -235,6 +235,7 @@ export const AuthView: React.FC = () => {
         </form>
         )}
 
+        {(inviteMode || DEMO_MODE) && (
         <div className="mt-6 text-center text-xs text-slate-500 flex items-center justify-center gap-1.5">
           <Info className="w-4 h-4 text-teal-600 shrink-0" />
           <span>
@@ -243,6 +244,7 @@ export const AuthView: React.FC = () => {
               : 'Contraseña de prueba: TecniUrbano2026!'}
           </span>
         </div>
+        )}
       </div>
     </div>
   );
