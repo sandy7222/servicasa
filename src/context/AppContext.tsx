@@ -164,6 +164,7 @@ interface AppContextType {
   ) => void;
 
   deleteOrder: (orderId: string) => void;
+  deleteCustomerOrder: (orderId: string) => void;
   cancelOrderAsAdmin: (orderId: string, reason: string) => void;
   reportOrderIncident: (orderId: string, reason: string, pauseSettlements: boolean) => void;
   resolveOrderIncident: (orderId: string) => void;
@@ -1584,6 +1585,48 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showToast('Orden eliminada', 'success');
   };
 
+  /** Customer-facing: lets a customer permanently remove their OWN cancelled
+   * orders so they stop piling up in "Mis Servicios a Domicilio". RLS
+   * (service_orders_delete_customer_cancelled) enforces the same two
+   * conditions server-side; these checks are defense in depth. */
+  const deleteCustomerOrder = (orderId: string) => {
+    try {
+      requireCustomer(currentUser);
+      validateOrderId(orderId);
+    } catch (err) {
+      const msg = err instanceof SecurityError ? err.message : 'No autorizado';
+      showToast(msg, 'error', 'Seguridad');
+      return;
+    }
+
+    const order = orders.find((o) => o.id === orderId);
+    if (!order || order.clientId !== currentUser?.customerId) {
+      showToast('No encontramos esa orden en tu cuenta.', 'error');
+      return;
+    }
+    if (order.status !== 'cancelled') {
+      showToast('Solo se pueden eliminar órdenes canceladas.', 'warning');
+      return;
+    }
+
+    if (usingRemoteData) {
+      void withRemote(async () => {
+        try {
+          await persistDeleteOrder(orderId);
+          setOrders((prev) => prev.filter((o) => o.id !== orderId));
+          showToast('Orden eliminada', 'success');
+        } catch (err) {
+          showToast(friendlyErrorMessage(err, 'No se pudo eliminar la orden'), 'error');
+        }
+      });
+      setOrders((prev) => prev.filter((o) => o.id !== orderId));
+      return;
+    }
+
+    setOrders((prev) => prev.filter((o) => o.id !== orderId));
+    showToast('Orden eliminada', 'success');
+  };
+
   const adminOrderAction = (orderId: string, reason: string, action: 'cancel' | 'incident' | 'resolve_incident' | 'exceptional_close', pauseSettlements = false) => {
     try {
       requireAdmin(currentUser);
@@ -2376,6 +2419,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         createCustomerRequest,
         updateOrder,
         deleteOrder,
+        deleteCustomerOrder,
         cancelOrderAsAdmin,
         reportOrderIncident,
         resolveOrderIncident,

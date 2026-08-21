@@ -16,6 +16,7 @@ import {
   AlertCircle,
   ChevronRight,
   ArrowLeft,
+  Trash2,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useApp } from '../context/AppContext';
@@ -29,7 +30,7 @@ import { QuoteViewer } from '../components/client/QuoteViewer';
 import { AssignedTechnicianCard } from '../components/client/AssignedTechnicianCard';
 
 export const CustomerView: React.FC = () => {
-  const { orders, currentUser, saveCustomerSignature, showToast, currentPath, navigate } = useApp();
+  const { orders, currentUser, saveCustomerSignature, showToast, currentPath, navigate, deleteCustomerOrder } = useApp();
 
   const customerId = currentUser?.customerId || '';
   const customerOrders = orders.filter((o) => o.clientId === customerId);
@@ -38,6 +39,7 @@ export const CustomerView: React.FC = () => {
     return customerOrders[0]?.id || '';
   });
   const [clockNow, setClockNow] = useState(() => Date.now());
+  const [orderPendingDelete, setOrderPendingDelete] = useState<ServiceOrder | null>(null);
 
   useEffect(() => {
     const interval = window.setInterval(() => setClockNow(Date.now()), 1000);
@@ -136,17 +138,38 @@ export const CustomerView: React.FC = () => {
               <div className="space-y-2">
                 {customerOrders.map((ord) => {
                   return (
-                    <button
-                      type="button"
+                    <div
                       key={ord.id}
+                      role="button"
+                      tabIndex={0}
                       onClick={() => navigate(`/customer/orders/${encodeURIComponent(ord.id)}`)}
-                      className="w-full p-3 rounded-xl border cursor-pointer transition-all text-left bg-white border-slate-200 hover:bg-slate-50 hover:border-teal-400 hover:shadow-xs"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          navigate(`/customer/orders/${encodeURIComponent(ord.id)}`);
+                        }
+                      }}
+                      className="w-full p-3 rounded-xl border cursor-pointer transition-all text-left bg-white border-slate-200 hover:bg-slate-50 hover:border-teal-400 hover:shadow-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/40"
                     >
                       <div className="flex items-center justify-between gap-1.5 mb-1">
                         <span className="font-mono text-[11px] font-bold text-slate-800 bg-slate-100 px-1.5 py-0.2 rounded border border-slate-200">
                           {ord.id}
                         </span>
-                        <StatusBadge status={ord.status} size="sm" />
+                        <div className="flex items-center gap-1">
+                          <StatusBadge status={ord.status} size="sm" />
+                          {ord.status === 'cancelled' && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setOrderPendingDelete(ord);
+                              }}
+                              title="Eliminar orden cancelada"
+                              className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
                       </div>
 
                       <h3 className="font-bold text-xs text-slate-900 line-clamp-1">{ord.title}</h3>
@@ -169,7 +192,7 @@ export const CustomerView: React.FC = () => {
                         </div>
                         <div className="mt-2 inline-flex items-center gap-1 text-[11px] font-bold text-teal-700">Ver detalle y seguimiento <ChevronRight className="w-3.5 h-3.5" /></div>
                       </div>
-                    </button>
+                    </div>
                   );
                 })}
               </div>
@@ -473,6 +496,51 @@ export const CustomerView: React.FC = () => {
           </div>
         )}
       </main>
+
+      {orderPendingDelete && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150"
+          onClick={() => setOrderPendingDelete(null)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-3 mb-4">
+              <span className="p-2 rounded-lg bg-rose-50 text-rose-600 border border-rose-200">
+                <Trash2 className="w-5 h-5" />
+              </span>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Eliminar orden</h3>
+                <p className="text-xs text-slate-600 mt-1">
+                  Vas a eliminar <strong>"{orderPendingDelete.title}"</strong>. Esta acción no se puede
+                  deshacer.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setOrderPendingDelete(null)}
+                className="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-semibold"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  deleteCustomerOrder(orderPendingDelete.id);
+                  setOrderPendingDelete(null);
+                }}
+                className="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold shadow-xs"
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
