@@ -92,6 +92,18 @@ export type DbSystemSetting = {
   updated_by: string | null;
 };
 
+export type DbTechnicianApplication = {
+  id: string;
+  full_name: string;
+  email: string;
+  phone: string;
+  specialty: string;
+  message: string | null;
+  status: 'pending' | 'approved' | 'rejected';
+  created_at: string;
+  reviewed_at: string | null;
+};
+
 export type DbServiceOrder = {
   id: string;
   title: string;

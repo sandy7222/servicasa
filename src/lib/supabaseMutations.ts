@@ -1,5 +1,6 @@
 import type {
   Customer,
+  CustomerRegistrationInput,
   CustomerServiceRequestInput,
   MaterialInventory,
   OrderEventType,
@@ -10,6 +11,7 @@ import type {
   ServiceOrder,
   ServiceType,
   Technician,
+  TechnicianApplicationInput,
   TechnicianInput,
 } from '../types';
 import { supabase } from './supabase';
@@ -111,6 +113,28 @@ export async function persistCreateCustomer(input: Omit<Customer, 'id' | 'profil
       phone: input.phone,
       email: input.email,
       notes: input.notes ?? null,
+    })
+    .select('*')
+    .single();
+  throwIfError(error);
+  return mapCustomer(data as DbCustomer);
+}
+
+/** Self-registration: the newly authenticated user creates their OWN linked
+ * customer record (customers_insert_self RLS: profile_id = auth.uid()). */
+export async function persistCreateCustomerSelf(
+  profileId: string,
+  input: CustomerRegistrationInput
+): Promise<Customer> {
+  const { data, error } = await supabase
+    .from('customers')
+    .insert({
+      name: input.fullName.trim(),
+      address: input.address.trim(),
+      neighborhood: input.neighborhood.trim(),
+      phone: input.phone.trim(),
+      email: input.email.trim(),
+      profile_id: profileId,
     })
     .select('*')
     .single();
@@ -269,6 +293,33 @@ export async function persistUpdateMaterialStock(materialId: string, stock: numb
 
 export async function persistDeleteMaterial(materialId: string) {
   const { error } = await supabase.from('materials').delete().eq('id', materialId);
+  throwIfError(error);
+}
+
+/** Public "quiero ser técnico" form — no auth required. Deliberately no
+ * .select() after insert: the anon/authenticated insert policy doesn't grant
+ * SELECT on this table (only admin can read applications back), so asking
+ * PostgREST to return the row would fail its own RLS check on the RETURNING. */
+export async function persistCreateTechnicianApplication(input: TechnicianApplicationInput): Promise<void> {
+  const { error } = await supabase.from('technician_applications').insert({
+    full_name: input.fullName.trim(),
+    email: input.email.trim(),
+    phone: input.phone.trim(),
+    specialty: input.specialty.trim(),
+    message: input.message?.trim() || null,
+  });
+  throwIfError(error);
+}
+
+export async function persistReviewTechnicianApplication(
+  applicationId: string,
+  status: 'approved' | 'rejected',
+  reviewerId: string
+): Promise<void> {
+  const { error } = await supabase
+    .from('technician_applications')
+    .update({ status, reviewed_at: new Date().toISOString(), reviewed_by: reviewerId })
+    .eq('id', applicationId);
   throwIfError(error);
 }
 

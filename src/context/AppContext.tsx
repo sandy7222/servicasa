@@ -12,6 +12,7 @@ import {
   fetchCatalog,
   fetchProfile,
   fetchPublicServices,
+  fetchTechnicianApplications,
   fetchVisitDepositAmount,
   profileToCurrentUser,
   signInWithPassword,
@@ -43,15 +44,18 @@ import {
   persistCreateAccountInvite,
   persistCreateCustomer,
   persistCreateCustomerRequest,
+  persistCreateCustomerSelf,
   persistCreateMaterial,
   persistCreateOrder,
   persistCreateService,
   persistCreateTechnician,
+  persistCreateTechnicianApplication,
   persistDeleteCustomer,
   persistDeleteMaterial,
   persistDeleteOrder,
   persistDeleteService,
   persistDeleteTechnician,
+  persistReviewTechnicianApplication,
   persistSignature,
   redeemAccountInvite,
   persistToggleChecklistItem,
@@ -69,6 +73,7 @@ import { canExecutePaidWork } from '../lib/workTimer';
 import {
   CurrentUserData,
   Customer,
+  CustomerRegistrationInput,
   CustomerServiceRequestInput,
   MaterialInventory,
   OrderEventType,
@@ -81,6 +86,8 @@ import {
   ServiceOrder,
   ServiceType,
   Technician,
+  TechnicianApplication,
+  TechnicianApplicationInput,
   TechnicianInput,
   UserRole,
 } from '../types';
@@ -116,6 +123,13 @@ interface AppContextType {
   loginAsRole: (role: UserRole, specificId?: string) => void;
   loginWithPassword: (email: string, password: string) => Promise<void>;
   registerWithInvite: (input: { token: string; password: string }) => Promise<void>;
+  registerCustomer: (input: CustomerRegistrationInput) => Promise<void>;
+  submitTechnicianApplication: (input: TechnicianApplicationInput) => Promise<void>;
+  technicianApplications: TechnicianApplication[];
+  reviewTechnicianApplication: (
+    applicationId: string,
+    status: 'approved' | 'rejected'
+  ) => Promise<void>;
   createAccountInviteLink: (kind: 'technician' | 'customer', targetId: string) => Promise<string>;
   logout: () => Promise<void>;
   refreshRemoteData: () => Promise<void>;
@@ -307,6 +321,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // 30000 here is only the pre-fetch default, matching the previous hardcoded
   // behavior until the real value loads.
   const [visitDepositAmount, setVisitDepositAmount] = useState(30000);
+  const [technicianApplications, setTechnicianApplications] = useState<TechnicianApplication[]>([]);
 
   const [serviceCategories, setServiceCategories] = useState<ServiceCategory[]>(() => {
     try {
@@ -378,6 +393,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setUsingRemoteData(true);
       setCurrentUserState(profileToCurrentUser(profile));
       fetchVisitDepositAmount().then(setVisitDepositAmount).catch(() => {});
+      if (profile.role === 'admin') {
+        fetchTechnicianApplications().then(setTechnicianApplications).catch(() => {});
+      }
     } catch (err) {
       const message = friendlyErrorMessage(err, 'No se pudieron cargar los datos remotos.');
       setDataError(message);
@@ -396,6 +414,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setTechnicians(INITIAL_TECHNICIANS);
     setCustomers(INITIAL_CUSTOMERS);
     setMaterials(INITIAL_MATERIALS);
+    setTechnicianApplications([]);
     void loadPublicServices();
   };
 
@@ -678,6 +697,77 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } finally {
       setAuthLoading(false);
     }
+  };
+
+  const registerCustomer = async (input: CustomerRegistrationInput) => {
+    setAuthLoading(true);
+    setDataError(null);
+    try {
+      const signed = await signUpWithPassword({
+        email: input.email,
+        password: input.password,
+        fullName: input.fullName,
+      });
+      const user = signed.user;
+      const session = signed.session;
+      if (!user) throw new Error('No se pudo crear la cuenta.');
+
+      if (!session) {
+        showToast(
+          'Revisá tu email para confirmar la cuenta. Después ingresá y completá tu perfil.',
+          'info',
+          'Confirmá el correo'
+        );
+        return;
+      }
+
+      await persistCreateCustomerSelf(user.id, input);
+      await applyRemoteSession(user.id);
+      navigate('/customer');
+      showToast(`Cuenta creada. Bienvenido/a ${input.fullName}`, 'success', 'Listo');
+    } catch (err) {
+      const message = friendlyErrorMessage(err, 'No se pudo crear la cuenta');
+      setDataError(message);
+      throw new Error(message);
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const submitTechnicianApplication = async (input: TechnicianApplicationInput) => {
+    setAuthLoading(true);
+    try {
+      await persistCreateTechnicianApplication(input);
+      showToast(
+        'Recibimos tu solicitud. Te contactaremos si sos seleccionado.',
+        'success',
+        'Solicitud enviada'
+      );
+    } catch (err) {
+      const message = friendlyErrorMessage(err, 'No se pudo enviar la solicitud');
+      showToast(message, 'error');
+      throw new Error(message);
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const reviewTechnicianApplication = async (
+    applicationId: string,
+    status: 'approved' | 'rejected'
+  ) => {
+    requireAdmin(currentUser);
+    if (!currentUser) throw new Error('No autenticado.');
+    await withRemote(() => persistReviewTechnicianApplication(applicationId, status, currentUser.id));
+    setTechnicianApplications((prev) =>
+      prev.map((app) =>
+        app.id === applicationId ? { ...app, status, reviewedAt: new Date().toISOString() } : app
+      )
+    );
+    showToast(
+      status === 'approved' ? 'Solicitud aprobada' : 'Solicitud rechazada',
+      'success'
+    );
   };
 
   const createAccountInviteLink = async (kind: 'technician' | 'customer', targetId: string) => {
@@ -2270,6 +2360,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         loginAsRole,
         loginWithPassword,
         registerWithInvite,
+        registerCustomer,
+        submitTechnicianApplication,
+        technicianApplications,
+        reviewTechnicianApplication,
         createAccountInviteLink,
         logout,
         refreshRemoteData,

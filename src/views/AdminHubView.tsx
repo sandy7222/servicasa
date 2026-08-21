@@ -45,6 +45,7 @@ import { Timeline } from '../components/common/Timeline';
 import { EntityActionsMenu } from '../components/common/EntityActionsMenu';
 import { formatElapsedTime, getOrderElapsedSeconds } from '../lib/workTimer';
 import { TechnicianValidation } from '../components/admin/TechnicianValidation';
+import { TechnicianApplications } from '../components/admin/TechnicianApplications';
 import { PayoutScheduler } from '../components/admin/PayoutScheduler';
 import {
   OrderPriority,
@@ -55,6 +56,7 @@ import {
   ServiceCategory,
   Customer,
   Technician,
+  TechnicianApplication,
   MaterialInventory,
 } from '../types';
 
@@ -628,6 +630,20 @@ export const AdminHubView: React.FC = () => {
     setNewTechAlsoCustomer(false);
     setNewTechAddress('');
     setNewTechNeighborhood('');
+  };
+
+  const handleApproveApplication = (app: TechnicianApplication) => {
+    setNewTechName(app.fullName);
+    setNewTechSpecialty(app.specialty);
+    setNewTechPhone(app.phone);
+    setNewTechEmail(app.email);
+    setNewTechZone('');
+    setNewTechProvince('CABA');
+    setNewTechAlsoCustomer(false);
+    setNewTechAddress('');
+    setNewTechNeighborhood('');
+    setIsNewTechnicianModalOpen(true);
+    showToast('Solicitud aprobada. Completá la ficha para darlo de alta.', 'success');
   };
 
   const handleCreateTechnicianSubmit = (e: React.FormEvent) => {
@@ -1489,6 +1505,7 @@ export const AdminHubView: React.FC = () => {
         {/* ================= TAB 3: TECHNICIANS ================= */}
         {activeTab === 'technicians' && (
           <div className="space-y-3">
+            <TechnicianApplications onApprove={handleApproveApplication} />
             <TechnicianValidation />
             <PayoutScheduler />
             <div className="flex items-center justify-between">

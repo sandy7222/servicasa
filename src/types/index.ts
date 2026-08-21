@@ -256,6 +256,35 @@ export interface Customer {
   profileId?: string | null;
 }
 
+export type CustomerRegistrationInput = {
+  fullName: string;
+  email: string;
+  password: string;
+  phone: string;
+  address: string;
+  neighborhood: string;
+};
+
+export type TechnicianApplicationInput = {
+  fullName: string;
+  email: string;
+  phone: string;
+  specialty: string;
+  message?: string;
+};
+
+export interface TechnicianApplication {
+  id: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  specialty: string;
+  message?: string | null;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: string;
+  reviewedAt?: string | null;
+}
+
 export interface MaterialInventory {
   id: string;
   name: string;

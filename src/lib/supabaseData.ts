@@ -9,6 +9,7 @@ import type {
   ServiceOrder,
   ServiceType,
   TechnicalNote,
+  TechnicianApplication,
   Technician,
   TimeLog,
   UsedMaterial,
@@ -23,6 +24,7 @@ import type {
   DbServiceOrder,
   DbOrderQuote,
   DbTechnician,
+  DbTechnicianApplication,
 } from './supabase';
 import { supabase } from './supabase';
 
@@ -77,6 +79,20 @@ export function mapCustomer(row: DbCustomer): Customer {
     email: row.email,
     notes: row.notes ?? undefined,
     profileId: row.profile_id ?? null,
+  };
+}
+
+export function mapTechnicianApplication(row: DbTechnicianApplication): TechnicianApplication {
+  return {
+    id: row.id,
+    fullName: row.full_name,
+    email: row.email,
+    phone: row.phone,
+    specialty: row.specialty,
+    message: row.message ?? undefined,
+    status: row.status,
+    createdAt: row.created_at,
+    reviewedAt: row.reviewed_at ?? undefined,
   };
 }
 
@@ -200,6 +216,16 @@ export async function fetchVisitDepositAmount(): Promise<number> {
   if (error || !data) return VISIT_DEPOSIT_FALLBACK;
   const value = Number(data.value);
   return Number.isFinite(value) && value >= 0 ? value : VISIT_DEPOSIT_FALLBACK;
+}
+
+/** Admin-only: pending/reviewed "quiero ser técnico" applications. */
+export async function fetchTechnicianApplications(): Promise<TechnicianApplication[]> {
+  const { data, error } = await supabase
+    .from('technician_applications')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data as DbTechnicianApplication[]).map(mapTechnicianApplication);
 }
 
 export async function fetchCatalog() {
