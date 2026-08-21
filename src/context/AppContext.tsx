@@ -1038,6 +1038,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       );
       return;
     }
+    if (
+      order?.workMode === 'diagnosis' &&
+      order.paymentStatus !== 'deposit_paid' &&
+      order.paymentStatus !== 'paid_in_full'
+    ) {
+      showToast(
+        'El cliente todavía no pagó la seña de la visita de diagnóstico. No se puede asignar un técnico hasta que el cobro se confirme.',
+        'warning',
+        'Seña pendiente'
+      );
+      return;
+    }
 
     const newEvent = {
       id: `ev-${Date.now()}`,

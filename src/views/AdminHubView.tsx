@@ -2791,6 +2791,15 @@ export const AdminHubView: React.FC = () => {
               </div>
             )}
 
+            {orderToAssign.workMode === 'diagnosis' &&
+              orderToAssign.paymentStatus !== 'deposit_paid' &&
+              orderToAssign.paymentStatus !== 'paid_in_full' && (
+                <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950">
+                  <strong className="block">Seña pendiente</strong>
+                  El cliente todavía no pagó la seña de la visita de diagnóstico. No se puede asignar un técnico hasta que Mercado Pago confirme el cobro.
+                </div>
+              )}
+
             <div className="space-y-2.5">
               {technicians.map((t) => {
                 const isCurrent = orderToAssign.assignedTechnicianId === t.id;
