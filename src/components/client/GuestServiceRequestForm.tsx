@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { CalendarDays, CreditCard, Mail, MapPin, Phone, Search, User, Wrench } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { FIXED_PRICE_SERVICES, formatArs, type FixedPriceService } from '../../lib/pricing';
@@ -41,6 +41,17 @@ export const GuestServiceRequestForm: React.FC = () => {
     [serviceType]
   );
   const directTotal = selectedService ? selectedService.unitPrice * quantity : 0;
+
+  useEffect(() => {
+    const pendingServiceId = localStorage.getItem('tecniurbano_selectedServiceId');
+    if (!pendingServiceId) return;
+    const catalogItem = services.find((service) => service.id === pendingServiceId);
+    localStorage.removeItem('tecniurbano_selectedServiceId');
+    if (!catalogItem) return;
+    setServiceType(catalogItem.category);
+    setTitle(catalogItem.name);
+    setDescription(catalogItem.description);
+  }, [services]);
 
   const chooseMode = (nextMode: WorkMode) => {
     setMode(nextMode);

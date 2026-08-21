@@ -43,7 +43,15 @@ export const AuthView: React.FC = () => {
   const [inviteLoading, setInviteLoading] = useState(Boolean(inviteToken));
   const [inviteError, setInviteError] = useState<string | null>(null);
 
-  const [mode, setMode] = useState<AuthMode>('login');
+  // Set by ServicesCategoryView when a logged-out visitor picks a service —
+  // read once up front, before GuestServiceRequestForm's own effect clears
+  // it. Landing here with real purchase intent: skip the mode tabs entirely
+  // and go straight to the guest checkout form, no login/register/technician
+  // detour. The general /auth entry point (header link, direct visit) is
+  // unaffected — this only fires for this one specific referrer.
+  const [orderIntent] = useState(() => Boolean(localStorage.getItem('tecniurbano_selectedServiceId')));
+
+  const [mode, setMode] = useState<AuthMode>(orderIntent ? 'guest' : 'login');
   const [error, setError] = useState<string | null>(null);
 
   // Login
@@ -191,23 +199,27 @@ export const AuthView: React.FC = () => {
 
   const headerTitle = inviteMode
     ? 'Creá tu cuenta'
-    : mode === 'login'
-      ? 'Iniciá sesión'
-      : mode === 'register'
-        ? 'Creá tu cuenta de cliente'
-        : mode === 'guest'
-          ? 'Pedí un servicio sin cuenta'
-          : 'Quiero ser técnico';
+    : orderIntent
+      ? 'Completá tu pedido'
+      : mode === 'login'
+        ? 'Iniciá sesión'
+        : mode === 'register'
+          ? 'Creá tu cuenta de cliente'
+          : mode === 'guest'
+            ? 'Pedí un servicio sin cuenta'
+            : 'Quiero ser técnico';
 
   const headerSubtitle = inviteMode
     ? `Te invitaron como ${roleLabel}. Elegí una contraseña para vincular tu ficha.`
-    : mode === 'login'
-      ? 'Ingresá con tu cuenta de Supabase Auth (email y contraseña).'
-      : mode === 'register'
-        ? 'Registrate como cliente para pedir servicios en minutos.'
-        : mode === 'guest'
-          ? 'Completá el pedido y pagá — después te invitamos a crear tu cuenta.'
-          : 'Contanos de vos. El equipo revisa tu solicitud y te contacta si sos seleccionado.';
+    : orderIntent
+      ? 'Completá tus datos y pagá — después te invitamos a crear tu cuenta.'
+      : mode === 'login'
+        ? 'Ingresá con tu cuenta de Supabase Auth (email y contraseña).'
+        : mode === 'register'
+          ? 'Registrate como cliente para pedir servicios en minutos.'
+          : mode === 'guest'
+            ? 'Completá el pedido y pagá — después te invitamos a crear tu cuenta.'
+            : 'Contanos de vos. El equipo revisa tu solicitud y te contacta si sos seleccionado.';
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-10 sm:py-16 px-4 sm:px-6 lg:px-8" id="tecniurbano-auth-view">
@@ -217,7 +229,7 @@ export const AuthView: React.FC = () => {
           <p className="text-xs text-slate-500 mt-1">{headerSubtitle}</p>
         </div>
 
-        {!inviteMode && !inviteLoading && (
+        {!inviteMode && !inviteLoading && !orderIntent && (
           <div className="grid grid-cols-4 gap-1.5 mb-5 bg-slate-100 rounded-lg p-1">
             {([
               ['login', 'Ingresar'],
