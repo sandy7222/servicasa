@@ -204,6 +204,15 @@ export type CustomerServiceRequestInput = {
   requestedTotal?: number;
 };
 
+/** Same as CustomerServiceRequestInput, plus the contact data a guest (no
+ * account) has to provide since there's no customer record yet. Posted to
+ * the public api/orders/guest-checkout.ts endpoint. */
+export type GuestServiceRequestInput = CustomerServiceRequestInput & {
+  fullName: string;
+  email: string;
+  phone: string;
+};
+
 export interface Technician {
   id: string;
   name: string;

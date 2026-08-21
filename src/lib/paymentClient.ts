@@ -6,6 +6,7 @@
  * redirects the customer to the URL returned by that trusted server.
  */
 import { supabase } from './supabase';
+import type { GuestServiceRequestInput } from '../types';
 
 export type PaymentType = 'visit_deposit' | 'balance_payment' | 'full_advance' | 'extra_payment';
 
@@ -50,4 +51,21 @@ export async function redirectToPayment(
 ) {
   const { paymentUrl } = await requestPaymentLink(orderId, paymentType, quoteId);
   window.location.assign(paymentUrl);
+}
+
+/** No session involved — this hits the public api/orders/guest-checkout.ts
+ * endpoint, which creates the account-less customer + order server-side. */
+export async function redirectToGuestPayment(input: GuestServiceRequestInput) {
+  const response = await fetch('/api/orders/guest-checkout', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+
+  const body = (await response.json().catch(() => ({}))) as { paymentUrl?: string; error?: string };
+  if (!response.ok || !body.paymentUrl) {
+    throw new Error(body.error || 'No se pudo iniciar el pago seguro.');
+  }
+
+  window.location.assign(body.paymentUrl);
 }

@@ -42,6 +42,42 @@ function mapStatus(mpStatus: string | undefined): 'pending' | 'approved' | 'reje
  * not just payment_transactions — so the rest of the app (canExecutePaidWork,
  * assignTechnician gating, etc.) sees a consistent payment_status.
  */
+/**
+ * A payment just confirmed for a customer with no linked account (guest
+ * checkout, or any admin-created "cliente sin cuenta" that happens to pay) —
+ * auto-generate the same account_invites row the admin's "Generar enlace de
+ * cuenta" button creates, so the customer-status page has something to show.
+ * No-op if an unused invite already exists (avoids duplicate rows on webhook
+ * retries) or the customer already has a linked profile.
+ */
+async function ensureAccountInviteForGuestCustomer(customerId: string) {
+  const { data: customer, error: customerError } = await supabaseAdmin
+    .from('customers')
+    .select('id, name, email, profile_id')
+    .eq('id', customerId)
+    .maybeSingle();
+  if (customerError || !customer || customer.profile_id || !customer.email) return;
+
+  const { data: existingInvite } = await supabaseAdmin
+    .from('account_invites')
+    .select('id')
+    .eq('kind', 'customer')
+    .eq('target_id', customerId)
+    .is('used_at', null)
+    .maybeSingle();
+  if (existingInvite) return;
+
+  const { error: insertError } = await supabaseAdmin.from('account_invites').insert({
+    kind: 'customer',
+    target_id: customerId,
+    email: customer.email,
+    full_name: customer.name,
+  });
+  if (insertError) {
+    console.error('[payments/webhook] Error generando invitacion de cuenta', insertError);
+  }
+}
+
 async function syncOrderAfterApprovedPayment(
   paymentType: string,
   orderId: string,
@@ -50,7 +86,7 @@ async function syncOrderAfterApprovedPayment(
 ) {
   const { data: order, error: orderError } = await supabaseAdmin
     .from('service_orders')
-    .select('total_paid_amount')
+    .select('total_paid_amount, customer_id')
     .eq('id', orderId)
     .maybeSingle();
   if (orderError || !order) {
@@ -89,6 +125,10 @@ async function syncOrderAfterApprovedPayment(
     if (quoteError) {
       console.error('[payments/webhook] Error marcando presupuesto como aceptado', quoteError);
     }
+  }
+
+  if ((paymentType === 'visit_deposit' || paymentType === 'full_advance') && order.customer_id) {
+    await ensureAccountInviteForGuestCustomer(order.customer_id as string);
   }
 }
 

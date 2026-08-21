@@ -14,6 +14,7 @@ import { TechnicianView } from './views/TechnicianView';
 import { CustomerView } from './views/CustomerView';
 import { SettingsView } from './views/SettingsView';
 import { ServicesCategoryView } from './views/ServicesCategoryView';
+import { GuestOrderStatusView } from './views/GuestOrderStatusView';
 import { ClientsTable } from './components/admin/ClientsTable';
 import { ClientFicha } from './components/admin/ClientFicha';
 import type { UserRole } from './types';
@@ -153,6 +154,9 @@ const AppContent: React.FC = () => {
         }
         if (pathOnly.startsWith('/services-category/')) {
           return <ServicesCategoryView />;
+        }
+        if (pathOnly.startsWith('/pedido/')) {
+          return <GuestOrderStatusView token={pathOnly.replace('/pedido/', '')} />;
         }
         return <LandingView />;
     }

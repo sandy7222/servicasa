@@ -19,6 +19,7 @@ import { DEMO_MODE } from '../lib/featureFlags';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { friendlyErrorMessage } from '../components/common/AppStatus';
 import { fetchAccountInvite, type AccountInvitePreview } from '../lib/supabaseMutations';
+import { GuestServiceRequestForm } from '../components/client/GuestServiceRequestForm';
 
 function readInviteToken() {
   const hash = window.location.hash.replace(/^#/, '');
@@ -26,7 +27,7 @@ function readInviteToken() {
   return new URLSearchParams(query).get('invite');
 }
 
-type AuthMode = 'login' | 'register' | 'apply';
+type AuthMode = 'login' | 'register' | 'apply' | 'guest';
 
 const inputClass =
   'w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/40 focus:border-teal-500 disabled:bg-slate-50 disabled:opacity-70';
@@ -194,7 +195,9 @@ export const AuthView: React.FC = () => {
       ? 'Iniciá sesión'
       : mode === 'register'
         ? 'Creá tu cuenta de cliente'
-        : 'Quiero ser técnico';
+        : mode === 'guest'
+          ? 'Pedí un servicio sin cuenta'
+          : 'Quiero ser técnico';
 
   const headerSubtitle = inviteMode
     ? `Te invitaron como ${roleLabel}. Elegí una contraseña para vincular tu ficha.`
@@ -202,21 +205,24 @@ export const AuthView: React.FC = () => {
       ? 'Ingresá con tu cuenta de Supabase Auth (email y contraseña).'
       : mode === 'register'
         ? 'Registrate como cliente para pedir servicios en minutos.'
-        : 'Contanos de vos. El equipo revisa tu solicitud y te contacta si sos seleccionado.';
+        : mode === 'guest'
+          ? 'Completá el pedido y pagá — después te invitamos a crear tu cuenta.'
+          : 'Contanos de vos. El equipo revisa tu solicitud y te contacta si sos seleccionado.';
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-10 sm:py-16 px-4 sm:px-6 lg:px-8" id="tecniurbano-auth-view">
-      <div className="max-w-md w-full mx-auto">
+      <div className={`w-full mx-auto ${mode === 'guest' && !inviteMode ? 'max-w-2xl' : 'max-w-md'}`}>
         <div className="text-center mb-6">
           <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">{headerTitle}</h2>
           <p className="text-xs text-slate-500 mt-1">{headerSubtitle}</p>
         </div>
 
         {!inviteMode && !inviteLoading && (
-          <div className="grid grid-cols-3 gap-1.5 mb-5 bg-slate-100 rounded-lg p-1">
+          <div className="grid grid-cols-4 gap-1.5 mb-5 bg-slate-100 rounded-lg p-1">
             {([
               ['login', 'Ingresar'],
               ['register', 'Crear cuenta'],
+              ['guest', 'Sin cuenta'],
               ['apply', 'Ser técnico'],
             ] as [AuthMode, string][]).map(([m, label]) => (
               <button
@@ -652,6 +658,8 @@ export const AuthView: React.FC = () => {
             </form>
           )
         )}
+
+        {!inviteLoading && !inviteMode && mode === 'guest' && <GuestServiceRequestForm />}
 
         {(inviteMode || (DEMO_MODE && !inviteMode && mode === 'login')) && (
           <div className="mt-6 text-center text-xs text-slate-500 flex items-center justify-center gap-1.5">
