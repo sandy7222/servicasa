@@ -69,7 +69,7 @@ import {
   persistUpdateVisitDepositAmount,
 } from '../lib/supabaseMutations';
 import { friendlyErrorMessage } from '../components/common/AppStatus';
-import { canExecutePaidWork } from '../lib/workTimer';
+import { canExecutePaidWork, isOrderPaymentSettled, orderRequiresPaymentGate } from '../lib/workTimer';
 import {
   CurrentUserData,
   Customer,
@@ -1030,23 +1030,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     const order = orders.find((o) => o.id === orderId);
-    if (order?.workMode === 'direct' && order.paymentStatus !== 'paid_in_full') {
+    if (order && orderRequiresPaymentGate(order) && !isOrderPaymentSettled(order)) {
       showToast(
-        'Esta orden es de precio fijo y el cliente todavía no completó el pago. No se puede asignar un técnico hasta que el cobro se confirme.',
+        order.workMode === 'direct'
+          ? 'Esta orden es de precio fijo y el cliente todavía no completó el pago. No se puede asignar un técnico hasta que el cobro se confirme.'
+          : 'El cliente todavía no pagó la seña de la visita de diagnóstico. No se puede asignar un técnico hasta que el cobro se confirme.',
         'warning',
-        'Pago pendiente'
-      );
-      return;
-    }
-    if (
-      order?.workMode === 'diagnosis' &&
-      order.paymentStatus !== 'deposit_paid' &&
-      order.paymentStatus !== 'paid_in_full'
-    ) {
-      showToast(
-        'El cliente todavía no pagó la seña de la visita de diagnóstico. No se puede asignar un técnico hasta que el cobro se confirme.',
-        'warning',
-        'Seña pendiente'
+        order.workMode === 'direct' ? 'Pago pendiente' : 'Seña pendiente'
       );
       return;
     }

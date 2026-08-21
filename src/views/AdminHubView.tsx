@@ -40,10 +40,10 @@ import {
   EyeOff,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { PriorityBadge, ServiceBadge, StatusBadge } from '../components/common/Badge';
+import { PaymentStatusBadge, PriorityBadge, ServiceBadge, StatusBadge } from '../components/common/Badge';
 import { Timeline } from '../components/common/Timeline';
 import { EntityActionsMenu } from '../components/common/EntityActionsMenu';
-import { formatElapsedTime, getOrderElapsedSeconds } from '../lib/workTimer';
+import { formatElapsedTime, getOrderElapsedSeconds, isOrderPaymentSettled, orderRequiresPaymentGate } from '../lib/workTimer';
 import { TechnicianValidation } from '../components/admin/TechnicianValidation';
 import { TechnicianApplications } from '../components/admin/TechnicianApplications';
 import { PayoutScheduler } from '../components/admin/PayoutScheduler';
@@ -1269,6 +1269,7 @@ export const AdminHubView: React.FC = () => {
                             )}
                             <PriorityBadge priority={order.priority} />
                             <ServiceBadge service={order.serviceType} size="sm" />
+                            <PaymentStatusBadge order={order} size="sm" />
                           </div>
 
                           <h3 className="font-bold text-xs sm:text-sm text-slate-900 leading-snug">
@@ -2221,7 +2222,7 @@ export const AdminHubView: React.FC = () => {
             </div>
 
             {/* Quick Info Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs">
               <div>
                 <span className="text-slate-400 block font-medium">Cliente & Contacto:</span>
                 <span className="font-bold text-slate-800">{selectedOrder.clientName}</span>
@@ -2243,6 +2244,15 @@ export const AdminHubView: React.FC = () => {
                   <ServiceBadge service={selectedOrder.serviceType} size="sm" />
                 </div>
               </div>
+
+              {orderRequiresPaymentGate(selectedOrder) && (
+                <div>
+                  <span className="text-slate-400 block font-medium">Estado de Pago:</span>
+                  <div className="mt-1">
+                    <PaymentStatusBadge order={selectedOrder} />
+                  </div>
+                </div>
+              )}
             </div>
 
             {selectedOrder.adminIncidentStatus === 'open' && (
@@ -2784,21 +2794,16 @@ export const AdminHubView: React.FC = () => {
               <strong>"{orderToAssign.title}"</strong>.
             </p>
 
-            {orderToAssign.workMode === 'direct' && orderToAssign.paymentStatus !== 'paid_in_full' && (
+            {orderRequiresPaymentGate(orderToAssign) && !isOrderPaymentSettled(orderToAssign) && (
               <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950">
-                <strong className="block">Pago pendiente</strong>
-                Esta orden es de precio fijo y el cliente todavía no completó el pago. No se puede asignar un técnico hasta que Mercado Pago confirme el cobro.
+                <strong className="block">
+                  {orderToAssign.workMode === 'direct' ? 'Pago pendiente' : 'Seña pendiente'}
+                </strong>
+                {orderToAssign.workMode === 'direct'
+                  ? 'Esta orden es de precio fijo y el cliente todavía no completó el pago. No se puede asignar un técnico hasta que Mercado Pago confirme el cobro.'
+                  : 'El cliente todavía no pagó la seña de la visita de diagnóstico. No se puede asignar un técnico hasta que Mercado Pago confirme el cobro.'}
               </div>
             )}
-
-            {orderToAssign.workMode === 'diagnosis' &&
-              orderToAssign.paymentStatus !== 'deposit_paid' &&
-              orderToAssign.paymentStatus !== 'paid_in_full' && (
-                <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950">
-                  <strong className="block">Seña pendiente</strong>
-                  El cliente todavía no pagó la seña de la visita de diagnóstico. No se puede asignar un técnico hasta que Mercado Pago confirme el cobro.
-                </div>
-              )}
 
             <div className="space-y-2.5">
               {technicians.map((t) => {
