@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { Payment } from 'mercadopago';
+import { MPNotFoundError, Payment } from 'mercadopago';
 import { mpClient } from '../lib/mercadopago.js';
 import { supabaseAdmin } from '../lib/supabaseAdmin.js';
 
@@ -159,6 +159,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // orders that already exist.
     return res.status(200).json({ received: true });
   } catch (err) {
+    // A payment id that doesn't exist under our credentials (bogus id, replay,
+    // MP's own webhook simulator) is an expected, non-error outcome — ack it
+    // with 200 so MP doesn't keep retrying forever. Anything else (auth,
+    // network, MP outage) is a real failure: keep the 500 so MP retries later.
+    if (err instanceof MPNotFoundError) {
+      console.warn('[payments/webhook] Pago no encontrado en Mercado Pago', paymentId);
+      return res.status(200).json({ received: true, warning: 'pago no encontrado' });
+    }
     console.error('[payments/webhook] Error consultando Mercado Pago', err);
     return res.status(500).json({ error: 'No se pudo verificar el pago con Mercado Pago.' });
   }
