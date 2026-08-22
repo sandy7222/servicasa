@@ -17,6 +17,10 @@ import {
   Phone,
   MapPin,
   ChevronRight,
+  ChevronLeft,
+  ChevronDown,
+  ChevronUp,
+  Archive,
   Eye,
   X,
   Package,
@@ -44,7 +48,11 @@ import { PaymentStatusBadge, PriorityBadge, ServiceBadge, StatusBadge } from '..
 import { Timeline } from '../components/common/Timeline';
 import { EntityActionsMenu } from '../components/common/EntityActionsMenu';
 import { formatElapsedTime, getOrderElapsedSeconds, isOrderPaymentSettled, orderRequiresPaymentGate } from '../lib/workTimer';
+import { ARGENTINA_PROVINCES } from '../lib/argentina';
 import { TechnicianValidation } from '../components/admin/TechnicianValidation';
+import { TechnicianReviewCard } from '../components/admin/TechnicianReviewCard';
+import { persistArchiveOrders } from '../lib/supabaseMutations';
+import { downloadArchivedOrdersExcel } from '../lib/exportOrdersExcel';
 import { TechnicianApplications } from '../components/admin/TechnicianApplications';
 import { PayoutScheduler } from '../components/admin/PayoutScheduler';
 import {
@@ -53,10 +61,10 @@ import {
   ServiceItemInput,
   ServiceOrder,
   ServiceType,
-  ServiceCategory,
   Customer,
   Technician,
   TechnicianApplication,
+  TechnicianInput,
   MaterialInventory,
 } from '../types';
 
@@ -128,32 +136,40 @@ function CategoryIcon({ name, className }: { name?: string; className?: string }
   }
 }
 
-const ARGENTINA_PROVINCES = [
-  'CABA',
-  'Buenos Aires',
-  'Catamarca',
-  'Chaco',
-  'Chubut',
-  'Córdoba',
-  'Corrientes',
-  'Entre Ríos',
-  'Formosa',
-  'Jujuy',
-  'La Pampa',
-  'La Rioja',
-  'Mendoza',
-  'Misiones',
-  'Neuquén',
-  'Río Negro',
-  'Salta',
-  'San Juan',
-  'San Luis',
-  'Santa Cruz',
-  'Santa Fe',
-  'Santiago del Estero',
-  'Tierra del Fuego',
-  'Tucumán',
-];
+const ORDERS_PAGE_SIZE = 15;
+// TEMP FOR TESTING (Sandy asked to verify the archive flow end-to-end) — revert to
+// `ORDERS_PAGE_SIZE * 6` once confirmed working.
+const ARCHIVE_PROMPT_THRESHOLD = 3;
+
+const PageControls: React.FC<{ page: number; totalItems: number; pageSize: number; onChange: (page: number) => void }> = ({ page, totalItems, pageSize, onChange }) => {
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  if (totalPages <= 1) return null;
+  return (
+    <div className="flex items-center justify-between gap-2 border-t border-slate-100 px-3 py-2.5">
+      <p className="text-[11px] text-slate-500">
+        Página {page} de {totalPages} · {totalItems} órdenes
+      </p>
+      <div className="flex items-center gap-1.5">
+        <button
+          type="button"
+          disabled={page <= 1}
+          onClick={() => onChange(page - 1)}
+          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-bold text-slate-600 disabled:opacity-40"
+        >
+          <ChevronLeft className="h-3 w-3" /> Anterior
+        </button>
+        <button
+          type="button"
+          disabled={page >= totalPages}
+          onClick={() => onChange(page + 1)}
+          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-bold text-slate-600 disabled:opacity-40"
+        >
+          Siguiente <ChevronRight className="h-3 w-3" />
+        </button>
+      </div>
+    </div>
+  );
+};
 
 export const AdminHubView: React.FC = () => {
   const {
@@ -162,7 +178,8 @@ export const AdminHubView: React.FC = () => {
     customers,
     materials,
     services,
-    serviceCategories,
+    catalogCategories,
+    catalogSubcategories,
     createOrder,
     updateOrder,
     cancelOrderAsAdmin,
@@ -183,15 +200,26 @@ export const AdminHubView: React.FC = () => {
     addService,
     updateService,
     deleteService,
-    addServiceCategory,
-    updateServiceCategory,
-    deleteServiceCategory,
+    createCategory,
+    updateCategory,
+    setCategoryActive,
+    deleteCategory,
+    mergeCategory,
+    moveCategory,
+    createSubcategory,
+    updateSubcategory,
+    setSubcategoryActive,
+    deleteSubcategory,
+    mergeSubcategory,
+    moveSubcategory,
     createAccountInviteLink,
     showToast,
+    refreshRemoteData,
+    currentPath,
   } = useApp();
 
   // Navigation tab within hub
-  const [activeTab, setActiveTab] = useState<'orders' | 'customers' | 'technicians' | 'inventory' | 'services' | 'categories'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'pendingPayment' | 'customers' | 'technicians' | 'inventory' | 'services' | 'categories'>('orders');
 
   // Filters & search
   const [searchQuery, setSearchQuery] = useState('');
@@ -201,11 +229,23 @@ export const AdminHubView: React.FC = () => {
   const [serviceFilter, setServiceFilter] = useState<string>('all');
   const [quickFilter, setQuickFilter] = useState<OrderQuickFilter>('all');
   const [clockNow, setClockNow] = useState(() => Date.now());
+  const [ordersPage, setOrdersPage] = useState(1);
+  const [pendingPaymentPage, setPendingPaymentPage] = useState(1);
+  const [archivingOrders, setArchivingOrders] = useState(false);
+  const [ordersView, setOrdersView] = useState<'active' | 'archived'>('active');
+  const [showArchivePicker, setShowArchivePicker] = useState(false);
+  const [selectedArchiveIds, setSelectedArchiveIds] = useState<Set<string>>(new Set());
+  const [selectedArchivedViewIds, setSelectedArchivedViewIds] = useState<Set<string>>(new Set());
+  const [downloadingSelection, setDownloadingSelection] = useState(false);
 
   useEffect(() => {
     const interval = window.setInterval(() => setClockNow(Date.now()), 1000);
     return () => window.clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    setOrdersPage(1);
+  }, [searchQuery, statusFilter, priorityFilter, techFilter, serviceFilter, quickFilter, ordersView]);
 
   // Modals state
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
@@ -221,7 +261,9 @@ export const AdminHubView: React.FC = () => {
   const [exceptionalCloseReason, setExceptionalCloseReason] = useState('');
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [orderToAssign, setOrderToAssign] = useState<ServiceOrder | null>(null);
+  const [assignModalReviewingTechId, setAssignModalReviewingTechId] = useState<string | null>(null);
   const [isNewCustomerModalOpen, setIsNewCustomerModalOpen] = useState(false);
+  const [returnToCreateOrderAfterNewClient, setReturnToCreateOrderAfterNewClient] = useState(false);
   const [isEditCustomerModalOpen, setIsEditCustomerModalOpen] = useState(false);
   const [customerToEdit, setCustomerToEdit] = useState<Customer | null>(null);
   const [customerPendingDelete, setCustomerPendingDelete] = useState<Customer | null>(null);
@@ -244,7 +286,7 @@ export const AdminHubView: React.FC = () => {
   const [newOrderDesc, setNewOrderDesc] = useState('');
   const [newOrderService, setNewOrderService] = useState<ServiceType>('Plomería');
   const [newOrderPriority, setNewOrderPriority] = useState<OrderPriority>('alta');
-  const [newOrderClientId, setNewOrderClientId] = useState(customers[0]?.id || '');
+  const [newOrderClientId, setNewOrderClientId] = useState('');
   const [newOrderTechId, setNewOrderTechId] = useState('');
   const [newOrderDate, setNewOrderDate] = useState(() => new Date().toISOString().slice(0, 10));
 
@@ -267,6 +309,18 @@ export const AdminHubView: React.FC = () => {
       setSelectedOrderId(null);
     }
   }, [orders, selectedOrderId]);
+
+  // Deep link support (#/hub?order=<id>) — lets a link from the archived-orders
+  // Excel jump straight into that order's detail modal, even if it's archived.
+  useEffect(() => {
+    const queryString = currentPath.split('?')[1];
+    if (!queryString) return;
+    const orderId = new URLSearchParams(queryString).get('order');
+    if (orderId && orders.some((o) => o.id === orderId)) {
+      setActiveTab('orders');
+      setSelectedOrderId(orderId);
+    }
+  }, [currentPath, orders]);
 
   // Handle pre-filled service from landing page
   useEffect(() => {
@@ -319,6 +373,11 @@ export const AdminHubView: React.FC = () => {
   const [editTechAlsoCustomer, setEditTechAlsoCustomer] = useState(false);
   const [editTechAddress, setEditTechAddress] = useState('');
   const [editTechNeighborhood, setEditTechNeighborhood] = useState('');
+  const [editTechWorkPhone, setEditTechWorkPhone] = useState('');
+  const [editTechBio, setEditTechBio] = useState('');
+  const [editTechEducationLevel, setEditTechEducationLevel] = useState<TechnicianInput['educationLevel']>('');
+  const [editTechDegreeTitle, setEditTechDegreeTitle] = useState('');
+  const [editTechInstitution, setEditTechInstitution] = useState('');
 
   // New Material Form state
   const [newMatName, setNewMatName] = useState('');
@@ -337,6 +396,7 @@ export const AdminHubView: React.FC = () => {
   const [serviceSearchQuery, setServiceSearchQuery] = useState('');
   const [serviceCategoryFilter, setServiceCategoryFilter] = useState('all');
   const [serviceSortBy, setServiceSortBy] = useState<'name' | 'price-asc' | 'price-desc' | 'duration'>('price-asc');
+  const [collapsedCatalogCategoryIds, setCollapsedCatalogCategoryIds] = useState<Set<string>>(new Set());
   const [isNewServiceModalOpen, setIsNewServiceModalOpen] = useState(false);
   const [isEditServiceModalOpen, setIsEditServiceModalOpen] = useState(false);
   const [serviceToEdit, setServiceToEdit] = useState<ServiceItem | null>(null);
@@ -347,6 +407,8 @@ export const AdminHubView: React.FC = () => {
   const [newServiceDesc, setNewServiceDesc] = useState('');
   const [newServicePrice, setNewServicePrice] = useState<number>(18500);
   const [newServiceCategory, setNewServiceCategory] = useState('Plomería');
+  const [newServiceCategoryId, setNewServiceCategoryId] = useState<string | null>(null);
+  const [newServiceSubcategoryId, setNewServiceSubcategoryId] = useState<string | null>(null);
   const [newServiceDuration, setNewServiceDuration] = useState<number>(60);
   const [newServiceFeatures, setNewServiceFeatures] = useState('');
 
@@ -355,24 +417,39 @@ export const AdminHubView: React.FC = () => {
   const [editServiceDesc, setEditServiceDesc] = useState('');
   const [editServicePrice, setEditServicePrice] = useState<number>(18500);
   const [editServiceCategory, setEditServiceCategory] = useState('Plomería');
+  const [editServiceCategoryId, setEditServiceCategoryId] = useState<string | null>(null);
+  const [editServiceSubcategoryId, setEditServiceSubcategoryId] = useState<string | null>(null);
   const [editServiceDuration, setEditServiceDuration] = useState<number>(60);
   const [editServiceFeatures, setEditServiceFeatures] = useState('');
 
-  // Categories state & modals
-  const [isNewCategoryModalOpen, setIsNewCategoryModalOpen] = useState(false);
-  const [isEditCategoryModalOpen, setIsEditCategoryModalOpen] = useState(false);
-  const [categoryToEdit, setCategoryToEdit] = useState<ServiceCategory | null>(null);
-  const [categoryPendingDelete, setCategoryPendingDelete] = useState<ServiceCategory | null>(null);
+  // "Crear nueva subcategoría" inline, compartido por los modales de
+  // Crear/Editar Servicio (nunca hay dos abiertos a la vez).
+  const [isCreatingServiceSubcategory, setIsCreatingServiceSubcategory] = useState(false);
+  const [newServiceSubcategoryName, setNewServiceSubcategoryName] = useState('');
 
-  // New Category Form state
+  // Categorías/subcategorías reales — panel de gestión (plan-categorias-subcategorias.md Fase 4)
+  type CatalogEntity = {
+    kind: 'category' | 'subcategory';
+    id: string;
+    name: string;
+    description?: string;
+    icon?: string;
+    categoryId?: string; // solo subcategorías: a qué categoría pertenecen (acota el destino de fusión)
+  };
+  const [collapsedManageCategoryIds, setCollapsedManageCategoryIds] = useState<Set<string>>(new Set());
+  const [isNewCategoryModalOpen, setIsNewCategoryModalOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newCategoryDesc, setNewCategoryDesc] = useState('');
   const [newCategoryIcon, setNewCategoryIcon] = useState('Sparkles');
-
-  // Edit Category Form state
-  const [editCategoryName, setEditCategoryName] = useState('');
-  const [editCategoryDesc, setEditCategoryDesc] = useState('');
-  const [editCategoryIcon, setEditCategoryIcon] = useState('Sparkles');
+  const [editEntity, setEditEntity] = useState<CatalogEntity | null>(null);
+  const [editEntityName, setEditEntityName] = useState('');
+  const [editEntityDesc, setEditEntityDesc] = useState('');
+  const [editEntityIcon, setEditEntityIcon] = useState('Sparkles');
+  const [deleteEntity, setDeleteEntity] = useState<CatalogEntity | null>(null);
+  const [deleteAction, setDeleteAction] = useState<'hide' | 'merge'>('hide');
+  const [mergeTargetId, setMergeTargetId] = useState('');
+  const [newSubcategoryDraftCategoryId, setNewSubcategoryDraftCategoryId] = useState<string | null>(null);
+  const [newSubcategoryDraftName, setNewSubcategoryDraftName] = useState('');
 
   const getServiceCategoryIcon = (category: string) => {
     const cat = (category || '').toLowerCase();
@@ -395,10 +472,10 @@ export const AdminHubView: React.FC = () => {
   };
 
   const availableServiceCategories = useMemo(() => {
-    const fromCategories = serviceCategories.map((c) => c.name).filter(Boolean);
+    const fromCategories = catalogCategories.map((c) => c.name).filter(Boolean);
     const fromServices = services.map((s) => s.category).filter(Boolean);
     return Array.from(new Set([...fromCategories, ...fromServices]));
-  }, [serviceCategories, services]);
+  }, [catalogCategories, services]);
 
   // Service metrics
   const serviceMetrics = useMemo(() => {
@@ -441,19 +518,183 @@ export const AdminHubView: React.FC = () => {
       });
   }, [services, serviceSearchQuery, serviceCategoryFilter, serviceSortBy]);
 
+  // Agrupa filteredServices (ya filtrado/ordenado) por categoría real →
+  // subcategoría real (plan-categorias-subcategorias.md Fase 3 paso 2).
+  // El orden dentro de cada subgrupo queda igual al de filteredServices
+  // (partición estable de un arreglo ya ordenado), así el selector de orden
+  // sigue aplicando dentro de cada grupo sin reordenar los grupos entre sí.
+  const groupedFilteredServices = useMemo(() => {
+    type Subgroup = { subcategoryId: string | null; subcategoryName: string | null; services: typeof filteredServices };
+    type Group = {
+      categoryId: string | null;
+      categoryName: string;
+      icon?: string | null;
+      displayOrder: number;
+      subgroups: Subgroup[];
+      totalCount: number;
+    };
+
+    const categoryOrderIndex = new Map<string, number>(catalogCategories.map((c) => [c.id, c.displayOrder]));
+    const groupsByKey = new Map<string, Group>();
+
+    filteredServices.forEach((srv) => {
+      const cat = srv.categoryId ? catalogCategories.find((c) => c.id === srv.categoryId) : undefined;
+      const key = cat?.id ?? `text:${srv.category}`;
+      let group = groupsByKey.get(key);
+      if (!group) {
+        group = {
+          categoryId: cat?.id ?? null,
+          categoryName: cat?.name ?? srv.category,
+          icon: cat?.icon ?? null,
+          displayOrder: cat ? categoryOrderIndex.get(cat.id) ?? 999 : 999,
+          subgroups: [],
+          totalCount: 0,
+        };
+        groupsByKey.set(key, group);
+      }
+      group.totalCount += 1;
+
+      const subcat = srv.subcategoryId ? catalogSubcategories.find((s) => s.id === srv.subcategoryId) : undefined;
+      const subKey = subcat?.id ?? 'sin-subcategoria';
+      let subgroup = group.subgroups.find((s) => (s.subcategoryId ?? 'sin-subcategoria') === subKey);
+      if (!subgroup) {
+        subgroup = { subcategoryId: subcat?.id ?? null, subcategoryName: subcat?.name ?? null, services: [] };
+        group.subgroups.push(subgroup);
+      }
+      subgroup.services.push(srv);
+    });
+
+    groupsByKey.forEach((group) => {
+      group.subgroups.sort((a, b) => {
+        const orderA = catalogSubcategories.find((s) => s.id === a.subcategoryId)?.displayOrder ?? 999;
+        const orderB = catalogSubcategories.find((s) => s.id === b.subcategoryId)?.displayOrder ?? 999;
+        return orderA - orderB;
+      });
+    });
+
+    return Array.from(groupsByKey.values()).sort((a, b) => a.displayOrder - b.displayOrder);
+  }, [filteredServices, catalogCategories, catalogSubcategories]);
+
+  const toggleCatalogCategoryCollapsed = (key: string) => {
+    setCollapsedCatalogCategoryIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  // Cancelled/completed orders are closed for a reason unrelated to payment —
+  // they never belonged in "Pendientes de pago" (nothing left to unblock) and
+  // stay visible in the main list like any other closed order.
+  const isOrderTerminal = (o: ServiceOrder) => o.status === 'completed' || o.status === 'cancelled';
+
+  // Archived orders never disappear from the database (payment_transactions
+  // references them with "on delete restrict"), they just drop out of the
+  // Admin Hub's live lists so the panel doesn't grow forever. Customer and
+  // technician views read `orders` straight from context, unfiltered, so
+  // their own order history is unaffected.
+  const visibleOrders = useMemo(() => orders.filter((o) => !o.archivedAt), [orders]);
+
+  // Eligible to archive: closed at least ~2 months ago (30-day warranty +
+  // buffer). Never touches an order that's still assigned/in progress/paused.
+  // TEMP FOR TESTING — cutoff at 0 days so today's test data qualifies too.
+  // Revert to `60 * 24 * 60 * 60 * 1000` (2 months) once confirmed working.
+  const archivableOrders = useMemo(() => {
+    const cutoff = Date.now() - 0 * 24 * 60 * 60 * 1000;
+    return visibleOrders.filter((o) => {
+      if (!isOrderTerminal(o)) return false;
+      const closedAt = o.completedAt ?? o.cancelledAt;
+      if (!closedAt) return false;
+      return new Date(closedAt).getTime() <= cutoff;
+    });
+  }, [visibleOrders]);
+
+  // Everything already archived — browsable in the "Archivadas" view below,
+  // independent of the 2-month/count trigger (that only gates the prompt to
+  // archive *more*).
+  const archivedOrders = useMemo(() => orders.filter((o) => Boolean(o.archivedAt)), [orders]);
+
+  // Default the picker to "everything eligible" selected, so the one-click
+  // button still archives all of them unless the admin deselects some.
+  useEffect(() => {
+    setSelectedArchiveIds(new Set(archivableOrders.map((o) => o.id)));
+  }, [archivableOrders]);
+
+  const toggleArchiveSelection = (id: string) => {
+    setSelectedArchiveIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleArchivedViewSelection = (id: string) => {
+    setSelectedArchivedViewIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const handleArchiveOldOrders = async () => {
+    const chosen = archivableOrders.filter((o) => selectedArchiveIds.has(o.id));
+    if (chosen.length === 0) return;
+    if (!window.confirm(`Se van a archivar ${chosen.length} orden${chosen.length === 1 ? '' : 'es'} cerrada${chosen.length === 1 ? '' : 's'} hace más de 2 meses. Se descarga un Excel con el detalle y salen de las listas del Admin Hub (siguen visibles para el cliente y el técnico). ¿Continuar?`)) return;
+    setArchivingOrders(true);
+    try {
+      await downloadArchivedOrdersExcel(chosen);
+      await persistArchiveOrders(chosen.map((o) => o.id));
+      await refreshRemoteData();
+      showToast(`${chosen.length} orden${chosen.length === 1 ? '' : 'es'} archivada${chosen.length === 1 ? '' : 's'}.`, 'success');
+      setShowArchivePicker(false);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'No se pudieron archivar las órdenes.', 'error');
+    } finally {
+      setArchivingOrders(false);
+    }
+  };
+
+  const handleDownloadSelectedArchived = async () => {
+    const chosen = archivedOrders.filter((o) => selectedArchivedViewIds.has(o.id));
+    if (chosen.length === 0) return;
+    setDownloadingSelection(true);
+    try {
+      await downloadArchivedOrdersExcel(chosen);
+      showToast(`Excel generado con ${chosen.length} orden${chosen.length === 1 ? '' : 'es'}.`, 'success');
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'No se pudo generar el Excel.', 'error');
+    } finally {
+      setDownloadingSelection(false);
+    }
+  };
+
+  // Orders cleared for the normal operational board — excludes orders still
+  // waiting on visit-deposit/full payment confirmation, which live in the
+  // "Pendientes de pago" tab instead so they can't be missed among active work.
+  const operationalOrders = useMemo(
+    () => visibleOrders.filter((o) => isOrderTerminal(o) || !(orderRequiresPaymentGate(o) && !isOrderPaymentSettled(o))),
+    [visibleOrders]
+  );
+
+  const pendingPaymentOrders = useMemo(
+    () => visibleOrders.filter((o) => !isOrderTerminal(o) && orderRequiresPaymentGate(o) && !isOrderPaymentSettled(o)),
+    [visibleOrders]
+  );
+
   // Metrics calculation
   const metrics = useMemo(() => {
-    const total = orders.length;
-    const active = orders.filter((o) => o.status !== 'completed' && o.status !== 'cancelled').length;
-    const inProgress = orders.filter((o) => o.status === 'in_progress').length;
-    const paused = orders.filter((o) => o.status === 'paused').length;
-    const completed = orders.filter((o) => o.status === 'completed').length;
-    const urgent = orders.filter(
+    const total = operationalOrders.length;
+    const active = operationalOrders.filter((o) => o.status !== 'completed' && o.status !== 'cancelled').length;
+    const inProgress = operationalOrders.filter((o) => o.status === 'in_progress').length;
+    const paused = operationalOrders.filter((o) => o.status === 'paused').length;
+    const completed = operationalOrders.filter((o) => o.status === 'completed').length;
+    const urgent = operationalOrders.filter(
       (o) => (o.priority === 'urgente' || o.priority === 'alta') && o.status !== 'completed'
     ).length;
 
     return { total, active, inProgress, paused, completed, urgent };
-  }, [orders]);
+  }, [operationalOrders]);
 
   const applyQuickFilter = (filter: Exclude<OrderQuickFilter, 'all'>) => {
     const shouldClear = quickFilter === filter;
@@ -466,9 +707,11 @@ export const AdminHubView: React.FC = () => {
     setServiceFilter('all');
   };
 
-  // Filtered Orders
+  // Filtered Orders — searches/filters apply to whichever base the
+  // Activas/Archivadas toggle picked.
   const filteredOrders = useMemo(() => {
-    return orders.filter((order) => {
+    const base = ordersView === 'active' ? operationalOrders : archivedOrders;
+    return base.filter((order) => {
       // Search
       const matchesSearch =
         searchQuery === '' ||
@@ -511,7 +754,17 @@ export const AdminHubView: React.FC = () => {
         matchesService
       );
     });
-  }, [orders, searchQuery, statusFilter, quickFilter, priorityFilter, techFilter, serviceFilter]);
+  }, [operationalOrders, archivedOrders, ordersView, searchQuery, statusFilter, quickFilter, priorityFilter, techFilter, serviceFilter]);
+
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(filteredOrders.length / ORDERS_PAGE_SIZE));
+    if (ordersPage > totalPages) setOrdersPage(totalPages);
+  }, [filteredOrders.length, ordersPage]);
+
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(pendingPaymentOrders.length / ORDERS_PAGE_SIZE));
+    if (pendingPaymentPage > totalPages) setPendingPaymentPage(totalPages);
+  }, [pendingPaymentOrders.length, pendingPaymentPage]);
 
   const openEditOrder = (order: ServiceOrder) => {
     setOrderToEdit(order);
@@ -523,6 +776,138 @@ export const AdminHubView: React.FC = () => {
     setEditOrderTechId(order.assignedTechnicianId ?? '');
     setEditOrderDate(toDateInputValue(order.scheduledDate));
     setIsEditModalOpen(true);
+  };
+
+  // Shared card renderer for both the main Orders list and the "Pendientes
+  // de pago" tab, so the two stay visually identical without duplicating markup.
+  const renderOrderCard = (order: ServiceOrder) => {
+    const completedChecklistCount = order.checklist.filter((c) => c.completed).length;
+    const totalChecklist = order.checklist.length;
+    const hasSignature = !!order.customerSignature;
+    const quoteRejected = order.quotes?.some((quote) => quote.status === 'rejected');
+
+    return (
+      <div
+        key={order.id}
+        className="p-3 sm:p-3.5 hover:bg-slate-50/90 transition-colors flex flex-col lg:flex-row lg:items-center justify-between gap-3 text-xs"
+      >
+        {/* Order Core Info */}
+        <div className="space-y-1 flex-1">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="font-mono text-[11px] font-bold text-slate-800 bg-slate-100 px-1.5 py-0.2 rounded border border-slate-200">
+              {order.id}
+            </span>
+            <StatusBadge status={order.status} size="sm" />
+            {quoteRejected && (
+              <span className="rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-800">
+                Presupuesto rechazado · seña en revisión
+              </span>
+            )}
+            <PriorityBadge priority={order.priority} />
+            <ServiceBadge service={order.serviceType} size="sm" />
+            <PaymentStatusBadge order={order} size="sm" />
+          </div>
+
+          <h3 className="font-bold text-xs sm:text-sm text-slate-900 leading-snug">
+            {order.title}
+          </h3>
+
+          <div className="flex flex-wrap items-center gap-y-1 gap-x-3 text-[11px] text-slate-500">
+            <span className="flex items-center gap-1">
+              <Users className="w-3 h-3 text-slate-400" />
+              <strong className="text-slate-700">{order.clientName}</strong>
+            </span>
+            <span className="flex items-center gap-1">
+              <MapPin className="w-3 h-3 text-slate-400" />
+              <span>{order.clientAddress}</span>
+            </span>
+            <span className="flex items-center gap-1 font-mono text-[10px]">
+              <Calendar className="w-3 h-3 text-slate-400" />
+              <span>{order.scheduledDate}</span>
+            </span>
+          </div>
+        </div>
+
+        {/* Middle status: Technician & Progress summary */}
+        <div className="flex flex-wrap lg:flex-col items-center lg:items-end justify-between lg:justify-center gap-1.5 text-xs border-t lg:border-t-0 pt-2 lg:pt-0 border-slate-100">
+          {/* Technician badge */}
+          <div className="flex items-center gap-1.5">
+            <Wrench className="w-3 h-3 text-teal-600" />
+            {order.assignedTechnicianName ? (
+              <span className="font-semibold text-slate-800 text-xs">
+                {order.assignedTechnicianName}
+              </span>
+            ) : (
+              <span className="text-amber-800 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200 text-[10px] font-bold">
+                Sin asignar
+              </span>
+            )}
+          </div>
+
+          {/* Progress pills */}
+          <div className="flex items-center gap-1.5 text-[10px] text-slate-500">
+            <span
+              className={`px-1.5 py-0.2 rounded font-mono ${
+                completedChecklistCount === totalChecklist && totalChecklist > 0
+                  ? 'bg-teal-500/10 text-teal-700 font-bold border border-teal-500/20'
+                  : 'bg-slate-100 text-slate-600 border border-slate-200'
+              }`}
+            >
+              Checklist: {completedChecklistCount}/{totalChecklist}
+            </span>
+
+            {hasSignature && (
+              <span className="inline-flex items-center gap-1 bg-[#0F172A] text-teal-300 px-1.5 py-0.2 rounded font-bold font-mono text-[10px]">
+                <FileSignature className="w-2.5 h-2.5" />
+                Firmada
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Action buttons */}
+        <div className="flex items-center gap-1.5 pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-100">
+          <button
+            onClick={() => {
+              setOrderToAssign(order);
+              setIsAssignModalOpen(true);
+            }}
+            className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-md transition-colors border border-slate-200"
+            title="Asignar o reasignar técnico"
+          >
+            Asignar
+          </button>
+
+          <button
+            onClick={() => openEditOrder(order)}
+            className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 text-xs font-semibold rounded-md transition-colors border border-slate-200"
+            title="Editar orden"
+          >
+            <Pencil className="w-3 h-3" />
+            <span>Editar</span>
+          </button>
+
+          {order.status !== 'completed' && order.status !== 'cancelled' && (
+            <button
+              onClick={() => { setOrderToCancel(order); setCancelReason(''); }}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-700 text-xs font-semibold rounded-md transition-colors border border-slate-200"
+              title="Cancelar orden con motivo"
+            >
+              <Ban className="w-3 h-3" />
+              <span>Cancelar</span>
+            </button>
+          )}
+
+          <button
+            onClick={() => setSelectedOrderId(order.id)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#0F172A] hover:bg-slate-800 text-teal-300 hover:text-white text-xs font-bold rounded-md shadow-xs transition-colors border border-slate-700"
+          >
+            <Eye className="w-3 h-3" />
+            <span>Detalle</span>
+          </button>
+        </div>
+      </div>
+    );
   };
 
   const handleCreateOrderSubmit = (e: React.FormEvent) => {
@@ -542,6 +927,7 @@ export const AdminHubView: React.FC = () => {
     setIsCreateModalOpen(false);
     setNewOrderTitle('');
     setNewOrderDesc('');
+    setNewOrderClientId('');
     setNewOrderDate(new Date().toISOString().slice(0, 10));
   };
 
@@ -563,11 +949,23 @@ export const AdminHubView: React.FC = () => {
     setOrderToEdit(null);
   };
 
+  // Closing the "Nuevo Cliente" modal — whether by saving, cancelling, or the
+  // backdrop/X — returns to "Crear Orden" if that's where it was opened from,
+  // so the admin doesn't lose the title/description they already typed there.
+  const closeNewCustomerModal = (createdClientId?: string) => {
+    setIsNewCustomerModalOpen(false);
+    if (returnToCreateOrderAfterNewClient) {
+      setReturnToCreateOrderAfterNewClient(false);
+      if (createdClientId) setNewOrderClientId(createdClientId);
+      setIsCreateModalOpen(true);
+    }
+  };
+
   const handleCreateCustomerSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCustName.trim() || !newCustAddress.trim()) return;
 
-    addCustomer({
+    const newClientId = addCustomer({
       name: newCustName.trim(),
       address: newCustAddress.trim(),
       neighborhood: newCustNeighborhood.trim() || 'CABA',
@@ -576,7 +974,7 @@ export const AdminHubView: React.FC = () => {
       notes: newCustNotes.trim() || undefined,
     });
 
-    setIsNewCustomerModalOpen(false);
+    closeNewCustomerModal(newClientId);
     setNewCustName('');
     setNewCustAddress('');
     setNewCustNeighborhood('');
@@ -681,6 +1079,11 @@ export const AdminHubView: React.FC = () => {
     setEditTechAlsoCustomer(Boolean(linkedCustomer || tech.customerId));
     setEditTechAddress(linkedCustomer?.address ?? '');
     setEditTechNeighborhood(linkedCustomer?.neighborhood ?? '');
+    setEditTechWorkPhone(tech.workPhone ?? '');
+    setEditTechBio(tech.bio ?? '');
+    setEditTechEducationLevel(tech.educationLevel ?? '');
+    setEditTechDegreeTitle(tech.degreeTitle ?? '');
+    setEditTechInstitution(tech.institutionName ?? '');
     setIsEditTechnicianModalOpen(true);
   };
 
@@ -699,6 +1102,11 @@ export const AdminHubView: React.FC = () => {
       alsoAsCustomer: editTechAlsoCustomer,
       customerAddress: editTechAddress.trim() || undefined,
       customerNeighborhood: editTechNeighborhood.trim() || editTechZone.trim() || undefined,
+      workPhone: editTechWorkPhone.trim() || undefined,
+      bio: editTechBio.trim() || undefined,
+      educationLevel: editTechEducationLevel || undefined,
+      degreeTitle: editTechDegreeTitle.trim() || undefined,
+      institutionName: editTechInstitution.trim() || undefined,
     });
 
     setIsEditTechnicianModalOpen(false);
@@ -779,6 +1187,8 @@ export const AdminHubView: React.FC = () => {
   };
 
   // Service CRUD handlers
+  const subcategoryNameFor = (id: string | null) => catalogSubcategories.find((s) => s.id === id)?.name ?? null;
+
   const handleCreateServiceSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newServiceName.trim() || !newServiceDesc.trim()) return;
@@ -793,6 +1203,9 @@ export const AdminHubView: React.FC = () => {
       description: newServiceDesc.trim(),
       price: Number(newServicePrice) || 0,
       category: newServiceCategory.trim() || 'General',
+      categoryId: newServiceCategoryId,
+      subcategoryId: newServiceSubcategoryId,
+      subcategoria: subcategoryNameFor(newServiceSubcategoryId),
       estimatedDurationMinutes: Number(newServiceDuration) || 60,
       features: featuresList.length > 0 ? featuresList : ['Garantía de calidad', 'Personal calificado'],
       active: true,
@@ -803,6 +1216,8 @@ export const AdminHubView: React.FC = () => {
     setNewServiceDesc('');
     setNewServicePrice(18500);
     setNewServiceCategory(availableServiceCategories[0] || 'General');
+    setNewServiceCategoryId(null);
+    setNewServiceSubcategoryId(null);
     setNewServiceDuration(60);
     setNewServiceFeatures('');
   };
@@ -813,6 +1228,8 @@ export const AdminHubView: React.FC = () => {
     setEditServiceDesc(srv.description);
     setEditServicePrice(srv.price);
     setEditServiceCategory(srv.category);
+    setEditServiceCategoryId(srv.categoryId ?? null);
+    setEditServiceSubcategoryId(srv.subcategoryId ?? null);
     setEditServiceDuration(srv.estimatedDurationMinutes || 60);
     setEditServiceFeatures((srv.features || []).join('\n'));
     setIsEditServiceModalOpen(true);
@@ -832,6 +1249,9 @@ export const AdminHubView: React.FC = () => {
       description: editServiceDesc.trim(),
       price: Number(editServicePrice) || 0,
       category: editServiceCategory.trim() || 'General',
+      categoryId: editServiceCategoryId,
+      subcategoryId: editServiceSubcategoryId,
+      subcategoria: subcategoryNameFor(editServiceSubcategoryId),
       estimatedDurationMinutes: Number(editServiceDuration) || 60,
       features: featuresList.length > 0 ? featuresList : ['Garantía escrita'],
     });
@@ -865,61 +1285,88 @@ export const AdminHubView: React.FC = () => {
     setIsCreateModalOpen(true);
   };
 
-  // Category CRUD handlers
+  // Categorías/subcategorías reales — handlers (Fase 4)
+  const toggleManageCategoryCollapsed = (id: string) => {
+    setCollapsedManageCategoryIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const countServicesForCategory = (categoryId: string) =>
+    services.filter((s) => s.categoryId === categoryId).length;
+  const countServicesForSubcategory = (subcategoryId: string) =>
+    services.filter((s) => s.subcategoryId === subcategoryId).length;
+
   const handleCreateCategorySubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newCategoryName.trim() || !newCategoryDesc.trim()) return;
-
-    const visual = getCategoryVisual(newCategoryIcon);
-    addServiceCategory({
-      name: newCategoryName.trim(),
-      description: newCategoryDesc.trim(),
-      icon: newCategoryIcon,
-      color: `${visual.bg} ${visual.border}`,
-      active: true,
-    });
-
+    if (!newCategoryName.trim()) return;
+    void createCategory({ name: newCategoryName.trim(), description: newCategoryDesc.trim(), icon: newCategoryIcon });
     setIsNewCategoryModalOpen(false);
     setNewCategoryName('');
     setNewCategoryDesc('');
     setNewCategoryIcon('Sparkles');
   };
 
-  const openEditCategory = (cat: ServiceCategory) => {
-    setCategoryToEdit(cat);
-    setEditCategoryName(cat.name);
-    setEditCategoryDesc(cat.description);
-    setEditCategoryIcon(cat.icon || 'Sparkles');
-    setIsEditCategoryModalOpen(true);
+  const openEditEntity = (entity: CatalogEntity) => {
+    setEditEntity(entity);
+    setEditEntityName(entity.name);
+    setEditEntityDesc(entity.description ?? '');
+    setEditEntityIcon(entity.icon ?? 'Sparkles');
   };
 
-  const handleEditCategorySubmit = (e: React.FormEvent) => {
+  const handleEditEntitySubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!categoryToEdit || !editCategoryName.trim() || !editCategoryDesc.trim()) return;
-
-    const visual = getCategoryVisual(editCategoryIcon);
-    updateServiceCategory(categoryToEdit.id, {
-      name: editCategoryName.trim(),
-      description: editCategoryDesc.trim(),
-      icon: editCategoryIcon,
-      color: `${visual.bg} ${visual.border}`,
-    });
-
-    setIsEditCategoryModalOpen(false);
-    setCategoryToEdit(null);
-  };
-
-  const handleToggleCategoryActive = (cat: ServiceCategory) => {
-    updateServiceCategory(cat.id, { active: cat.active === false });
-  };
-
-  const handleConfirmDeleteCategory = () => {
-    if (!categoryPendingDelete) return;
-    const result = deleteServiceCategory(categoryPendingDelete.id);
-    if (!result.success) {
-      showToast(result.message, 'error', 'No se puede eliminar');
+    if (!editEntity || !editEntityName.trim()) return;
+    if (editEntity.kind === 'category') {
+      void updateCategory(editEntity.id, {
+        name: editEntityName.trim(),
+        description: editEntityDesc.trim(),
+        icon: editEntityIcon,
+      });
+    } else {
+      void updateSubcategory(editEntity.id, { name: editEntityName.trim() });
     }
-    setCategoryPendingDelete(null);
+    setEditEntity(null);
+  };
+
+  const openDeleteEntity = (entity: CatalogEntity) => {
+    setDeleteEntity(entity);
+    setDeleteAction('hide');
+    setMergeTargetId('');
+  };
+
+  const handleConfirmDeleteEntity = async () => {
+    if (!deleteEntity) return;
+    const isCategory = deleteEntity.kind === 'category';
+    const count = isCategory
+      ? countServicesForCategory(deleteEntity.id)
+      : countServicesForSubcategory(deleteEntity.id);
+
+    if (count === 0) {
+      if (isCategory) await deleteCategory(deleteEntity.id);
+      else await deleteSubcategory(deleteEntity.id);
+    } else if (deleteAction === 'hide') {
+      if (isCategory) await setCategoryActive(deleteEntity.id, false);
+      else await setSubcategoryActive(deleteEntity.id, false);
+    } else {
+      if (!mergeTargetId) {
+        showToast('Elegí con cuál fusionarla.', 'warning');
+        return;
+      }
+      if (isCategory) await mergeCategory(deleteEntity.id, mergeTargetId);
+      else await mergeSubcategory(deleteEntity.id, mergeTargetId);
+    }
+    setDeleteEntity(null);
+  };
+
+  const handleAddSubcategory = (categoryId: string) => {
+    if (!newSubcategoryDraftName.trim()) return;
+    void createSubcategory({ categoryId, name: newSubcategoryDraftName.trim() });
+    setNewSubcategoryDraftCategoryId(null);
+    setNewSubcategoryDraftName('');
   };
 
   return (
@@ -1087,7 +1534,22 @@ export const AdminHubView: React.FC = () => {
               }`}
             >
               <LayoutDashboard className="w-3.5 h-3.5" />
-              <span>Órdenes ({orders.length})</span>
+              <span>Órdenes ({operationalOrders.length})</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('pendingPayment')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
+                activeTab === 'pendingPayment'
+                  ? 'bg-[#0F172A] text-teal-300 shadow-xs border border-slate-800'
+                  : pendingPaymentOrders.length > 0
+                    ? 'bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+              title="Órdenes que requieren pago antes de poder asignar técnico"
+            >
+              <DollarSign className="w-3.5 h-3.5" />
+              <span>Pendientes de pago ({pendingPaymentOrders.length})</span>
             </button>
 
             <button
@@ -1146,7 +1608,7 @@ export const AdminHubView: React.FC = () => {
               id="tab-btn-categories"
             >
               <Layers className="w-3.5 h-3.5" />
-              <span>Categorías ({serviceCategories.length})</span>
+              <span>Categorías ({catalogCategories.length})</span>
             </button>
           </div>
         </div>
@@ -1219,161 +1681,179 @@ export const AdminHubView: React.FC = () => {
               </div>
             </div>
 
+            {/* Activas / Archivadas toggle */}
+            <div className="inline-flex rounded-lg border border-slate-200 bg-white p-0.5 text-xs font-bold">
+              <button
+                type="button"
+                onClick={() => setOrdersView('active')}
+                className={`rounded-md px-3 py-1.5 ${ordersView === 'active' ? 'bg-slate-900 text-teal-300' : 'text-slate-600 hover:bg-slate-50'}`}
+              >
+                Activas ({operationalOrders.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setOrdersView('archived')}
+                className={`rounded-md px-3 py-1.5 ${ordersView === 'archived' ? 'bg-slate-900 text-teal-300' : 'text-slate-600 hover:bg-slate-50'}`}
+              >
+                Archivadas ({archivedOrders.length})
+              </button>
+            </div>
+
+            {/* Archive prompt — only shows once the live list grows past the cap */}
+            {ordersView === 'active' && operationalOrders.length > ARCHIVE_PROMPT_THRESHOLD && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-start gap-2">
+                    <Archive className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                    <p>
+                      Hay {operationalOrders.length} órdenes en el panel (más de {ARCHIVE_PROMPT_THRESHOLD}).{' '}
+                      {archivableOrders.length > 0
+                        ? `${archivableOrders.length} están cerradas hace más de 2 meses y se pueden archivar.`
+                        : 'Ninguna cerrada hace más de 2 meses todavía — las activas nunca se archivan.'}
+                    </p>
+                  </div>
+                  {archivableOrders.length > 0 && (
+                    <div className="flex shrink-0 items-center gap-2">
+                      <button type="button" onClick={() => setShowArchivePicker((v) => !v)} className="text-[11px] font-bold text-amber-800 underline">
+                        {showArchivePicker ? 'Ocultar lista' : 'Elegir cuáles archivar'}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={archivingOrders || selectedArchiveIds.size === 0}
+                        onClick={() => void handleArchiveOldOrders()}
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 px-3 py-1.5 text-[11px] font-bold text-white disabled:opacity-50"
+                      >
+                        <Archive className="w-3.5 h-3.5" />
+                        {archivingOrders ? 'Archivando…' : `Archivar ${selectedArchiveIds.size} y descargar Excel`}
+                      </button>
+                    </div>
+                  )}
+                </div>
+                {showArchivePicker && (
+                  <div className="mt-3 space-y-1.5 rounded-lg border border-amber-200 bg-white p-2">
+                    <div className="flex items-center justify-between px-1 text-[11px] font-bold text-slate-600">
+                      <label className="flex items-center gap-1.5">
+                        <input
+                          type="checkbox"
+                          checked={selectedArchiveIds.size === archivableOrders.length}
+                          onChange={(e) => setSelectedArchiveIds(e.target.checked ? new Set(archivableOrders.map((o) => o.id)) : new Set())}
+                        />
+                        Seleccionar todas
+                      </label>
+                      <span>{selectedArchiveIds.size} de {archivableOrders.length} elegidas</span>
+                    </div>
+                    <div className="max-h-56 space-y-1 overflow-y-auto">
+                      {archivableOrders.map((order) => (
+                        <label key={order.id} className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-[11px] text-slate-700 hover:bg-slate-50">
+                          <input type="checkbox" checked={selectedArchiveIds.has(order.id)} onChange={() => toggleArchiveSelection(order.id)} />
+                          <span className="min-w-0 flex-1 truncate">{order.title} · {order.clientName}</span>
+                          <span className="shrink-0 text-slate-400">{order.completedAt ?? order.cancelledAt ? new Date((order.completedAt ?? order.cancelledAt) as string).toLocaleDateString('es-AR') : ''}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Bulk download bar — only in the Archivadas view */}
+            {ordersView === 'archived' && filteredOrders.length > 0 && (
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white p-3 text-xs">
+                <label className="flex items-center gap-1.5 font-bold text-slate-600">
+                  <input
+                    type="checkbox"
+                    checked={filteredOrders.length > 0 && filteredOrders.every((o) => selectedArchivedViewIds.has(o.id))}
+                    onChange={(e) => setSelectedArchivedViewIds(e.target.checked ? new Set(filteredOrders.map((o) => o.id)) : new Set())}
+                  />
+                  Seleccionar todas las filtradas ({filteredOrders.length})
+                </label>
+                <button
+                  type="button"
+                  disabled={downloadingSelection || selectedArchivedViewIds.size === 0}
+                  onClick={() => void handleDownloadSelectedArchived()}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-[11px] font-bold text-teal-300 disabled:opacity-50"
+                >
+                  {downloadingSelection ? 'Generando…' : `Descargar seleccionadas (${selectedArchivedViewIds.size}) en Excel`}
+                </button>
+              </div>
+            )}
+
             {/* Orders Table / Cards List */}
             {filteredOrders.length === 0 ? (
               <div className="bg-white rounded-2xl p-12 border border-slate-200 text-center">
                 <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
                   <Search className="w-6 h-6" />
                 </div>
-                <h3 className="text-sm font-bold text-slate-800">No se encontraron órdenes</h3>
+                <h3 className="text-sm font-bold text-slate-800">
+                  {ordersView === 'active' ? 'No se encontraron órdenes' : 'No hay órdenes archivadas todavía'}
+                </h3>
                 <p className="text-xs text-slate-500 mt-1">
-                  Probá ajustando los filtros de búsqueda o creá una nueva orden de servicio.
+                  {ordersView === 'active'
+                    ? 'Probá ajustando los filtros de búsqueda o creá una nueva orden de servicio.'
+                    : 'Cuando archivés órdenes cerradas van a aparecer acá para volver a descargarlas cuando quieras.'}
                 </p>
-                <button
-                  onClick={() => {
-                    setSearchQuery('');
-                    setStatusFilter('all');
-                    setPriorityFilter('all');
-                    setTechFilter('all');
-                  }}
-                  className="mt-4 text-xs font-bold text-teal-600 hover:text-teal-700"
-                >
-                  Restablecer filtros
-                </button>
+                {ordersView === 'active' && (
+                  <button
+                    onClick={() => {
+                      setSearchQuery('');
+                      setStatusFilter('all');
+                      setPriorityFilter('all');
+                      setTechFilter('all');
+                    }}
+                    className="mt-4 text-xs font-bold text-teal-600 hover:text-teal-700"
+                  >
+                    Restablecer filtros
+                  </button>
+                )}
               </div>
             ) : (
               <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
                 <div className="divide-y divide-slate-100">
-                  {filteredOrders.map((order) => {
-                    const completedChecklistCount = order.checklist.filter((c) => c.completed).length;
-                    const totalChecklist = order.checklist.length;
-                    const hasSignature = !!order.customerSignature;
-                    const quoteRejected = order.quotes?.some((quote) => quote.status === 'rejected');
-
-                    return (
-                      <div
-                        key={order.id}
-                        className="p-3 sm:p-3.5 hover:bg-slate-50/90 transition-colors flex flex-col lg:flex-row lg:items-center justify-between gap-3 text-xs"
-                      >
-                        {/* Order Core Info */}
-                        <div className="space-y-1 flex-1">
-                          <div className="flex flex-wrap items-center gap-1.5">
-                            <span className="font-mono text-[11px] font-bold text-slate-800 bg-slate-100 px-1.5 py-0.2 rounded border border-slate-200">
-                              {order.id}
-                            </span>
-                            <StatusBadge status={order.status} size="sm" />
-                            {quoteRejected && (
-                              <span className="rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-800">
-                                Presupuesto rechazado · seña en revisión
-                              </span>
-                            )}
-                            <PriorityBadge priority={order.priority} />
-                            <ServiceBadge service={order.serviceType} size="sm" />
-                            <PaymentStatusBadge order={order} size="sm" />
-                          </div>
-
-                          <h3 className="font-bold text-xs sm:text-sm text-slate-900 leading-snug">
-                            {order.title}
-                          </h3>
-
-                          <div className="flex flex-wrap items-center gap-y-1 gap-x-3 text-[11px] text-slate-500">
-                            <span className="flex items-center gap-1">
-                              <Users className="w-3 h-3 text-slate-400" />
-                              <strong className="text-slate-700">{order.clientName}</strong>
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <MapPin className="w-3 h-3 text-slate-400" />
-                              <span>{order.clientAddress}</span>
-                            </span>
-                            <span className="flex items-center gap-1 font-mono text-[10px]">
-                              <Calendar className="w-3 h-3 text-slate-400" />
-                              <span>{order.scheduledDate}</span>
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Middle status: Technician & Progress summary */}
-                        <div className="flex flex-wrap lg:flex-col items-center lg:items-end justify-between lg:justify-center gap-1.5 text-xs border-t lg:border-t-0 pt-2 lg:pt-0 border-slate-100">
-                          {/* Technician badge */}
-                          <div className="flex items-center gap-1.5">
-                            <Wrench className="w-3 h-3 text-teal-600" />
-                            {order.assignedTechnicianName ? (
-                              <span className="font-semibold text-slate-800 text-xs">
-                                {order.assignedTechnicianName}
-                              </span>
-                            ) : (
-                              <span className="text-amber-800 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200 text-[10px] font-bold">
-                                Sin asignar
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Progress pills */}
-                          <div className="flex items-center gap-1.5 text-[10px] text-slate-500">
-                            <span
-                              className={`px-1.5 py-0.2 rounded font-mono ${
-                                completedChecklistCount === totalChecklist && totalChecklist > 0
-                                  ? 'bg-teal-500/10 text-teal-700 font-bold border border-teal-500/20'
-                                  : 'bg-slate-100 text-slate-600 border border-slate-200'
-                              }`}
-                            >
-                              Checklist: {completedChecklistCount}/{totalChecklist}
-                            </span>
-
-                            {hasSignature && (
-                              <span className="inline-flex items-center gap-1 bg-[#0F172A] text-teal-300 px-1.5 py-0.2 rounded font-bold font-mono text-[10px]">
-                                <FileSignature className="w-2.5 h-2.5" />
-                                Firmada
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Action buttons */}
-                        <div className="flex items-center gap-1.5 pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-100">
-                          <button
-                            onClick={() => {
-                              setOrderToAssign(order);
-                              setIsAssignModalOpen(true);
-                            }}
-                            className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-md transition-colors border border-slate-200"
-                            title="Asignar o reasignar técnico"
-                          >
-                            Asignar
-                          </button>
-
-                          <button
-                            onClick={() => openEditOrder(order)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 text-xs font-semibold rounded-md transition-colors border border-slate-200"
-                            title="Editar orden"
-                          >
-                            <Pencil className="w-3 h-3" />
-                            <span>Editar</span>
-                          </button>
-
-                          {order.status !== 'completed' && order.status !== 'cancelled' && (
-                            <button
-                              onClick={() => { setOrderToCancel(order); setCancelReason(''); }}
-                              className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-700 text-xs font-semibold rounded-md transition-colors border border-slate-200"
-                              title="Cancelar orden con motivo"
-                            >
-                              <Ban className="w-3 h-3" />
-                              <span>Cancelar</span>
-                            </button>
-                          )}
-
-                          <button
-                            onClick={() => setSelectedOrderId(order.id)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#0F172A] hover:bg-slate-800 text-teal-300 hover:text-white text-xs font-bold rounded-md shadow-xs transition-colors border border-slate-700"
-                          >
-                            <Eye className="w-3 h-3" />
-                            <span>Detalle</span>
-                          </button>
-                        </div>
+                  {filteredOrders.slice((ordersPage - 1) * ORDERS_PAGE_SIZE, ordersPage * ORDERS_PAGE_SIZE).map((order) =>
+                    ordersView === 'archived' ? (
+                      <div key={order.id} className="flex items-start">
+                        <input type="checkbox" className="ml-3 mt-4 shrink-0" checked={selectedArchivedViewIds.has(order.id)} onChange={() => toggleArchivedViewSelection(order.id)} />
+                        <div className="min-w-0 flex-1">{renderOrderCard(order)}</div>
                       </div>
-                    );
-                  })}
+                    ) : (
+                      renderOrderCard(order)
+                    )
+                  )}
                 </div>
+                <PageControls page={ordersPage} totalItems={filteredOrders.length} pageSize={ORDERS_PAGE_SIZE} onChange={setOrdersPage} />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ================= TAB: PENDIENTES DE PAGO ================= */}
+        {activeTab === 'pendingPayment' && (
+          <div className="space-y-3">
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-2 text-xs text-amber-900">
+              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <p>
+                Estas órdenes son de precio fijo o requieren seña de visita y todavía no tienen el pago confirmado.
+                No aparecen en la lista principal de Órdenes ni en los contadores para evitar que se les asigne un
+                técnico por error — apenas se confirme el pago, pasan solas a la lista principal.
+              </p>
+            </div>
+
+            {pendingPaymentOrders.length === 0 ? (
+              <div className="bg-white rounded-2xl p-12 border border-slate-200 text-center">
+                <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
+                  <DollarSign className="w-6 h-6" />
+                </div>
+                <h3 className="text-sm font-bold text-slate-800">No hay órdenes pendientes de pago</h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  Todas las órdenes que requieren pago ya lo tienen confirmado.
+                </p>
+              </div>
+            ) : (
+              <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+                <div className="divide-y divide-slate-100">
+                  {pendingPaymentOrders.slice((pendingPaymentPage - 1) * ORDERS_PAGE_SIZE, pendingPaymentPage * ORDERS_PAGE_SIZE).map((order) => renderOrderCard(order))}
+                </div>
+                <PageControls page={pendingPaymentPage} totalItems={pendingPaymentOrders.length} pageSize={ORDERS_PAGE_SIZE} onChange={setPendingPaymentPage} />
               </div>
             )}
           </div>
@@ -1893,9 +2373,41 @@ export const AdminHubView: React.FC = () => {
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
-                {filteredServices.map((srv) => {
+              <div className="space-y-4">
+                {groupedFilteredServices.map((group) => {
+                  const groupKey = group.categoryId ?? group.categoryName;
+                  const isCollapsed = collapsedCatalogCategoryIds.has(groupKey);
+                  const visual = getCategoryVisual(group.icon ?? undefined);
                   return (
+                    <div key={groupKey} className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => toggleCatalogCategoryCollapsed(groupKey)}
+                        className="w-full flex items-center justify-between gap-2 px-4 py-3 hover:bg-slate-50 transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className={`p-1.5 rounded-lg ${visual.bg} ${visual.border} border ${visual.text}`}>
+                            <CategoryIcon name={group.icon ?? undefined} className="w-4 h-4" />
+                          </span>
+                          <span className="text-sm font-bold text-slate-900">{group.categoryName}</span>
+                          <span className="text-[11px] font-mono font-bold text-slate-400">({group.totalCount})</span>
+                        </div>
+                        <ChevronDown
+                          className={`w-4 h-4 text-slate-400 transition-transform shrink-0 ${isCollapsed ? '' : 'rotate-180'}`}
+                        />
+                      </button>
+
+                      {!isCollapsed && (
+                        <div className="px-4 pb-4 pt-1 border-t border-slate-100 space-y-4">
+                          {group.subgroups.map((subgroup) => (
+                            <div key={subgroup.subcategoryId ?? 'sin-subcategoria'}>
+                              {subgroup.subcategoryName && (
+                                <h4 className="text-[11px] font-mono font-bold uppercase tracking-wide text-slate-400 mb-2 pt-2">
+                                  {subgroup.subcategoryName}
+                                </h4>
+                              )}
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                                {subgroup.services.map((srv) => (
                     <div
                       key={srv.id}
                       className="bg-white rounded-xl p-4 border border-slate-200/90 shadow-xs hover:shadow-md transition-all flex flex-col justify-between group relative"
@@ -1996,6 +2508,13 @@ export const AdminHubView: React.FC = () => {
                         </div>
                       </div>
                     </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   );
                 })}
               </div>
@@ -2044,20 +2563,20 @@ export const AdminHubView: React.FC = () => {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
               <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-2xs">
                 <div className="text-[10px] font-mono font-bold uppercase text-slate-400">Categorías</div>
-                <div className="text-xl font-mono font-black text-slate-900 mt-0.5">{serviceCategories.length}</div>
+                <div className="text-xl font-mono font-black text-slate-900 mt-0.5">{catalogCategories.length}</div>
                 <div className="text-[10px] text-slate-500 mt-0.5">Rubros publicados</div>
               </div>
               <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-2xs">
                 <div className="text-[10px] font-mono font-bold uppercase text-slate-400">Activas</div>
                 <div className="text-xl font-mono font-black text-teal-800 mt-0.5">
-                  {serviceCategories.filter((c) => c.active !== false).length}
+                  {catalogCategories.filter((c) => c.active !== false).length}
                 </div>
                 <div className="text-[10px] text-teal-600 mt-0.5">Visibles en la landing</div>
               </div>
               <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-2xs">
                 <div className="text-[10px] font-mono font-bold uppercase text-slate-400">Inactivas</div>
                 <div className="text-xl font-mono font-black text-slate-900 mt-0.5">
-                  {serviceCategories.filter((c) => c.active === false).length}
+                  {catalogCategories.filter((c) => c.active === false).length}
                 </div>
                 <div className="text-[10px] text-slate-500 mt-0.5">Ocultas al público</div>
               </div>
@@ -2068,8 +2587,8 @@ export const AdminHubView: React.FC = () => {
               </div>
             </div>
 
-            {/* Categories Grid */}
-            {serviceCategories.length === 0 ? (
+            {/* Categories List */}
+            {catalogCategories.length === 0 ? (
               <div className="bg-white rounded-2xl p-10 border border-slate-200 text-center">
                 <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto mb-3">
                   <Layers className="w-6 h-6" />
@@ -2092,98 +2611,235 @@ export const AdminHubView: React.FC = () => {
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
-                {serviceCategories.map((cat) => {
-                  const visual = getCategoryVisual(cat.icon);
-                  const count = services.filter(
-                    (s) => (s.category || '').toLowerCase() === cat.name.toLowerCase()
-                  ).length;
-                  const isActive = cat.active !== false;
+              <div className="space-y-3">
+                {[...catalogCategories]
+                  .sort((a, b) => a.displayOrder - b.displayOrder)
+                  .map((cat, catIndex, catArray) => {
+                    const visual = getCategoryVisual(cat.icon);
+                    const count = countServicesForCategory(cat.id);
+                    const isActive = cat.active !== false;
+                    const isCollapsed = collapsedManageCategoryIds.has(cat.id);
+                    const subcats = catalogSubcategories
+                      .filter((s) => s.categoryId === cat.id)
+                      .sort((a, b) => a.displayOrder - b.displayOrder);
 
-                  return (
-                    <div
-                      key={cat.id}
-                      className={`bg-white rounded-xl p-4 border shadow-xs transition-all flex flex-col justify-between group relative ${
-                        isActive ? 'border-slate-200/90 hover:shadow-md' : 'border-slate-200 opacity-70'
-                      }`}
-                    >
-                      <div className="space-y-3">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-center gap-2.5">
-                            <span className={`p-2.5 rounded-xl ${visual.bg} ${visual.border} border ${visual.text}`}>
-                              <CategoryIcon name={cat.icon} className="w-5 h-5" />
+                    return (
+                      <div
+                        key={cat.id}
+                        className={`bg-white rounded-xl border shadow-xs overflow-hidden ${
+                          isActive ? 'border-slate-200/90' : 'border-slate-200 opacity-70'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2 p-3.5">
+                          <button
+                            type="button"
+                            onClick={() => toggleManageCategoryCollapsed(cat.id)}
+                            className="flex items-center gap-2.5 min-w-0 flex-1 text-left"
+                          >
+                            <span className={`p-2 rounded-lg ${visual.bg} ${visual.border} border ${visual.text} shrink-0`}>
+                              <CategoryIcon name={cat.icon} className="w-4.5 h-4.5" />
                             </span>
-                            <div>
-                              <h3 className="font-extrabold text-sm text-slate-900 leading-snug">{cat.name}</h3>
-                              <span
-                                className={`inline-flex items-center gap-1 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded mt-0.5 ${
-                                  isActive
-                                    ? 'bg-teal-50 text-teal-700 border border-teal-200'
-                                    : 'bg-slate-100 text-slate-500 border border-slate-200'
-                                }`}
-                              >
-                                {isActive ? 'Activa' : 'Inactiva'}
-                              </span>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <h3 className="font-extrabold text-sm text-slate-900 truncate">{cat.name}</h3>
+                                <span
+                                  className={`shrink-0 inline-flex items-center text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
+                                    isActive
+                                      ? 'bg-teal-50 text-teal-700 border border-teal-200'
+                                      : 'bg-slate-100 text-slate-500 border border-slate-200'
+                                  }`}
+                                >
+                                  {isActive ? 'Activa' : 'Inactiva'}
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-slate-500 truncate">
+                                {count} servicio{count !== 1 ? 's' : ''} · {subcats.length} subcategoría
+                                {subcats.length !== 1 ? 's' : ''}
+                              </p>
                             </div>
+                            <ChevronDown
+                              className={`w-4 h-4 text-slate-400 shrink-0 transition-transform ${isCollapsed ? '' : 'rotate-180'}`}
+                            />
+                          </button>
+
+                          <div className="inline-flex items-center gap-1 shrink-0">
+                            <button
+                              type="button"
+                              disabled={catIndex === 0}
+                              onClick={() => void moveCategory(cat.id, 'up')}
+                              className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                              title="Subir"
+                            >
+                              <ChevronUp className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              disabled={catIndex === catArray.length - 1}
+                              onClick={() => void moveCategory(cat.id, 'down')}
+                              className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                              title="Bajar"
+                            >
+                              <ChevronDown className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void setCategoryActive(cat.id, !isActive)}
+                              className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-colors border ${
+                                isActive
+                                  ? 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                                  : 'bg-teal-600 text-white border-teal-600 hover:bg-teal-700'
+                              }`}
+                              title={isActive ? 'Ocultar del portal público' : 'Publicar en el portal público'}
+                            >
+                              {isActive ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                openEditEntity({
+                                  kind: 'category',
+                                  id: cat.id,
+                                  name: cat.name,
+                                  description: cat.description ?? '',
+                                  icon: cat.icon ?? 'Sparkles',
+                                })
+                              }
+                              className="p-1.5 bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-600 rounded-md transition-colors"
+                              title="Editar categoría"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => openDeleteEntity({ kind: 'category', id: cat.id, name: cat.name })}
+                              className="p-1.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-700 text-slate-600 rounded-md transition-colors"
+                              title="Eliminar categoría"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
                           </div>
                         </div>
 
-                        <p className="text-xs text-slate-600 leading-relaxed line-clamp-2">{cat.description}</p>
+                        {!isCollapsed && (
+                          <div className="border-t border-slate-100 bg-slate-50/60 px-3.5 py-3 space-y-1.5">
+                            {subcats.length === 0 && newSubcategoryDraftCategoryId !== cat.id && (
+                              <p className="text-[11px] text-slate-400 italic px-1">Sin subcategorías todavía.</p>
+                            )}
+                            {subcats.map((sub, subIndex, subArray) => {
+                              const subCount = countServicesForSubcategory(sub.id);
+                              const subActive = sub.active !== false;
+                              return (
+                                <div
+                                  key={sub.id}
+                                  className={`flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 bg-white border ${
+                                    subActive ? 'border-slate-200' : 'border-slate-200 opacity-60'
+                                  }`}
+                                >
+                                  <div className="min-w-0 flex-1">
+                                    <span className="text-xs font-semibold text-slate-800 truncate block">{sub.name}</span>
+                                    <span className="text-[10px] text-slate-500">
+                                      {subCount} servicio{subCount !== 1 ? 's' : ''}
+                                      {!subActive && ' · oculta'}
+                                    </span>
+                                  </div>
+                                  <div className="inline-flex items-center gap-1 shrink-0">
+                                    <button
+                                      type="button"
+                                      disabled={subIndex === 0}
+                                      onClick={() => void moveSubcategory(sub.id, 'up')}
+                                      className="p-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                      title="Subir"
+                                    >
+                                      <ChevronUp className="w-3 h-3" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      disabled={subIndex === subArray.length - 1}
+                                      onClick={() => void moveSubcategory(sub.id, 'down')}
+                                      className="p-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                      title="Bajar"
+                                    >
+                                      <ChevronDown className="w-3 h-3" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => void setSubcategoryActive(sub.id, !subActive)}
+                                      className="p-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded transition-colors"
+                                      title={subActive ? 'Ocultar' : 'Publicar'}
+                                    >
+                                      {subActive ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        openEditEntity({ kind: 'subcategory', id: sub.id, name: sub.name, categoryId: sub.categoryId })
+                                      }
+                                      className="p-1 bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-600 rounded transition-colors"
+                                      title="Editar subcategoría"
+                                    >
+                                      <Pencil className="w-3 h-3" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        openDeleteEntity({ kind: 'subcategory', id: sub.id, name: sub.name, categoryId: sub.categoryId })
+                                      }
+                                      className="p-1 bg-slate-100 hover:bg-rose-50 hover:text-rose-700 text-slate-600 rounded transition-colors"
+                                      title="Eliminar subcategoría"
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })}
 
-                        <div className="flex items-center justify-between text-[11px] text-slate-500">
-                          <span className="font-medium">
-                            {count} servicio{count !== 1 ? 's' : ''}
-                          </span>
-                          <span className="font-mono text-slate-400">{visual.label}</span>
-                        </div>
+                            {newSubcategoryDraftCategoryId === cat.id ? (
+                              <div className="flex items-center gap-1.5 pt-1">
+                                <input
+                                  autoFocus
+                                  value={newSubcategoryDraftName}
+                                  onChange={(e) => setNewSubcategoryDraftName(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleAddSubcategory(cat.id);
+                                    if (e.key === 'Escape') setNewSubcategoryDraftCategoryId(null);
+                                  }}
+                                  placeholder="Nombre de la subcategoría"
+                                  className="flex-1 text-xs px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-teal-500"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => handleAddSubcategory(cat.id)}
+                                  className="px-2.5 py-1.5 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-lg"
+                                >
+                                  Agregar
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setNewSubcategoryDraftCategoryId(null)}
+                                  className="px-2 py-1.5 text-slate-500 text-xs"
+                                >
+                                  Cancelar
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setNewSubcategoryDraftCategoryId(cat.id);
+                                  setNewSubcategoryDraftName('');
+                                }}
+                                className="inline-flex items-center gap-1 text-[11px] font-bold text-teal-700 hover:text-teal-800 pt-1 px-1"
+                              >
+                                <Plus className="w-3 h-3" />
+                                Nueva subcategoría
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </div>
-
-                      <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleToggleCategoryActive(cat)}
-                          className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-colors border ${
-                            isActive
-                              ? 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                              : 'bg-teal-600 text-white border-teal-600 hover:bg-teal-700'
-                          }`}
-                          title={isActive ? 'Ocultar del portal público' : 'Publicar en el portal público'}
-                        >
-                          {isActive ? (
-                            <>
-                              <EyeOff className="w-3 h-3" />
-                              Ocultar
-                            </>
-                          ) : (
-                            <>
-                              <Eye className="w-3 h-3" />
-                              Publicar
-                            </>
-                          )}
-                        </button>
-
-                        <div className="inline-flex items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => openEditCategory(cat)}
-                            className="p-1.5 bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-600 rounded-md transition-colors"
-                            title="Editar categoría"
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setCategoryPendingDelete(cat)}
-                            className="p-1.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-700 text-slate-600 rounded-md transition-colors"
-                            title="Eliminar categoría"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
               </div>
             )}
           </div>
@@ -2500,18 +3156,34 @@ export const AdminHubView: React.FC = () => {
                   <label className="block text-xs font-bold text-slate-700 mb-1">
                     Cliente solicitante *
                   </label>
-                  <select
-                    value={newOrderClientId}
-                    onChange={(e) => setNewOrderClientId(e.target.value)}
-                    className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white font-medium"
-                    required
-                  >
+                  <div className="flex gap-1.5">
+                    <select
+                      value={newOrderClientId}
+                      onChange={(e) => setNewOrderClientId(e.target.value)}
+                      className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white font-medium"
+                      required
+                    >
+                    <option value="" disabled>Seleccioná un cliente…</option>
                     {customers.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.name} ({c.neighborhood})
                       </option>
                     ))}
-                  </select>
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setReturnToCreateOrderAfterNewClient(true);
+                        setIsCreateModalOpen(false);
+                        setIsNewCustomerModalOpen(true);
+                      }}
+                      title="Registrar un cliente nuevo"
+                      className="shrink-0 inline-flex items-center gap-1 px-2.5 py-2 bg-[#0F172A] hover:bg-slate-800 text-teal-300 text-xs font-bold rounded-lg border border-slate-700 shadow-xs transition-colors"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      Nuevo
+                    </button>
+                  </div>
                 </div>
 
                 <div>
@@ -2771,77 +3443,108 @@ export const AdminHubView: React.FC = () => {
       {isAssignModalOpen && orderToAssign && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150"
-          onClick={() => setIsAssignModalOpen(false)}
+          onClick={() => {
+            setIsAssignModalOpen(false);
+            setAssignModalReviewingTechId(null);
+          }}
         >
           <div
-            className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-150"
+            className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-150 max-h-[85vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
-              <h3 className="text-base font-bold text-slate-900">
-                Asignar Técnico para {orderToAssign.id}
-              </h3>
-              <button
-                onClick={() => setIsAssignModalOpen(false)}
-                className="text-slate-400 hover:text-slate-700 p-1"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <p className="text-xs text-slate-600 mb-4">
-              Seleccioná el profesional certificado que atenderá el servicio{' '}
-              <strong>"{orderToAssign.title}"</strong>.
-            </p>
-
-            {orderRequiresPaymentGate(orderToAssign) && !isOrderPaymentSettled(orderToAssign) && (
-              <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950">
-                <strong className="block">
-                  {orderToAssign.workMode === 'direct' ? 'Pago pendiente' : 'Seña pendiente'}
-                </strong>
-                {orderToAssign.workMode === 'direct'
-                  ? 'Esta orden es de precio fijo y el cliente todavía no completó el pago. No se puede asignar un técnico hasta que Mercado Pago confirme el cobro.'
-                  : 'El cliente todavía no pagó la seña de la visita de diagnóstico. No se puede asignar un técnico hasta que Mercado Pago confirme el cobro.'}
-              </div>
-            )}
-
-            <div className="space-y-2.5">
-              {technicians.map((t) => {
-                const isCurrent = orderToAssign.assignedTechnicianId === t.id;
-                return (
-                  <div
-                    key={t.id}
+            {assignModalReviewingTechId ? (
+              <TechnicianReviewCard
+                technicianId={assignModalReviewingTechId}
+                onClose={() => setAssignModalReviewingTechId(null)}
+                onChanged={async () => { await refreshRemoteData(); }}
+              />
+            ) : (
+              <>
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                  <h3 className="text-base font-bold text-slate-900">
+                    Asignar Técnico para {orderToAssign.id}
+                  </h3>
+                  <button
                     onClick={() => {
-                      assignTechnician(orderToAssign.id, t.id);
                       setIsAssignModalOpen(false);
-                      setOrderToAssign(null);
+                      setAssignModalReviewingTechId(null);
                     }}
-                    className={`p-3 rounded-xl border cursor-pointer flex items-center justify-between transition-all ${
-                      isCurrent
-                        ? 'border-teal-500 bg-teal-50/60 ring-2 ring-teal-500/20'
-                        : 'border-slate-200 hover:bg-slate-50'
-                    }`}
+                    className="text-slate-400 hover:text-slate-700 p-1"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-lg bg-teal-600 text-white flex items-center justify-center font-bold text-xs">
-                        {t.name.substring(0, 2).toUpperCase()}
-                      </div>
-                      <div>
-                        <div className="text-xs font-bold text-slate-900">{t.name}</div>
-                        <div className="text-[11px] text-slate-500">{t.specialty}</div>
-                      </div>
-                    </div>
-                    {isCurrent ? (
-                      <span className="text-xs font-bold text-teal-700">Asignado</span>
-                    ) : (
-                      <span className="text-xs font-semibold text-slate-400 hover:text-[#003875]">
-                        Asignar →
-                      </span>
-                    )}
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <p className="text-xs text-slate-600 mb-4">
+                  Seleccioná el profesional certificado que atenderá el servicio{' '}
+                  <strong>"{orderToAssign.title}"</strong>.
+                </p>
+
+                {orderRequiresPaymentGate(orderToAssign) && !isOrderPaymentSettled(orderToAssign) && (
+                  <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950">
+                    <strong className="block">
+                      {orderToAssign.workMode === 'direct' ? 'Pago pendiente' : 'Seña pendiente'}
+                    </strong>
+                    {orderToAssign.workMode === 'direct'
+                      ? 'Esta orden es de precio fijo y el cliente todavía no completó el pago. No se puede asignar un técnico hasta que Mercado Pago confirme el cobro.'
+                      : 'El cliente todavía no pagó la seña de la visita de diagnóstico. No se puede asignar un técnico hasta que Mercado Pago confirme el cobro.'}
                   </div>
-                );
-              })}
-            </div>
+                )}
+
+                <div className="space-y-2.5">
+                  {technicians.map((t) => {
+                    const isCurrent = orderToAssign.assignedTechnicianId === t.id;
+                    const isEligible = t.validationStatus === 'approved' && t.canReceiveOrders;
+                    const statusLabel = { pending: 'Pendiente', observed: 'Observado', suspended: 'Suspendido', approved: 'Aprobado' }[t.validationStatus ?? 'pending'] ?? 'Pendiente';
+                    return (
+                      <div
+                        key={t.id}
+                        onClick={() => {
+                          if (isEligible) {
+                            assignTechnician(orderToAssign.id, t.id);
+                            setIsAssignModalOpen(false);
+                            setOrderToAssign(null);
+                          } else {
+                            setAssignModalReviewingTechId(t.id);
+                          }
+                        }}
+                        className={`p-3 rounded-xl border cursor-pointer flex items-center justify-between transition-all ${
+                          isCurrent
+                            ? 'border-teal-500 bg-teal-50/60 ring-2 ring-teal-500/20'
+                            : 'border-slate-200 hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-lg bg-teal-600 text-white flex items-center justify-center font-bold text-xs">
+                            {t.name.substring(0, 2).toUpperCase()}
+                          </div>
+                          <div>
+                            <div className="text-xs font-bold text-slate-900">{t.name}</div>
+                            <div className="text-[11px] text-slate-500">{t.specialty}</div>
+                            {!isEligible && (
+                              <div className="text-[10px] font-bold text-amber-700 mt-0.5">
+                                {statusLabel} · no habilitado
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        {isCurrent ? (
+                          <span className="text-xs font-bold text-teal-700">Asignado</span>
+                        ) : isEligible ? (
+                          <span className="text-xs font-semibold text-slate-400 hover:text-[#003875]">
+                            Asignar →
+                          </span>
+                        ) : (
+                          <span className="text-xs font-semibold text-amber-700">
+                            Habilitar →
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -2850,7 +3553,7 @@ export const AdminHubView: React.FC = () => {
       {isNewCustomerModalOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150"
-          onClick={() => setIsNewCustomerModalOpen(false)}
+          onClick={() => closeNewCustomerModal()}
         >
           <div
             className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-150"
@@ -2859,7 +3562,7 @@ export const AdminHubView: React.FC = () => {
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <h3 className="text-base font-bold text-slate-900">Registrar Nuevo Cliente</h3>
               <button
-                onClick={() => setIsNewCustomerModalOpen(false)}
+                onClick={() => closeNewCustomerModal()}
                 className="text-slate-400 hover:text-slate-700 p-1"
               >
                 <X className="w-5 h-5" />
@@ -2943,7 +3646,7 @@ export const AdminHubView: React.FC = () => {
               <div className="pt-3 border-t border-slate-100 flex justify-end gap-2">
                 <button
                   type="button"
-                  onClick={() => setIsNewCustomerModalOpen(false)}
+                  onClick={() => closeNewCustomerModal()}
                   className="px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-xs font-semibold"
                 >
                   Cancelar
@@ -3387,6 +4090,69 @@ export const AdminHubView: React.FC = () => {
                   />
                 </div>
               )}
+
+              <div className="pt-3 border-t border-slate-100">
+                <p className="text-xs font-bold text-slate-700 mb-2">Perfil profesional</p>
+                <div className="space-y-2">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Teléfono laboral</label>
+                    <input
+                      type="text"
+                      value={editTechWorkPhone}
+                      onChange={(e) => setEditTechWorkPhone(e.target.value)}
+                      className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Nivel de formación</label>
+                      <select
+                        value={editTechEducationLevel}
+                        onChange={(e) => setEditTechEducationLevel(e.target.value as TechnicianInput['educationLevel'])}
+                        className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                      >
+                        <option value="">Seleccionar</option>
+                        <option value="idoneo">Idóneo/a</option>
+                        <option value="curso_certificado">Curso certificado</option>
+                        <option value="tecnico">Técnico/a</option>
+                        <option value="tecnico_superior">Técnico/a superior</option>
+                        <option value="ingeniero">Ingeniero/a</option>
+                        <option value="otro">Otro</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Título / certificación</label>
+                      <input
+                        type="text"
+                        value={editTechDegreeTitle}
+                        onChange={(e) => setEditTechDegreeTitle(e.target.value)}
+                        className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Institución emisora</label>
+                    <input
+                      type="text"
+                      value={editTechInstitution}
+                      onChange={(e) => setEditTechInstitution(e.target.value)}
+                      className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Presentación profesional</label>
+                    <textarea
+                      value={editTechBio}
+                      onChange={(e) => setEditTechBio(e.target.value)}
+                      rows={3}
+                      maxLength={500}
+                      placeholder="Experiencia y especialidades para mostrarle al cliente."
+                      className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div className="pt-3 border-t border-slate-100 flex justify-end gap-2">
                 <button
                   type="button"
@@ -3814,19 +4580,27 @@ export const AdminHubView: React.FC = () => {
                     Categoría *
                   </label>
                   <select
-                    value={newServiceCategory}
-                    onChange={(e) => setNewServiceCategory(e.target.value)}
+                    value={newServiceCategoryId ?? `text:${newServiceCategory}`}
+                    onChange={(e) => {
+                      const match = catalogCategories.find((c) => c.id === e.target.value);
+                      setNewServiceCategoryId(match?.id ?? null);
+                      setNewServiceCategory(match?.name ?? e.target.value.replace(/^text:/, ''));
+                      setNewServiceSubcategoryId(null);
+                      setIsCreatingServiceSubcategory(false);
+                    }}
                     className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
                     required
                   >
-                    {!availableServiceCategories.includes(newServiceCategory) && (
-                      <option value={newServiceCategory}>{newServiceCategory}</option>
+                    {!catalogCategories.some((c) => c.name === newServiceCategory) && (
+                      <option value={`text:${newServiceCategory}`}>{newServiceCategory}</option>
                     )}
-                    {availableServiceCategories.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
+                    {[...catalogCategories]
+                      .sort((a, b) => a.displayOrder - b.displayOrder)
+                      .map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
                   </select>
                 </div>
 
@@ -3860,6 +4634,70 @@ export const AdminHubView: React.FC = () => {
                   />
                 </div>
               </div>
+
+              {newServiceCategoryId && (
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Subcategoría</label>
+                  {isCreatingServiceSubcategory ? (
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        autoFocus
+                        value={newServiceSubcategoryName}
+                        onChange={(e) => setNewServiceSubcategoryName(e.target.value)}
+                        placeholder="Nombre de la nueva subcategoría"
+                        className="flex-1 text-xs sm:text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                      />
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!newServiceSubcategoryName.trim() || !newServiceCategoryId) return;
+                          const created = await createSubcategory({
+                            categoryId: newServiceCategoryId,
+                            name: newServiceSubcategoryName.trim(),
+                          });
+                          if (created) setNewServiceSubcategoryId(created.id);
+                          setIsCreatingServiceSubcategory(false);
+                          setNewServiceSubcategoryName('');
+                        }}
+                        className="px-3 py-2 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-lg shrink-0"
+                      >
+                        Crear
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsCreatingServiceSubcategory(false)}
+                        className="px-2 py-2 text-slate-500 text-xs shrink-0"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  ) : (
+                    <select
+                      value={newServiceSubcategoryId ?? ''}
+                      onChange={(e) => {
+                        if (e.target.value === '__new__') {
+                          setIsCreatingServiceSubcategory(true);
+                          setNewServiceSubcategoryName('');
+                        } else {
+                          setNewServiceSubcategoryId(e.target.value || null);
+                        }
+                      }}
+                      className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                    >
+                      <option value="">Sin subcategoría</option>
+                      {catalogSubcategories
+                        .filter((s) => s.categoryId === newServiceCategoryId)
+                        .sort((a, b) => a.displayOrder - b.displayOrder)
+                        .map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.name}
+                          </option>
+                        ))}
+                      <option value="__new__">+ Crear nueva subcategoría…</option>
+                    </select>
+                  )}
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
@@ -3960,19 +4798,27 @@ export const AdminHubView: React.FC = () => {
                     Categoría *
                   </label>
                   <select
-                    value={editServiceCategory}
-                    onChange={(e) => setEditServiceCategory(e.target.value)}
+                    value={editServiceCategoryId ?? `text:${editServiceCategory}`}
+                    onChange={(e) => {
+                      const match = catalogCategories.find((c) => c.id === e.target.value);
+                      setEditServiceCategoryId(match?.id ?? null);
+                      setEditServiceCategory(match?.name ?? e.target.value.replace(/^text:/, ''));
+                      setEditServiceSubcategoryId(null);
+                      setIsCreatingServiceSubcategory(false);
+                    }}
                     className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
                     required
                   >
-                    {!availableServiceCategories.includes(editServiceCategory) && (
-                      <option value={editServiceCategory}>{editServiceCategory}</option>
+                    {!catalogCategories.some((c) => c.name === editServiceCategory) && (
+                      <option value={`text:${editServiceCategory}`}>{editServiceCategory}</option>
                     )}
-                    {availableServiceCategories.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
+                    {[...catalogCategories]
+                      .sort((a, b) => a.displayOrder - b.displayOrder)
+                      .map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
                   </select>
                 </div>
 
@@ -4006,6 +4852,70 @@ export const AdminHubView: React.FC = () => {
                   />
                 </div>
               </div>
+
+              {editServiceCategoryId && (
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Subcategoría</label>
+                  {isCreatingServiceSubcategory ? (
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        autoFocus
+                        value={newServiceSubcategoryName}
+                        onChange={(e) => setNewServiceSubcategoryName(e.target.value)}
+                        placeholder="Nombre de la nueva subcategoría"
+                        className="flex-1 text-xs sm:text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                      />
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!newServiceSubcategoryName.trim() || !editServiceCategoryId) return;
+                          const created = await createSubcategory({
+                            categoryId: editServiceCategoryId,
+                            name: newServiceSubcategoryName.trim(),
+                          });
+                          if (created) setEditServiceSubcategoryId(created.id);
+                          setIsCreatingServiceSubcategory(false);
+                          setNewServiceSubcategoryName('');
+                        }}
+                        className="px-3 py-2 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-lg shrink-0"
+                      >
+                        Crear
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsCreatingServiceSubcategory(false)}
+                        className="px-2 py-2 text-slate-500 text-xs shrink-0"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  ) : (
+                    <select
+                      value={editServiceSubcategoryId ?? ''}
+                      onChange={(e) => {
+                        if (e.target.value === '__new__') {
+                          setIsCreatingServiceSubcategory(true);
+                          setNewServiceSubcategoryName('');
+                        } else {
+                          setEditServiceSubcategoryId(e.target.value || null);
+                        }
+                      }}
+                      className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                    >
+                      <option value="">Sin subcategoría</option>
+                      {catalogSubcategories
+                        .filter((s) => s.categoryId === editServiceCategoryId)
+                        .sort((a, b) => a.displayOrder - b.displayOrder)
+                        .map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.name}
+                          </option>
+                        ))}
+                      <option value="__new__">+ Crear nueva subcategoría…</option>
+                    </select>
+                  )}
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
@@ -4198,14 +5108,11 @@ export const AdminHubView: React.FC = () => {
         </div>
       )}
 
-      {/* ================= MODAL: EDIT CATEGORY ================= */}
-      {isEditCategoryModalOpen && categoryToEdit && (
+      {/* ================= MODAL: EDIT CATEGORY/SUBCATEGORY ================= */}
+      {editEntity && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150"
-          onClick={() => {
-            setIsEditCategoryModalOpen(false);
-            setCategoryToEdit(null);
-          }}
+          onClick={() => setEditEntity(null)}
         >
           <div
             className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl border border-slate-200 relative animate-in zoom-in-95 duration-150"
@@ -4213,82 +5120,72 @@ export const AdminHubView: React.FC = () => {
           >
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <div>
-                <h3 className="text-base font-bold text-slate-900">Editar Categoría</h3>
-                <p className="text-[11px] text-slate-500 font-mono mt-0.5">{categoryToEdit.id}</p>
+                <h3 className="text-base font-bold text-slate-900">
+                  {editEntity.kind === 'category' ? 'Editar Categoría' : 'Editar Subcategoría'}
+                </h3>
+                <p className="text-[11px] text-slate-500 font-mono mt-0.5">{editEntity.id}</p>
               </div>
-              <button
-                onClick={() => {
-                  setIsEditCategoryModalOpen(false);
-                  setCategoryToEdit(null);
-                }}
-                className="text-slate-400 hover:text-slate-700 p-1"
-              >
+              <button onClick={() => setEditEntity(null)} className="text-slate-400 hover:text-slate-700 p-1">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleEditCategorySubmit} className="space-y-4">
+            <form onSubmit={handleEditEntitySubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Nombre de la categoría *
-                </label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Nombre *</label>
                 <input
                   type="text"
-                  value={editCategoryName}
-                  onChange={(e) => setEditCategoryName(e.target.value)}
+                  value={editEntityName}
+                  onChange={(e) => setEditEntityName(e.target.value)}
                   className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-teal-500 font-medium"
                   required
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Descripción *
-                </label>
-                <textarea
-                  value={editCategoryDesc}
-                  onChange={(e) => setEditCategoryDesc(e.target.value)}
-                  rows={3}
-                  className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-teal-500"
-                  required
-                />
-              </div>
+              {editEntity.kind === 'category' && (
+                <>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Descripción</label>
+                    <textarea
+                      value={editEntityDesc}
+                      onChange={(e) => setEditEntityDesc(e.target.value)}
+                      rows={3}
+                      className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-teal-500"
+                    />
+                  </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Ícono del rubro
-                </label>
-                <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-                  {CATEGORY_ICON_KEYS.map((key) => {
-                    const visual = getCategoryVisual(key);
-                    return (
-                      <button
-                        key={key}
-                        type="button"
-                        onClick={() => setEditCategoryIcon(key)}
-                        className={`flex flex-col items-center gap-1 p-2 rounded-lg border transition-all ${
-                          editCategoryIcon === key
-                            ? `${visual.bg} ${visual.border} ring-2 ring-teal-500`
-                            : 'border-slate-200 bg-white hover:bg-slate-50'
-                        }`}
-                      >
-                        <CategoryIcon name={key} className="w-5 h-5" />
-                        <span className="text-[9px] font-semibold text-slate-600 text-center leading-tight">
-                          {visual.label}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Ícono del rubro</label>
+                    <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                      {CATEGORY_ICON_KEYS.map((key) => {
+                        const visual = getCategoryVisual(key);
+                        return (
+                          <button
+                            key={key}
+                            type="button"
+                            onClick={() => setEditEntityIcon(key)}
+                            className={`flex flex-col items-center gap-1 p-2 rounded-lg border transition-all ${
+                              editEntityIcon === key
+                                ? `${visual.bg} ${visual.border} ring-2 ring-teal-500`
+                                : 'border-slate-200 bg-white hover:bg-slate-50'
+                            }`}
+                          >
+                            <CategoryIcon name={key} className="w-5 h-5" />
+                            <span className="text-[9px] font-semibold text-slate-600 text-center leading-tight">
+                              {visual.label}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </>
+              )}
 
               <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
                 <button
                   type="button"
-                  onClick={() => {
-                    setIsEditCategoryModalOpen(false);
-                    setCategoryToEdit(null);
-                  }}
+                  onClick={() => setEditEntity(null)}
                   className="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-semibold"
                 >
                   Cancelar
@@ -4305,47 +5202,111 @@ export const AdminHubView: React.FC = () => {
         </div>
       )}
 
-      {/* ================= MODAL: DELETE CATEGORY CONFIRM ================= */}
-      {categoryPendingDelete && (
-        <div
-          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150"
-          onClick={() => setCategoryPendingDelete(null)}
-        >
+      {/* ================= MODAL: DELETE/HIDE/MERGE CATEGORY OR SUBCATEGORY ================= */}
+      {deleteEntity && (() => {
+        const isCategory = deleteEntity.kind === 'category';
+        const count = isCategory
+          ? countServicesForCategory(deleteEntity.id)
+          : countServicesForSubcategory(deleteEntity.id);
+        const mergeOptions = isCategory
+          ? catalogCategories.filter((c) => c.id !== deleteEntity.id)
+          : catalogSubcategories.filter((s) => s.categoryId === deleteEntity.categoryId && s.id !== deleteEntity.id);
+        return (
           <div
-            className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-150"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150"
+            onClick={() => setDeleteEntity(null)}
           >
-            <div className="flex items-start gap-3 mb-4">
-              <span className="p-2 rounded-lg bg-rose-50 text-rose-600 border border-rose-200">
-                <Trash2 className="w-5 h-5" />
-              </span>
-              <div>
-                <h3 className="text-base font-bold text-slate-900">Eliminar categoría</h3>
-                <p className="text-xs text-slate-600 mt-1">
-                  Vas a eliminar <strong>{categoryPendingDelete.name}</strong>. Solo se permite si no
-                  tiene servicios asociados.
-                </p>
+            <div
+              className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-150"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-start gap-3 mb-4">
+                <span className="p-2 rounded-lg bg-rose-50 text-rose-600 border border-rose-200">
+                  <Trash2 className="w-5 h-5" />
+                </span>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">
+                    Eliminar {isCategory ? 'categoría' : 'subcategoría'}
+                  </h3>
+                  <p className="text-xs text-slate-600 mt-1">
+                    {count === 0 ? (
+                      <>
+                        <strong>{deleteEntity.name}</strong> no tiene servicios asociados — se puede eliminar
+                        directamente.
+                      </>
+                    ) : (
+                      <>
+                        <strong>{deleteEntity.name}</strong> tiene {count} servicio{count !== 1 ? 's' : ''} asociado
+                        {count !== 1 ? 's' : ''}. Elegí qué hacer con {count !== 1 ? 'ellos' : 'él'}:
+                      </>
+                    )}
+                  </p>
+                </div>
+              </div>
+
+              {count > 0 && (
+                <div className="space-y-2 mb-4">
+                  <label className="flex items-start gap-2 p-2.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-50">
+                    <input
+                      type="radio"
+                      checked={deleteAction === 'hide'}
+                      onChange={() => setDeleteAction('hide')}
+                      className="mt-0.5"
+                    />
+                    <span className="text-xs text-slate-700">
+                      <strong className="block text-slate-900">Ocultar</strong>
+                      Deja de verse en el portal público, pero los servicios y la categoría siguen existiendo.
+                    </span>
+                  </label>
+                  <label className="flex items-start gap-2 p-2.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-50">
+                    <input
+                      type="radio"
+                      checked={deleteAction === 'merge'}
+                      onChange={() => setDeleteAction('merge')}
+                      className="mt-0.5"
+                    />
+                    <span className="text-xs text-slate-700 flex-1">
+                      <strong className="block text-slate-900">Fusionar con otra</strong>
+                      Todos los servicios pasan a la que elijas, y esta se elimina.
+                      {deleteAction === 'merge' && (
+                        <select
+                          value={mergeTargetId}
+                          onChange={(e) => setMergeTargetId(e.target.value)}
+                          className="mt-2 w-full text-xs px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg"
+                        >
+                          <option value="">Elegí destino…</option>
+                          {mergeOptions.map((opt) => (
+                            <option key={opt.id} value={opt.id}>
+                              {opt.name}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </span>
+                  </label>
+                </div>
+              )}
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setDeleteEntity(null)}
+                  className="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-semibold"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleConfirmDeleteEntity()}
+                  className="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold shadow-xs"
+                >
+                  {count === 0 ? 'Sí, eliminar' : deleteAction === 'hide' ? 'Ocultar' : 'Fusionar y eliminar'}
+                </button>
               </div>
             </div>
-            <div className="flex items-center justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setCategoryPendingDelete(null)}
-                className="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-semibold"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmDeleteCategory}
-                className="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold shadow-xs"
-              >
-                Sí, eliminar
-              </button>
-            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 };

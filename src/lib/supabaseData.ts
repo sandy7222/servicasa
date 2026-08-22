@@ -8,6 +8,8 @@ import type {
   ServiceItem,
   ServiceOrder,
   ServiceType,
+  CatalogCategory,
+  CatalogSubcategory,
   TechnicalNote,
   TechnicianApplication,
   Technician,
@@ -17,11 +19,13 @@ import type {
   UserRole,
 } from '../types';
 import type {
+  DbCategory,
   DbCustomer,
   DbMaterial,
   DbProfile,
   DbService,
   DbServiceOrder,
+  DbSubcategory,
   DbOrderQuote,
   DbTechnician,
   DbTechnicianApplication,
@@ -75,6 +79,7 @@ export function mapCustomer(row: DbCustomer): Customer {
     name: row.name,
     address: row.address,
     neighborhood: row.neighborhood,
+    province: row.province ?? undefined,
     phone: row.phone,
     email: row.email,
     notes: row.notes ?? undefined,
@@ -114,9 +119,35 @@ export function mapService(row: DbService): ServiceItem {
     description: row.description,
     price: Number(row.price),
     category: row.category,
+    subcategoria: row.subcategoria ?? null,
+    categoryId: row.category_id ?? null,
+    subcategoryId: row.subcategory_id ?? null,
     estimatedDurationMinutes: row.estimated_duration_minutes,
     features: row.features ?? [],
     active: row.active,
+  };
+}
+
+export function mapCatalogCategory(row: DbCategory): CatalogCategory {
+  return {
+    id: row.id,
+    name: row.name,
+    slug: row.slug,
+    icon: row.icon,
+    description: row.description,
+    displayOrder: row.display_order,
+    active: row.is_active,
+  };
+}
+
+export function mapCatalogSubcategory(row: DbSubcategory): CatalogSubcategory {
+  return {
+    id: row.id,
+    categoryId: row.category_id,
+    name: row.name,
+    slug: row.slug,
+    displayOrder: row.display_order,
+    active: row.is_active,
   };
 }
 
@@ -158,6 +189,7 @@ export function mapOrder(
     scheduledDate: row.scheduled_date,
     createdAt: row.created_at,
     completedAt: row.completed_at ?? undefined,
+    archivedAt: row.archived_at ?? undefined,
     workStartedAt: row.work_started_at ?? undefined,
     workElapsedSeconds: Number(row.work_elapsed_seconds ?? 0),
     clientId: row.customer_id,
@@ -165,6 +197,7 @@ export function mapOrder(
     clientPhone: row.client_phone,
     clientAddress: row.client_address,
     clientNeighborhood: row.client_neighborhood,
+    clientProvince: row.client_province ?? undefined,
     assignedTechnicianId: row.assigned_technician_id,
     assignedTechnicianName: row.assigned_technician_name,
     checklist: extras?.checklist ?? [],
@@ -204,6 +237,28 @@ export async function fetchPublicServices(): Promise<ServiceItem[]> {
   return (data as DbService[]).map(mapService);
 }
 
+/** Same anon-safe pattern as fetchPublicServices, for the new relational
+ * categories/subcategories (see plan-categorias-subcategorias.md Fase 3). */
+export async function fetchPublicCatalogCategories(): Promise<CatalogCategory[]> {
+  const { data, error } = await supabase
+    .from('categories')
+    .select('*')
+    .eq('is_active', true)
+    .order('display_order');
+  if (error) throw error;
+  return (data as DbCategory[]).map(mapCatalogCategory);
+}
+
+export async function fetchPublicCatalogSubcategories(): Promise<CatalogSubcategory[]> {
+  const { data, error } = await supabase
+    .from('subcategories')
+    .select('*')
+    .eq('is_active', true)
+    .order('display_order');
+  if (error) throw error;
+  return (data as DbSubcategory[]).map(mapCatalogSubcategory);
+}
+
 const VISIT_DEPOSIT_FALLBACK = 30000;
 
 /** Single source of truth for the diagnosis visit deposit amount (system_settings). */
@@ -229,12 +284,14 @@ export async function fetchTechnicianApplications(): Promise<TechnicianApplicati
 }
 
 export async function fetchCatalog() {
-  const [techRes, custRes, matRes, orderRes, svcRes] = await Promise.all([
+  const [techRes, custRes, matRes, orderRes, svcRes, catRes, subcatRes] = await Promise.all([
     supabase.from('technicians').select('*').order('name'),
     supabase.from('customers').select('*').order('name'),
     supabase.from('materials').select('*').order('name'),
     supabase.from('service_orders').select('*').order('created_at', { ascending: false }),
     supabase.from('services').select('*').order('created_at', { ascending: false }),
+    supabase.from('categories').select('*').order('display_order'),
+    supabase.from('subcategories').select('*').order('display_order'),
   ]);
 
   if (techRes.error) throw techRes.error;
@@ -242,6 +299,8 @@ export async function fetchCatalog() {
   if (matRes.error) throw matRes.error;
   if (orderRes.error) throw orderRes.error;
   if (svcRes.error) throw svcRes.error;
+  if (catRes.error) throw catRes.error;
+  if (subcatRes.error) throw subcatRes.error;
 
   const orderRows = (orderRes.data ?? []) as DbServiceOrder[];
   const orderIds = orderRows.map((o) => o.id);
@@ -363,6 +422,7 @@ export async function fetchCatalog() {
         items: kids.quoteItems.filter((item) => item.quote_id === quote.id).map((item) => ({
           id: String(item.id),
           categoryId: (item.category_id as string | null) ?? undefined,
+          serviceId: (item.service_id as string | null) ?? undefined,
           itemType: item.item_type as 'labor' | 'material',
           description: String(item.description),
           quantity: Number(item.quantity),
@@ -403,6 +463,8 @@ export async function fetchCatalog() {
     customers,
     materials: (matRes.data as DbMaterial[]).map(mapMaterial),
     services: (svcRes.data as DbService[]).map(mapService),
+    catalogCategories: (catRes.data as DbCategory[]).map(mapCatalogCategory),
+    catalogSubcategories: (subcatRes.data as DbSubcategory[]).map(mapCatalogSubcategory),
     orders,
   };
 }

@@ -11,6 +11,8 @@ import { isSupabaseConfigured, supabase } from '../lib/supabase';
 import {
   fetchCatalog,
   fetchProfile,
+  fetchPublicCatalogCategories,
+  fetchPublicCatalogSubcategories,
   fetchPublicServices,
   fetchTechnicianApplications,
   fetchVisitDepositAmount,
@@ -54,6 +56,16 @@ import {
   persistDeleteMaterial,
   persistDeleteOrder,
   persistDeleteService,
+  persistCreateCategory,
+  persistUpdateCategory,
+  persistDeleteCategory,
+  persistMergeCategory,
+  persistSwapCategoryOrder,
+  persistCreateSubcategory,
+  persistUpdateSubcategory,
+  persistDeleteSubcategory,
+  persistMergeSubcategory,
+  persistSwapSubcategoryOrder,
   persistDeleteTechnician,
   persistReviewTechnicianApplication,
   persistSignature,
@@ -71,6 +83,8 @@ import {
 import { friendlyErrorMessage } from '../components/common/AppStatus';
 import { canExecutePaidWork, isOrderPaymentSettled, orderRequiresPaymentGate } from '../lib/workTimer';
 import {
+  CatalogCategory,
+  CatalogSubcategory,
   CurrentUserData,
   Customer,
   CustomerRegistrationInput,
@@ -81,7 +95,6 @@ import {
   OrderPriority,
   ServiceItem,
   ServiceCategory,
-  ServiceCategoryInput,
   ServiceItemInput,
   ServiceOrder,
   ServiceType,
@@ -105,7 +118,8 @@ interface AppContextType {
   customers: Customer[];
   materials: MaterialInventory[];
   services: ServiceItem[];
-  serviceCategories: ServiceCategory[];
+  catalogCategories: CatalogCategory[];
+  catalogSubcategories: CatalogSubcategory[];
   visitDepositAmount: number;
   updateVisitDepositAmount: (amount: number) => Promise<void>;
   currentUser: CurrentUserData | null;
@@ -209,10 +223,19 @@ interface AppContextType {
   updateService: (serviceId: string, patch: Partial<ServiceItemInput>) => void;
   deleteService: (serviceId: string) => void;
 
-  // Service Categories CRUD
-  addServiceCategory: (category: ServiceCategoryInput) => string;
-  updateServiceCategory: (categoryId: string, patch: Partial<ServiceCategoryInput>) => void;
-  deleteServiceCategory: (categoryId: string) => { success: boolean; message: string };
+  // Categorías/subcategorías reales (plan-categorias-subcategorias.md Fase 4)
+  createCategory: (input: { name: string; description?: string; icon?: string }) => Promise<void>;
+  updateCategory: (id: string, patch: { name?: string; description?: string; icon?: string }) => Promise<void>;
+  setCategoryActive: (id: string, isActive: boolean) => Promise<void>;
+  deleteCategory: (id: string) => Promise<void>;
+  mergeCategory: (sourceId: string, targetId: string) => Promise<void>;
+  moveCategory: (id: string, direction: 'up' | 'down') => Promise<void>;
+  createSubcategory: (input: { categoryId: string; name: string }) => Promise<CatalogSubcategory | undefined>;
+  updateSubcategory: (id: string, patch: { name?: string }) => Promise<void>;
+  setSubcategoryActive: (id: string, isActive: boolean) => Promise<void>;
+  deleteSubcategory: (id: string) => Promise<void>;
+  mergeSubcategory: (sourceId: string, targetId: string) => Promise<void>;
+  moveSubcategory: (id: string, direction: 'up' | 'down') => Promise<void>;
 
   resetDemoData: () => void;
 }
@@ -324,14 +347,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [visitDepositAmount, setVisitDepositAmount] = useState(30000);
   const [technicianApplications, setTechnicianApplications] = useState<TechnicianApplication[]>([]);
 
-  const [serviceCategories, setServiceCategories] = useState<ServiceCategory[]>(() => {
-    try {
-      const saved = localStorage.getItem(`${STORAGE_KEY}_serviceCategories`);
-      return saved ? JSON.parse(saved) : INITIAL_SERVICE_CATEGORIES;
-    } catch {
-      return INITIAL_SERVICE_CATEGORIES;
-    }
-  });
+  // Real Supabase-backed categories/subcategories (plan-categorias-subcategorias.md
+  // Fase 4 — replaces the old localStorage-only `serviceCategories`/
+  // `addServiceCategory` system). Seeded from the same 8-category mock list as a
+  // demo/pre-fetch fallback (mirrors how `services` seeds from INITIAL_SERVICES),
+  // then overwritten by the real fetch once Supabase loads. Not persisted to
+  // localStorage — comes straight from the DB on every load.
+  const [catalogCategories, setCatalogCategories] = useState<CatalogCategory[]>(() =>
+    INITIAL_SERVICE_CATEGORIES.map((c: ServiceCategory, index) => ({
+      id: c.id,
+      name: c.name,
+      slug: c.id.replace(/^cat-/, ''),
+      icon: c.icon,
+      description: c.description,
+      displayOrder: index + 1,
+      active: c.active !== false,
+    }))
+  );
+  const [catalogSubcategories, setCatalogSubcategories] = useState<CatalogSubcategory[]>([]);
 
   const [currentUser, setCurrentUserState] = useState<CurrentUserData | null>(null);
   const [authReady, setAuthReady] = useState(!isSupabaseConfigured);
@@ -371,11 +404,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       localStorage.setItem(`${STORAGE_KEY}_customers`, JSON.stringify(customers));
       localStorage.setItem(`${STORAGE_KEY}_materials`, JSON.stringify(materials));
       localStorage.setItem(`${STORAGE_KEY}_services`, JSON.stringify(services));
-      localStorage.setItem(`${STORAGE_KEY}_serviceCategories`, JSON.stringify(serviceCategories));
     } catch (e) {
       console.warn('LocalStorage error:', e);
     }
-  }, [orders, technicians, customers, materials, services, serviceCategories, usingRemoteData]);
+  }, [orders, technicians, customers, materials, services, usingRemoteData]);
 
   const applyRemoteSession = async (userId: string) => {
     setDataLoading(true);
@@ -390,6 +422,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setCustomers(catalog.customers);
       setMaterials(catalog.materials);
       setServices(catalog.services);
+      setCatalogCategories(catalog.catalogCategories);
+      setCatalogSubcategories(catalog.catalogSubcategories);
       setOrders(catalog.orders);
       setUsingRemoteData(true);
       setCurrentUserState(profileToCurrentUser(profile));
@@ -429,6 +463,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setServices(publicServices);
     } catch (err) {
       console.warn('[TecniUrbano] No se pudo cargar el catálogo público de servicios', err);
+    }
+    try {
+      const [publicCategories, publicSubcategories] = await Promise.all([
+        fetchPublicCatalogCategories(),
+        fetchPublicCatalogSubcategories(),
+      ]);
+      setCatalogCategories(publicCategories);
+      setCatalogSubcategories(publicSubcategories);
+    } catch (err) {
+      console.warn('[TecniUrbano] No se pudo cargar categorías/subcategorías públicas', err);
     }
   };
 
@@ -810,7 +854,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCustomers(INITIAL_CUSTOMERS);
     setMaterials(INITIAL_MATERIALS);
     setServices(INITIAL_SERVICES);
-    setServiceCategories(INITIAL_SERVICE_CATEGORIES);
     setCurrentUserState(DEMO_USERS.admin);
     try {
       localStorage.removeItem(`${STORAGE_KEY}_orders`);
@@ -1865,6 +1908,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       clientPhone: customer.phone,
       clientAddress: request.address.trim(),
       clientNeighborhood: request.neighborhood.trim() || customer.neighborhood,
+      clientProvince: request.province.trim() || customer.province,
       assignedTechnicianId: null,
       assignedTechnicianName: null,
       checklist: [], timeLogs: [], technicalNotes: [], usedMaterials: [], customerSignature: null,
@@ -2092,6 +2136,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 rating: patch.rating ?? t.rating,
                 zone: patch.zone,
                 province: patch.province,
+                workPhone: patch.workPhone || undefined,
+                bio: patch.bio || undefined,
+                educationLevel: patch.educationLevel || undefined,
+                degreeTitle: patch.degreeTitle || undefined,
+                institutionName: patch.institutionName || undefined,
               }
             : t
         )
@@ -2267,6 +2316,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       description: input.description.trim(),
       price: Number(input.price) || 0,
       category: input.category?.trim() || 'General',
+      categoryId: input.categoryId ?? null,
+      subcategoria: input.subcategoria ?? null,
+      subcategoryId: input.subcategoryId ?? null,
       estimatedDurationMinutes: input.estimatedDurationMinutes ? Number(input.estimatedDurationMinutes) : 60,
       features: input.features && input.features.length > 0 ? input.features : ['Garantía de servicio', 'Personal calificado'],
       active: input.active !== undefined ? input.active : true,
@@ -2338,45 +2390,263 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showToast(`Servicio "${target.name}" eliminado`, 'info', 'Catálogo de servicios');
   };
 
-  const addServiceCategory = (input: ServiceCategoryInput): string => {
+  const createCategory = async (input: { name: string; description?: string; icon?: string }): Promise<void> => {
+    if (usingRemoteData) {
+      await withRemote(async () => {
+        try {
+          const created = await persistCreateCategory(input);
+          setCatalogCategories((prev) => [...prev, created].sort((a, b) => a.displayOrder - b.displayOrder));
+          showToast(`Categoría "${created.name}" creada`, 'success', 'Categorías');
+        } catch (err) {
+          showToast(friendlyErrorMessage(err, 'No se pudo crear la categoría'), 'error');
+        }
+      });
+      return;
+    }
     const id = `cat-${Date.now().toString(36)}`;
-    const newCategory: ServiceCategory = {
+    const created: CatalogCategory = {
       id,
       name: input.name.trim(),
-      description: input.description.trim(),
+      slug: id,
       icon: input.icon || 'Sparkles',
-      color: input.color || 'bg-teal-50 border-teal-200',
-      active: input.active !== undefined ? input.active : true,
+      description: input.description?.trim() || '',
+      displayOrder: catalogCategories.length + 1,
+      active: true,
     };
-    setServiceCategories((prev) => [newCategory, ...prev]);
-    showToast(`Categoría "${newCategory.name}" creada con éxito`, 'success', 'Categorías');
-    return id;
+    setCatalogCategories((prev) => [...prev, created]);
+    showToast(`Categoría "${created.name}" creada`, 'success', 'Categorías');
   };
 
-  const updateServiceCategory = (categoryId: string, patch: Partial<ServiceCategoryInput>) => {
-    setServiceCategories((prev) =>
-      prev.map((c) => (c.id === categoryId ? { ...c, ...patch } : c))
-    );
-    showToast('Categoría actualizada con éxito', 'success', 'Categorías');
-  };
-
-  const deleteServiceCategory = (categoryId: string): { success: boolean; message: string } => {
-    const target = serviceCategories.find((c) => c.id === categoryId);
-    if (!target) return { success: false, message: 'Categoría no encontrada' };
-
-    const linkedServices = services.filter(
-      (s) => (s.category || '').trim().toLowerCase() === target.name.trim().toLowerCase()
-    );
-    if (linkedServices.length > 0) {
-      return {
-        success: false,
-        message: `No se puede eliminar: ${linkedServices.length} servicio(s) usan esta categoría. Reasignalos primero.`,
-      };
+  const updateCategory = async (
+    id: string,
+    patch: { name?: string; description?: string; icon?: string }
+  ): Promise<void> => {
+    if (usingRemoteData) {
+      await withRemote(async () => {
+        try {
+          const updated = await persistUpdateCategory(id, patch);
+          setCatalogCategories((prev) => prev.map((c) => (c.id === id ? updated : c)));
+          showToast('Categoría actualizada', 'success', 'Categorías');
+        } catch (err) {
+          showToast(friendlyErrorMessage(err, 'No se pudo actualizar la categoría'), 'error');
+        }
+      });
+      return;
     }
+    setCatalogCategories((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)));
+    showToast('Categoría actualizada', 'success', 'Categorías');
+  };
 
-    setServiceCategories((prev) => prev.filter((c) => c.id !== categoryId));
-    showToast(`Categoría "${target.name}" eliminada`, 'info', 'Categorías');
-    return { success: true, message: 'Categoría eliminada correctamente' };
+  const setCategoryActive = async (id: string, isActive: boolean): Promise<void> => {
+    if (usingRemoteData) {
+      await withRemote(async () => {
+        try {
+          const updated = await persistUpdateCategory(id, { isActive });
+          setCatalogCategories((prev) => prev.map((c) => (c.id === id ? updated : c)));
+          showToast(isActive ? 'Categoría publicada' : 'Categoría oculta del portal', 'success', 'Categorías');
+        } catch (err) {
+          showToast(friendlyErrorMessage(err, 'No se pudo actualizar la categoría'), 'error');
+        }
+      });
+      return;
+    }
+    setCatalogCategories((prev) => prev.map((c) => (c.id === id ? { ...c, active: isActive } : c)));
+    showToast(isActive ? 'Categoría publicada' : 'Categoría oculta del portal', 'success', 'Categorías');
+  };
+
+  const deleteCategory = async (id: string): Promise<void> => {
+    const target = catalogCategories.find((c) => c.id === id);
+    if (usingRemoteData) {
+      await withRemote(async () => {
+        try {
+          await persistDeleteCategory(id);
+          setCatalogCategories((prev) => prev.filter((c) => c.id !== id));
+          showToast(`Categoría "${target?.name ?? ''}" eliminada`, 'info', 'Categorías');
+        } catch (err) {
+          showToast(friendlyErrorMessage(err, 'No se pudo eliminar la categoría'), 'error');
+        }
+      });
+      return;
+    }
+    setCatalogCategories((prev) => prev.filter((c) => c.id !== id));
+    showToast(`Categoría "${target?.name ?? ''}" eliminada`, 'info', 'Categorías');
+  };
+
+  const mergeCategory = async (sourceId: string, targetId: string): Promise<void> => {
+    if (!usingRemoteData) {
+      showToast('Fusionar categorías solo está disponible conectado a Supabase.', 'warning');
+      return;
+    }
+    await withRemote(async () => {
+      try {
+        await persistMergeCategory(sourceId, targetId);
+        await refreshRemoteData();
+        showToast('Categoría fusionada correctamente', 'success', 'Categorías');
+      } catch (err) {
+        showToast(friendlyErrorMessage(err, 'No se pudo fusionar la categoría'), 'error');
+      }
+    });
+  };
+
+  const moveCategory = async (id: string, direction: 'up' | 'down'): Promise<void> => {
+    const sorted = [...catalogCategories].sort((a, b) => a.displayOrder - b.displayOrder);
+    const index = sorted.findIndex((c) => c.id === id);
+    const neighborIndex = direction === 'up' ? index - 1 : index + 1;
+    if (index === -1 || neighborIndex < 0 || neighborIndex >= sorted.length) return;
+    const current = sorted[index];
+    const neighbor = sorted[neighborIndex];
+    const applyLocalSwap = () =>
+      setCatalogCategories((prev) =>
+        prev.map((c) => {
+          if (c.id === current.id) return { ...c, displayOrder: neighbor.displayOrder };
+          if (c.id === neighbor.id) return { ...c, displayOrder: current.displayOrder };
+          return c;
+        })
+      );
+    if (usingRemoteData) {
+      await withRemote(async () => {
+        try {
+          await persistSwapCategoryOrder(current.id, neighbor.id);
+          applyLocalSwap();
+        } catch (err) {
+          showToast(friendlyErrorMessage(err, 'No se pudo reordenar'), 'error');
+        }
+      });
+      return;
+    }
+    applyLocalSwap();
+  };
+
+  const createSubcategory = async (input: {
+    categoryId: string;
+    name: string;
+  }): Promise<CatalogSubcategory | undefined> => {
+    if (usingRemoteData) {
+      return withRemote(async () => {
+        try {
+          const created = await persistCreateSubcategory(input);
+          setCatalogSubcategories((prev) => [...prev, created]);
+          showToast(`Subcategoría "${created.name}" creada`, 'success', 'Categorías');
+          return created;
+        } catch (err) {
+          showToast(friendlyErrorMessage(err, 'No se pudo crear la subcategoría'), 'error');
+          return undefined;
+        }
+      });
+    }
+    const id = `subcat-${Date.now().toString(36)}`;
+    const created: CatalogSubcategory = {
+      id,
+      categoryId: input.categoryId,
+      name: input.name.trim(),
+      slug: id,
+      displayOrder: catalogSubcategories.filter((s) => s.categoryId === input.categoryId).length + 1,
+      active: true,
+    };
+    setCatalogSubcategories((prev) => [...prev, created]);
+    showToast(`Subcategoría "${created.name}" creada`, 'success', 'Categorías');
+    return created;
+  };
+
+  const updateSubcategory = async (id: string, patch: { name?: string }): Promise<void> => {
+    if (usingRemoteData) {
+      await withRemote(async () => {
+        try {
+          const updated = await persistUpdateSubcategory(id, patch);
+          setCatalogSubcategories((prev) => prev.map((s) => (s.id === id ? updated : s)));
+          showToast('Subcategoría actualizada', 'success', 'Categorías');
+        } catch (err) {
+          showToast(friendlyErrorMessage(err, 'No se pudo actualizar la subcategoría'), 'error');
+        }
+      });
+      return;
+    }
+    setCatalogSubcategories((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
+    showToast('Subcategoría actualizada', 'success', 'Categorías');
+  };
+
+  const setSubcategoryActive = async (id: string, isActive: boolean): Promise<void> => {
+    if (usingRemoteData) {
+      await withRemote(async () => {
+        try {
+          const updated = await persistUpdateSubcategory(id, { isActive });
+          setCatalogSubcategories((prev) => prev.map((s) => (s.id === id ? updated : s)));
+          showToast(isActive ? 'Subcategoría publicada' : 'Subcategoría oculta', 'success', 'Categorías');
+        } catch (err) {
+          showToast(friendlyErrorMessage(err, 'No se pudo actualizar la subcategoría'), 'error');
+        }
+      });
+      return;
+    }
+    setCatalogSubcategories((prev) => prev.map((s) => (s.id === id ? { ...s, active: isActive } : s)));
+    showToast(isActive ? 'Subcategoría publicada' : 'Subcategoría oculta', 'success', 'Categorías');
+  };
+
+  const deleteSubcategory = async (id: string): Promise<void> => {
+    const target = catalogSubcategories.find((s) => s.id === id);
+    if (usingRemoteData) {
+      await withRemote(async () => {
+        try {
+          await persistDeleteSubcategory(id);
+          setCatalogSubcategories((prev) => prev.filter((s) => s.id !== id));
+          showToast(`Subcategoría "${target?.name ?? ''}" eliminada`, 'info', 'Categorías');
+        } catch (err) {
+          showToast(friendlyErrorMessage(err, 'No se pudo eliminar la subcategoría'), 'error');
+        }
+      });
+      return;
+    }
+    setCatalogSubcategories((prev) => prev.filter((s) => s.id !== id));
+    showToast(`Subcategoría "${target?.name ?? ''}" eliminada`, 'info', 'Categorías');
+  };
+
+  const mergeSubcategory = async (sourceId: string, targetId: string): Promise<void> => {
+    if (!usingRemoteData) {
+      showToast('Fusionar subcategorías solo está disponible conectado a Supabase.', 'warning');
+      return;
+    }
+    await withRemote(async () => {
+      try {
+        await persistMergeSubcategory(sourceId, targetId);
+        await refreshRemoteData();
+        showToast('Subcategoría fusionada correctamente', 'success', 'Categorías');
+      } catch (err) {
+        showToast(friendlyErrorMessage(err, 'No se pudo fusionar la subcategoría'), 'error');
+      }
+    });
+  };
+
+  const moveSubcategory = async (id: string, direction: 'up' | 'down'): Promise<void> => {
+    const target = catalogSubcategories.find((s) => s.id === id);
+    if (!target) return;
+    const siblings = catalogSubcategories
+      .filter((s) => s.categoryId === target.categoryId)
+      .sort((a, b) => a.displayOrder - b.displayOrder);
+    const index = siblings.findIndex((s) => s.id === id);
+    const neighborIndex = direction === 'up' ? index - 1 : index + 1;
+    if (neighborIndex < 0 || neighborIndex >= siblings.length) return;
+    const current = siblings[index];
+    const neighbor = siblings[neighborIndex];
+    const applyLocalSwap = () =>
+      setCatalogSubcategories((prev) =>
+        prev.map((s) => {
+          if (s.id === current.id) return { ...s, displayOrder: neighbor.displayOrder };
+          if (s.id === neighbor.id) return { ...s, displayOrder: current.displayOrder };
+          return s;
+        })
+      );
+    if (usingRemoteData) {
+      await withRemote(async () => {
+        try {
+          await persistSwapSubcategoryOrder(current.id, neighbor.id);
+          applyLocalSwap();
+        } catch (err) {
+          showToast(friendlyErrorMessage(err, 'No se pudo reordenar'), 'error');
+        }
+      });
+      return;
+    }
+    applyLocalSwap();
   };
 
   return (
@@ -2387,7 +2657,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         customers,
         materials,
         services,
-        serviceCategories,
+        catalogCategories,
+        catalogSubcategories,
         visitDepositAmount,
         updateVisitDepositAmount,
         currentUser,
@@ -2445,9 +2716,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addService,
         updateService,
         deleteService,
-        addServiceCategory,
-        updateServiceCategory,
-        deleteServiceCategory,
+        createCategory,
+        updateCategory,
+        setCategoryActive,
+        deleteCategory,
+        mergeCategory,
+        moveCategory,
+        createSubcategory,
+        updateSubcategory,
+        setSubcategoryActive,
+        deleteSubcategory,
+        mergeSubcategory,
+        moveSubcategory,
         resetDemoData,
       }}
     >

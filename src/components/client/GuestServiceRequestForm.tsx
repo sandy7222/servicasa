@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { CalendarDays, CreditCard, Mail, MapPin, Phone, Search, User, Wrench } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { FIXED_PRICE_SERVICES, formatArs, type FixedPriceService } from '../../lib/pricing';
+import { formatArs } from '../../lib/pricing';
 import { redirectToGuestPayment } from '../../lib/paymentClient';
-import type { OrderPriority, ServiceType, WorkMode } from '../../types';
+import { ARGENTINA_PROVINCES } from '../../lib/argentina';
+import type { OrderPriority, ServiceItem, ServiceType, WorkMode } from '../../types';
 
 const DATE_TODAY = new Date().toISOString().slice(0, 10);
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -12,10 +13,10 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
  * account: asks for contact data up front, and posts straight to the public
  * guest-checkout endpoint instead of going through AppContext/RLS. */
 export const GuestServiceRequestForm: React.FC = () => {
-  const { services, visitDepositAmount, showToast } = useApp();
+  const { services, catalogSubcategories, visitDepositAmount, showToast } = useApp();
   const [mode, setMode] = useState<WorkMode>('diagnosis');
   const [serviceType, setServiceType] = useState<ServiceType>('Electricidad');
-  const [selectedService, setSelectedService] = useState<FixedPriceService | null>(null);
+  const [selectedService, setSelectedService] = useState<ServiceItem | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -24,6 +25,7 @@ export const GuestServiceRequestForm: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [neighborhood, setNeighborhood] = useState('');
+  const [province, setProvince] = useState('');
   const [scheduledDate, setScheduledDate] = useState(DATE_TODAY);
   const [appointmentWindow, setAppointmentWindow] = useState('A coordinar');
   const [priority, setPriority] = useState<OrderPriority>('media');
@@ -32,15 +34,29 @@ export const GuestServiceRequestForm: React.FC = () => {
   const categories = useMemo(() => {
     const values = new Set<string>(['Electricidad']);
     services.filter((service) => service.active !== false).forEach((service) => values.add(service.category));
-    FIXED_PRICE_SERVICES.forEach((service) => values.add(service.category));
     return [...values].sort((a, b) => a.localeCompare(b, 'es'));
   }, [services]);
 
-  const visibleFixedServices = useMemo(
-    () => FIXED_PRICE_SERVICES.filter((service) => service.category === serviceType),
-    [serviceType]
-  );
-  const directTotal = selectedService ? selectedService.unitPrice * quantity : 0;
+  // Catálogo de precio fijo real, filtrado al rubro elegido y agrupado por
+  // subcategoría — ver la misma nota en ServiceRequestForm.tsx.
+  const directServiceGroups = useMemo(() => {
+    const items = services.filter((s) => s.category === serviceType && s.active !== false);
+    const groups = new Map<string, { name: string; order: number; items: ServiceItem[] }>();
+    for (const item of items) {
+      const sub = item.subcategoryId ? catalogSubcategories.find((s) => s.id === item.subcategoryId) : undefined;
+      const key = sub?.id ?? 'sin-subcategoria';
+      let group = groups.get(key);
+      if (!group) {
+        group = { name: sub?.name ?? 'Otros', order: sub?.displayOrder ?? 999, items: [] };
+        groups.set(key, group);
+      }
+      group.items.push(item);
+    }
+    return Array.from(groups.values())
+      .sort((a, b) => a.order - b.order)
+      .map((g) => [g.name, [...g.items].sort((a, b) => a.name.localeCompare(b.name, 'es'))] as [string, ServiceItem[]]);
+  }, [services, catalogSubcategories, serviceType]);
+  const directTotal = selectedService ? selectedService.price * quantity : 0;
 
   useEffect(() => {
     const pendingServiceId = localStorage.getItem('tecniurbano_selectedServiceId');
@@ -62,6 +78,10 @@ export const GuestServiceRequestForm: React.FC = () => {
     event.preventDefault();
     if (!fullName.trim() || !EMAIL_RE.test(email.trim()) || !phone.trim() || !address.trim()) {
       showToast('Completá nombre, un email válido, teléfono y domicilio.', 'warning');
+      return;
+    }
+    if (!province) {
+      showToast('Elegí la provincia de esta visita.', 'warning');
       return;
     }
     if (mode === 'direct' && !selectedService) {
@@ -88,8 +108,11 @@ export const GuestServiceRequestForm: React.FC = () => {
         appointmentWindow,
         address: address.trim(),
         neighborhood: neighborhood.trim(),
+        province,
         workMode: mode,
         requestedTotal: mode === 'direct' ? directTotal : undefined,
+        fixedPriceServiceId: mode === 'direct' ? selectedService!.id : undefined,
+        quantity: mode === 'direct' ? quantity : undefined,
       });
       // redirectToGuestPayment navigates away on success — nothing else to do here.
     } catch (error) {
@@ -145,14 +168,49 @@ export const GuestServiceRequestForm: React.FC = () => {
         {mode === 'direct' ? (
           <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50/70 p-3">
             <p className="text-xs font-bold text-slate-800">Servicio de precio fijo</p>
-            {visibleFixedServices.length === 0 ? <p className="text-xs text-amber-700">Este rubro aún no tiene servicios de precio fijo. Elegí diagnóstico para recibir un presupuesto.</p> : <div className="grid gap-2">{visibleFixedServices.map((service) => <button type="button" key={service.id} onClick={() => { setSelectedService(service); setTitle(service.name); setDescription(service.description); }} className={`rounded-lg border p-2.5 text-left ${selectedService?.id === service.id ? 'border-teal-500 bg-white' : 'border-slate-200 bg-white hover:border-teal-300'}`}><span className="block text-xs font-bold text-slate-900">{service.name}</span><span className="block text-[11px] text-slate-500 mt-0.5">{formatArs(service.unitPrice)} por {service.unit}</span></button>)}</div>}
+            {directServiceGroups.length === 0 ? (
+              <p className="text-xs text-amber-700">Este rubro aún no tiene servicios de precio fijo. Elegí diagnóstico para recibir un presupuesto.</p>
+            ) : (
+              <div className="max-h-72 space-y-3 overflow-y-auto pr-1">
+                {directServiceGroups.map(([groupName, items]) => (
+                  <div key={groupName}>
+                    <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-slate-500">{groupName}</p>
+                    <div className="grid gap-2">
+                      {items.map((service) => (
+                        <button
+                          type="button"
+                          key={service.id}
+                          onClick={() => {
+                            setSelectedService(service);
+                            setTitle(service.name);
+                            setDescription(service.description);
+                          }}
+                          className={`rounded-lg border p-2.5 text-left ${selectedService?.id === service.id ? 'border-teal-500 bg-white' : 'border-slate-200 bg-white hover:border-teal-300'}`}
+                        >
+                          <span className="block text-xs font-bold text-slate-900">{service.name}</span>
+                          <span className="block text-[11px] text-slate-500 mt-0.5">{formatArs(service.price)}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
             {selectedService && <div className="flex items-end gap-2"><label className="text-xs font-semibold text-slate-700">Cantidad<input type="number" min="1" max="20" value={quantity} onChange={(event) => setQuantity(Math.max(1, Number(event.target.value) || 1))} className="mt-1 block w-24 rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label><p className="pb-2 text-sm font-black text-teal-800">Estimado: {formatArs(directTotal)}</p></div>}
           </div>
         ) : <label className="block text-xs font-semibold text-slate-700">Título del problema<input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Ej.: Se corta la luz en la cocina" className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label>}
 
         <label className="block text-xs font-semibold text-slate-700">Descripción<textarea value={description} onChange={(event) => setDescription(event.target.value)} rows={3} placeholder="Contanos qué sucede, desde cuándo y cualquier detalle útil para el técnico." className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label>
 
-        <div className="rounded-xl border border-slate-200 p-3 space-y-2"><p className="text-xs font-bold text-slate-800"><MapPin className="inline w-3.5 h-3.5 mr-1 text-teal-700" />Datos de esta visita</p><div className="grid sm:grid-cols-2 gap-2"><input value={address} onChange={(event) => setAddress(event.target.value)} placeholder="Domicilio de atención" className="rounded-lg border border-slate-200 px-3 py-2 text-sm" /><input value={neighborhood} onChange={(event) => setNeighborhood(event.target.value)} placeholder="Barrio / localidad" className="rounded-lg border border-slate-200 px-3 py-2 text-sm" /></div><div className="grid sm:grid-cols-2 gap-2"><label className="text-xs text-slate-600"><CalendarDays className="inline w-3.5 h-3.5 mr-1" />Fecha<input type="date" min={DATE_TODAY} value={scheduledDate} onChange={(event) => setScheduledDate(event.target.value)} className="mt-1 block w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label><label className="text-xs text-slate-600">Franja para este pedido<select value={appointmentWindow} onChange={(event) => setAppointmentWindow(event.target.value)} className="mt-1 block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"><option>A coordinar</option><option>Mañana (08–12 h)</option><option>Mediodía (12–15 h)</option><option>Tarde (15–19 h)</option></select></label></div></div>
+        <div className="rounded-xl border border-slate-200 p-3 space-y-2">
+          <p className="text-xs font-bold text-slate-800"><MapPin className="inline w-3.5 h-3.5 mr-1 text-teal-700" />Datos de esta visita</p>
+          <label className="block text-xs font-semibold text-slate-700">Domicilio de atención<input value={address} onChange={(event) => setAddress(event.target.value)} placeholder="Calle y número" className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label>
+          <div className="grid sm:grid-cols-2 gap-2">
+            <label className="text-xs font-semibold text-slate-700">Localidad<input value={neighborhood} onChange={(event) => setNeighborhood(event.target.value)} placeholder="Barrio o localidad" className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label>
+            <label className="text-xs font-semibold text-slate-700">Provincia<select value={province} onChange={(event) => setProvince(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"><option value="" disabled>Elegí tu provincia</option>{ARGENTINA_PROVINCES.map((p) => <option key={p} value={p}>{p}</option>)}</select></label>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-2"><label className="text-xs text-slate-600"><CalendarDays className="inline w-3.5 h-3.5 mr-1" />Fecha<input type="date" min={DATE_TODAY} value={scheduledDate} onChange={(event) => setScheduledDate(event.target.value)} className="mt-1 block w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label><label className="text-xs text-slate-600">Franja para este pedido<select value={appointmentWindow} onChange={(event) => setAppointmentWindow(event.target.value)} className="mt-1 block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"><option>A coordinar</option><option>Mañana (08–12 h)</option><option>Mediodía (12–15 h)</option><option>Tarde (15–19 h)</option></select></label></div>
+        </div>
 
         <button type="submit" disabled={submitting} className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-lg bg-teal-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-teal-700 disabled:opacity-50"><CreditCard className="w-4 h-4" />{submitting ? 'Enviando solicitud…' : mode === 'diagnosis' ? 'Pedir diagnóstico y pagar seña' : 'Pedir trabajo y pagar'}</button>
       </form>

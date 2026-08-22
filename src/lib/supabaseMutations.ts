@@ -1,4 +1,6 @@
 import type {
+  CatalogCategory,
+  CatalogSubcategory,
   Customer,
   CustomerRegistrationInput,
   CustomerServiceRequestInput,
@@ -15,11 +17,161 @@ import type {
   TechnicianInput,
 } from '../types';
 import { supabase } from './supabase';
-import { mapCustomer, mapMaterial, mapOrder, mapService, mapTechnician } from './supabaseData';
-import type { DbCustomer, DbMaterial, DbService, DbServiceOrder, DbTechnician } from './supabase';
+import { mapCatalogCategory, mapCatalogSubcategory, mapCustomer, mapMaterial, mapOrder, mapService, mapTechnician } from './supabaseData';
+import type { DbCategory, DbCustomer, DbMaterial, DbService, DbServiceOrder, DbSubcategory, DbTechnician } from './supabase';
 
 function throwIfError(error: { message: string } | null) {
   if (error) throw new Error(error.message);
+}
+
+function slugify(text: string): string {
+  return text
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+// ---------- Categorías / Subcategorías reales (plan-categorias-subcategorias.md Fase 4) ----------
+
+export async function persistCreateCategory(input: { name: string; description?: string; icon?: string }): Promise<CatalogCategory> {
+  const name = input.name.trim();
+  const { data: maxRow } = await supabase.from('categories').select('display_order').order('display_order', { ascending: false }).limit(1).maybeSingle();
+  const { data, error } = await supabase
+    .from('categories')
+    .insert({
+      name,
+      slug: slugify(name),
+      description: input.description?.trim() || null,
+      icon: input.icon || 'Sparkles',
+      display_order: (maxRow?.display_order ?? 0) + 1,
+      is_active: true,
+    })
+    .select('*')
+    .single();
+  throwIfError(error);
+  return mapCatalogCategory(data as DbCategory);
+}
+
+export async function persistUpdateCategory(
+  id: string,
+  patch: { name?: string; description?: string; icon?: string; isActive?: boolean }
+): Promise<CatalogCategory> {
+  const update: Record<string, unknown> = {};
+  if (patch.name !== undefined) {
+    update.name = patch.name.trim();
+    update.slug = slugify(patch.name);
+  }
+  if (patch.description !== undefined) update.description = patch.description.trim() || null;
+  if (patch.icon !== undefined) update.icon = patch.icon;
+  if (patch.isActive !== undefined) update.is_active = patch.isActive;
+  const { data, error } = await supabase.from('categories').update(update).eq('id', id).select('*').single();
+  throwIfError(error);
+  return mapCatalogCategory(data as DbCategory);
+}
+
+/** Only safe to call when the category has 0 services left (checked by the caller). */
+export async function persistDeleteCategory(id: string): Promise<void> {
+  const { error } = await supabase.from('categories').delete().eq('id', id);
+  throwIfError(error);
+}
+
+/** Reassigns every service off the source category (they lose their subcategoría too —
+ * the target category's subcategorías don't correspond to the source's), then removes
+ * the source's now-orphaned subcategorías and the source category itself. */
+export async function persistMergeCategory(sourceId: string, targetId: string): Promise<void> {
+  const { error: reassignError } = await supabase
+    .from('services')
+    .update({ category_id: targetId, subcategory_id: null })
+    .eq('category_id', sourceId);
+  throwIfError(reassignError);
+  const { error: subDeleteError } = await supabase.from('subcategories').delete().eq('category_id', sourceId);
+  throwIfError(subDeleteError);
+  const { error: catDeleteError } = await supabase.from('categories').delete().eq('id', sourceId);
+  throwIfError(catDeleteError);
+}
+
+/** Swaps display_order between two categories (used for the up/down reorder arrows). */
+export async function persistSwapCategoryOrder(idA: string, idB: string): Promise<void> {
+  const { data: rows, error } = await supabase.from('categories').select('id, display_order').in('id', [idA, idB]);
+  throwIfError(error);
+  const a = (rows ?? []).find((r) => r.id === idA);
+  const b = (rows ?? []).find((r) => r.id === idB);
+  if (!a || !b) throw new Error('No se encontraron las categorías a reordenar.');
+  const { error: errorA } = await supabase.from('categories').update({ display_order: b.display_order }).eq('id', a.id);
+  throwIfError(errorA);
+  const { error: errorB } = await supabase.from('categories').update({ display_order: a.display_order }).eq('id', b.id);
+  throwIfError(errorB);
+}
+
+export async function persistCreateSubcategory(input: { categoryId: string; name: string }): Promise<CatalogSubcategory> {
+  const name = input.name.trim();
+  const { data: maxRow } = await supabase
+    .from('subcategories')
+    .select('display_order')
+    .eq('category_id', input.categoryId)
+    .order('display_order', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const { data, error } = await supabase
+    .from('subcategories')
+    .insert({
+      category_id: input.categoryId,
+      name,
+      slug: slugify(name),
+      display_order: (maxRow?.display_order ?? 0) + 1,
+      is_active: true,
+    })
+    .select('*')
+    .single();
+  throwIfError(error);
+  return mapCatalogSubcategory(data as DbSubcategory);
+}
+
+export async function persistUpdateSubcategory(
+  id: string,
+  patch: { name?: string; isActive?: boolean }
+): Promise<CatalogSubcategory> {
+  const update: Record<string, unknown> = {};
+  if (patch.name !== undefined) {
+    update.name = patch.name.trim();
+    update.slug = slugify(patch.name);
+  }
+  if (patch.isActive !== undefined) update.is_active = patch.isActive;
+  const { data, error } = await supabase.from('subcategories').update(update).eq('id', id).select('*').single();
+  throwIfError(error);
+  return mapCatalogSubcategory(data as DbSubcategory);
+}
+
+/** Only safe to call when the subcategory has 0 services left (checked by the caller). */
+export async function persistDeleteSubcategory(id: string): Promise<void> {
+  const { error } = await supabase.from('subcategories').delete().eq('id', id);
+  throwIfError(error);
+}
+
+/** Merge target must belong to the same category — reassigns services then drops the source row. */
+export async function persistMergeSubcategory(sourceId: string, targetId: string): Promise<void> {
+  const { error: reassignError } = await supabase
+    .from('services')
+    .update({ subcategory_id: targetId })
+    .eq('subcategory_id', sourceId);
+  throwIfError(reassignError);
+  const { error: deleteError } = await supabase.from('subcategories').delete().eq('id', sourceId);
+  throwIfError(deleteError);
+}
+
+export async function persistSwapSubcategoryOrder(idA: string, idB: string): Promise<void> {
+  const { data: rows, error } = await supabase.from('subcategories').select('id, display_order').in('id', [idA, idB]);
+  throwIfError(error);
+  const a = (rows ?? []).find((r) => r.id === idA);
+  const b = (rows ?? []).find((r) => r.id === idB);
+  if (!a || !b) throw new Error('No se encontraron las subcategorías a reordenar.');
+  const { error: errorA } = await supabase.from('subcategories').update({ display_order: b.display_order }).eq('id', a.id);
+  throwIfError(errorA);
+  const { error: errorB } = await supabase.from('subcategories').update({ display_order: a.display_order }).eq('id', b.id);
+  throwIfError(errorB);
 }
 
 const TECH_AVATAR_COLORS = ['bg-sky-600', 'bg-teal-600', 'bg-indigo-600', 'bg-violet-600', 'bg-cyan-600'];
@@ -28,6 +180,21 @@ function pickAvatarBg(seed: string) {
   let hash = 0;
   for (let i = 0; i < seed.length; i += 1) hash = (hash + seed.charCodeAt(i) * (i + 1)) % TECH_AVATAR_COLORS.length;
   return TECH_AVATAR_COLORS[hash] ?? 'bg-sky-600';
+}
+
+// Mirrors the requirement set seeded by supabase/sql/enable_technician_validation_workflow.sql
+// so every new technician gets a reviewable checklist, not just the ones that existed when that
+// migration ran.
+const TECHNICIAN_REQUIREMENT_TYPES = ['profile_complete', 'education_verified', 'matricula_validated', 'monotributo_approved', 'identity_verified', 'bank_account_valid'] as const;
+
+async function seedTechnicianRequirements(technicianId: string, specialty: string) {
+  const requiresMatricula = /(electric|refriger|plomer)/i.test(specialty);
+  const rows = TECHNICIAN_REQUIREMENT_TYPES.map((requirement_type) => {
+    const is_required = requirement_type === 'matricula_validated' ? requiresMatricula : true;
+    return { technician_id: technicianId, requirement_type, is_required, status: is_required ? 'pending' : 'not_required' };
+  });
+  const { error } = await supabase.from('technician_requirements').insert(rows);
+  throwIfError(error);
 }
 
 export type TechnicianWriteInput = TechnicianInput;
@@ -201,6 +368,7 @@ export async function persistCreateTechnician(
   throwIfError(error);
 
   const tech = mapTechnician(data as DbTechnician);
+  await seedTechnicianRequirements(tech.id, tech.specialty);
   return linkTechnicianAsCustomer(tech, input);
 }
 
@@ -218,6 +386,11 @@ export async function persistUpdateTechnician(
       rating: input.rating ?? 5,
       zone: input.zone,
       province: input.province,
+      work_phone: input.workPhone?.trim() || null,
+      bio: input.bio?.trim() || null,
+      education_level: input.educationLevel || null,
+      degree_title: input.degreeTitle?.trim() || null,
+      institution_name: input.institutionName?.trim() || null,
     })
     .eq('id', technicianId)
     .select('*')
@@ -339,6 +512,9 @@ export async function persistCreateService(input: ServiceItemInput): Promise<Ser
       description: input.description,
       price: input.price,
       category: input.category,
+      category_id: input.categoryId ?? null,
+      subcategoria: input.subcategoria ?? null,
+      subcategory_id: input.subcategoryId ?? null,
       estimated_duration_minutes: input.estimatedDurationMinutes ?? 60,
       features: input.features && input.features.length > 0 ? input.features : ['Garantía de servicio', 'Personal calificado'],
       active: input.active !== undefined ? input.active : true,
@@ -358,6 +534,9 @@ export async function persistUpdateService(
   if (patch.description !== undefined) update.description = patch.description;
   if (patch.price !== undefined) update.price = patch.price;
   if (patch.category !== undefined) update.category = patch.category;
+  if (patch.categoryId !== undefined) update.category_id = patch.categoryId;
+  if (patch.subcategoria !== undefined) update.subcategoria = patch.subcategoria;
+  if (patch.subcategoryId !== undefined) update.subcategory_id = patch.subcategoryId;
   if (patch.estimatedDurationMinutes !== undefined) update.estimated_duration_minutes = patch.estimatedDurationMinutes;
   if (patch.features !== undefined) update.features = patch.features;
   if (patch.active !== undefined) update.active = patch.active;
@@ -462,6 +641,8 @@ export async function persistCreateCustomerRequest(input: {
       payment_status: 'pending',
       visit_deposit_amount: input.request.workMode === 'diagnosis' ? input.visitDepositAmount : 0,
       total_quoted_amount: input.request.workMode === 'direct' ? Number(input.request.requestedTotal ?? 0) : 0,
+      fixed_price_service_id: input.request.workMode === 'direct' ? input.request.fixedPriceServiceId ?? null : null,
+      fixed_price_quantity: input.request.workMode === 'direct' ? input.request.quantity ?? null : null,
       total_paid_amount: 0,
       extra_amount: 0,
       scheduled_date: input.request.scheduledDate,
@@ -470,6 +651,7 @@ export async function persistCreateCustomerRequest(input: {
       client_phone: input.customer.phone,
       client_address: input.request.address.trim(),
       client_neighborhood: input.request.neighborhood.trim() || input.customer.neighborhood || 'A confirmar',
+      client_province: input.request.province.trim() || input.customer.province || null,
       assigned_technician_id: null,
       assigned_technician_name: null,
     })
@@ -928,5 +1110,19 @@ export async function fetchAccountInvite(token: string): Promise<AccountInvitePr
 
 export async function redeemAccountInvite(token: string) {
   const { error } = await supabase.rpc('redeem_account_invite', { p_token: token });
+  throwIfError(error);
+}
+
+// Soft-archive: hides orders from the Admin Hub's operational list without
+// deleting them (service_orders can't be physically deleted anyway once a
+// payment_transactions row references it — that FK is on delete restrict).
+// Customer and technician views never filter by archived_at, so their own
+// order history is unaffected.
+export async function persistArchiveOrders(orderIds: string[]): Promise<void> {
+  if (orderIds.length === 0) return;
+  const { error } = await supabase
+    .from('service_orders')
+    .update({ archived_at: new Date().toISOString() })
+    .in('id', orderIds);
   throwIfError(error);
 }

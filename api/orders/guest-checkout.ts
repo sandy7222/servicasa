@@ -11,6 +11,7 @@ type GuestCheckoutBody = {
   phone?: string;
   address?: string;
   neighborhood?: string;
+  province?: string;
   title?: string;
   description?: string;
   serviceType?: string;
@@ -19,6 +20,8 @@ type GuestCheckoutBody = {
   appointmentWindow?: string;
   workMode?: WorkMode;
   requestedTotal?: number;
+  fixedPriceServiceId?: string;
+  quantity?: number;
 };
 
 const MAX_TEXT = 500;
@@ -49,6 +52,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const phone = trimmed(body.phone, 40);
   const address = trimmed(body.address, 200);
   const neighborhood = trimmed(body.neighborhood, 100);
+  const province = trimmed(body.province, 60);
   const title = trimmed(body.title, 150);
   const description = trimmed(body.description, MAX_TEXT);
   const serviceType = trimmed(body.serviceType, 60) || 'Reparaciones del hogar';
@@ -58,11 +62,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const scheduledDate = trimmed(body.scheduledDate, 20) || new Date().toISOString().slice(0, 10);
   const appointmentWindow = trimmed(body.appointmentWindow, 60) || 'A coordinar';
   const workMode: WorkMode = body.workMode === 'direct' ? 'direct' : 'diagnosis';
+  const fixedPriceServiceId = trimmed(body.fixedPriceServiceId, 100) || null;
+  const quantity = Math.max(1, Math.min(20, Math.floor(Number(body.quantity) || 1)));
 
-  if (!fullName || !EMAIL_RE.test(email) || !phone || !address || !title || !description) {
+  if (!fullName || !EMAIL_RE.test(email) || !phone || !address || !province || !title || !description) {
     return res.status(400).json({ error: 'Completá todos los campos obligatorios con datos válidos.' });
   }
-  if (workMode === 'direct' && !(Number(body.requestedTotal) > 0)) {
+  if (workMode === 'direct' && !fixedPriceServiceId) {
     return res.status(400).json({ error: 'Elegí un servicio de precio fijo válido.' });
   }
 
@@ -87,12 +93,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (customerId) {
     await supabaseAdmin
       .from('customers')
-      .update({ name: fullName, address, neighborhood, phone })
+      .update({ name: fullName, address, neighborhood, province, phone })
       .eq('id', customerId);
   } else {
     const { data: newCustomer, error: insertCustomerError } = await supabaseAdmin
       .from('customers')
-      .insert({ name: fullName, address, neighborhood, phone, email, profile_id: null })
+      .insert({ name: fullName, address, neighborhood, province, phone, email, profile_id: null })
       .select('id')
       .single();
     if (insertCustomerError || !newCustomer) {
@@ -130,6 +136,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       payment_status: 'pending',
       visit_deposit_amount: workMode === 'diagnosis' ? visitDepositAmount : 0,
       total_quoted_amount: workMode === 'direct' ? Number(body.requestedTotal ?? 0) : 0,
+      fixed_price_service_id: workMode === 'direct' ? fixedPriceServiceId : null,
+      fixed_price_quantity: workMode === 'direct' ? quantity : null,
       total_paid_amount: 0,
       extra_amount: 0,
       scheduled_date: scheduledDate,
@@ -138,19 +146,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       client_phone: phone,
       client_address: address,
       client_neighborhood: neighborhood || 'A confirmar',
+      client_province: province,
       assigned_technician_id: null,
       assigned_technician_name: null,
       guest_access_token: guestAccessToken,
     })
-    .select('id')
+    .select('id, total_quoted_amount, visit_deposit_amount')
     .single();
   if (orderError || !order) {
     console.error('[orders/guest-checkout] Error creando orden', orderError);
     return res.status(500).json({ error: 'No se pudo crear la solicitud.' });
   }
 
+  // No confiar en body.requestedTotal para el monto real a cobrar: el
+  // trigger service_orders_enforce_pricing ya recalculó estas columnas desde
+  // el catálogo/system_settings al insertar, así que son la fuente confiable.
   const paymentType = workMode === 'diagnosis' ? 'visit_deposit' : 'full_advance';
-  const amount = workMode === 'diagnosis' ? visitDepositAmount : Number(body.requestedTotal ?? 0);
+  const amount = workMode === 'diagnosis' ? Number(order.visit_deposit_amount) : Number(order.total_quoted_amount);
+  if (!amount || amount <= 0) {
+    console.error('[orders/guest-checkout] Monto inválido tras el trigger de precios', order);
+    return res.status(409).json({ error: 'No se pudo calcular el monto a cobrar.' });
+  }
 
   const { data: transaction, error: txError } = await supabaseAdmin
     .from('payment_transactions')

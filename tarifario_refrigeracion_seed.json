@@ -1,0 +1,30 @@
+{
+  "fuente": "https://www.electroinstalador.com/paginas/p192-pais--cmo--refrigeracion",
+  "extraido": "2026-08-21",
+  "moneda": "ARS",
+  "items": [
+    { "categoria": "INSTALACIÓN ESTÁNDAR DE AIRE ACONDICIONADO", "subcategoria": null, "detalle": "De 0 a 3.499 Fg", "precio": 120000, "unidad": "ARS" },
+    { "categoria": "INSTALACIÓN ESTÁNDAR DE AIRE ACONDICIONADO", "subcategoria": null, "detalle": "De 3.500 a 5.499 Fg", "precio": 140000, "unidad": "ARS" },
+    { "categoria": "INSTALACIÓN ESTÁNDAR DE AIRE ACONDICIONADO", "subcategoria": null, "detalle": "De 5.500 a 6.299 Fg", "precio": 180000, "unidad": "ARS" },
+    { "categoria": "INSTALACIÓN ESTÁNDAR DE AIRE ACONDICIONADO", "subcategoria": null, "detalle": "De 6.300 a 7.999 Fg", "precio": 200000, "unidad": "ARS" },
+    { "categoria": "INSTALACIÓN ESTÁNDAR DE AIRE ACONDICIONADO", "subcategoria": null, "detalle": "De 8.000 a 8.999 Fg", "precio": 250000, "unidad": "ARS" },
+    { "categoria": "INSTALACIÓN ESTÁNDAR DE AIRE ACONDICIONADO", "subcategoria": null, "detalle": "Roof-Top de 9.000 a 14.999 Fg", "precio": 360000, "unidad": "ARS" },
+    { "categoria": "INSTALACIÓN ESTÁNDAR DE AIRE ACONDICIONADO", "subcategoria": null, "detalle": "De 15.000 a 18.000 Fg", "precio": 420000, "unidad": "ARS" },
+
+    { "categoria": "PRE-INSTALACIÓN Y DESINSTALACIÓN", "subcategoria": null, "detalle": "Pre-instalación estándar (cañerías aisladas, cable y caja embutidas)", "precio": 120000, "unidad": "ARS" },
+    { "categoria": "PRE-INSTALACIÓN Y DESINSTALACIÓN", "subcategoria": null, "detalle": "Montaje split sobre pre-instalación", "precio": 120000, "unidad": "ARS" },
+    { "categoria": "PRE-INSTALACIÓN Y DESINSTALACIÓN", "subcategoria": null, "detalle": "Desinstalación de A.A. hasta 6000 Fg", "precio": 90000, "unidad": "ARS" },
+
+    { "categoria": "VISITA TÉCNICA", "subcategoria": null, "detalle": "Visita técnica (diagnóstico/presupuesto)", "precio": 30000, "unidad": "ARS" },
+
+    { "categoria": "LIMPIEZA Y MANTENIMIENTO DE A.A. SPLIT", "subcategoria": null, "detalle": "Hasta 6000 Fg (sin desinstalación)", "precio": 60000, "unidad": "ARS" },
+    { "categoria": "LIMPIEZA Y MANTENIMIENTO DE A.A. SPLIT", "subcategoria": null, "detalle": "Hasta 6000 Fg (con desinstalación)", "precio": 90000, "unidad": "ARS" },
+
+    { "categoria": "DETECCIÓN, REPARACIÓN DE FUGA Y CARGA DE REFRIGERANTE", "subcategoria": null, "detalle": "R410a", "precio": 90000, "unidad": "ARS", "nota": "Precio publicado como 'desde $90.000' — puede variar según el diagnóstico." },
+    { "categoria": "DETECCIÓN, REPARACIÓN DE FUGA Y CARGA DE REFRIGERANTE", "subcategoria": null, "detalle": "R22", "precio": 90000, "unidad": "ARS", "nota": "Precio publicado como 'desde $90.000' — puede variar según el diagnóstico." },
+
+    { "categoria": "RECAMBIOS", "subcategoria": null, "detalle": "Recambio de capacitor", "precio": 60000, "unidad": "ARS" },
+    { "categoria": "RECAMBIOS", "subcategoria": null, "detalle": "M.O. Recambio de motocompresor", "precio": null, "unidad": "PRESUPUESTAR", "nota": "La fuente indica 'Igual al valor de materiales' en vez de un monto fijo — no tiene precio numérico publicado, depende del costo del repuesto." },
+    { "categoria": "RECAMBIOS", "subcategoria": null, "detalle": "Recambio de Placa lógica", "precio": 90000, "unidad": "ARS" }
+  ]
+}

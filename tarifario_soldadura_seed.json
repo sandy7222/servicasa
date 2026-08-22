@@ -1,0 +1,28 @@
+{
+  "fuentes": [
+    "https://ellaburante.com/blog/soldador-precios-2026"
+  ],
+  "extraido": "2026-08-22",
+  "moneda": "ARS",
+  "criterio": "Precio = punto medio del rango publicado por la fuente. Fuente única (a diferencia de Plomería/Cerrajería), mismo criterio que se usó con Refrigeración. Se excluyó el recargo por técnica de soldadura (MIG/TIG/aluminio/acero inoxidable son porcentajes sobre el precio base, no ítems de catálogo) y no hay 'visita' propia en esta fuente.",
+  "items": [
+    { "categoria": "PERSONAL CONTRATADO", "subcategoria": null, "detalle": "Soldador básico", "precio": 10000, "unidad": "ARS/h" },
+    { "categoria": "PERSONAL CONTRATADO", "subcategoria": null, "detalle": "Soldador especializado", "precio": 15000, "unidad": "ARS/h" },
+    { "categoria": "PERSONAL CONTRATADO", "subcategoria": null, "detalle": "Soldador TIG / aluminio", "precio": 20000, "unidad": "ARS/h" },
+    { "categoria": "PERSONAL CONTRATADO", "subcategoria": null, "detalle": "Jornada completa (8 horas)", "precio": 72500, "unidad": "ARS" },
+    { "categoria": "PERSONAL CONTRATADO", "subcategoria": null, "detalle": "Jornada completa especializada (8 horas)", "precio": 115000, "unidad": "ARS" },
+
+    { "categoria": "TRABAJOS COMUNES", "subcategoria": null, "detalle": "Soldadura de reja suelta", "precio": 25000, "unidad": "ARS" },
+    { "categoria": "TRABAJOS COMUNES", "subcategoria": null, "detalle": "Reparación de portón", "precio": 42500, "unidad": "ARS" },
+    { "categoria": "TRABAJOS COMUNES", "subcategoria": null, "detalle": "Soldadura de caño de escape", "precio": 32500, "unidad": "ARS" },
+    { "categoria": "TRABAJOS COMUNES", "subcategoria": null, "detalle": "Soldadura de chasis de auto", "precio": 70000, "unidad": "ARS" },
+    { "categoria": "TRABAJOS COMUNES", "subcategoria": null, "detalle": "Reparación de tanque", "precio": 55000, "unidad": "ARS" },
+
+    { "categoria": "ESTRUCTURAS METÁLICAS", "subcategoria": null, "detalle": "Reja simple (por metro lineal)", "precio": 47500, "unidad": "ARS/metro" },
+    { "categoria": "ESTRUCTURAS METÁLICAS", "subcategoria": null, "detalle": "Reja de diseño (por metro lineal)", "precio": 90000, "unidad": "ARS/metro" },
+    { "categoria": "ESTRUCTURAS METÁLICAS", "subcategoria": null, "detalle": "Portón corredizo (2 metros)", "precio": 350000, "unidad": "ARS" },
+    { "categoria": "ESTRUCTURAS METÁLICAS", "subcategoria": null, "detalle": "Portón de garaje (3 metros)", "precio": 475000, "unidad": "ARS" },
+    { "categoria": "ESTRUCTURAS METÁLICAS", "subcategoria": null, "detalle": "Escalera metálica (por escalón)", "precio": 37500, "unidad": "ARS/escalón" },
+    { "categoria": "ESTRUCTURAS METÁLICAS", "subcategoria": null, "detalle": "Baranda / pasamanos (por metro lineal)", "precio": 60000, "unidad": "ARS/metro" }
+  ]
+}

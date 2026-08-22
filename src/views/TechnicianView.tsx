@@ -327,6 +327,11 @@ export const TechnicianView: React.FC = () => {
                       </div>
 
                       <h3 className="font-bold text-xs text-slate-900 line-clamp-1">{ord.title}</h3>
+                      {ord.quoteStatus === 'rejected' && (
+                        <span className="mt-1 inline-block rounded border border-rose-200 bg-rose-50 px-1.5 py-0.5 text-[10px] font-bold text-rose-800">
+                          Presupuesto rechazado
+                        </span>
+                      )}
 
                       <div className="space-y-1 mt-1.5 text-xs text-slate-600">
                         <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-800">
@@ -384,7 +389,13 @@ export const TechnicianView: React.FC = () => {
                         </button>
                       )}
 
-                      {activeOrder.status === 'assigned' && !canExecutePaidWork(activeOrder) && (
+                      {activeOrder.status === 'assigned' && !canExecutePaidWork(activeOrder) && activeOrder.quoteStatus === 'rejected' && (
+                        <span className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-900">
+                          Presupuesto rechazado por el cliente
+                        </span>
+                      )}
+
+                      {activeOrder.status === 'assigned' && !canExecutePaidWork(activeOrder) && activeOrder.quoteStatus !== 'rejected' && (
                         <span className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-900">
                           {activeOrder.workMode === 'diagnosis' ? 'Esperando aceptación y pago' : 'Esperando pago confirmado'}
                         </span>

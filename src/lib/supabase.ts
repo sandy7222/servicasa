@@ -59,6 +59,7 @@ export type DbCustomer = {
   name: string;
   address: string;
   neighborhood: string;
+  province: string | null;
   phone: string;
   email: string;
   notes: string | null;
@@ -80,9 +81,31 @@ export type DbService = {
   description: string;
   price: number;
   category: string;
+  subcategoria: string | null;
+  category_id: string | null;
+  subcategory_id: string | null;
   estimated_duration_minutes: number;
   features: string[];
   active: boolean;
+};
+
+export type DbCategory = {
+  id: string;
+  name: string;
+  slug: string;
+  icon: string | null;
+  description: string | null;
+  display_order: number;
+  is_active: boolean;
+};
+
+export type DbSubcategory = {
+  id: string;
+  category_id: string;
+  name: string;
+  slug: string;
+  display_order: number;
+  is_active: boolean;
 };
 
 export type DbSystemSetting = {
@@ -121,6 +144,7 @@ export type DbServiceOrder = {
   client_phone: string;
   client_address: string;
   client_neighborhood: string;
+  client_province?: string | null;
   assigned_technician_id: string | null;
   assigned_technician_name: string | null;
   work_mode?: 'diagnosis' | 'direct' | null;
@@ -139,6 +163,7 @@ export type DbServiceOrder = {
   admin_incident_resolved_at?: string | null;
   admin_exception_reason?: string | null;
   admin_exception_closed_at?: string | null;
+  archived_at?: string | null;
 };
 
 export type DbOrderQuote = {

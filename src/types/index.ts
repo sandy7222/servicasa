@@ -6,6 +6,9 @@ export type ServiceType =
   | 'Reparaciones del hogar'
   | 'Mantenimiento general'
   | 'Instalación de equipos'
+  | 'Cerrajería'
+  | 'Refrigeración'
+  | 'Soldadura'
   | string;
 
 export interface ServiceItem {
@@ -14,9 +17,34 @@ export interface ServiceItem {
   description: string;
   price: number;
   category: string;
+  subcategoria?: string | null;
+  categoryId?: string | null;
+  subcategoryId?: string | null;
   estimatedDurationMinutes?: number;
   features?: string[];
   active?: boolean;
+}
+
+/** Real relational categories/subcategories (Supabase-backed) — see
+ * plan-categorias-subcategorias.md. Not to be confused with the legacy
+ * `ServiceCategory`/`serviceCategories` below, which is localStorage-only. */
+export interface CatalogCategory {
+  id: string;
+  name: string;
+  slug: string;
+  icon?: string | null;
+  description?: string | null;
+  displayOrder: number;
+  active: boolean;
+}
+
+export interface CatalogSubcategory {
+  id: string;
+  categoryId: string;
+  name: string;
+  slug: string;
+  displayOrder: number;
+  active: boolean;
 }
 
 export interface ServiceCategory {
@@ -41,6 +69,9 @@ export type ServiceItemInput = {
   description: string;
   price: number;
   category: string;
+  categoryId?: string | null;
+  subcategoria?: string | null;
+  subcategoryId?: string | null;
   estimatedDurationMinutes?: number;
   features?: string[];
   active?: boolean;
@@ -58,6 +89,7 @@ export type AdminIncidentStatus = 'none' | 'open' | 'resolved';
 export interface QuoteItem {
   id: string;
   categoryId?: string;
+  serviceId?: string;
   itemType: 'labor' | 'material';
   description: string;
   quantity: number;
@@ -170,6 +202,7 @@ export interface ServiceOrder {
   scheduledDate: string;
   createdAt: string;
   completedAt?: string;
+  archivedAt?: string;
   /** Inicio de la sesión de trabajo actualmente en curso. */
   workStartedAt?: string;
   /** Segundos de trabajo acumulados en sesiones ya pausadas o finalizadas. */
@@ -179,6 +212,7 @@ export interface ServiceOrder {
   clientPhone: string;
   clientAddress: string;
   clientNeighborhood: string;
+  clientProvince?: string;
   assignedTechnicianId: string | null;
   assignedTechnicianName: string | null;
   checklist: ChecklistItem[];
@@ -199,9 +233,17 @@ export type CustomerServiceRequestInput = {
   appointmentWindow: string;
   address: string;
   neighborhood: string;
+  province: string;
   workMode: WorkMode;
-  /** Informative catalog price. The payment endpoint must recalculate it server-side. */
+  /** Informative catalog price, only used for optimistic UI before the insert
+   * returns. The DB trigger `service_orders_enforce_pricing` recalculates the
+   * real amount server-side from `fixedPriceServiceId` + `quantity`. */
   requestedTotal?: number;
+  /** Required when workMode === 'direct': which `services` catalog item
+   * (filtered to the chosen rubro) and how many units, so the server can
+   * recompute the real price. */
+  fixedPriceServiceId?: string;
+  quantity?: number;
 };
 
 /** Same as CustomerServiceRequestInput, plus the contact data a guest (no
@@ -252,6 +294,11 @@ export type TechnicianInput = {
   customerAddress?: string;
   customerNeighborhood?: string;
   customerNotes?: string;
+  workPhone?: string;
+  bio?: string;
+  educationLevel?: 'idoneo' | 'curso_certificado' | 'tecnico' | 'tecnico_superior' | 'ingeniero' | 'otro' | '';
+  degreeTitle?: string;
+  institutionName?: string;
 };
 
 export interface Customer {
@@ -259,6 +306,7 @@ export interface Customer {
   name: string;
   address: string;
   neighborhood: string;
+  province?: string;
   phone: string;
   email: string;
   notes?: string;

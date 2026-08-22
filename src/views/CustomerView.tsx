@@ -173,6 +173,11 @@ export const CustomerView: React.FC = () => {
                       </div>
 
                       <h3 className="font-bold text-xs text-slate-900 line-clamp-1">{ord.title}</h3>
+                      {ord.quoteStatus === 'rejected' && (
+                        <span className="mt-1 inline-block rounded border border-rose-200 bg-rose-50 px-1.5 py-0.5 text-[10px] font-bold text-rose-800">
+                          Presupuesto rechazado
+                        </span>
+                      )}
 
                       <div className="space-y-1 mt-1.5 text-xs text-slate-600">
                         <div className="flex items-center gap-1 text-[10px] text-slate-500">

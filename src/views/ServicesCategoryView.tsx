@@ -23,7 +23,7 @@ const formatDuration = (minutes?: number) => {
 };
 
 export const ServicesCategoryView: React.FC = () => {
-  const { navigate, services, currentPath, currentUser, showToast } = useApp();
+  const { navigate, services, catalogCategories, catalogSubcategories, currentPath, currentUser, showToast } = useApp();
   const [search, setSearch] = useState('');
   const [openId, setOpenId] = useState<string>();
 
@@ -42,6 +42,38 @@ export const ServicesCategoryView: React.FC = () => {
     const filtered = term ? base.filter((s) => s.name.toLowerCase().includes(term)) : base;
     return [...filtered].sort((a, b) => a.name.localeCompare(b.name, 'es'));
   }, [services, selectedCategory, search]);
+
+  // Agrupa por subcategoría real (categories/subcategories, ver
+  // plan-categorias-subcategorias.md Fase 3). Los servicios sin
+  // subcategoryId (categorías de un solo ítem) quedan en un grupo "suelto"
+  // sin encabezado propio.
+  const subcategoryGroups = useMemo(() => {
+    const category = catalogCategories.find(
+      (c) => c.name.toLowerCase() === (selectedCategory ?? '').toLowerCase()
+    );
+    const orderedSubcategories = category
+      ? catalogSubcategories
+          .filter((sc) => sc.categoryId === category.id)
+          .sort((a, b) => a.displayOrder - b.displayOrder)
+      : [];
+
+    const groups: { id: string | null; name: string | null; services: typeof categoryServices }[] = [];
+    const placedIds = new Set<string>();
+    orderedSubcategories.forEach((sc) => {
+      const items = categoryServices.filter((s) => s.subcategoryId === sc.id);
+      if (items.length > 0) {
+        groups.push({ id: sc.id, name: sc.name, services: items });
+        items.forEach((s) => placedIds.add(s.id));
+      }
+    });
+    // Cualquier servicio que no cayó en ningún grupo de arriba — ya sea
+    // porque no tiene subcategoryId, o porque categories/subcategories
+    // todavía no cargó (ej. RLS de lectura anónima pendiente) — se muestra
+    // igual, sin encabezado, en vez de desaparecer silenciosamente.
+    const ungrouped = categoryServices.filter((s) => !placedIds.has(s.id));
+    if (ungrouped.length > 0) groups.push({ id: null, name: null, services: ungrouped });
+    return groups;
+  }, [categoryServices, catalogCategories, catalogSubcategories, selectedCategory]);
 
   const totalInCategory = useMemo(() => {
     if (!selectedCategory) return 0;
@@ -163,64 +195,73 @@ export const ServicesCategoryView: React.FC = () => {
             </p>
           </div>
         ) : (
-          <div className="rounded-2xl border border-slate-200 divide-y divide-slate-100 overflow-hidden">
-            {categoryServices.map((srv) => {
-              const isOpen = openId === srv.id;
-              const duration = formatDuration(srv.estimatedDurationMinutes);
-              return (
-                <div key={srv.id} className="bg-white">
-                  <button
-                    type="button"
-                    onClick={() => setOpenId(isOpen ? undefined : srv.id)}
-                    className="w-full flex items-center justify-between gap-3 px-4 sm:px-5 py-3.5 text-left hover:bg-slate-50 transition-colors"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-sm text-slate-900 truncate">{srv.name}</p>
-                      {duration && (
-                        <span className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-slate-500">
-                          <Clock className="w-3 h-3" />
-                          {duration}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-3 shrink-0">
-                      <span className="font-mono font-bold text-teal-800 bg-teal-50 border border-teal-200 px-2 py-1 rounded-lg text-xs sm:text-sm">
-                        ${srv.price.toLocaleString('es-AR')}
-                      </span>
-                      <ChevronDown
-                        className={`w-4 h-4 text-slate-400 transition-transform shrink-0 ${isOpen ? 'rotate-180' : ''}`}
-                      />
-                    </div>
-                  </button>
+          <div className="space-y-6">
+            {subcategoryGroups.map((group) => (
+              <div key={group.id ?? 'sin-subcategoria'}>
+                {group.name && (
+                  <h2 className="text-sm font-bold text-slate-700 mb-2 px-1">{group.name}</h2>
+                )}
+                <div className="rounded-2xl border border-slate-200 divide-y divide-slate-100 overflow-hidden">
+                  {group.services.map((srv) => {
+                    const isOpen = openId === srv.id;
+                    const duration = formatDuration(srv.estimatedDurationMinutes);
+                    return (
+                      <div key={srv.id} className="bg-white">
+                        <button
+                          type="button"
+                          onClick={() => setOpenId(isOpen ? undefined : srv.id)}
+                          className="w-full flex items-center justify-between gap-3 px-4 sm:px-5 py-3.5 text-left hover:bg-slate-50 transition-colors"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="font-semibold text-sm text-slate-900 truncate">{srv.name}</p>
+                            {duration && (
+                              <span className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-slate-500">
+                                <Clock className="w-3 h-3" />
+                                {duration}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-3 shrink-0">
+                            <span className="font-mono font-bold text-teal-800 bg-teal-50 border border-teal-200 px-2 py-1 rounded-lg text-xs sm:text-sm">
+                              ${srv.price.toLocaleString('es-AR')}
+                            </span>
+                            <ChevronDown
+                              className={`w-4 h-4 text-slate-400 transition-transform shrink-0 ${isOpen ? 'rotate-180' : ''}`}
+                            />
+                          </div>
+                        </button>
 
-                  {isOpen && (
-                    <div className="px-4 sm:px-5 pb-4 pt-1 border-t border-slate-100 bg-slate-50/60 space-y-3">
-                      <p className="text-sm text-slate-600 leading-relaxed pt-3">{srv.description}</p>
+                        {isOpen && (
+                          <div className="px-4 sm:px-5 pb-4 pt-1 border-t border-slate-100 bg-slate-50/60 space-y-3">
+                            <p className="text-sm text-slate-600 leading-relaxed pt-3">{srv.description}</p>
 
-                      {srv.features && srv.features.length > 0 && (
-                        <div className="space-y-1.5">
-                          {srv.features.map((feat, idx) => (
-                            <div key={idx} className="flex items-center gap-2 text-xs text-slate-700">
-                              <CheckCircle2 className="w-3.5 h-3.5 text-teal-600 shrink-0" />
-                              <span>{feat}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                            {srv.features && srv.features.length > 0 && (
+                              <div className="space-y-1.5">
+                                {srv.features.map((feat, idx) => (
+                                  <div key={idx} className="flex items-center gap-2 text-xs text-slate-700">
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-teal-600 shrink-0" />
+                                    <span>{feat}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
 
-                      <button
-                        type="button"
-                        onClick={() => handleCreateOrder(srv.id)}
-                        className="w-full sm:w-auto px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-colors shadow-xs"
-                      >
-                        <Plus className="w-4 h-4" />
-                        Crear Orden
-                      </button>
-                    </div>
-                  )}
+                            <button
+                              type="button"
+                              onClick={() => handleCreateOrder(srv.id)}
+                              className="w-full sm:w-auto px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-colors shadow-xs"
+                            >
+                              <Plus className="w-4 h-4" />
+                              Crear Orden
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         )}
       </main>

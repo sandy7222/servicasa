@@ -36,8 +36,16 @@ const inputWithIconClass =
 const labelClass = 'block text-xs font-bold text-slate-700 font-mono uppercase tracking-wider mb-1.5';
 
 export const AuthView: React.FC = () => {
-  const { loginWithPassword, registerWithInvite, registerCustomer, submitTechnicianApplication, authLoading, showToast } =
+  const { loginWithPassword, registerWithInvite, registerCustomer, submitTechnicianApplication, authLoading, showToast, services } =
     useApp();
+  // Only rubros the platform actually works — same source the customer's own
+  // "Solicitar servicio" form uses — so a technician can't apply for a
+  // specialty ServiCasa doesn't offer.
+  const specialtyOptions = useMemo(() => {
+    const values = new Set<string>(['Electricidad']);
+    services.filter((service) => service.active !== false).forEach((service) => values.add(service.category));
+    return [...values].sort((a, b) => a.localeCompare(b, 'es'));
+  }, [services]);
   const inviteToken = useMemo(() => readInviteToken(), []);
   const [invite, setInvite] = useState<AccountInvitePreview | null>(null);
   const [inviteLoading, setInviteLoading] = useState(Boolean(inviteToken));
@@ -621,16 +629,19 @@ export const AuthView: React.FC = () => {
               <div>
                 <label className={labelClass}>Especialidad</label>
                 <div className="relative">
-                  <Wrench className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
+                  <Wrench className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <select
                     value={appSpecialty}
                     onChange={(e) => setAppSpecialty(e.target.value)}
                     disabled={authLoading}
-                    placeholder="Ej: Plomería, Electricidad…"
                     className={inputWithIconClass}
                     required
-                  />
+                  >
+                    <option value="">Elegí un rubro</option>
+                    {specialtyOptions.map((option) => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
