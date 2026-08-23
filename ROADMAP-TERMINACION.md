@@ -23,6 +23,15 @@
 > - [x] Categorías/subcategorías y la unificación del catálogo de pago directo quedan formalizadas dentro de este mismo baseline (que refleja el estado actual de la base) — confirmado por Code, no hace falta migración aparte para esos dos ítems.
 > - [x] Commit `5be50a2` ya subido a GitHub.
 > - [ ] Quedan pendientes de la Fase 1: regenerar tipos TypeScript y escribir las pruebas pgTAP — incluyendo el test obligatorio de rechazo de precio manipulado en ambos triggers, arrastrado sin confirmar desde el 22/8.
+>
+> **Cuarta actualización (23/8, sesión continuada — Fase 4):** Fase 4 (centro general de notificaciones) resuelta y probada en producción:
+> - [x] Tabla universal `notifications` (`recipient_profile_id`, tipo, título, cuerpo, entidad relacionada, prioridad, `read_at`, clave de idempotencia `dedupe_key` con índice único parcial) + mapa evento→destinatario implementado como triggers sobre las tablas reales: asignación de orden, presupuesto enviado/aceptado/rechazado, pago aprobado/rechazado/pendiente, reclamo abierto/respondido/resuelto, mensaje nuevo, liquidación programada/liberada/pagada.
+> - [x] `technician_notifications` (validación técnica) integrado por espejo automático hacia `notifications` — no se duplicó el sistema; la vista propia del técnico sigue leyendo la tabla original sin cambios.
+> - [x] Bandeja con campana + badge de no leídos en el `Header` (`NotificationBell.tsx`), marcar uno/todos como leídos, enlace a la entidad (reclamo/conversación con ruta real; orden/pago aterriza en el espacio de trabajo del rol).
+> - [x] Duplicados de webhook cubiertos con prueba en vivo: dos actualizaciones de estado sobre la misma fila de `payment_transactions` (simulando un reintento real de Mercado Pago) producen una sola notificación gracias al `dedupe_key` único.
+> - [x] **Hallazgo de seguridad durante la propia verificación:** `create_notification()` y el resto de funciones `SECURITY DEFINER` del módulo quedaban con `EXECUTE` público por el comportamiento por defecto de Postgres — cualquier usuario autenticado (o anónimo) podía llamarlas directo por `/rest/v1/rpc/...` y forjar notificaciones para cualquier destinatario con contenido arbitrario. Corregido revocando `EXECUTE` de `anon`/`authenticated` en las 14 funciones nuevas (las triggers siguen disparando igual — no necesitan el permiso). Confirmado con un test negativo en vivo.
+> - [x] 14/14 pruebas de RLS/idempotencia en vivo (`supabase/tests/notifications_rls.sql`), con rollback — cubren aislamiento por destinatario, admin viendo todo, protección contra reescritura de campos ajenos a `read_at`, y el caso de webhook duplicado.
+> - [ ] Queda pendiente para más adelante: deep-link preciso a la orden puntual para admin/técnico (hoy aterriza en el espacio de trabajo general, no en la orden exacta — el cliente sí tiene ruta exacta vía `/customer/orders/:id`); límites de retención/paginación de la bandeja si crece mucho.
 
 ---
 
@@ -404,26 +413,26 @@ La recomendación inicial es el sistema general, con conversaciones asociadas a 
 
 ### Trabajo
 
-- [ ] Crear una tabla general `notifications` ligada a `recipient_profile_id`.
-- [ ] Campos mínimos: tipo, título, cuerpo breve, entidad relacionada, fecha, `read_at`, prioridad y clave idempotente.
-- [ ] Migrar o encapsular `technician_notifications` para evitar dos sistemas permanentes.
-- [ ] Generar avisos para:
-   - nueva orden y asignación;
-   - presupuesto enviado, aceptado o rechazado;
-   - pago aprobado, rechazado o pendiente;
-   - reclamo abierto, respondido o resuelto;
-   - mensaje nuevo;
-   - liquidación liberada, programada o pagada;
-   - validación técnica.
-- [ ] Agregar campana, badge, centro de avisos, marcar uno/todos como leídos y enlace a la entidad.
-- [ ] En esta fase priorizar in-app. Email y push deben quedar como canales posteriores configurables, no mezclados con la lógica de negocio.
+- [x] Crear una tabla general `notifications` ligada a `recipient_profile_id`.
+- [x] Campos mínimos: tipo, título, cuerpo breve, entidad relacionada, fecha, `read_at`, prioridad y clave idempotente.
+- [x] Migrar o encapsular `technician_notifications` para evitar dos sistemas permanentes (espejo automático vía trigger, sin tocar la tabla ni la vista original).
+- [x] Generar avisos para:
+   - [x] nueva orden y asignación;
+   - [x] presupuesto enviado, aceptado o rechazado;
+   - [x] pago aprobado, rechazado o pendiente;
+   - [x] reclamo abierto, respondido o resuelto;
+   - [x] mensaje nuevo;
+   - [x] liquidación liberada, programada o pagada;
+   - [x] validación técnica.
+- [x] Agregar campana, badge, centro de avisos, marcar uno/todos como leídos y enlace a la entidad.
+- [x] En esta fase se priorizó in-app. Email y push quedan afuera, sin lógica mezclada.
 
 ### Criterio de aceptación
 
-- [ ] Cada evento crítico crea un solo aviso, aun si un webhook se repite.
-- [ ] El destinatario ve únicamente sus notificaciones.
-- [ ] Marcar como leído funciona y el contador no queda desactualizado.
-- [ ] El enlace abre la orden, reclamo, pago o conversación correcta.
+- [x] Cada evento crítico crea un solo aviso, aun si un webhook se repite — probado en vivo simulando un reintento real de Mercado Pago sobre la misma fila de `payment_transactions`.
+- [x] El destinatario ve únicamente sus notificaciones (admin ve todas, por diseño — acceso de backend, mismo criterio que Reclamos y Conversaciones).
+- [x] Marcar como leído funciona y el contador no queda desactualizado (optimista en el cliente + persistido).
+- [x] El enlace abre la orden, reclamo, pago o conversación correcta — exacto para reclamo/conversación; para orden/presupuesto/pago aterriza en el espacio de trabajo del rol (admin/técnico no tienen ruta por id todavía; el cliente sí, vía `/customer/orders/:id`).
 
 ### Pedido para Claude Code
 
@@ -715,7 +724,7 @@ Actualizar esta tabla al cerrar cada fase.
 | 1. Supabase reproducible | 🟡 En curso — baseline reconstruible ya probado, faltan tipos TS y pruebas pgTAP | 23/8/2026 |  | `feature/mercadopago-payments-backend` | `supabase/migrations/20260823000000_baseline_live_schema.sql` + `20260823185803_remote_schema.sql`, verificados con `supabase migration list` (2/2) y una reconstrucción real desde cero |
 | 2. Reclamos y garantías | 🟡 Casi — falta atomicidad en resolución, ventana de garantía y evidencia técnica | 23/8/2026 |  | `feature/mercadopago-payments-backend` | Migración `connect_support_cases_module`; `ClaimDetail.tsx`, `MyClaimsPanel.tsx`; `supabase/tests/support_cases_rls.sql` (7/7 OK); probado en vivo con 3 cuentas reales (admin, Julián, Carlos) |
 | 3. Comunicación | 🟡 Casi — falta límites de contenido/frecuencia, y no se probó reconexión de Realtime | 23/8/2026 |  | `feature/mercadopago-payments-backend` | ADR aprobada; migraciones `create_conversations_messaging_system` + 3 fixes; `supabase/tests/conversations_rls.sql` (11/11 OK); probado en vivo con Realtime bidireccional real entre Julián y Carlos |
-| 4. Notificaciones | ⬜ Pendiente |  |  |  |  |
+| 4. Notificaciones | 🟡 Casi — falta deep-link exacto de orden para admin/técnico y paginación de la bandeja | 23/8/2026 | 23/8/2026 | `feature/mercadopago-payments-backend` | Migraciones `notifications_center` + `notifications_center_lock_internal_functions`; `NotificationBell.tsx`; `supabase/tests/notifications_rls.sql` (14/14 OK); probado en vivo con admin y Julián |
 | 5. Liquidaciones | ⬜ Pendiente |  |  |  |  |
 | 6. Metas y elegibilidad | ⬜ Pendiente |  |  |  |  |
 | 7. Configuración | ⬜ Pendiente |  |  |  |  |

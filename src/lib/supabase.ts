@@ -268,3 +268,16 @@ export type DbMessageRead = {
   profile_id: string;
   read_at: string;
 };
+
+export type DbNotification = {
+  id: string;
+  recipient_profile_id: string;
+  type: string;
+  title: string;
+  body: string | null;
+  entity_type: string | null;
+  entity_id: string | null;
+  priority: 'low' | 'normal' | 'high';
+  read_at: string | null;
+  created_at: string;
+};

@@ -14,6 +14,7 @@ import {
 import { Logo } from './Logo';
 import { useApp } from '../../context/AppContext';
 import { RoleSwitcherModal } from './RoleSwitcherModal';
+import { NotificationBell } from './NotificationBell';
 import { DEMO_MODE } from '../../lib/featureFlags';
 import { fetchTotalUnreadCount } from '../../lib/conversations';
 import type { UserRole } from '../../types';
@@ -152,6 +153,7 @@ export const Header: React.FC = () => {
             <div className="hidden sm:flex items-center gap-2">
               {!authReady ? null : isAuthenticated && currentUser ? (
                 <>
+                  <NotificationBell />
                   {DEMO_MODE ? (
                     <button
                       onClick={() => setIsSwitcherOpen(true)}
@@ -211,6 +213,7 @@ export const Header: React.FC = () => {
 
             {/* Mobile menu trigger */}
             <div className="flex md:hidden items-center gap-1.5">
+              {authReady && isAuthenticated && currentUser && <NotificationBell />}
               {authReady && (DEMO_MODE ? (
                 <button
                   onClick={() => setIsSwitcherOpen(true)}

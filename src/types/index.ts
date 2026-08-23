@@ -481,3 +481,26 @@ export interface Conversation {
   messages: ConversationMessage[];
   unreadCount: number;
 }
+
+export type NotificationType =
+  | 'order_assigned'
+  | 'quote_sent' | 'quote_accepted' | 'quote_rejected'
+  | 'payment_approved' | 'payment_rejected' | 'payment_pending'
+  | 'claim_opened' | 'claim_message' | 'claim_resolved'
+  | 'message_new'
+  | 'settlement_scheduled' | 'settlement_released' | 'settlement_paid'
+  | 'technician_validation';
+
+export type NotificationEntityType = 'order' | 'quote' | 'payment' | 'claim' | 'conversation' | 'settlement' | 'technician_validation';
+
+export interface AppNotification {
+  id: string;
+  type: NotificationType;
+  title: string;
+  body?: string | null;
+  entityType?: NotificationEntityType | null;
+  entityId?: string | null;
+  priority: 'low' | 'normal' | 'high';
+  readAt?: string | null;
+  createdAt: string;
+}
