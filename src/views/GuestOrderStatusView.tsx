@@ -12,6 +12,28 @@ type GuestOrderStatus = {
 const POLL_MS = 4000;
 const MAX_POLLS = 45; // ~3 minutes
 
+/**
+ * Mercado Pago always redirects back here (success/failure/pending share the
+ * same statusUrl), but stamps the outcome as query params. When the checkout
+ * was abandoned or errored out before a real payment attempt existed —
+ * "volver a la tienda" from an MP error screen, for example — it comes back
+ * with payment_id and status both literally "null": there is no payment for
+ * our webhook to ever receive, so polling would just spin for 3 minutes
+ * before giving up. Detecting that case up front lets us tell the guest
+ * immediately instead of making them wait it out.
+ */
+function readMpAbortedFromUrl(): boolean {
+  const hash = window.location.hash || '';
+  const queryStart = hash.indexOf('?');
+  if (queryStart === -1) return false;
+  const params = new URLSearchParams(hash.slice(queryStart + 1));
+  const paymentId = params.get('payment_id');
+  const status = params.get('status');
+  const hasNoPaymentId = !paymentId || paymentId === 'null';
+  const hasNoRealStatus = !status || status === 'null' || status === 'rejected' || status === 'cancelled';
+  return hasNoPaymentId && hasNoRealStatus;
+}
+
 /** Public, unauthenticated: where a guest lands after paying (or bailing) on
  * Mercado Pago. Polls api/orders/guest-status.ts — the token is opaque and
  * only valid for this one order, so no login is needed to check it. */
@@ -19,6 +41,7 @@ export const GuestOrderStatusView: React.FC<{ token: string }> = ({ token }) => 
   const [status, setStatus] = useState<GuestOrderStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pollCount, setPollCount] = useState(0);
+  const [mpAborted] = useState(readMpAbortedFromUrl);
 
   useEffect(() => {
     let cancelled = false;
@@ -76,13 +99,13 @@ export const GuestOrderStatusView: React.FC<{ token: string }> = ({ token }) => 
             <Loader2 className="w-8 h-8 text-teal-600 animate-spin mx-auto" />
             <p className="text-sm text-slate-600">Buscando tu solicitud…</p>
           </>
-        ) : status.failed ? (
+        ) : status.failed || (mpAborted && !status.paid) ? (
           <>
             <XCircle className="w-10 h-10 text-rose-500 mx-auto" />
             <p className="text-sm font-bold text-slate-900">El pago no se pudo completar</p>
             <p className="text-xs text-slate-500">
-              No se generó ninguna solicitud porque el pago fue rechazado o cancelado. Volvé a intentarlo desde el
-              catálogo cuando quieras.
+              No se generó ninguna solicitud ni se realizó ningún cargo. Volvé a intentarlo desde el catálogo cuando
+              quieras.
             </p>
           </>
         ) : status.paid ? (
