@@ -28,6 +28,7 @@ import {
   BarChart3,
   History,
   ShieldAlert,
+  MessageCircle,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useApp } from '../context/AppContext';
@@ -40,6 +41,8 @@ import { EarningsView } from '../components/technician/EarningsView';
 import { AvailabilityView } from '../components/technician/AvailabilityView';
 import { WorkHistoryView } from '../components/technician/WorkHistoryView';
 import { TechnicianClaimsView } from '../components/technician/TechnicianClaimsView';
+import { TechnicianConversationsView } from '../components/technician/TechnicianConversationsView';
+import { startOrderConversation } from '../lib/conversations';
 import { TechnicianStatisticsView } from '../components/technician/TechnicianStatisticsView';
 
 // Google Maps URLs are cross-platform and require no Maps API key.
@@ -84,6 +87,9 @@ export const TechnicianView: React.FC = () => {
   }
   if (currentPath.split('?')[0] === '/technician/reclamos') {
     return <TechnicianClaimsView />;
+  }
+  if (currentPath.split('?')[0] === '/technician/conversaciones') {
+    return <TechnicianConversationsView />;
   }
 
   const techId = currentUser?.technicianId || '';
@@ -268,6 +274,9 @@ export const TechnicianView: React.FC = () => {
             <button onClick={() => navigate('/technician/reclamos')} className="hidden lg:inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-bold text-slate-200 hover:border-teal-500/60 hover:text-teal-300">
               <ShieldAlert className="w-3.5 h-3.5" /> Reclamos
             </button>
+            <button onClick={() => navigate('/technician/conversaciones')} className="hidden lg:inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-bold text-slate-200 hover:border-teal-500/60 hover:text-teal-300">
+              <MessageCircle className="w-3.5 h-3.5" /> Conversaciones
+            </button>
           </div>
 
           {/* Mobile-only quick access: the buttons above are hidden below sm, so without this
@@ -280,6 +289,7 @@ export const TechnicianView: React.FC = () => {
               { path: '/technician/history', label: 'Historial', icon: History },
               { path: '/technician/statistics', label: 'Estadísticas', icon: BarChart3 },
               { path: '/technician/reclamos', label: 'Reclamos', icon: ShieldAlert },
+              { path: '/technician/conversaciones', label: 'Conversaciones', icon: MessageCircle },
             ].map(({ path, label, icon: Icon }) => (
               <button
                 key={path}
@@ -466,6 +476,20 @@ export const TechnicianView: React.FC = () => {
                       <span className="text-slate-700 font-mono text-xs">{activeOrder.clientPhone}</span>
                     </div>
                   </div>
+
+                  <button
+                    onClick={async () => {
+                      try {
+                        const conversationId = await startOrderConversation(activeOrder.id);
+                        window.location.hash = `#/technician/conversaciones/${conversationId}`;
+                      } catch {
+                        showToast('No se pudo abrir la conversación.', 'error');
+                      }
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 text-xs font-bold"
+                  >
+                    <MessageCircle className="w-3.5 h-3.5" />Escribir al cliente
+                  </button>
 
                   {activeOrder.adminIncidentStatus === 'open' && (
                     <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950">

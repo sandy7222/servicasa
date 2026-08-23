@@ -362,27 +362,34 @@ Antes de programar, Claude debe presentar una ADR corta comparando:
 1. extender `support_case_messages` para todos los usos; o
 2. crear un sistema general con `conversations`, `conversation_participants`, `messages` y `message_reads`.
 
+**Ejecutada 23/8. ADR aprobada por Sandy en [`docs/adr/0001-mensajeria-tres-partes.md`](../docs/adr/0001-mensajeria-tres-partes.md): Alternativa B (sistema general), con dos decisiones de producto de Sandy incorporadas — (1) `support_cases`/`support_case_messages` no se tocan en esta fase; (2) admin tiene acceso de **datos** a todas las conversaciones (vía `is_admin()`, sin ser participante listado) pero no aparece como tercero visible en la UI de una charla cliente↔técnico — la fricción de tener un tercero en cada "llego en 10" no vale la pena.**
+
 La recomendación inicial es el sistema general, con conversaciones asociadas a una orden, un reclamo o un contacto directo. Así se evita que toda comunicación normal parezca un reclamo.
 
 ### Trabajo
 
-- [ ] Modelo de conversaciones, participantes, mensajes y lecturas.
-- [ ] Matriz de acceso por participante y rol; administración no debe depender de IDs enviados por el navegador.
-- [ ] Bandeja común con filtros por orden, reclamo y contacto.
-- [ ] Hilo Realtime con envío, reintento, fecha, remitente y estado leído.
-- [ ] Contador de no leídos en Header y en cada rol.
-- [ ] Diferenciar mensajes visibles de notas internas administrativas.
-- [ ] Vincular desde orden, ficha de cliente, ficha de técnico y reclamo.
-- [ ] Limitar tamaño, tipos de contenido y frecuencia de envío.
-- [ ] No incluir archivos adjuntos en la primera entrega; incorporarlos después de estabilizar texto y permisos.
+- [x] Modelo de conversaciones, participantes, mensajes y lecturas (`conversations`, `conversation_participants`, `messages`, `message_reads`).
+- [x] Matriz de acceso por participante y rol — administración no depende de IDs del navegador: `start_order_conversation()` es una función `SECURITY DEFINER` que resuelve ella misma quién es "la otra parte" a partir de la orden real, en vez de confiar en un `profile_id` mandado por el cliente.
+- [x] Bandeja — `ConversationsPanel.tsx`, reusada tal cual en admin (`/admin/conversaciones`, ve todas), cliente (dashboard) y técnico (`/technician/conversaciones`).
+- [x] Hilo Realtime — `ConversationThread.tsx`, canal de Supabase Realtime **por conversación** (no se sumó a la suscripción global de `AppContext.tsx`, que hubiera recargado todo el catálogo por cada mensaje de chat). Probado en vivo con dos cuentas reales en simultáneo: un mensaje de un lado aparece del otro sin recargar.
+- [x] Contador de no leídos — vista `conversation_unread_counts` (`security_invoker`) + badge en el Header (con polling cada 30s) y en cada tarjeta de la bandeja. Probado en vivo: el badge muestra "2", desaparece al abrir la conversación (`markConversationRead`).
+- [x] Diferenciar mensajes visibles de notas internas — mismo patrón que Reclamos (`is_internal`), aunque en esta fase no se expone ningún control de UI para que admin escriba notas internas en una conversación (solo se migró la restricción de RLS; la UI de "nota interna" queda para cuando admin realmente participe de una charla).
+- [x] Vincular desde orden — botón "Escribir al técnico"/"Escribir al cliente" en `CustomerView.tsx`/`TechnicianView.tsx`. **No se hizo:** vínculo desde ficha de cliente/técnico ni desde un reclamo (ver alcance acordado arriba).
+- [ ] Limitar tamaño, tipos de contenido y frecuencia de envío — no se implementó (sin límite de longitud de mensaje ni rate limiting).
+- [x] No incluir archivos adjuntos en la primera entrega — cumplido, no se tocó.
+
+**Bugs reales encontrados y corregidos probando en vivo (no hubiera aparecido ninguno con una revisión de código sola):**
+1. `conversation_participants_select_own` causaba **recursión infinita** (42P17) al referenciarse a sí misma en su propio `USING` — se resolvió con una función `SECURITY DEFINER` (`is_conversation_participant()`), mismo patrón que `is_admin()`.
+2. `conversations_select_participant` comparaba `cp.conversation_id = cp.id` en vez de `cp.conversation_id = conversations.id` — el `id` sin calificar se resolvía contra la tabla equivocada porque `conversation_participants` también tiene su propia columna `id`. El cliente nunca podía ver su propia conversación recién creada.
+3. Las tablas nuevas nunca se agregaron a la publicación `supabase_realtime` — sin eso, ningún `postgres_changes` dispara, sin importar que el código de suscripción esté perfecto. Un mensaje se guardaba bien pero no aparecía del otro lado sin recargar.
 
 ### Criterio de aceptación
 
-- [ ] Las tres partes intercambian mensajes dentro de una orden.
-- [ ] Reclamos pueden usar la misma experiencia sin perder su auditoría.
-- [ ] Los no participantes no pueden leer ni insertar.
-- [ ] Los no leídos se actualizan correctamente.
-- [ ] Realtime se recupera después de desconexión sin duplicar mensajes.
+- [x] Las tres partes intercambian mensajes dentro de una orden — probado en vivo (Julián↔Carlos, ambas direcciones, en tiempo real).
+- [ ] Reclamos pueden usar la misma experiencia sin perder su auditoría — **decisión deliberada de no hacerlo en esta fase** (ver alcance acordado).
+- [x] Los no participantes no pueden leer ni insertar — probado con 5 casos negativos reales (otro cliente, otro técnico) en `supabase/tests/conversations_rls.sql`.
+- [x] Los no leídos se actualizan correctamente — probado en vivo.
+- [ ] Realtime se recupera después de desconexión sin duplicar mensajes — no se probó explícitamente el caso de reconexión tras corte de red.
 
 ### Pedido para Claude Code
 
@@ -707,7 +714,7 @@ Actualizar esta tabla al cerrar cada fase.
 | 0. Seguridad y foto real | 🟡 Casi cerrada — solo falta el chequeo manual de Deployment Protection/webhook MP en los dashboards | 23/8/2026 | 23/8/2026 | `feature/mercadopago-payments-backend` | `docs/audits/2026-08-23-baseline.md` — inventario completo de Supabase/Vercel + Advisors; MCP reconectado al proyecto real; halló que Reclamos y Garantías no tiene tablas en producción y que `technician_public_view` es `SECURITY DEFINER` |
 | 1. Supabase reproducible | 🟡 En curso — baseline reconstruible ya probado, faltan tipos TS y pruebas pgTAP | 23/8/2026 |  | `feature/mercadopago-payments-backend` | `supabase/migrations/20260823000000_baseline_live_schema.sql` + `20260823185803_remote_schema.sql`, verificados con `supabase migration list` (2/2) y una reconstrucción real desde cero |
 | 2. Reclamos y garantías | 🟡 Casi — falta atomicidad en resolución, ventana de garantía y evidencia técnica | 23/8/2026 |  | `feature/mercadopago-payments-backend` | Migración `connect_support_cases_module`; `ClaimDetail.tsx`, `MyClaimsPanel.tsx`; `supabase/tests/support_cases_rls.sql` (7/7 OK); probado en vivo con 3 cuentas reales (admin, Julián, Carlos) |
-| 3. Comunicación | ⬜ Pendiente |  |  |  |  |
+| 3. Comunicación | 🟡 Casi — falta límites de contenido/frecuencia, y no se probó reconexión de Realtime | 23/8/2026 |  | `feature/mercadopago-payments-backend` | ADR aprobada; migraciones `create_conversations_messaging_system` + 3 fixes; `supabase/tests/conversations_rls.sql` (11/11 OK); probado en vivo con Realtime bidireccional real entre Julián y Carlos |
 | 4. Notificaciones | ⬜ Pendiente |  |  |  |  |
 | 5. Liquidaciones | ⬜ Pendiente |  |  |  |  |
 | 6. Metas y elegibilidad | ⬜ Pendiente |  |  |  |  |

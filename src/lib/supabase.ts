@@ -231,3 +231,40 @@ export type DbSupportCaseHistory = {
   notes: string | null;
   created_at: string;
 };
+
+export type DbConversation = {
+  id: string;
+  order_id: string | null;
+  case_id: string | null;
+  subject: string | null;
+  subject_order_title: string | null;
+  created_by: string | null;
+  created_at: string;
+  last_message_at: string;
+};
+
+export type DbConversationParticipant = {
+  id: string;
+  conversation_id: string;
+  profile_id: string;
+  role: 'admin' | 'technician' | 'customer';
+  display_name: string | null;
+  added_at: string;
+};
+
+export type DbMessage = {
+  id: string;
+  conversation_id: string;
+  sender_id: string | null;
+  sender_role: 'admin' | 'technician' | 'customer' | 'system';
+  body: string;
+  is_internal: boolean;
+  created_at: string;
+};
+
+export type DbMessageRead = {
+  id: string;
+  message_id: string;
+  profile_id: string;
+  read_at: string;
+};

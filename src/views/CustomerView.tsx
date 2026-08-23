@@ -17,6 +17,7 @@ import {
   ChevronRight,
   ArrowLeft,
   Trash2,
+  MessageCircle,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useApp } from '../context/AppContext';
@@ -29,6 +30,8 @@ import { ServiceRequestForm } from '../components/client/ServiceRequestForm';
 import { QuoteViewer } from '../components/client/QuoteViewer';
 import { AssignedTechnicianCard } from '../components/client/AssignedTechnicianCard';
 import { MyClaimsPanel } from '../components/common/MyClaimsPanel';
+import { ConversationsPanel } from '../components/common/ConversationsPanel';
+import { startOrderConversation } from '../lib/conversations';
 
 export const CustomerView: React.FC = () => {
   const { orders, currentUser, saveCustomerSignature, showToast, currentPath, navigate, deleteCustomerOrder } = useApp();
@@ -106,7 +109,7 @@ export const CustomerView: React.FC = () => {
       </div>
 
       <main className="max-w-7xl mx-auto px-3 sm:px-5 lg:px-6 pt-4">
-        {!isDetailPage && <><CustomerProfilePanel /><div className="h-4" /><MyClaimsPanel onOpen={(claimId) => (window.location.hash = `#/customer/reclamos/${claimId}`)} /><div className="h-4" /><ServiceRequestForm /><div className="h-4" /></>}
+        {!isDetailPage && <><CustomerProfilePanel /><div className="h-4" /><ConversationsPanel title="Mis conversaciones" emptyLabel="No tenés conversaciones todavía." hideWhenEmpty onOpen={(id) => (window.location.hash = `#/customer/conversaciones/${id}`)} /><div className="h-4" /><MyClaimsPanel onOpen={(claimId) => (window.location.hash = `#/customer/reclamos/${claimId}`)} /><div className="h-4" /><ServiceRequestForm /><div className="h-4" /></>}
         {isDetailPage && (
           <button type="button" onClick={() => navigate('/customer')} className="mb-4 inline-flex items-center gap-1.5 text-xs font-bold text-teal-700 hover:text-teal-800">
             <ArrowLeft className="w-4 h-4" /> Volver a mis servicios
@@ -258,6 +261,22 @@ export const CustomerView: React.FC = () => {
                 )}
 
                 <AssignedTechnicianCard technicianId={activeOrder.assignedTechnicianId} />
+
+                {activeOrder.assignedTechnicianId && (
+                  <button
+                    onClick={async () => {
+                      try {
+                        const conversationId = await startOrderConversation(activeOrder.id);
+                        window.location.hash = `#/customer/conversaciones/${conversationId}`;
+                      } catch {
+                        showToast('No se pudo abrir la conversación.', 'error');
+                      }
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 text-xs font-bold"
+                  >
+                    <MessageCircle className="w-3.5 h-3.5" />Escribir al técnico
+                  </button>
+                )}
 
                 <QuoteViewer order={activeOrder} />
 

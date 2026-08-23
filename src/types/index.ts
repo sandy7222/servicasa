@@ -448,3 +448,36 @@ export type ClaimInput = {
   description?: string;
   pauseSettlement?: boolean;
 };
+
+// ===== Mensajería general (Fase 3, ADR 0001 — separado de Reclamos) =====
+
+export type MessageSenderRole = 'admin' | 'technician' | 'customer' | 'system';
+
+export interface ConversationParticipant {
+  id: string;
+  profileId: string;
+  role: 'admin' | 'technician' | 'customer';
+  displayName?: string;
+}
+
+export interface ConversationMessage {
+  id: string;
+  senderId?: string;
+  senderRole: MessageSenderRole;
+  body: string;
+  isInternal: boolean;
+  createdAt: string;
+}
+
+export interface Conversation {
+  id: string;
+  orderId?: string | null;
+  caseId?: string | null;
+  subject?: string | null;
+  orderTitle?: string | null;
+  createdAt: string;
+  lastMessageAt: string;
+  participants: ConversationParticipant[];
+  messages: ConversationMessage[];
+  unreadCount: number;
+}
