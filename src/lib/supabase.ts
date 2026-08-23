@@ -30,6 +30,7 @@ export type DbProfile = {
 
 export type DbTechnician = {
   id: string;
+  technician_number?: number | null;
   name: string;
   specialty: string;
   phone: string;
@@ -56,6 +57,7 @@ export type DbTechnician = {
 
 export type DbCustomer = {
   id: string;
+  customer_number?: number | null;
   name: string;
   address: string;
   neighborhood: string;

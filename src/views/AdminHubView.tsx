@@ -49,6 +49,7 @@ import { Timeline } from '../components/common/Timeline';
 import { EntityActionsMenu } from '../components/common/EntityActionsMenu';
 import { formatElapsedTime, getOrderElapsedSeconds, isOrderPaymentSettled, orderRequiresPaymentGate } from '../lib/workTimer';
 import { ARGENTINA_PROVINCES } from '../lib/argentina';
+import { formatCustomerCode, formatTechnicianCode } from '../lib/codes';
 import { TechnicianValidation } from '../components/admin/TechnicianValidation';
 import { TechnicianReviewCard } from '../components/admin/TechnicianReviewCard';
 import { persistArchiveOrders } from '../lib/supabaseMutations';
@@ -2071,7 +2072,14 @@ export const AdminHubView: React.FC = () => {
                           </div>
                         </div>
 
-                        <h3 className="font-bold text-xs sm:text-sm text-slate-900">{t.name}</h3>
+                        <div className="flex items-center gap-1.5">
+                          {formatTechnicianCode(t.technicianNumber) && (
+                            <span className="font-mono text-[10px] font-bold text-teal-700 bg-teal-50 border border-teal-200 rounded px-1 py-0.5">
+                              {formatTechnicianCode(t.technicianNumber)}
+                            </span>
+                          )}
+                          <h3 className="font-bold text-xs sm:text-sm text-slate-900">{t.name}</h3>
+                        </div>
                         <p className="text-[11px] text-teal-700 font-semibold mt-0.5">{t.specialty}</p>
 
                         <div className="space-y-1 mt-2 text-[11px] text-slate-600">

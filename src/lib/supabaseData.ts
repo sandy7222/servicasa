@@ -48,6 +48,7 @@ export function profileToCurrentUser(profile: DbProfile): CurrentUserData {
 export function mapTechnician(row: DbTechnician): Technician {
   return {
     id: row.id,
+    technicianNumber: row.technician_number ?? undefined,
     name: row.name,
     specialty: row.specialty,
     phone: row.phone,
@@ -76,6 +77,7 @@ export function mapTechnician(row: DbTechnician): Technician {
 export function mapCustomer(row: DbCustomer): Customer {
   return {
     id: row.id,
+    customerNumber: row.customer_number ?? undefined,
     name: row.name,
     address: row.address,
     neighborhood: row.neighborhood,

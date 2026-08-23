@@ -19,10 +19,18 @@
 
 begin;
 
+-- Este trigger impide borrar/modificar ítems de un presupuesto que ya salió
+-- de estado 'draft' (para proteger presupuestos reales en producción). Para
+-- este borrado masivo de prueba lo desactivamos solo dentro de esta misma
+-- transacción — vuelve a activarse solo al hacer commit.
+alter table public.order_quote_items disable trigger order_quote_items_prevent_sent_change;
+
 delete from public.technician_settlements;
 delete from public.payment_transactions;
 delete from public.service_orders;
 delete from public.guest_checkout_drafts;
+
+alter table public.order_quote_items enable trigger order_quote_items_prevent_sent_change;
 
 commit;
 

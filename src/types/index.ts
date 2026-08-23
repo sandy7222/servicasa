@@ -257,6 +257,7 @@ export type GuestServiceRequestInput = CustomerServiceRequestInput & {
 
 export interface Technician {
   id: string;
+  technicianNumber?: number;
   name: string;
   specialty: string;
   phone: string;
@@ -303,6 +304,7 @@ export type TechnicianInput = {
 
 export interface Customer {
   id: string;
+  customerNumber?: number;
   name: string;
   address: string;
   neighborhood: string;
