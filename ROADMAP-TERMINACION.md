@@ -338,7 +338,11 @@ Los comandos exactos de Supabase deben confirmarse con `supabase --help`, porque
 - [x] El admin puede gestionar y resolver — probado en vivo (mensaje, nota interna, historial).
 - [x] Un cliente o técnico ajeno recibe cero filas y no puede escribir — 5 pruebas negativas, todas pasaron.
 - [ ] La resolución actualiza de manera consistente el caso, la orden y la liquidación — funciona en el camino feliz, pero no es atómica (ver arriba).
-- [x] El flujo queda cubierto por RLS tests (`supabase/tests/support_cases_rls.sql`) y una prueba E2E manual real (no automatizada) a través del navegador, con los 3 roles.
+- [x] El flujo queda cubierto por RLS tests (`supabase/tests/support_cases_rls.sql`, específico de `support_cases` — no reemplaza el checklist pgTAP más amplio de la Fase 1, ver nota abajo) y una prueba E2E manual real (no automatizada) a través del navegador, con los 3 roles.
+
+> **Aclaración para no mezclar con el seguimiento de la Fase 1:** las 7 pruebas de RLS de hoy son puntuales del módulo de Reclamos (`support_cases`/`support_case_messages`/`support_case_history`). El ítem pendiente de la Fase 1 — "Crear pruebas pgTAP" (separación cliente/técnico/admin en general, acceso anónimo al catálogo, y el rechazo de precio manipulado en los dos triggers de precio) — sigue sin marcar. Son cosas distintas: esto no lo cierra.
+>
+> **Verificado 23/8 tras el testing en vivo:** se limpiaron todos los datos de prueba y se confirmó con un conteo (no solo un DELETE sin verificar): 0 casos, 0 mensajes, 0 historial, 0 órdenes de prueba, 0 liquidaciones en revisión. El bug de `settlement_paused=true` en modo cliente no llegó a afectar `technician_settlements` en ningún momento — `persistAdminIncident()` rechaza su primera escritura (admin-only) antes de llegar a la lógica de pausa, así que la cadena se corta ahí tanto en el intento con el bug como en el corregido. Tampoco pudo haber afectado a un cliente real antes de hoy: `support_cases` no existía en producción hasta la migración de esta sesión, y todo el flujo de autoservicio del cliente es código nuevo de hoy.
 
 ### Pedido para Claude Code
 
