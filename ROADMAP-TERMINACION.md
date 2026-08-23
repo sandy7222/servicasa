@@ -252,19 +252,10 @@ Los comandos exactos de Supabase deben confirmarse con `supabase --help`, porque
 
 ### Trabajo
 
-- [ ] Comparar producción, migraciones y scripts auxiliares.
-- [ ] Incorporar al historial reproducible, sin ejecutar dos veces DDL ya aplicado:
-   - esquema fundacional;
-   - `account_invites`;
-   - pagos, presupuestos y borradores de invitado;
-   - categorías, subcategorías y catálogo (**ya aplicado como scripts sueltos — formalizar como migraciones**);
-   - unificación del catálogo de pago directo (**ya aplicado — formalizar**);
-   - ficha y notas del cliente;
-   - perfil, documentos, validación y disponibilidad técnica;
-   - liquidaciones, lotes y metas;
-   - reclamos, mensajes e historial;
-   - numeración correlativa y ajustes recientes.
-- [ ] Generar una migración baseline o pull limpio desde live, según indique la comparación.
+- [x] Comparar producción, migraciones y scripts auxiliares. Hecho 23/8: de las **17 migraciones que Supabase registraba como aplicadas, solo 7 tenían archivo en el repo** — las otras 10 (`harden_security_definer_grants`, `handle_new_user_link_operational_rows`, `technicians_zone_and_province`, `account_invites_and_redeem`, `seed_initial_services`, `services_anon_read`, `cleanup_orphaned_test_order` ×3, `cleanup_test_technician_application`) no existían en ningún lado del código — rastreadas por fecha, corresponden a sesiones de trabajo reales de mediados de agosto, nada sospechoso.
+- [x] **Prueba concreta de que el repo no reconstruía la base**: al reproducir los 7 archivos locales desde cero (`supabase db pull`), falló en el segundo con `function is_admin() does not exist` — `servicasa_foundation_schema.sql` era un placeholder vacío de una sesión anterior, nunca tuvo el esquema real.
+- [x] Generar una migración baseline o pull limpio desde live. Hecho 23/8 con `supabase db pull` (necesitó Docker Desktop, instalado esta sesión): **2 migraciones nuevas** (`20260823000000_baseline_live_schema.sql` — 38 tablas, 80 políticas RLS, todas las funciones incl. `is_admin()`; `20260823185803_remote_schema.sql` — lo que un dump solo de `public` se perdía: el trigger `on_auth_user_created` en `auth.users` que dispara `handle_new_user()`, todas las políticas de Storage, y varios GRANT excesivos a `anon`/`authenticated` en 6 tablas que quedaron revocados). Los 7 archivos viejos se archivaron en `supabase/migrations_legacy/` con una nota explicando por qué. **Verificado de punta a punta**: `supabase migration list` muestra local y remoto coincidiendo exactamente (2/2), y el propio proceso de `db pull` reconstruyó una base desde cero sin errores usando solo estos 2 archivos — no es una afirmación, se probó.
+- [ ] Incorporar al historial reproducible el resto de lo aplicado como scripts sueltos (categorías/subcategorías, pago directo, borradores de invitado, numeración, provincia, etc.) — el baseline de arriba ya los incluye porque refleja el estado *actual* de la base, pero conviene revisar si alguno merece quedar documentado como migración incremental aparte en vez de sepultado dentro del baseline.
 - [ ] Separar datos semilla de estructura. Los tarifarios deben poder cargarse de manera idempotente.
 - [ ] Regenerar tipos TypeScript de Supabase y reemplazar gradualmente tipos manuales inseguros.
 - [ ] Crear pruebas pgTAP para:
@@ -705,7 +696,7 @@ Actualizar esta tabla al cerrar cada fase.
 | 1.1-extra. Bug de orden de invitado creada antes del pago | ✅ Hecho | 23/8/2026 | 23/8/2026 | commits `21d1ff3`, `d185b2b` | Probado en vivo con tarjeta, wallet y abandono de checkout; 19 órdenes huérfanas viejas limpiadas |
 | 1.1-extra. Fase 4 categorías (editor admin) | ✅ Hecho | 22/8/2026 | 22/8/2026 | commit `9361e6d` | Verificado en vivo: 8 categorías, conteos reales de subcategorías |
 | 0. Seguridad y foto real | 🟡 Casi cerrada — solo falta el chequeo manual de Deployment Protection/webhook MP en los dashboards | 23/8/2026 | 23/8/2026 | `feature/mercadopago-payments-backend` | `docs/audits/2026-08-23-baseline.md` — inventario completo de Supabase/Vercel + Advisors; MCP reconectado al proyecto real; halló que Reclamos y Garantías no tiene tablas en producción y que `technician_public_view` es `SECURITY DEFINER` |
-| 1. Supabase reproducible | ⬜ Pendiente |  |  |  |  |
+| 1. Supabase reproducible | 🟡 En curso — baseline reconstruible ya probado, faltan tipos TS y pruebas pgTAP | 23/8/2026 |  | `feature/mercadopago-payments-backend` | `supabase/migrations/20260823000000_baseline_live_schema.sql` + `20260823185803_remote_schema.sql`, verificados con `supabase migration list` (2/2) y una reconstrucción real desde cero |
 | 2. Reclamos y garantías | ⬜ Pendiente |  |  |  |  |
 | 3. Comunicación | ⬜ Pendiente |  |  |  |  |
 | 4. Notificaciones | ⬜ Pendiente |  |  |  |  |
