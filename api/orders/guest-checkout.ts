@@ -34,10 +34,11 @@ function trimmed(value: unknown, max = MAX_TEXT): string {
 
 /**
  * Public, unauthenticated endpoint: lets a visitor with no account request a
- * service. Creates (or reuses) a customers row with no profile_id — same
- * shape admin uses for "cliente sin cuenta" — plus a pending-payment order,
- * then redirects to Mercado Pago exactly like the logged-in flow. Nothing
- * here is exposed via RLS: every write uses the service-role client.
+ * service. Does NOT create any customer/order yet — a guest has no way to
+ * come back and see or cancel an order, so nothing real gets written until
+ * Mercado Pago actually confirms the payment (see api/payments/webhook.ts).
+ * This just validates the request, computes the trustworthy price
+ * server-side, and stores it as a draft keyed to the Mercado Pago preference.
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -72,8 +73,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: 'Elegí un servicio de precio fijo válido.' });
   }
 
-  // Reuse an existing account-less customer with this email; refuse if the
-  // email already belongs to someone with a real account (they should log in).
+  // Solo para dar un error rápido si el email ya es de una cuenta real (debe
+  // iniciar sesión en vez de pagar como invitado). No creamos nada todavía:
+  // es una lectura, no un insert.
   const { data: existingCustomer, error: lookupError } = await supabaseAdmin
     .from('customers')
     .select('id, profile_id')
@@ -89,26 +91,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .json({ error: 'Ya existe una cuenta con este email. Iniciá sesión para pedir el servicio.' });
   }
 
-  let customerId = existingCustomer?.id as string | undefined;
-  if (customerId) {
-    await supabaseAdmin
-      .from('customers')
-      .update({ name: fullName, address, neighborhood, province, phone })
-      .eq('id', customerId);
-  } else {
-    const { data: newCustomer, error: insertCustomerError } = await supabaseAdmin
-      .from('customers')
-      .insert({ name: fullName, address, neighborhood, province, phone, email, profile_id: null })
-      .select('id')
-      .single();
-    if (insertCustomerError || !newCustomer) {
-      console.error('[orders/guest-checkout] Error creando cliente', insertCustomerError);
-      return res.status(500).json({ error: 'No se pudo procesar la solicitud.' });
-    }
-    customerId = newCustomer.id as string;
-  }
-
-  let visitDepositAmount = VISIT_DEPOSIT_FALLBACK;
+  // Nunca confiar en body.requestedTotal: se recalcula acá desde la fuente
+  // confiable (system_settings para la seña de diagnóstico, o el precio real
+  // del catálogo `services` para pago directo) — antes esto lo hacía un
+  // trigger al insertar la orden, pero ahora la orden no existe todavía.
+  let amount: number;
   if (workMode === 'diagnosis') {
     const { data: setting } = await supabaseAdmin
       .from('system_settings')
@@ -116,77 +103,57 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .eq('key', 'visit_deposit_amount')
       .maybeSingle();
     const value = Number(setting?.value);
-    if (Number.isFinite(value) && value >= 0) visitDepositAmount = value;
+    amount = Number.isFinite(value) && value >= 0 ? value : VISIT_DEPOSIT_FALLBACK;
+  } else {
+    const { data: service, error: serviceError } = await supabaseAdmin
+      .from('services')
+      .select('price')
+      .eq('id', fixedPriceServiceId)
+      .eq('active', true)
+      .maybeSingle();
+    if (serviceError || !service) {
+      return res.status(409).json({ error: 'Servicio de precio fijo inválido o inactivo.' });
+    }
+    amount = Number(service.price) * quantity;
   }
-
-  const guestAccessToken = crypto.randomUUID();
-  const requestedDescription = `${description}\n\nDisponibilidad solicitada: ${appointmentWindow}`;
-
-  const { data: order, error: orderError } = await supabaseAdmin
-    .from('service_orders')
-    .insert({
-      title,
-      description: requestedDescription,
-      service_type: serviceType,
-      priority,
-      status: 'assigned',
-      service_status: 'pending',
-      work_mode: workMode,
-      quote_status: 'none',
-      payment_status: 'pending',
-      visit_deposit_amount: workMode === 'diagnosis' ? visitDepositAmount : 0,
-      total_quoted_amount: workMode === 'direct' ? Number(body.requestedTotal ?? 0) : 0,
-      fixed_price_service_id: workMode === 'direct' ? fixedPriceServiceId : null,
-      fixed_price_quantity: workMode === 'direct' ? quantity : null,
-      total_paid_amount: 0,
-      extra_amount: 0,
-      scheduled_date: scheduledDate,
-      customer_id: customerId,
-      client_name: fullName,
-      client_phone: phone,
-      client_address: address,
-      client_neighborhood: neighborhood || 'A confirmar',
-      client_province: province,
-      assigned_technician_id: null,
-      assigned_technician_name: null,
-      guest_access_token: guestAccessToken,
-    })
-    .select('id, total_quoted_amount, visit_deposit_amount')
-    .single();
-  if (orderError || !order) {
-    console.error('[orders/guest-checkout] Error creando orden', orderError);
-    return res.status(500).json({ error: 'No se pudo crear la solicitud.' });
-  }
-
-  // No confiar en body.requestedTotal para el monto real a cobrar: el
-  // trigger service_orders_enforce_pricing ya recalculó estas columnas desde
-  // el catálogo/system_settings al insertar, así que son la fuente confiable.
-  const paymentType = workMode === 'diagnosis' ? 'visit_deposit' : 'full_advance';
-  const amount = workMode === 'diagnosis' ? Number(order.visit_deposit_amount) : Number(order.total_quoted_amount);
   if (!amount || amount <= 0) {
-    console.error('[orders/guest-checkout] Monto inválido tras el trigger de precios', order);
     return res.status(409).json({ error: 'No se pudo calcular el monto a cobrar.' });
   }
 
-  const { data: transaction, error: txError } = await supabaseAdmin
-    .from('payment_transactions')
-    .insert({
-      order_id: order.id,
-      quote_id: null,
-      payment_type: paymentType,
-      provider: 'mercadopago',
-      status: 'pending',
-      amount,
-    })
-    .select('id')
+  const paymentType = workMode === 'diagnosis' ? 'visit_deposit' : 'full_advance';
+  const requestedDescription = `${description}\n\nDisponibilidad solicitada: ${appointmentWindow}`;
+
+  const payload = {
+    fullName,
+    email,
+    phone,
+    address,
+    neighborhood,
+    province,
+    title,
+    description: requestedDescription,
+    serviceType,
+    priority,
+    scheduledDate,
+    workMode,
+    visitDepositAmount: workMode === 'diagnosis' ? amount : 0,
+    totalQuotedAmount: workMode === 'direct' ? amount : 0,
+    fixedPriceServiceId: workMode === 'direct' ? fixedPriceServiceId : null,
+    fixedPriceQuantity: workMode === 'direct' ? quantity : null,
+  };
+
+  const { data: draft, error: draftError } = await supabaseAdmin
+    .from('guest_checkout_drafts')
+    .insert({ payment_type: paymentType, amount, payload })
+    .select('id, guest_access_token')
     .single();
-  if (txError || !transaction) {
-    console.error('[orders/guest-checkout] Error creando transaccion', txError);
-    return res.status(500).json({ error: 'No se pudo iniciar el pago.' });
+  if (draftError || !draft) {
+    console.error('[orders/guest-checkout] Error creando borrador', draftError);
+    return res.status(500).json({ error: 'No se pudo procesar la solicitud.' });
   }
 
   const origin = `https://${req.headers.host}`;
-  const statusUrl = `${origin}/#/pedido/${guestAccessToken}`;
+  const statusUrl = `${origin}/#/pedido/${draft.guest_access_token}`;
 
   try {
     const preference = await new Preference(mpClient).create({
@@ -200,7 +167,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             currency_id: 'ARS',
           },
         ],
-        external_reference: transaction.id,
+        external_reference: draft.id,
         notification_url: `${origin}/api/payments/webhook`,
         back_urls: { success: statusUrl, failure: statusUrl, pending: statusUrl },
         auto_return: 'approved',
@@ -208,16 +175,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
     await supabaseAdmin
-      .from('payment_transactions')
+      .from('guest_checkout_drafts')
       .update({ mp_preference_id: preference.id })
-      .eq('id', transaction.id);
+      .eq('id', draft.id);
 
     const paymentUrl = preference.sandbox_init_point || preference.init_point;
     if (!paymentUrl) throw new Error('Mercado Pago no devolvió una URL de checkout.');
 
     return res.status(200).json({ paymentUrl, statusUrl });
   } catch (err) {
-    await supabaseAdmin.from('payment_transactions').update({ status: 'cancelled' }).eq('id', transaction.id);
+    await supabaseAdmin.from('guest_checkout_drafts').update({ status: 'cancelled' }).eq('id', draft.id);
     console.error('[orders/guest-checkout] Mercado Pago error', err);
     return res.status(502).json({ error: 'No se pudo iniciar el pago seguro con Mercado Pago.' });
   }

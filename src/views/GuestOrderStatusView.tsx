@@ -5,6 +5,7 @@ type GuestOrderStatus = {
   title: string;
   paymentStatus: string;
   paid: boolean;
+  failed: boolean;
   inviteUrl: string | null;
 };
 
@@ -35,7 +36,7 @@ export const GuestOrderStatusView: React.FC<{ token: string }> = ({ token }) => 
           return;
         }
         setStatus(body);
-        if (body.paid && timer) {
+        if ((body.paid || body.failed) && timer) {
           window.clearInterval(timer);
           return;
         }
@@ -74,6 +75,15 @@ export const GuestOrderStatusView: React.FC<{ token: string }> = ({ token }) => 
           <>
             <Loader2 className="w-8 h-8 text-teal-600 animate-spin mx-auto" />
             <p className="text-sm text-slate-600">Buscando tu solicitud…</p>
+          </>
+        ) : status.failed ? (
+          <>
+            <XCircle className="w-10 h-10 text-rose-500 mx-auto" />
+            <p className="text-sm font-bold text-slate-900">El pago no se pudo completar</p>
+            <p className="text-xs text-slate-500">
+              No se generó ninguna solicitud porque el pago fue rechazado o cancelado. Volvé a intentarlo desde el
+              catálogo cuando quieras.
+            </p>
           </>
         ) : status.paid ? (
           <>

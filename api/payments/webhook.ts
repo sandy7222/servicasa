@@ -78,6 +78,141 @@ async function ensureAccountInviteForGuestCustomer(customerId: string) {
   }
 }
 
+type GuestDraftPayload = {
+  fullName: string;
+  email: string;
+  phone: string;
+  address: string;
+  neighborhood: string;
+  province: string;
+  title: string;
+  description: string;
+  serviceType: string;
+  priority: 'baja' | 'media' | 'alta' | 'urgente';
+  scheduledDate: string;
+  workMode: 'diagnosis' | 'direct';
+  visitDepositAmount: number;
+  totalQuotedAmount: number;
+  fixedPriceServiceId: string | null;
+  fixedPriceQuantity: number | null;
+};
+
+/**
+ * Guest checkout only reaches this point once Mercado Pago confirms the
+ * payment as 'approved' — see api/orders/guest-checkout.ts for why nothing
+ * is created earlier. Creates the customer (or reuses one already made from
+ * a previous order with the same email) + the real service_order +
+ * payment_transaction, already marked paid, from the draft's stored payload.
+ * Idempotent: if the webhook retries after the draft is already 'approved',
+ * the order already exists and this is skipped entirely.
+ */
+async function createOrderFromApprovedGuestDraft(
+  draftId: string,
+  payload: GuestDraftPayload,
+  payment: { id?: number | string; fee_details?: Array<{ amount?: number }>; payment_method_id?: string | null; installments?: number | null; date_approved?: string | null; transaction_amount?: number }
+) {
+  let customerId: string;
+  const { data: existingCustomer } = await supabaseAdmin
+    .from('customers')
+    .select('id, profile_id')
+    .eq('email', payload.email)
+    .maybeSingle();
+
+  if (existingCustomer && !existingCustomer.profile_id) {
+    customerId = existingCustomer.id as string;
+    await supabaseAdmin
+      .from('customers')
+      .update({ name: payload.fullName, address: payload.address, neighborhood: payload.neighborhood, province: payload.province, phone: payload.phone })
+      .eq('id', customerId);
+  } else {
+    // existingCustomer con profile_id: alguien se registró con este email
+    // entre el checkout y la confirmación del pago. No le atamos este pago a
+    // una cuenta real sin su consentimiento — creamos un cliente "sin cuenta"
+    // aparte, igual que hace el admin para clientes sin cuenta.
+    const { data: newCustomer, error: insertCustomerError } = await supabaseAdmin
+      .from('customers')
+      .insert({
+        name: payload.fullName,
+        address: payload.address,
+        neighborhood: payload.neighborhood,
+        province: payload.province,
+        phone: payload.phone,
+        email: payload.email,
+        profile_id: null,
+      })
+      .select('id')
+      .single();
+    if (insertCustomerError || !newCustomer) {
+      console.error('[payments/webhook] Error creando cliente para orden confirmada', insertCustomerError);
+      throw insertCustomerError ?? new Error('No se pudo crear el cliente.');
+    }
+    customerId = newCustomer.id as string;
+  }
+
+  const { data: draftRow } = await supabaseAdmin
+    .from('guest_checkout_drafts')
+    .select('guest_access_token')
+    .eq('id', draftId)
+    .single();
+
+  const { data: order, error: orderError } = await supabaseAdmin
+    .from('service_orders')
+    .insert({
+      title: payload.title,
+      description: payload.description,
+      service_type: payload.serviceType,
+      priority: payload.priority,
+      status: 'assigned',
+      service_status: 'pending',
+      work_mode: payload.workMode,
+      quote_status: 'none',
+      payment_status: payload.workMode === 'diagnosis' ? 'deposit_paid' : 'paid_in_full',
+      visit_deposit_amount: payload.visitDepositAmount,
+      total_quoted_amount: payload.totalQuotedAmount,
+      fixed_price_service_id: payload.fixedPriceServiceId,
+      fixed_price_quantity: payload.fixedPriceQuantity,
+      total_paid_amount: payload.workMode === 'diagnosis' ? payload.visitDepositAmount : payload.totalQuotedAmount,
+      extra_amount: 0,
+      scheduled_date: payload.scheduledDate,
+      customer_id: customerId,
+      client_name: payload.fullName,
+      client_phone: payload.phone,
+      client_address: payload.address,
+      client_neighborhood: payload.neighborhood || 'A confirmar',
+      client_province: payload.province,
+      assigned_technician_id: null,
+      assigned_technician_name: null,
+      guest_access_token: draftRow?.guest_access_token ?? null,
+    })
+    .select('id')
+    .single();
+  if (orderError || !order) {
+    console.error('[payments/webhook] Error creando orden confirmada', orderError);
+    throw orderError ?? new Error('No se pudo crear la orden.');
+  }
+
+  const feeAmount = (payment.fee_details ?? []).reduce((sum, fee) => sum + (fee.amount ?? 0), 0);
+  const { error: txError } = await supabaseAdmin.from('payment_transactions').insert({
+    order_id: order.id,
+    quote_id: null,
+    payment_type: payload.workMode === 'diagnosis' ? 'visit_deposit' : 'full_advance',
+    provider: 'mercadopago',
+    status: 'approved',
+    amount: Number(payment.transaction_amount ?? (payload.workMode === 'diagnosis' ? payload.visitDepositAmount : payload.totalQuotedAmount)),
+    mp_payment_id: String(payment.id),
+    mp_payment_method: payment.payment_method_id ?? null,
+    mp_installments: payment.installments ?? null,
+    mp_fee_amount: feeAmount,
+    provider_payload: payment,
+    paid_at: payment.date_approved ?? new Date().toISOString(),
+  });
+  if (txError) {
+    console.error('[payments/webhook] Error creando payment_transaction para orden confirmada', txError);
+  }
+
+  await ensureAccountInviteForGuestCustomer(customerId);
+}
+
 async function syncOrderAfterApprovedPayment(
   paymentType: string,
   orderId: string,
@@ -161,10 +296,40 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .select('id, order_id, quote_id, payment_type')
       .eq('id', transactionId)
       .maybeSingle();
+
     if (fetchError || !transaction) {
-      // external_reference didn't match anything we created — ignore, not an error.
-      console.warn('[payments/webhook] Sin transacción propia para external_reference', transactionId);
-      return res.status(200).json({ received: true, warning: 'transacción no encontrada' });
+      // No es una transacción de cliente logueado — puede ser un checkout de
+      // invitado, cuya orden todavía no existe (ver guest-checkout.ts).
+      const { data: draft, error: draftFetchError } = await supabaseAdmin
+        .from('guest_checkout_drafts')
+        .select('id, status, payload')
+        .eq('id', transactionId)
+        .maybeSingle();
+      if (draftFetchError || !draft) {
+        console.warn('[payments/webhook] Sin transacción ni borrador para external_reference', transactionId);
+        return res.status(200).json({ received: true, warning: 'transacción no encontrada' });
+      }
+
+      const status = mapStatus(payment.status);
+      if (draft.status === 'approved') {
+        // Reintento del webhook después de ya haber creado la orden — no hacer nada.
+        return res.status(200).json({ received: true, note: 'borrador ya procesado' });
+      }
+      if (status === 'approved') {
+        try {
+          await createOrderFromApprovedGuestDraft(draft.id, draft.payload as GuestDraftPayload, payment);
+          await supabaseAdmin.from('guest_checkout_drafts').update({ status: 'approved', mp_payment_id: String(payment.id), updated_at: new Date().toISOString() }).eq('id', draft.id);
+        } catch (err) {
+          console.error('[payments/webhook] Error creando orden desde borrador aprobado', err);
+          return res.status(500).json({ error: 'No se pudo crear la orden confirmada.' });
+        }
+      } else if (status === 'rejected' || status === 'cancelled') {
+        await supabaseAdmin.from('guest_checkout_drafts').update({ status, updated_at: new Date().toISOString() }).eq('id', draft.id);
+      }
+      // status === 'pending' (ej. boleto de Pago Fácil sin pagar todavía): el
+      // borrador queda 'pending', sin crear nada — Mercado Pago mandará otro
+      // webhook con 'approved' cuando el invitado efectivamente pague.
+      return res.status(200).json({ received: true });
     }
 
     const feeAmount = (payment.fee_details ?? []).reduce((sum, fee) => sum + (fee.amount ?? 0), 0);
@@ -194,9 +359,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       await syncOrderAfterApprovedPayment(transaction.payment_type, transaction.order_id, transaction.quote_id, amount);
     }
 
-    // Intentionally does not CREATE any order here — that gets wired in a
-    // separate pass once the guest-order flow exists. This only updates
-    // orders that already exist.
+    // Esta rama es para pagos de clientes logueados (api/payments/create.ts):
+    // la orden ya existe de antes, solo se sincroniza su estado. La rama de
+    // arriba (sin `transaction`) es la que crea órdenes de invitado nuevas.
     return res.status(200).json({ received: true });
   } catch (err) {
     // A payment id that doesn't exist under our credentials (bogus id, replay,
