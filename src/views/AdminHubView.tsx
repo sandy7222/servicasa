@@ -42,6 +42,7 @@ import {
   Droplets,
   Lightbulb,
   EyeOff,
+  ShieldAlert,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { PaymentStatusBadge, PriorityBadge, ServiceBadge, StatusBadge } from '../components/common/Badge';
@@ -1560,6 +1561,15 @@ export const AdminHubView: React.FC = () => {
             >
               <Users className="w-3.5 h-3.5" />
               <span>Clientes · planilla ({customers.length})</span>
+            </button>
+
+            <button
+              onClick={() => { window.location.hash = '#/admin/reclamos'; }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all bg-slate-100 text-slate-600 hover:bg-slate-200"
+              title="Reclamos y garantías"
+            >
+              <ShieldAlert className="w-3.5 h-3.5" />
+              <span>Reclamos y garantías</span>
             </button>
 
             <button

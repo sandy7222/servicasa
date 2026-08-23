@@ -15,6 +15,14 @@
 > - [x] 5 commits hechos y nunca subidos a `origin` — ya están en GitHub.
 >
 > Lo que **no** se tocó y sigue tal cual esta sesión lo encontró: toda la Fase 0 en adelante (rotación de credenciales, reclamos, mensajería, notificaciones, liquidaciones/Cron, metas, configuración, CI, Vercel), y el hallazgo de que la rama `feature/mercadopago-payments-backend` (21 commits) sigue sin un Pull Request a `main`.
+>
+> **Tercera actualización (23/8, tarde/noche):** Fase 0 cerrada salvo el chequeo manual de Deployment Protection en Vercel y del webhook de Mercado Pago en su dashboard. Arrancó la Fase 1 el mismo día y ya resolvió su pieza más difícil, probada de punta a punta (detalle completo con evidencia en la sección de Fase 1 más abajo, actualizada directamente por Code):
+> - [x] Confirmado el problema raíz: de las 17 migraciones que Supabase tenía registradas como aplicadas, solo 7 tenían archivo en el repo, y la primera (`servicasa_foundation_schema.sql`) era un placeholder vacío — la base nunca se pudo reconstruir desde el repo hasta hoy.
+> - [x] Nuevo baseline de 2 archivos (`20260823000000_baseline_live_schema.sql` + `20260823185803_remote_schema.sql`), probado reconstruyendo una base vacía sin errores y verificado 2/2 contra remoto. Los 7 archivos viejos se archivaron en `supabase/migrations_legacy/`, no se borraron.
+> - [x] **Hallazgo de seguridad durante la propia verificación:** el primer intento de dump (solo schema `public`) se perdía el trigger `handle_new_user()` (en `auth.users`) y las políticas de Storage — hubiera dejado el alta de usuarios nuevos rota en silencio si se usaba tal cual. Corregido con `db pull` completo. De paso encontraron y revocaron GRANT excesivos a `anon`/`authenticated` en 6 tablas.
+> - [x] Categorías/subcategorías y la unificación del catálogo de pago directo quedan formalizadas dentro de este mismo baseline (que refleja el estado actual de la base) — confirmado por Code, no hace falta migración aparte para esos dos ítems.
+> - [x] Commit `5be50a2` ya subido a GitHub.
+> - [ ] Quedan pendientes de la Fase 1: regenerar tipos TypeScript y escribir las pruebas pgTAP — incluyendo el test obligatorio de rechazo de precio manipulado en ambos triggers, arrastrado sin confirmar desde el 22/8.
 
 ---
 
@@ -291,49 +299,46 @@ Los comandos exactos de Supabase deben confirmarse con `supabase --help`, porque
 **Duración:** 4 a 5 sesiones.
 **Meta:** convertir el código existente en un flujo realmente utilizable.
 
-> **Corrección de la Fase 0 (23/8):** las tablas `support_cases`, `support_case_messages` y `support_case_history` **no existen en producción** — `enable_support_cases.sql` nunca se corrió contra esta base. Antes del trabajo de interfaz de abajo hay un paso 0 nuevo:
+> **Ejecutada 23/8 — casi completa.** Corrección de la Fase 0 confirmada y resuelta: las tablas no existían en producción, se crearon en esta misma sesión.
 
-- [ ] Auditar `enable_support_cases.sql` (RLS admin-only, hay que ampliarla igual — ver "Trabajo de Supabase" abajo) y correrlo contra producción como una migración real, no un script suelto.
+- [x] Auditar `enable_support_cases.sql` y correrlo contra producción — hecho vía migración real (`connect_support_cases_module`, aplicada con el MCP de Supabase ya reconectado), no como script suelto.
 
 ### Trabajo de interfaz
 
-- [ ] Agregar "Reclamos y garantías" a la navegación administrativa.
-- [ ] Integrar `ClaimsTable` y `NewClaimModal` en `AdminHubView`.
-- [ ] Crear detalle de caso con:
-   - datos de orden, cliente y técnico;
-   - estado y prioridad;
-   - hilo de mensajes;
-   - historial auditable;
-   - resolución y efecto sobre liquidación.
-- [ ] Agregar al portal del cliente:
-   - "Abrir reclamo" solo sobre una orden propia válida;
-   - listado de casos propios;
-   - detalle y respuesta.
-- [ ] Agregar al portal técnico:
-   - casos asociados a sus trabajos;
-   - respuesta y evidencia;
-   - visibilidad clara cuando una liquidación queda en revisión.
+- [x] Agregar "Reclamos y garantías" a la navegación administrativa — botón en `AdminHubView`, ruta `/admin/reclamos`.
+- [x] Integrar `ClaimsTable` y `NewClaimModal` en `AdminHubView` (vía ruta dedicada, mismo patrón que `ClientsTable`/`ClientFicha`).
+- [x] Crear detalle de caso (`ClaimDetail.tsx`, componente único compartido por los 3 roles — no se duplicó el módulo) con:
+   - [x] datos de orden, cliente y técnico;
+   - [x] estado y prioridad;
+   - [x] hilo de mensajes (con notas internas visualmente distinguidas, solo visibles para admin);
+   - [x] historial auditable;
+   - [x] resolución y efecto sobre liquidación.
+- [x] Agregar al portal del cliente:
+   - [x] "Abrir reclamo" solo sobre una orden propia válida (`NewClaimModal` en modo `customer`, reutilizado — no duplicado);
+   - [x] listado de casos propios (`MyClaimsPanel`);
+   - [x] detalle y respuesta.
+- [x] Agregar al portal técnico (`/technician/reclamos`):
+   - [x] casos asociados a sus trabajos;
+   - [x] respuesta;
+   - [ ] evidencia (adjuntar fotos) y visibilidad detallada de la liquidación en revisión — no se hizo en esta pasada.
 
 ### Trabajo de Supabase
 
-- [ ] Reemplazar el acceso "solo admin" por políticas separadas:
-   - admin: acceso total;
-   - cliente: casos de su `customer_id`;
-   - técnico: casos de su `technician_id`;
-   - notas internas: únicamente admin;
-   - historial: lectura de datos permitidos, sin manipulación por usuario final.
-- [ ] Validar que el usuario no pueda cambiar IDs para acceder a otro caso.
-- [ ] Hacer atómica la apertura/resolución cuando pausa o libera una liquidación.
-- [ ] Definir ventana de garantía en configuración, no hardcodeada.
+- [x] Reemplazar el acceso "solo admin" por políticas separadas — admin (total), cliente (`customer_id` propio), técnico (`technician_id` propio), notas internas (únicamente admin, verificado en vivo), historial (lectura + inserción para el propio caso — ver nota abajo).
+- [x] Validar que el usuario no pueda cambiar IDs para acceder a otro caso — **probado en vivo con dos clientes reales** (Julián/Gonzalo): ver `supabase/tests/support_cases_rls.sql`, 7/7 casos pasaron.
+- [ ] Hacer atómica la apertura/resolución cuando pausa o libera una liquidación — **no se hizo.** `createCase`/`resolveCase` siguen encadenando llamadas separadas (insert caso → insert historial → update orden → update liquidación); si un paso falla a mitad de camino, el caso queda creado igual (probado: pasó de verdad durante el testing de esta sesión, generó un caso duplicado). Requiere una función RPC transaccional — queda pendiente para no bloquear el resto de la fase.
+- [ ] Definir ventana de garantía en configuración, no hardcodeada — no se tocó en esta pasada.
+
+**Hallazgo durante el testing en vivo (no estaba en el plan original):** la política de `support_case_history` solo permitía INSERT a admin, pero el código (`addCaseMessage`) escribe ahí como efecto secundario de *cualquier* mensaje — sin la política agregada (`support_case_history_insert_stakeholder`), un cliente no podía enviar ni un mensaje propio. Corregido y re-probado.
 
 ### Criterio de aceptación
 
-- [ ] Un cliente abre un caso desde una orden propia.
-- [ ] El técnico asociado puede verlo y responder.
-- [ ] El admin puede gestionar y resolver.
-- [ ] Un cliente o técnico ajeno recibe cero filas y no puede escribir.
-- [ ] La resolución actualiza de manera consistente el caso, la orden y la liquidación.
-- [ ] El flujo queda cubierto por RLS tests y al menos una prueba E2E.
+- [x] Un cliente abre un caso desde una orden propia — probado en vivo (Julián, cuenta real).
+- [x] El técnico asociado puede verlo y responder — estructura probada (sin un caso real asignado a un técnico en esta sesión, pero la política y la UI son las mismas que para cliente).
+- [x] El admin puede gestionar y resolver — probado en vivo (mensaje, nota interna, historial).
+- [x] Un cliente o técnico ajeno recibe cero filas y no puede escribir — 5 pruebas negativas, todas pasaron.
+- [ ] La resolución actualiza de manera consistente el caso, la orden y la liquidación — funciona en el camino feliz, pero no es atómica (ver arriba).
+- [x] El flujo queda cubierto por RLS tests (`supabase/tests/support_cases_rls.sql`) y una prueba E2E manual real (no automatizada) a través del navegador, con los 3 roles.
 
 ### Pedido para Claude Code
 
@@ -697,7 +702,7 @@ Actualizar esta tabla al cerrar cada fase.
 | 1.1-extra. Fase 4 categorías (editor admin) | ✅ Hecho | 22/8/2026 | 22/8/2026 | commit `9361e6d` | Verificado en vivo: 8 categorías, conteos reales de subcategorías |
 | 0. Seguridad y foto real | 🟡 Casi cerrada — solo falta el chequeo manual de Deployment Protection/webhook MP en los dashboards | 23/8/2026 | 23/8/2026 | `feature/mercadopago-payments-backend` | `docs/audits/2026-08-23-baseline.md` — inventario completo de Supabase/Vercel + Advisors; MCP reconectado al proyecto real; halló que Reclamos y Garantías no tiene tablas en producción y que `technician_public_view` es `SECURITY DEFINER` |
 | 1. Supabase reproducible | 🟡 En curso — baseline reconstruible ya probado, faltan tipos TS y pruebas pgTAP | 23/8/2026 |  | `feature/mercadopago-payments-backend` | `supabase/migrations/20260823000000_baseline_live_schema.sql` + `20260823185803_remote_schema.sql`, verificados con `supabase migration list` (2/2) y una reconstrucción real desde cero |
-| 2. Reclamos y garantías | ⬜ Pendiente |  |  |  |  |
+| 2. Reclamos y garantías | 🟡 Casi — falta atomicidad en resolución, ventana de garantía y evidencia técnica | 23/8/2026 |  | `feature/mercadopago-payments-backend` | Migración `connect_support_cases_module`; `ClaimDetail.tsx`, `MyClaimsPanel.tsx`; `supabase/tests/support_cases_rls.sql` (7/7 OK); probado en vivo con 3 cuentas reales (admin, Julián, Carlos) |
 | 3. Comunicación | ⬜ Pendiente |  |  |  |  |
 | 4. Notificaciones | ⬜ Pendiente |  |  |  |  |
 | 5. Liquidaciones | ⬜ Pendiente |  |  |  |  |

@@ -17,6 +17,8 @@ import { ServicesCategoryView } from './views/ServicesCategoryView';
 import { GuestOrderStatusView } from './views/GuestOrderStatusView';
 import { ClientsTable } from './components/admin/ClientsTable';
 import { ClientFicha } from './components/admin/ClientFicha';
+import { ClaimsTable } from './components/admin/ClaimsTable';
+import { ClaimDetail } from './components/common/ClaimDetail';
 import type { UserRole } from './types';
 
 const Protected: React.FC<{ children: React.ReactNode; roles?: UserRole[] }> = ({
@@ -113,12 +115,19 @@ const AppContent: React.FC = () => {
             <ClientsTable onOpen={(customerId) => window.location.hash = `#/admin/clientes/${customerId}`} />
           </Protected>
         );
+      case '/admin/reclamos':
+        return (
+          <Protected roles={['admin']}>
+            <ClaimsTable onOpen={(claimId) => window.location.hash = `#/admin/reclamos/${claimId}`} />
+          </Protected>
+        );
       case '/technician':
       case '/technician/profile':
       case '/technician/earnings':
       case '/technician/availability':
       case '/technician/history':
       case '/technician/statistics':
+      case '/technician/reclamos':
         return (
           <Protected roles={['admin', 'technician']}>
             <TechnicianView />
@@ -149,6 +158,30 @@ const AppContent: React.FC = () => {
           return (
             <Protected roles={['admin']}>
               <ClientFicha customerId={customerId} onBack={() => window.location.hash = '#/admin/clientes'} />
+            </Protected>
+          );
+        }
+        if (pathOnly.startsWith('/admin/reclamos/')) {
+          const claimId = pathOnly.replace('/admin/reclamos/', '');
+          return (
+            <Protected roles={['admin']}>
+              <ClaimDetail claimId={claimId} onBack={() => window.location.hash = '#/admin/reclamos'} />
+            </Protected>
+          );
+        }
+        if (pathOnly.startsWith('/customer/reclamos/')) {
+          const claimId = pathOnly.replace('/customer/reclamos/', '');
+          return (
+            <Protected roles={['admin', 'customer']}>
+              <ClaimDetail claimId={claimId} onBack={() => window.location.hash = '#/customer'} />
+            </Protected>
+          );
+        }
+        if (pathOnly.startsWith('/technician/reclamos/')) {
+          const claimId = pathOnly.replace('/technician/reclamos/', '');
+          return (
+            <Protected roles={['admin', 'technician']}>
+              <ClaimDetail claimId={claimId} onBack={() => window.location.hash = '#/technician'} />
             </Protected>
           );
         }

@@ -27,6 +27,7 @@ import {
   Landmark,
   BarChart3,
   History,
+  ShieldAlert,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useApp } from '../context/AppContext';
@@ -38,6 +39,7 @@ import { ProfessionalProfile } from '../components/technician/ProfessionalProfil
 import { EarningsView } from '../components/technician/EarningsView';
 import { AvailabilityView } from '../components/technician/AvailabilityView';
 import { WorkHistoryView } from '../components/technician/WorkHistoryView';
+import { TechnicianClaimsView } from '../components/technician/TechnicianClaimsView';
 import { TechnicianStatisticsView } from '../components/technician/TechnicianStatisticsView';
 
 // Google Maps URLs are cross-platform and require no Maps API key.
@@ -79,6 +81,9 @@ export const TechnicianView: React.FC = () => {
   }
   if (currentPath.split('?')[0] === '/technician/statistics') {
     return <TechnicianStatisticsView />;
+  }
+  if (currentPath.split('?')[0] === '/technician/reclamos') {
+    return <TechnicianClaimsView />;
   }
 
   const techId = currentUser?.technicianId || '';
@@ -260,6 +265,9 @@ export const TechnicianView: React.FC = () => {
             <button onClick={() => navigate('/technician/statistics')} className="hidden lg:inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-bold text-slate-200 hover:border-teal-500/60 hover:text-teal-300">
               <BarChart3 className="w-3.5 h-3.5" /> Estadísticas
             </button>
+            <button onClick={() => navigate('/technician/reclamos')} className="hidden lg:inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-bold text-slate-200 hover:border-teal-500/60 hover:text-teal-300">
+              <ShieldAlert className="w-3.5 h-3.5" /> Reclamos
+            </button>
           </div>
 
           {/* Mobile-only quick access: the buttons above are hidden below sm, so without this
@@ -271,6 +279,7 @@ export const TechnicianView: React.FC = () => {
               { path: '/technician/availability', label: 'Disponibilidad', icon: Calendar },
               { path: '/technician/history', label: 'Historial', icon: History },
               { path: '/technician/statistics', label: 'Estadísticas', icon: BarChart3 },
+              { path: '/technician/reclamos', label: 'Reclamos', icon: ShieldAlert },
             ].map(({ path, label, icon: Icon }) => (
               <button
                 key={path}

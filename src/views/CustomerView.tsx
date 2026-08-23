@@ -28,6 +28,7 @@ import { CustomerProfilePanel } from '../components/client/CustomerProfilePanel'
 import { ServiceRequestForm } from '../components/client/ServiceRequestForm';
 import { QuoteViewer } from '../components/client/QuoteViewer';
 import { AssignedTechnicianCard } from '../components/client/AssignedTechnicianCard';
+import { MyClaimsPanel } from '../components/common/MyClaimsPanel';
 
 export const CustomerView: React.FC = () => {
   const { orders, currentUser, saveCustomerSignature, showToast, currentPath, navigate, deleteCustomerOrder } = useApp();
@@ -105,7 +106,7 @@ export const CustomerView: React.FC = () => {
       </div>
 
       <main className="max-w-7xl mx-auto px-3 sm:px-5 lg:px-6 pt-4">
-        {!isDetailPage && <><CustomerProfilePanel /><div className="h-4" /><ServiceRequestForm /><div className="h-4" /></>}
+        {!isDetailPage && <><CustomerProfilePanel /><div className="h-4" /><MyClaimsPanel onOpen={(claimId) => (window.location.hash = `#/customer/reclamos/${claimId}`)} /><div className="h-4" /><ServiceRequestForm /><div className="h-4" /></>}
         {isDetailPage && (
           <button type="button" onClick={() => navigate('/customer')} className="mb-4 inline-flex items-center gap-1.5 text-xs font-bold text-teal-700 hover:text-teal-800">
             <ArrowLeft className="w-4 h-4" /> Volver a mis servicios
