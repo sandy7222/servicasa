@@ -58,6 +58,8 @@ import { persistArchiveOrders } from '../lib/supabaseMutations';
 import { downloadArchivedOrdersExcel } from '../lib/exportOrdersExcel';
 import { TechnicianApplications } from '../components/admin/TechnicianApplications';
 import { PayoutScheduler } from '../components/admin/PayoutScheduler';
+import { PayoutBatchesPanel } from '../components/admin/PayoutBatchesPanel';
+import { SettlementReconciliation } from '../components/admin/SettlementReconciliation';
 import {
   OrderPriority,
   ServiceItem,
@@ -2010,6 +2012,8 @@ export const AdminHubView: React.FC = () => {
             <TechnicianApplications onApprove={handleApproveApplication} />
             <TechnicianValidation />
             <PayoutScheduler />
+            <PayoutBatchesPanel />
+            <SettlementReconciliation />
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-sm font-bold text-slate-900">Cuadrilla de Técnicos</h2>

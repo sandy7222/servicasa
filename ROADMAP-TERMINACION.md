@@ -32,6 +32,16 @@
 > - [x] **Hallazgo de seguridad durante la propia verificación:** `create_notification()` y el resto de funciones `SECURITY DEFINER` del módulo quedaban con `EXECUTE` público por el comportamiento por defecto de Postgres — cualquier usuario autenticado (o anónimo) podía llamarlas directo por `/rest/v1/rpc/...` y forjar notificaciones para cualquier destinatario con contenido arbitrario. Corregido revocando `EXECUTE` de `anon`/`authenticated` en las 14 funciones nuevas (las triggers siguen disparando igual — no necesitan el permiso). Confirmado con un test negativo en vivo.
 > - [x] 14/14 pruebas de RLS/idempotencia en vivo (`supabase/tests/notifications_rls.sql`), con rollback — cubren aislamiento por destinatario, admin viendo todo, protección contra reescritura de campos ajenos a `read_at`, y el caso de webhook duplicado.
 > - [ ] Queda pendiente para más adelante: deep-link preciso a la orden puntual para admin/técnico (hoy aterriza en el espacio de trabajo general, no en la orden exacta — el cliente sí tiene ruta exacta vía `/customer/orders/:id`); límites de retención/paginación de la bandeja si crece mucho.
+>
+> **Quinta actualización (23/8, sesión continuada — Fase 5):** Fase 5 (liquidaciones y pagos a técnicos) resuelta y probada en producción:
+> - [x] `release_due_technician_settlements()` ya existía en el esquema (correcta: solo toca `pending_release` vencidas y sin disputa) pero nunca estaba programada — se habilitó **pg_cron** (no estaba instalado) y se agendó el job `release-technician-settlements` cada 15 minutos. Al liberar, dispara la notificación de Fase 4 sin código adicional.
+> - [x] Cierre de lote (`close_payout_batch()`) diseñado como operación atómica e idempotente: transición con guarda `WHERE status='scheduled'` — un segundo cierre (doble click, doble ejecución) encuentra 0 filas y no hace nada (`closed=false`), sin doble pago. Marca las liquidaciones `paid`, dispara notificación de Fase 4, y registra auditoría en `technician_payout_batch_audit` (tabla nueva).
+> - [x] Bucket privado `payout-receipts` para comprobantes, con política de admin (todo) y técnico (solo lectura de sus propios lotes) — mismo patrón que `technician-documents`. UI de cierre (`PayoutBatchesPanel.tsx`) sube el comprobante y llama a la RPC; el portal del técnico (`EarningsView.tsx`) lo abre con URL firmada, no pública.
+> - [x] **Bug real encontrado al integrar Reclamos:** pausar una liquidación que ya estaba `scheduled` (dentro de un lote) la dejaba con `payout_batch_id` colgando — el lote quedaba con un total que ya no correspondía a lo que realmente se iba a pagar. Corregido con un trigger (`technician_settlements_clear_batch_on_pull`) que limpia `payout_batch_id`/`scheduled_date` automáticamente al salir de `scheduled` hacia cualquier estado que no sea `paid`, sin importar qué código dispare la transición.
+> - [x] **Hallazgo de seguridad:** `technician_settlements` y `technician_payout_batches` (tablas de dinero) tenían `GRANT` de tabla completo (`SELECT/INSERT/UPDATE/DELETE`) para `anon` — RLS ya bloqueaba el acceso en la práctica (solo hay policies para `authenticated`), pero era un privilegio excesivo inconsistente con las 6 tablas ya endurecidas en Fase 1. Revocado. También se revocó `EXECUTE` público de la función de trigger nueva, mismo patrón que Fase 4.
+> - [x] Conciliación administrativa nueva (`SettlementReconciliation.tsx` sobre la vista `admin_settlement_reconciliation`): filtra por estado, técnico, fecha e importe.
+> - [x] 18/18 pruebas en vivo con rollback (`supabase/tests/settlements_payout_rls.sql`): doble ejecución del cron (segunda corrida libera 0), doble cierre de lote (segunda vez no paga ni duplica notificación/auditoría), permisos (un técnico no puede cerrar un lote ni modificar importes ni ver liquidaciones ajenas), y el enganche real con reclamos.
+> - [ ] No probado con datos reales end-to-end en el navegador: hoy no hay liquidaciones ni lotes reales en producción (la limpieza de datos de prueba de sesiones anteriores dejó la tabla vacía), así que el flujo de UI se verificó por inspección + build, no clickeando un cierre real. La RPC que la UI llama es la misma que corrieron las 18 pruebas.
 
 ---
 
@@ -447,27 +457,27 @@ La recomendación inicial es el sistema general, con conversaciones asociadas a 
 
 ### Trabajo
 
-- [ ] Programar `release_due_technician_settlements()` mediante **Supabase Cron**, porque el trabajo es local a la base.
-- [ ] Versionar la creación del job y documentar cómo verificar `cron.job_run_details`.
-- [ ] Crear una operación atómica para cerrar un lote:
-   - validar que sea pagable;
-   - guardar método, referencia y fecha;
-   - marcar el lote `completed`;
-   - marcar sus liquidaciones `paid`;
-   - registrar auditoría;
-   - emitir notificación al técnico.
-- [ ] Evitar doble cierre y doble pago mediante idempotencia y constraints.
-- [ ] Permitir comprobante en bucket privado con políticas de admin y técnico propietario.
-- [ ] Resolver correctamente reclamos abiertos: pausar, retener, liberar o cancelar.
-- [ ] Agregar conciliación administrativa por estado, fecha, técnico e importe.
+- [x] Programar `release_due_technician_settlements()` mediante **Supabase Cron** (la función ya existía en el esquema; pg_cron no estaba instalado — se habilitó). Job `release-technician-settlements`, cada 15 minutos.
+- [x] Versionado en `supabase/sql/settlements_payout_batches_cron.sql` (migración `settlements_payout_batches_cron`). Verificar con `select * from cron.job;` y `select * from cron.job_run_details order by start_time desc;`.
+- [x] Operación atómica para cerrar un lote (`close_payout_batch()`):
+   - [x] valida que sea pagable (guarda `WHERE status='scheduled'`, admin-only);
+   - [x] guarda método, referencia y fecha;
+   - [x] marca el lote `completed`;
+   - [x] marca sus liquidaciones `paid` (solo las que siguen `scheduled` — honesto si alguna se pausó en el medio);
+   - [x] registra auditoría (`technician_payout_batch_audit`, tabla nueva);
+   - [x] emite notificación al técnico (reutiliza el trigger de Fase 4, sin código nuevo).
+- [x] Doble cierre y doble pago evitados por diseño: transición con guarda de estado (no por un constraint separado) — un segundo llamado no encuentra filas y no hace nada.
+- [x] Comprobante en bucket privado `payout-receipts`, políticas de admin (todo) y técnico propietario (solo lectura, por carpeta `{technician_id}/{batch_id}/...`).
+- [x] Reclamos abiertos: pausar/retener/liberar/cancelar ya existían (Fase 2) — se corrigió un bug real de acoplamiento (ver quinta actualización arriba) para que pausar una liquidación ya programada la saque limpiamente del lote.
+- [x] Conciliación administrativa (`SettlementReconciliation.tsx` + vista `admin_settlement_reconciliation`) por estado, fecha, técnico e importe.
 
 ### Criterio de aceptación
 
-- [ ] Cron libera solo liquidaciones vencidas sin disputa.
-- [ ] Dos ejecuciones producen el mismo resultado.
-- [ ] El admin puede completar un lote una sola vez.
-- [ ] El técnico ve fecha, referencia y comprobante propios.
-- [ ] Un técnico no puede modificar importes ni consultar pagos ajenos.
+- [x] Cron libera solo liquidaciones vencidas sin disputa — probado en vivo con una vencida y una futura en la misma corrida.
+- [x] Dos ejecuciones producen el mismo resultado — probado en vivo (segunda corrida libera 0).
+- [x] El admin puede completar un lote una sola vez — probado en vivo (segundo cierre no paga de nuevo, no duplica notificación ni auditoría).
+- [x] El técnico ve fecha, referencia y comprobante propios — comprobante vía URL firmada (bucket privado), no URL pública.
+- [x] Un técnico no puede modificar importes ni consultar pagos ajenos — probado en vivo (RLS filtra ambos casos).
 
 ### Pedido para Claude Code
 
@@ -725,7 +735,7 @@ Actualizar esta tabla al cerrar cada fase.
 | 2. Reclamos y garantías | 🟡 Casi — falta atomicidad en resolución, ventana de garantía y evidencia técnica | 23/8/2026 |  | `feature/mercadopago-payments-backend` | Migración `connect_support_cases_module`; `ClaimDetail.tsx`, `MyClaimsPanel.tsx`; `supabase/tests/support_cases_rls.sql` (7/7 OK); probado en vivo con 3 cuentas reales (admin, Julián, Carlos) |
 | 3. Comunicación | 🟡 Casi — falta límites de contenido/frecuencia, y no se probó reconexión de Realtime | 23/8/2026 |  | `feature/mercadopago-payments-backend` | ADR aprobada; migraciones `create_conversations_messaging_system` + 3 fixes; `supabase/tests/conversations_rls.sql` (11/11 OK); probado en vivo con Realtime bidireccional real entre Julián y Carlos |
 | 4. Notificaciones | 🟡 Casi — falta deep-link exacto de orden para admin/técnico y paginación de la bandeja | 23/8/2026 | 23/8/2026 | `feature/mercadopago-payments-backend` | Migraciones `notifications_center` + `notifications_center_lock_internal_functions`; `NotificationBell.tsx`; `supabase/tests/notifications_rls.sql` (14/14 OK); probado en vivo con admin y Julián |
-| 5. Liquidaciones | ⬜ Pendiente |  |  |  |  |
+| 5. Liquidaciones | ✅ Hecho | 23/8/2026 | 23/8/2026 | `feature/mercadopago-payments-backend` | Migraciones `settlements_payout_batches_cron` + `settlements_lock_internal_trigger_function`; cron `release-technician-settlements` (15 min); `PayoutBatchesPanel.tsx`, `SettlementReconciliation.tsx`; `supabase/tests/settlements_payout_rls.sql` (18/18 OK); no probado con datos reales en el navegador (no hay liquidaciones reales hoy) |
 | 6. Metas y elegibilidad | ⬜ Pendiente |  |  |  |  |
 | 7. Configuración | ⬜ Pendiente |  |  |  |  |
 | 8. Calidad y CI | ⬜ Pendiente |  |  |  |  |
