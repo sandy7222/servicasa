@@ -285,9 +285,24 @@ export async function fetchTechnicianApplications(): Promise<TechnicianApplicati
   return (data as DbTechnicianApplication[]).map(mapTechnicianApplication);
 }
 
-export async function fetchCatalog() {
+// Columnas de `technicians` seguras para cualquier usuario autenticado que
+// pueda ver la fila (RLS ya restringe eso a admin / el propio técnico /
+// cliente con una orden asignada a ese técnico). Quedan afuera a propósito
+// validation_notes (nota interna del admin sobre el técnico) y work_phone
+// (dato de contacto interno) — ninguna pantalla que lee del catálogo
+// compartido los necesita; ProfessionalProfile.tsx y TechnicianReviewCard.tsx
+// ya los piden aparte, con su propia consulta puntual, cuando corresponde.
+export const TECHNICIAN_COLUMNS_SHARED =
+  'id,technician_number,name,specialty,phone,email,rating,avatar_bg,active_orders_count,completed_orders_count,zone,province,profile_id,bio,education_level,degree_title,institution_name,public_avatar_path,validation_status,is_enabled,can_receive_orders,is_available';
+// El admin sí necesita work_phone del catálogo compartido: AdminHubView lo
+// precarga al abrir el modal de edición del técnico. validation_notes sigue
+// afuera — el admin la re-consulta puntualmente en TechnicianReviewCard.
+export const TECHNICIAN_COLUMNS_ADMIN = `${TECHNICIAN_COLUMNS_SHARED},work_phone`;
+
+export async function fetchCatalog(isAdmin: boolean) {
+  const technicianColumns = isAdmin ? TECHNICIAN_COLUMNS_ADMIN : TECHNICIAN_COLUMNS_SHARED;
   const [techRes, custRes, matRes, orderRes, svcRes, catRes, subcatRes] = await Promise.all([
-    supabase.from('technicians').select('*').order('name'),
+    supabase.from('technicians').select(technicianColumns).order('name'),
     supabase.from('customers').select('*').order('name'),
     supabase.from('materials').select('*').order('name'),
     supabase.from('service_orders').select('*').order('created_at', { ascending: false }),
@@ -437,7 +452,7 @@ export async function fetchCatalog() {
     });
   });
 
-  const technicians = (techRes.data as DbTechnician[]).map(mapTechnician);
+  const technicians = (techRes.data as unknown as DbTechnician[]).map(mapTechnician);
   const customers = (custRes.data as DbCustomer[]).map(mapCustomer);
 
   const { data: profileLinks } = await supabase

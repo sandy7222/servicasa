@@ -417,7 +417,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (!profile) {
         throw new Error('No se encontró el perfil en Supabase.');
       }
-      const catalog = await fetchCatalog();
+      const catalog = await fetchCatalog(profile.role === 'admin');
       setTechnicians(catalog.technicians);
       setCustomers(catalog.customers);
       setMaterials(catalog.materials);
@@ -550,7 +550,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (refreshTimeout) window.clearTimeout(refreshTimeout);
       refreshTimeout = window.setTimeout(() => {
         void withRemote(async () => {
-          const catalog = await fetchCatalog();
+          const catalog = await fetchCatalog(currentUser?.role === 'admin');
           setTechnicians(catalog.technicians);
           setCustomers(catalog.customers);
           setMaterials(catalog.materials);
