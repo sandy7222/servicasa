@@ -144,7 +144,7 @@ Este mismo hallazgo fue evidencia concreta del punto 2 de "Hallazgos que cambian
 - [ ] La documentación antigua todavía describe Node 18 y un lanzamiento no vinculado; la Fase 0 confirmó que la realidad en Vercel es **Node 24.x** — ninguna de las tres referencias (18 viejo, 22 de este roadmap, 24.x real) coincide. Hay que decidir a cuál normalizar, no asumir que 22 es la correcta solo porque este documento lo decía antes.
 - [ ] **Nuevo (Fase 0, 23/8):** protección de contraseñas filtradas (HaveIBeenPwned) desactivada en Supabase Auth. Arreglo de un click en Authentication → Policies del dashboard — sin motivo para no hacerlo ya, no hace falta esperar a la Fase 1.
 - [x] **Fase 0, 23/8, cerrado 25/8 en la Fase 8:** las funciones `current_user_role` e `is_admin` son invocables directamente por API para `anon`/`authenticated`, pero no reciben parámetros y solo devuelven datos de la propia sesión de quien pregunta — no hay nada que un atacante saque de más llamándolas directo, y revocarles `EXECUTE` rompería toda política RLS que las usa (la política corre con los privilegios del rol que hace la consulta). No se revoca. El riesgo real a revisar es otro: ver el ítem nuevo debajo sobre `get_account_invite`/`redeem_account_invite`.
-- [ ] **Nuevo (hallazgo Fase 8, 25/8):** `get_account_invite(p_token text)` y `redeem_account_invite(p_token text)` sí reciben un parámetro externo (el token) y son invocables por `anon`/`authenticated` — a diferencia de `is_admin()`/`current_user_role()`, acá vale la pena revisar riesgo de enumeración/fuerza bruta de tokens (longitud/entropía del token, rate limiting, si el error distingue "token inválido" de "token ya usado" de forma que ayude a un atacante).
+- [x] **Fase 8, 25/8:** `get_account_invite(p_token text)`/`redeem_account_invite(p_token text)` revisadas por enumeración de tokens — sin riesgo real. El token sale de `encode(gen_random_bytes(24), 'hex')`: 192 bits de entropía, adivinar/enumerar es inviable. Confirmado en vivo que `anon` no tiene ningún GRANT sobre `account_invites` (ya revocado en el barrido de ayer) y que la única policy (`account_invites_admin`) restringe el acceso directo a la tabla a admin — la única vía para un no-admin es la RPC con el token como credencial, mismo patrón que un link de restablecer contraseña. Único detalle cosmético (no explotable, no aplicado): `redeem_account_invite` distingue "inválido"/"ya usado"/"vencido"/"email no coincide" en sus mensajes de error; irrelevante porque hace falta tener el token real para llegar ahí.
 - [x] El trigger de seguridad de precios del checkout de pago directo migró su fuente de verdad de una tabla chica (`fixed_price_services`) al catálogo real (`services`). Cerrado 23/8 — ver 1.1-B. El checkout de "Sé qué trabajo necesito" ya usa el catálogo real de 233 servicios, filtrado por rubro.
 - [x] **Nuevo (23/8):** el checkout de invitado tenía un bug de arquitectura más serio que el de arriba: la orden y el cliente se creaban en la base *antes* de que Mercado Pago confirmara el pago, así que cualquier intento fallido dejaba clientes/órdenes huérfanas permanentes (probado en vivo: 19 en una sola tarde). Corregido — la orden ahora se crea recién cuando el webhook confirma `approved`, usando una tabla de borradores intermedia (`guest_checkout_drafts`).
 - [ ] **Nuevo (23/8):** la rama `feature/mercadopago-payments-backend` tiene 21 commits y ningún Pull Request abierto contra `main` — todo el trabajo de las últimas sesiones vive únicamente en una rama.
@@ -584,11 +584,11 @@ La recomendación inicial es el sistema general, con conversaciones asociadas a 
 
 ### Pirámide de pruebas
 
-- [ ] **Unitarias:** precios, estados, elegibilidad, liquidaciones, categorías y validaciones.
-- [ ] **Componentes:** formularios, permisos visuales, estados de carga y error.
-- [ ] **Supabase/pgTAP:** RLS, funciones, triggers, constraints e idempotencia.
-- [ ] **API:** autorización, validación de monto, webhook repetido y errores de proveedor.
-- [ ] **E2E:** admin, técnico, cliente e invitado.
+- [x] **Unitarias (25/8):** 8 archivos, 67 pruebas — dinero/gating de pago (`workTimer.test.ts`), elegibilidad consolidada (`technicianEligibility.test.ts`), configuración tipada (`settings.test.ts`), avance de metas (`technicianGoals.test.ts`), permisos cruzados de rol (`securityValidations.test.ts`, reescrito desde un runner muerto que nunca corrió — encontró y corrigió 2 aserciones viejas que no coincidían con el código real), y columnas seguras de `technicians` (`supabaseData.columns.test.ts`). Categorías/subcategorías todavía sin cobertura unitaria directa.
+- [ ] **Componentes (25/8, parcial):** 2 archivos (`NotificationBell.test.tsx`, `SystemSettingsPanel.test.tsx`) — falta el resto de formularios/estados de carga y error.
+- [ ] **Supabase/pgTAP:** no se convirtió a pgTAP formal. Decisión documentada: los scripts rollback-safe de `supabase/tests/*.sql` (probados en vivo contra el proyecto real toda la sesión) se tratan como la capa "Supabase" de facto de la pirámide en su lugar.
+- [ ] **API:** sin empezar — autorización, validación de monto, webhook repetido y errores de proveedor de `api/*` sin pruebas automatizadas todavía.
+- [ ] **E2E (25/8, parcial):** 2 specs, 5 pruebas — login/ruteo por rol y 1 de los 7 flujos obligatorios (ver abajo). Faltan 6.
 
 ### Flujos E2E obligatorios
 
@@ -596,35 +596,37 @@ La recomendación inicial es el sistema general, con conversaciones asociadas a 
 - [ ] Invitado → catálogo → pago → orden creada únicamente tras aprobación → seguimiento.
 - [ ] Precio fijo → pago completo → asignación → cierre.
 - [ ] Reclamo → pausa de liquidación → resolución → liberación o cancelación.
-- [ ] Conversación → no leído → lectura.
+- [x] **Conversación → no leído → lectura** (25/8) — `e2e/conversations-unread.spec.ts`, fixture con service role + interacción real de navegador para los pasos.
 - [ ] Lote técnico → programación → pago → comprobante.
 - [ ] Intentos cruzados de cliente y técnico sobre datos ajenos.
 
 ### CI
 
-Crear GitHub Actions para ejecutar en cada pull request:
+Creado `.github/workflows/ci.yml` (25/8), 4 jobs:
 
-- [ ] instalación reproducible;
-- [ ] lint TypeScript;
-- [ ] build;
-- [ ] tests unitarios;
-- [ ] tests de base local cuando sea viable;
-- [ ] chequeo de secretos y dependencias.
+- [x] instalación reproducible;
+- [x] lint TypeScript;
+- [x] build;
+- [x] tests unitarios;
+- [x] tests de base local cuando sea viable — solo `supabase db start` (reconstruye el esquema desde las migraciones), no la suite de `supabase/tests/*.sql`: esos scripts asumen las cuentas reales del proyecto remoto, correrlos contra una base local recién creada sin seed daría falsos negativos. Job informativo (`continue-on-error`), no bloqueante.
+- [x] chequeo de secretos y dependencias — `npm audit` + `gitleaks`, informativo.
+
+Los 3 últimos son `continue-on-error: true` a propósito (ver comentarios en el workflow); solo instalación/lint/build/tests unitarios bloquean el merge.
 
 ### Endurecimiento adicional
 
-- [ ] revisar rate limiting en endpoints públicos;
-- [ ] evitar que `/api/health` revele configuración innecesaria en producción;
-- [ ] limpiar PII y payloads de pago de logs;
-- [ ] agregar headers de seguridad y CSP compatibles con Mercado Pago y Supabase;
+- [ ] **revisar rate limiting en endpoints públicos (25/8, revisado, sin implementar):** `api/orders/guest-checkout.ts` y `api/payments/webhook.ts` no tienen rate limiting. Vercel son funciones serverless sin estado — un contador en memoria no protege nada entre instancias/cold starts, así que no se construyó nada falso. Implementar de verdad requiere un store externo (ej. Upstash Redis). Pendiente de decisión de Sandy: ¿vale la pena la infraestructura extra ahora, o se acepta el riesgo por ahora?
+- [x] evitar que `/api/health` revele configuración innecesaria en producción — gateado detrás de sesión de admin (25/8).
+- [x] limpiar PII y payloads de pago de logs (25/8, revisado) — ningún `console.error`/`console.warn` en `api/payments/webhook.ts`, `api/payments/create.ts` ni `api/orders/guest-checkout.ts` loguea PII cruda ni el payload completo de Mercado Pago; solo IDs y objetos de error de Supabase. El payload completo (`provider_payload`) va a una columna de la base detrás de RLS, no a logs. Ya estaba limpio, no hizo falta ningún cambio.
+- [x] agregar headers de seguridad y CSP compatibles con Mercado Pago y Supabase (25/8) — `vercel.json`: CSP acotada a `self` + Supabase + Google Fonts (sin dominios de Mercado Pago: el pago es redirección de nivel superior, el navegador nunca le habla directo) más `X-Content-Type-Options`/`X-Frame-Options`/`Referrer-Policy`/`Permissions-Policy`. Verificado contra el build real de producción (no `vite dev`, cuyo script inline de HMR rompía la CSP sin que eso reflejara el comportamiento real desplegado): sin violaciones en consola, portada y login cargan bien, tipografía de Google Fonts se aplica.
 - [x] revisar Service Worker para no cachear respuestas privadas o API — se sacó el cacheo de `*.supabase.co/rest/v1/*` el 23/8 (era `NetworkFirst` con hasta 24hs de `maxAgeSeconds`, causaba datos viejos en el panel operativo).
-- [ ] ejecutar advisors de Supabase al cierre.
+- [x] ejecutar advisors de Supabase (25/8) — encontró y cerró el hallazgo de `technicians` (ver Octava actualización arriba) y el pendiente de `is_admin()`/`current_user_role()`/tokens de invitación (ver sección 0). Queda **sin cerrar**: `technician_public_view` marcada `SECURITY DEFINER` (nivel ERROR del advisor, ver ítem de la Fase 1 más abajo) y 66 advertencias de rendimiento (`auth_rls_initplan`, `multiple_permissive_policies`) sin decisión documentada todavía — se relevaron pero no se resolvieron esta sesión.
 
 ### Criterio de aceptación
 
-- [ ] CI bloquea una rama que rompe lint, build o pruebas.
-- [ ] Los flujos críticos tienen pruebas repetibles.
-- [ ] No hay advertencias de seguridad Supabase de prioridad alta sin decisión documentada.
+- [x] CI bloquea una rama que rompe lint, build o pruebas (el job `install-lint-build-unit` no tiene `continue-on-error`).
+- [ ] Los flujos críticos tienen pruebas repetibles — cubierto: dinero/permisos/elegibilidad a nivel unitario, 1 de 7 flujos E2E. Falta el resto.
+- [ ] No hay advertencias de seguridad Supabase de prioridad alta sin decisión documentada — cerrado hoy lo de `technicians`/`is_admin`/tokens de invitación; sigue abierto `technician_public_view` (ERROR) y las 66 advertencias de rendimiento de RLS.
 
 ### Pedido para Claude Code
 
