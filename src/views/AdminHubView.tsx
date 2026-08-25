@@ -60,6 +60,7 @@ import { TechnicianApplications } from '../components/admin/TechnicianApplicatio
 import { PayoutScheduler } from '../components/admin/PayoutScheduler';
 import { PayoutBatchesPanel } from '../components/admin/PayoutBatchesPanel';
 import { SettlementReconciliation } from '../components/admin/SettlementReconciliation';
+import { canTechnicianReceiveOrders } from '../lib/technicianEligibility';
 import {
   OrderPriority,
   ServiceItem,
@@ -267,6 +268,25 @@ export const AdminHubView: React.FC = () => {
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [orderToAssign, setOrderToAssign] = useState<ServiceOrder | null>(null);
   const [assignModalReviewingTechId, setAssignModalReviewingTechId] = useState<string | null>(null);
+  const [assignEligibility, setAssignEligibility] = useState<Record<string, { canReceive: boolean; missingRequirements: string[] }>>({});
+  const [assignEligibilityLoading, setAssignEligibilityLoading] = useState(false);
+
+  // Única fuente de verdad de elegibilidad (src/lib/technicianEligibility.ts) —
+  // antes este modal decidía con un chequeo propio (solo validation_status +
+  // can_receive_orders) que no coincidía con el que sí mira los requisitos
+  // obligatorios uno por uno. Se recalcula cada vez que se abre el modal.
+  useEffect(() => {
+    if (!isAssignModalOpen) return;
+    let cancelled = false;
+    setAssignEligibilityLoading(true);
+    Promise.all(technicians.map(async (t) => [t.id, await canTechnicianReceiveOrders(t.id)] as const))
+      .then((entries) => {
+        if (cancelled) return;
+        setAssignEligibility(Object.fromEntries(entries));
+      })
+      .finally(() => { if (!cancelled) setAssignEligibilityLoading(false); });
+    return () => { cancelled = true; };
+  }, [isAssignModalOpen, technicians]);
   const [isNewCustomerModalOpen, setIsNewCustomerModalOpen] = useState(false);
   const [returnToCreateOrderAfterNewClient, setReturnToCreateOrderAfterNewClient] = useState(false);
   const [isEditCustomerModalOpen, setIsEditCustomerModalOpen] = useState(false);
@@ -3526,12 +3546,19 @@ export const AdminHubView: React.FC = () => {
                 <div className="space-y-2.5">
                   {technicians.map((t) => {
                     const isCurrent = orderToAssign.assignedTechnicianId === t.id;
-                    const isEligible = t.validationStatus === 'approved' && t.canReceiveOrders;
+                    const eligibility = assignEligibility[t.id];
+                    // Mientras carga, tratar como no elegible (fail-safe): nunca
+                    // asignar de un solo click sin haber confirmado los requisitos.
+                    const isEligible = Boolean(eligibility?.canReceive) && !assignEligibilityLoading;
                     const statusLabel = { pending: 'Pendiente', observed: 'Observado', suspended: 'Suspendido', approved: 'Aprobado' }[t.validationStatus ?? 'pending'] ?? 'Pendiente';
+                    const missingLabel = eligibility && !eligibility.canReceive && eligibility.missingRequirements.length > 0
+                      ? eligibility.missingRequirements.join(', ')
+                      : statusLabel;
                     return (
                       <div
                         key={t.id}
                         onClick={() => {
+                          if (assignEligibilityLoading) return;
                           if (isEligible) {
                             assignTechnician(orderToAssign.id, t.id);
                             setIsAssignModalOpen(false);
@@ -3553,9 +3580,9 @@ export const AdminHubView: React.FC = () => {
                           <div>
                             <div className="text-xs font-bold text-slate-900">{t.name}</div>
                             <div className="text-[11px] text-slate-500">{t.specialty}</div>
-                            {!isEligible && (
+                            {!isEligible && !assignEligibilityLoading && (
                               <div className="text-[10px] font-bold text-amber-700 mt-0.5">
-                                {statusLabel} · no habilitado
+                                {missingLabel} · no habilitado
                               </div>
                             )}
                           </div>

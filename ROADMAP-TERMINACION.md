@@ -498,20 +498,18 @@ La recomendación inicial es el sistema general, con conversaciones asociadas a 
 
 ### Trabajo
 
-- [ ] Reemplazar `Goals` placeholder por CRUD sobre `technician_goals`.
-- [ ] Permitir una meta activa por tipo y período.
-- [ ] Calcular avance desde liquidaciones reales y órdenes completadas, no desde valores guardados manualmente.
-- [ ] Mostrar porcentaje, faltante, período y cumplimiento.
-- [ ] Decidir el destino de `technicianEligibility.ts`:
-   - convertirlo en única fuente de reglas; o
-   - eliminarlo y extraer la lógica duplicada a un servicio probado.
-- [ ] Agregar tests para elegibilidad y cálculo de metas.
+- [x] Reemplazar `Goals` placeholder por CRUD sobre `technician_goals`. **Bug encontrado de paso**: la pestaña Metas era inalcanzable en producción — `EarningsView.tsx` mostraba el placeholder `Empty` para CUALQUIER pestaña (incluida Metas) cuando el técnico no tenía liquidaciones, y hoy ningún técnico tiene liquidaciones reales (ver hallazgo de Fase 7 sobre `technician_settlements` sin productor). Corregido para que Metas se renderice siempre, independiente de si hay liquidaciones.
+- [x] Permitir una meta activa por tipo y período — índice único parcial (`technician_goals_one_active_per_type`) + RPC `set_technician_goal()` que reemplaza atómicamente. `goal_type` ya encodifica el período (semanal vs. mensual), así que no hizo falta agregar columnas de fecha.
+- [x] Calcular avance desde liquidaciones reales (`monthly_earnings`) y órdenes completadas (`monthly_jobs`/`weekly_jobs`) del período vigente — nunca un valor guardado a mano (la tabla no tiene columna de progreso).
+- [x] Mostrar porcentaje, faltante, período y cumplimiento — barra de progreso + badge "Meta cumplida".
+- [x] `technicianEligibility.ts`: se decidió la opción A (única fuente de reglas). **Hallazgo real**: había 3 implementaciones con criterios DISTINTOS, no solo duplicadas — el trigger de la base de datos (la barrera real) era MÁS LAXO que el chequeo completo (solo miraba `validation_status`/`can_receive_orders`, no los requisitos obligatorios pendientes uno por uno). Se corrigió el trigger para que exija lo mismo que `canTechnicianReceiveOrders()`, y se reemplazó el chequeo duplicado inline en `AdminHubView.tsx` por una llamada a esa misma función.
+- [x] Tests para elegibilidad (el trigger ahora rechaza asignar a un técnico con un requisito obligatorio pendiente, antes lo permitía) y para metas (RPC atómica, índice único, RLS).
 
 ### Criterio de aceptación
 
-- [ ] El técnico crea, edita y desactiva sus metas.
-- [ ] El progreso coincide con los datos reales.
-- [ ] No quedan tres implementaciones distintas de elegibilidad.
+- [x] El técnico crea, edita y desactiva sus metas — probado en vivo con María Rodríguez (crear, ver progreso 0/4, desactivar).
+- [x] El progreso coincide con los datos reales — hoy da 0 en todos los tipos porque no hay liquidaciones ni órdenes completadas reales en el sistema (limpieza de datos de sesiones anteriores), no por un error de cálculo.
+- [x] No quedan tres implementaciones distintas de elegibilidad — DB, `AdminHubView.tsx` y `technicianEligibility.ts` ahora exigen exactamente lo mismo.
 
 ### Pedido para Claude Code
 
@@ -747,7 +745,7 @@ Actualizar esta tabla al cerrar cada fase.
 | 3. Comunicación | 🟡 Casi — falta límites de contenido/frecuencia, y no se probó reconexión de Realtime | 23/8/2026 |  | `feature/mercadopago-payments-backend` | ADR aprobada; migraciones `create_conversations_messaging_system` + 3 fixes; `supabase/tests/conversations_rls.sql` (11/11 OK); probado en vivo con Realtime bidireccional real entre Julián y Carlos |
 | 4. Notificaciones | 🟡 Casi — falta deep-link exacto de orden para admin/técnico y paginación de la bandeja | 23/8/2026 | 23/8/2026 | `feature/mercadopago-payments-backend` | Migraciones `notifications_center` + `notifications_center_lock_internal_functions`; `NotificationBell.tsx`; `supabase/tests/notifications_rls.sql` (14/14 OK); probado en vivo con admin y Julián |
 | 5. Liquidaciones | ✅ Hecho, incluida la revisión post-cierre de Sandy | 23/8/2026 | 23/8/2026 | `feature/mercadopago-payments-backend` | Migraciones `settlements_payout_batches_cron` + `settlements_lock_internal_trigger_function` + `security_sweep_and_settlement_fixes` + `security_sweep_views_anon_grants` + `fix_cron_failure_notification_survives_transaction`; cron `release-technician-settlements` (15 min) con aviso a admin si falla; `PayoutBatchesPanel.tsx`, `SettlementReconciliation.tsx`; `supabase/tests/settlements_payout_rls.sql` (18/18) + `security_sweep_and_cron_failure.sql` (5/5); barrido de GRANT/EXECUTE en las 37 tablas + 4 vistas del proyecto (33+4 con exceso, corregido); no probado con datos reales en el navegador (no hay liquidaciones reales hoy) |
-| 6. Metas y elegibilidad | ⬜ Pendiente |  |  |  |  |
+| 6. Metas y elegibilidad | ✅ Hecho | 25/8/2026 | 25/8/2026 | `feature/mercadopago-payments-backend` | Migraciones `tighten_technician_assignment_eligibility` + `technician_goals_and_eligibility`; `technicianGoals.ts`, `Goals` real en `EarningsView.tsx`; `supabase/tests/technician_goals_and_eligibility.sql` (9/9 OK); probado en vivo con María (crear/ver progreso/desactivar); hallazgo: la pestaña Metas era inalcanzable y el trigger de elegibilidad era más laxo que el chequeo completo — ambos corregidos |
 | 7. Configuración | ✅ Hecho | 24/8/2026 | 24/8/2026 | `feature/mercadopago-payments-backend` | Migración `system_settings_typed_and_audited`; `SystemSettingsPanel.tsx`, `src/lib/settings.ts`; `supabase/tests/system_settings_rls.sql` (13/13 OK); probado en vivo con admin (guardado directo y confirmación de cambio sensible); hallazgo: nada crea filas en `technician_settlements` todavía |
 | 8. Calidad y CI | ⬜ Pendiente |  |  |  |  |
 | 9. Staging y Vercel | ⬜ Pendiente |  |  |  |  |
