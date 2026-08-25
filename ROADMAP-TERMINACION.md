@@ -526,29 +526,34 @@ La recomendación inicial es el sistema general, con conversaciones asociadas a 
 
 ### Parámetros iniciales
 
-- [ ] seña de visita;
-- [ ] porcentaje de comisión;
-- [ ] días de garantía;
-- [ ] días hasta liberar liquidación;
-- [ ] recargo urgente;
-- [ ] límites de pedido y mensaje;
-- [ ] zonas/provincias habilitadas;
-- [ ] banderas de funciones sensibles.
+- [x] seña de visita — ya vivía en `system_settings` (30000), formalizada con tipo/descripción/visibilidad.
+- [x] porcentaje de comisión — nuevo, `0.17`. **Sin consumidor real hoy**: ningún código crea filas en `technician_settlements` (ver hallazgo abajo).
+- [x] días de garantía — extraído de un `30 days` hardcodeado dentro de la vista SQL `customer_summary` (que además no tenía consumidor en el frontend).
+- [x] días hasta liberar liquidación — nuevo, `7`. Sin consumidor real hoy (mismo motivo que la comisión).
+- [x] recargo urgente — nuevo, `0` (igual al comportamiento actual: sin recargo). Sin consumidor real hoy.
+- [x] límites de pedido y mensaje — `message_max_length` (2000) con validación real en servidor (trigger en `messages` y `support_case_messages`). El límite de "pedido" (máx. de órdenes activas por cliente) quedó identificado pero no se implementó — necesita una decisión de producto sobre el número, no estaba especificado.
+- [x] zonas/provincias habilitadas — nuevo, las 24 provincias habilitadas (igual al comportamiento actual, que acepta pedidos de cualquiera). Reservado: todavía no hay validación que filtre por esta lista en la creación de órdenes.
+- [x] banderas de funciones sensibles — contenedor `feature_flags` reservado, vacío (no había ninguna bandera concreta que migrar).
 
 ### Trabajo
 
-- [ ] Extender `system_settings` con tipos, validación, descripción y versión.
-- [ ] Crear `system_settings_history` para auditoría.
-- [ ] Restringir escritura a admin; lectura pública únicamente para valores realmente públicos.
-- [ ] Cargar settings en servidor para precios y pagos; nunca confiar en valores enviados por el frontend.
-- [ ] Crear panel administrativo con confirmación para cambios sensibles.
-- [ ] Mantener defaults seguros si Supabase no responde.
+- [x] Extender `system_settings` con tipos (`value_type`), validación (trigger que rechaza value/tipo inconsistentes), descripción y versión.
+- [x] Crear `system_settings_history` para auditoría — se llena sola por trigger, no depende de que el código de la app se acuerde de loguearlo.
+- [x] Restringir escritura a admin (ya estaba); lectura segmentada por `visibility` (`public`/`authenticated`/`admin`) en vez de "cualquier autenticado ve todo" — antes un técnico o cliente podía leer la comisión de la plataforma vía REST.
+- [x] `api/orders/guest-checkout.ts` ya cargaba `visit_deposit_amount` en servidor (no confía en el frontend) — reverificado que sigue funcionando igual tras el cambio de esquema.
+- [x] Panel administrativo (`SystemSettingsPanel.tsx`) con confirmación explícita para los cambios que tocan cálculos de dinero (comisión, días de liberación).
+- [x] Defaults seguros si Supabase no responde (`DEFAULT_SETTINGS` en `src/lib/settings.ts`, espejo de los valores reales).
+
+### Hallazgos del inventario (no eran bugs de esta fase, quedan anotados)
+
+- `VISIT_DEPOSIT_AMOUNT = 6000` y `PLATFORM_COMMISSION_RATE = 0.17` en `src/lib/pricing.ts` nunca se importaban en ningún lado — muertos, y el primero además desactualizado (el valor real era 30000). Borrados.
+- **No existe ningún código (frontend, API o trigger SQL) que cree filas en `technician_settlements`.** Todo lo construido en la Fase 5 (cron, cierre de lote, conciliación) es correcto y está probado, pero hoy no tiene quién dé de alta la primera liquidación `pending_release` cuando un técnico termina un trabajo. No se resolvió acá — no estaba pedido y necesita una decisión de producto (¿se genera al completar la orden? ¿al confirmarse el pago final?) antes de escribir el código.
 
 ### Criterio de aceptación
 
-- [ ] Los valores críticos no están duplicados en React, API y SQL.
-- [ ] Cada cambio registra quién, cuándo, valor anterior y nuevo.
-- [ ] Un cliente o técnico no puede modificar configuración.
+- [x] Los valores críticos no están duplicados en React, API y SQL — los duplicados muertos de `pricing.ts` se borraron; `visit_deposit_amount` tiene una sola fuente de verdad.
+- [x] Cada cambio registra quién, cuándo, valor anterior y nuevo — probado en vivo con la comisión y los días de garantía (incluye `updated_by`, que antes ni se guardaba).
+- [x] Un cliente o técnico no puede modificar configuración — probado en vivo (RLS filtra la fila, 0 afectadas) y no puede leer settings `visibility=admin` ni el historial.
 
 ### Pedido para Claude Code
 
@@ -743,7 +748,7 @@ Actualizar esta tabla al cerrar cada fase.
 | 4. Notificaciones | 🟡 Casi — falta deep-link exacto de orden para admin/técnico y paginación de la bandeja | 23/8/2026 | 23/8/2026 | `feature/mercadopago-payments-backend` | Migraciones `notifications_center` + `notifications_center_lock_internal_functions`; `NotificationBell.tsx`; `supabase/tests/notifications_rls.sql` (14/14 OK); probado en vivo con admin y Julián |
 | 5. Liquidaciones | ✅ Hecho, incluida la revisión post-cierre de Sandy | 23/8/2026 | 23/8/2026 | `feature/mercadopago-payments-backend` | Migraciones `settlements_payout_batches_cron` + `settlements_lock_internal_trigger_function` + `security_sweep_and_settlement_fixes` + `security_sweep_views_anon_grants` + `fix_cron_failure_notification_survives_transaction`; cron `release-technician-settlements` (15 min) con aviso a admin si falla; `PayoutBatchesPanel.tsx`, `SettlementReconciliation.tsx`; `supabase/tests/settlements_payout_rls.sql` (18/18) + `security_sweep_and_cron_failure.sql` (5/5); barrido de GRANT/EXECUTE en las 37 tablas + 4 vistas del proyecto (33+4 con exceso, corregido); no probado con datos reales en el navegador (no hay liquidaciones reales hoy) |
 | 6. Metas y elegibilidad | ⬜ Pendiente |  |  |  |  |
-| 7. Configuración | ⬜ Pendiente |  |  |  |  |
+| 7. Configuración | ✅ Hecho | 24/8/2026 | 24/8/2026 | `feature/mercadopago-payments-backend` | Migración `system_settings_typed_and_audited`; `SystemSettingsPanel.tsx`, `src/lib/settings.ts`; `supabase/tests/system_settings_rls.sql` (13/13 OK); probado en vivo con admin (guardado directo y confirmación de cambio sensible); hallazgo: nada crea filas en `technician_settlements` todavía |
 | 8. Calidad y CI | ⬜ Pendiente |  |  |  |  |
 | 9. Staging y Vercel | ⬜ Pendiente |  |  |  |  |
 | 10. Lanzamiento | ⬜ Pendiente |  |  |  |  |
