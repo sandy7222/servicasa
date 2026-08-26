@@ -320,7 +320,8 @@ Los comandos exactos de Supabase deben confirmarse con `supabase --help`, porque
 - [ ] Ejecutar los advisors de seguridad y rendimiento y resolver los errores de prioridad alta.
 - [ ] Confirmar los GRANT de tablas nuevas frente al cambio actual de Data API; RLS y GRANT son controles distintos.
 - [x] **Fase 0, cerrado 25/8:** `current_user_role`/`is_admin` invocables directo por API — no revocar, ver nota en la sección 0 (no hay fuga real, y romperían RLS). El pendiente real que quedó abierto es revisar `get_account_invite`/`redeem_account_invite` por enumeración de tokens.
-- [ ] **Nuevo (hallazgo Fase 0):** firma formal de la vista `technician_public_view` (`SECURITY DEFINER`) — confirmar con un test explícito que no expone más columnas/filas de las necesarias para el listado público de técnicos, y dejar la evidencia documentada acá.
+- [x] **Fase 0, cerrado 25/8 en la Fase 8:** `technician_public_view` era `SECURITY DEFINER` — corría con los privilegios del dueño, saltando el RLS real de `technicians`/`technician_matriculas` y replicando el scoping a mano en su propio `WHERE`. Como `technicians` ya tiene el RLS correcto (hallazgo de arriba) y `technician_matriculas` ya tenía las policies correctas desde antes, se cambió a `security_invoker=true` (`supabase/migrations/20260825140000_technician_public_view_security_invoker.sql`) para que dependa del RLS real en vez de duplicarlo. 5/5 pruebas en vivo con rollback: admin y el propio técnico ven la fila con la matrícula aprobada, el cliente con orden asignada también (prueba que la subquery contra `technician_matriculas` funciona con RLS real, no bypass), un técnico sin relación no ve nada, y `anon` no tiene ningún acceso (`permission denied`, ni siquiera 0 filas silenciosas — no tiene GRANT sobre la vista).
+- [ ] **Nuevo (hallazgo lateral, 25/8, sin confirmar):** al armar el fixture de la prueba de arriba, insertar una fila en `service_orders` ya impersonando `authenticated` (en vez de como superusuario) disparó `ERROR 42P17: infinite recursion detected in policy for relation "service_orders"`. No se reprodujo nunca a través de la app real (el admin crea órdenes constantemente en esta sesión sin este error), así que probablemente sea un artefacto de este arnés de pruebas SQL (JWT simulado con `request.jwt.claim.sub`/`.role` en vez del JSON completo que arma Supabase Auth de verdad) y no un bug real de producción — pero no se investigó a fondo. Si vuelve a aparecer, revisar las policies de `service_orders` por una referencia circular.
 - [ ] Decidir a qué versión de Node normalizar (18 viejo en docs / 22 en este roadmap / 24.x real en Vercel confirmado en Fase 0) y aplicar esa decisión en documentación, desarrollo y Vercel.
 
 ### Criterio de aceptación
@@ -626,7 +627,7 @@ Los 3 últimos son `continue-on-error: true` a propósito (ver comentarios en el
 
 - [x] CI bloquea una rama que rompe lint, build o pruebas (el job `install-lint-build-unit` no tiene `continue-on-error`).
 - [ ] Los flujos críticos tienen pruebas repetibles — cubierto: dinero/permisos/elegibilidad a nivel unitario, 1 de 7 flujos E2E. Falta el resto.
-- [ ] No hay advertencias de seguridad Supabase de prioridad alta sin decisión documentada — cerrado hoy lo de `technicians`/`is_admin`/tokens de invitación; sigue abierto `technician_public_view` (ERROR) y las 66 advertencias de rendimiento de RLS.
+- [ ] No hay advertencias de seguridad Supabase de prioridad alta sin decisión documentada — cerrado hoy lo de `technicians`/`is_admin`/tokens de invitación/`technician_public_view` (el único ERROR del advisor); siguen las 66 advertencias de rendimiento de RLS (`auth_rls_initplan`/`multiple_permissive_policies`), que son cosméticas, no fugas.
 
 ### Pedido para Claude Code
 
