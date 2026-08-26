@@ -292,8 +292,12 @@ export async function fetchTechnicianApplications(): Promise<TechnicianApplicati
 // (dato de contacto interno) — ninguna pantalla que lee del catálogo
 // compartido los necesita; ProfessionalProfile.tsx y TechnicianReviewCard.tsx
 // ya los piden aparte, con su propia consulta puntual, cuando corresponde.
+// is_available NO se incluye porque esa columna no existe en la tabla real
+// (verificado contra el esquema en vivo) -- nombrarla explícitamente hace
+// que PostgREST tire "column does not exist" en vez de simplemente omitirla
+// como hacía select('*').
 export const TECHNICIAN_COLUMNS_SHARED =
-  'id,technician_number,name,specialty,phone,email,rating,avatar_bg,active_orders_count,completed_orders_count,zone,province,profile_id,bio,education_level,degree_title,institution_name,public_avatar_path,validation_status,is_enabled,can_receive_orders,is_available';
+  'id,technician_number,name,specialty,phone,email,rating,avatar_bg,active_orders_count,completed_orders_count,zone,province,profile_id,bio,education_level,degree_title,institution_name,public_avatar_path,validation_status,is_enabled,can_receive_orders';
 // El admin sí necesita work_phone del catálogo compartido: AdminHubView lo
 // precarga al abrir el modal de edición del técnico. validation_notes sigue
 // afuera — el admin la re-consulta puntualmente en TechnicianReviewCard.
