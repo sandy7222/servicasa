@@ -138,7 +138,6 @@ const AppContent: React.FC = () => {
       case '/technician':
       case '/technician/profile':
       case '/technician/earnings':
-      case '/technician/availability':
       case '/technician/history':
       case '/technician/statistics':
       case '/technician/reclamos':

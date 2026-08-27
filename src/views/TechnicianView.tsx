@@ -7,7 +7,6 @@ import {
   Clock,
   MapPin,
   Phone,
-  Calendar,
   AlertCircle,
   FileSignature,
   Plus,
@@ -38,7 +37,6 @@ import { canExecutePaidWork, formatElapsedTime, getOrderElapsedSeconds } from '.
 import { QuoteBuilder } from '../components/technician/QuoteBuilder';
 import { ProfessionalProfile } from '../components/technician/ProfessionalProfile';
 import { EarningsView } from '../components/technician/EarningsView';
-import { AvailabilityView } from '../components/technician/AvailabilityView';
 import { WorkHistoryView } from '../components/technician/WorkHistoryView';
 import { TechnicianClaimsView } from '../components/technician/TechnicianClaimsView';
 import { TechnicianConversationsView } from '../components/technician/TechnicianConversationsView';
@@ -75,9 +73,6 @@ export const TechnicianView: React.FC = () => {
   }
   if (currentPath.split('?')[0] === '/technician/earnings') {
     return <EarningsView />;
-  }
-  if (currentPath.split('?')[0] === '/technician/availability') {
-    return <AvailabilityView />;
   }
   if (currentPath.split('?')[0] === '/technician/history') {
     return <WorkHistoryView />;
@@ -262,9 +257,6 @@ export const TechnicianView: React.FC = () => {
             <button onClick={() => navigate('/technician/earnings')} className="hidden sm:inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-bold text-slate-200 hover:border-teal-500/60 hover:text-teal-300">
               <Landmark className="w-3.5 h-3.5" /> Mis ganancias
             </button>
-            <button onClick={() => navigate('/technician/availability')} className="hidden sm:inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-bold text-slate-200 hover:border-teal-500/60 hover:text-teal-300">
-              <Calendar className="w-3.5 h-3.5" /> Disponibilidad
-            </button>
             <button onClick={() => navigate('/technician/history')} className="hidden md:inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-bold text-slate-200 hover:border-teal-500/60 hover:text-teal-300">
               <History className="w-3.5 h-3.5" /> Historial
             </button>
@@ -285,7 +277,6 @@ export const TechnicianView: React.FC = () => {
             {[
               { path: '/technician/profile', label: 'Mi perfil', icon: UserRound },
               { path: '/technician/earnings', label: 'Ganancias', icon: Landmark },
-              { path: '/technician/availability', label: 'Disponibilidad', icon: Calendar },
               { path: '/technician/history', label: 'Historial', icon: History },
               { path: '/technician/statistics', label: 'Estadísticas', icon: BarChart3 },
               { path: '/technician/reclamos', label: 'Reclamos', icon: ShieldAlert },
