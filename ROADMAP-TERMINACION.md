@@ -652,6 +652,22 @@ Los 3 últimos son `continue-on-error: true` a propósito (ver comentarios en el
 **Duración:** 2 a 3 sesiones.
 **Meta:** separar desarrollo de producción y hacer cada despliegue verificable.
 
+> **Primera actualización (26-27/8, auditoría inicial):** se auditó Vercel y Supabase sin imprimir ningún valor secreto (confirmado, de paso, que Vercel redacta cualquier variable marcada "Sensitive" incluso al hacer `vercel env pull` — ni con acceso de CLI se puede extraer el valor real por ese medio).
+> - [x] **Hallazgo central: hoy no hay separación de ambientes en absoluto.** `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `MP_ACCESS_TOKEN`, `MP_PUBLIC_KEY`, `MP_WEBHOOK_SECRET`, `VITE_DEMO_MODE` — las 7 variables de aplicación en Vercel tienen un único valor compartido entre Production y Preview. Un Preview de cualquier rama pega contra el mismo proyecto real de Supabase (con el registro real de Juan Carlos Muccela adentro) y usa las mismas credenciales de Mercado Pago que producción.
+> - [x] **Riesgo real evaluado, no asumido:** las credenciales de Mercado Pago compartidas son de TEST/sandbox (confirmado por Sandy) — ni Preview ni Production procesan pagos reales hoy, porque todavía no se hizo el lanzamiento real (Fase 10). Baja la urgencia de separar MP ahora mismo; se retoma cuando Sandy consiga las credenciales `APP_USR-` reales para el lanzamiento.
+> - [x] Node.js `24.x` — fijado por configuración del proyecto en Vercel (no por `package.json`, que no tiene campo `engines`). El roadmap asumía 22 (hallazgo ya documentado en la Fase 0); se mantiene 24.x, que es lo que Vercel ya soporta como LTS activo.
+> - [x] `vercel.json` — ya cumplía "solo lo necesario" desde la Fase 8 (headers de seguridad únicamente, sin `functions` ni `cron`).
+> - [x] Deployment Protection está activo en el proyecto (existe `VERCEL_AUTOMATION_BYPASS_SECRET`) — los Preview no son alcanzables públicamente sin ese bypass.
+> - [x] **Ninguna variable de servidor se filtra al navegador** — confirmado buscando literalmente `MP_ACCESS_TOKEN`/`SUPABASE_SERVICE_ROLE_KEY`/`MP_WEBHOOK_SECRET` en el bundle JS de producción: cero coincidencias (Vite ya excluye del build cualquier variable sin prefijo `VITE_` por diseño, no fue algo que hubo que configurar).
+> - [x] **Mercado Pago — URLs de retorno, webhook, idempotencia y logs, ya correctos, sin necesitar cambios:** `back_urls`/`notification_url` se arman dinámicamente desde `req.headers.host` en `api/payments/create.ts` y `api/orders/guest-checkout.ts` — nunca hay un dominio de producción hardcodeado, así que ya funcionan solos en cualquier entorno (dev, preview, producción) sin configuración extra. Idempotencia y ausencia de PII en logs ya se habían revisado y confirmado en la Octava actualización de la Fase 8.
+> - [x] **Hallazgo real de Auth: no existe recuperación de contraseña.** Ni un link "olvidé mi contraseña" ni una sola llamada a `resetPasswordForEmail` en todo `AuthView.tsx` — un usuario real que se olvide la contraseña no tiene forma de recuperar la cuenta hoy. Pendiente de decisión de Sandy (construir el flujo es trabajo nuevo, no config).
+> - [x] Site URL / Redirect URLs / rate limiting de Supabase Auth: no leíble por API sin un token de management que no está disponible en las herramientas de esta sesión — pendiente de que Sandy lo confirme desde el dashboard.
+> - [ ] **Proyecto Supabase separado para staging/Preview — bloqueado por un límite de cuenta, no de diseño:** el plan free tope a 2 proyectos activos por usuario administrador. Sandy ya liberó cupo; la creación del proyecto (`ServiCasa-staging`, misma región `us-east-2` que producción, costo confirmado en $0/mes) sigue reintentándose.
+> - [ ] Migrar el esquema (`supabase/migrations/`) al proyecto de staging una vez creado, con datos de prueba propios.
+> - [ ] Apuntar las variables de Preview en Vercel al proyecto de staging (no al de producción).
+> - [ ] Verificar un Preview completo contra el staging antes de dar la fase por cerrada.
+> - [x] Rollback documentado (`docs/rollback.md`): `vercel rollback <id>` para código (instantáneo, sin rebuild); migraciones sin mecanismo automático — se revierten con una migración nueva escrita a mano, mismo criterio rollback-safe de toda la sesión. Documentado también el gap real: código y esquema no están versionados juntos, así que un rollback de Vercel no deshace una migración que lo acompañaba.
+
 ### Trabajo
 
 - [ ] Definir ramas:
@@ -659,32 +675,28 @@ Los 3 últimos son `continue-on-error: true` a propósito (ver comentarios en el
    - ramas `feature/*`: previews;
    - staging mediante Supabase Branch o proyecto separado, según costo disponible.
 - [ ] Separar variables Vercel de Development, Preview y Production.
-- [ ] Confirmar Node 22 para funciones y build.
-- [ ] Crear `vercel.json` solo con lo necesario:
-   - headers de seguridad;
-   - configuración de funciones;
-   - Cron únicamente si queda algún trabajo HTTP fuera de Supabase;
-   - nunca duplicar el Cron de liquidaciones en dos plataformas.
+- [x] Confirmar Node para funciones y build — es 24.x (no 22 como asumía el roadmap), fijado en la configuración del proyecto de Vercel.
+- [x] `vercel.json` solo con lo necesario — ya cumplido desde la Fase 8 (headers de seguridad, sin funciones ni Cron).
 - [ ] Verificar Auth de Supabase:
-   - Site URL de producción;
-   - URLs permitidas de preview y producción;
-   - recuperación de contraseña.
-- [ ] Verificar Mercado Pago:
-   - credenciales test/producción separadas;
-   - URLs de retorno;
-   - webhook;
-   - protección sin impedir llamados legítimos;
-   - idempotencia y logs.
+   - Site URL de producción — pendiente de confirmación de Sandy;
+   - URLs permitidas de preview y producción — pendiente de confirmación de Sandy;
+   - recuperación de contraseña — **no existe, hallazgo real, pendiente de decisión.**
+- [x] Verificar Mercado Pago:
+   - credenciales test/producción separadas — hoy comparten TEST en ambos ambientes, sin riesgo real porque no hubo lanzamiento todavía; separar cuando existan credenciales reales;
+   - URLs de retorno — dinámicas, ya correctas;
+   - webhook — dinámico, ya correcto;
+   - protección sin impedir llamados legítimos — Deployment Protection + bypass secret en la URL registrada en MP, ya andaba;
+   - idempotencia y logs — ya confirmados en la Fase 8.
 - [ ] Configurar checks de despliegue, logs y alertas básicas.
 - [ ] Agregar smoke test automático contra Preview.
-- [ ] Documentar rollback de Vercel y rollback de migraciones compatibles.
+- [x] Documentar rollback de Vercel y rollback de migraciones compatibles — `docs/rollback.md`.
 
 ### Criterio de aceptación
 
-- [ ] Preview no usa datos ni credenciales de producción.
-- [ ] Producción tiene todas las variables necesarias y ninguna variable servidor expuesta al navegador.
-- [ ] Un deploy fallido no se promociona.
-- [ ] Existe rollback probado y documentado.
+- [ ] Preview no usa datos ni credenciales de producción. **Hoy no se cumple** — bloqueado en la creación del proyecto de staging.
+- [x] Producción tiene todas las variables necesarias y ninguna variable servidor expuesta al navegador.
+- [x] Un deploy fallido no se promociona (comportamiento por defecto de Vercel, confirmado).
+- [x] Existe rollback probado y documentado (`docs/rollback.md`).
 
 ### Pedido para Claude Code
 
