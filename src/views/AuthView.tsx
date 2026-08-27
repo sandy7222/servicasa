@@ -27,7 +27,7 @@ function readInviteToken() {
   return new URLSearchParams(query).get('invite');
 }
 
-type AuthMode = 'login' | 'register' | 'apply' | 'guest';
+type AuthMode = 'login' | 'register' | 'apply' | 'guest' | 'recover';
 
 const inputClass =
   'w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/40 focus:border-teal-500 disabled:bg-slate-50 disabled:opacity-70';
@@ -36,7 +36,7 @@ const inputWithIconClass =
 const labelClass = 'block text-xs font-bold text-slate-700 font-mono uppercase tracking-wider mb-1.5';
 
 export const AuthView: React.FC = () => {
-  const { loginWithPassword, registerWithInvite, registerCustomer, submitTechnicianApplication, authLoading, showToast, services } =
+  const { loginWithPassword, requestPasswordRecovery, registerWithInvite, registerCustomer, submitTechnicianApplication, authLoading, showToast, services } =
     useApp();
   // Only rubros the platform actually works — same source the customer's own
   // "Solicitar servicio" form uses — so a technician can't apply for a
@@ -68,6 +68,10 @@ export const AuthView: React.FC = () => {
 
   // Invite (existing account activation)
   const [invitePassword, setInvitePassword] = useState('');
+
+  // Recuperar contraseña
+  const [recoverEmail, setRecoverEmail] = useState('');
+  const [recoverSubmitted, setRecoverSubmitted] = useState(false);
 
   // Customer self-registration
   const [regFullName, setRegFullName] = useState('');
@@ -131,6 +135,23 @@ export const AuthView: React.FC = () => {
       const message = friendlyErrorMessage(err, 'No se pudo iniciar sesión');
       setError(message);
       showToast(message, 'error', 'Error de acceso');
+    }
+  };
+
+  const handleRequestRecovery = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    setError(null);
+    if (!recoverEmail.trim()) {
+      setError('Ingresá tu email.');
+      return;
+    }
+    try {
+      await requestPasswordRecovery(recoverEmail);
+      setRecoverSubmitted(true);
+    } catch (err) {
+      const message = friendlyErrorMessage(err, 'No se pudo enviar el enlace de recuperación');
+      setError(message);
+      showToast(message, 'error', 'No se pudo enviar el enlace');
     }
   };
 
@@ -215,7 +236,9 @@ export const AuthView: React.FC = () => {
           ? 'Creá tu cuenta de cliente'
           : mode === 'guest'
             ? 'Pedí un servicio sin cuenta'
-            : 'Quiero ser técnico';
+            : mode === 'recover'
+              ? 'Recuperar contraseña'
+              : 'Quiero ser técnico';
 
   const headerSubtitle = inviteMode
     ? `Te invitaron como ${roleLabel}. Elegí una contraseña para vincular tu ficha.`
@@ -227,7 +250,9 @@ export const AuthView: React.FC = () => {
           ? 'Registrate como cliente para pedir servicios en minutos.'
           : mode === 'guest'
             ? 'Completá el pedido y pagá — después te invitamos a crear tu cuenta.'
-            : 'Contanos de vos. El equipo revisa tu solicitud y te contacta si sos seleccionado.';
+            : mode === 'recover'
+              ? 'Ingresá tu email y te mandamos un enlace para elegir una contraseña nueva.'
+              : 'Contanos de vos. El equipo revisa tu solicitud y te contacta si sos seleccionado.';
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-10 sm:py-16 px-4 sm:px-6 lg:px-8" id="tecniurbano-auth-view">
@@ -365,6 +390,20 @@ export const AuthView: React.FC = () => {
                   required
                 />
               </div>
+              <div className="mt-1.5 text-right">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setError(null);
+                    setRecoverSubmitted(false);
+                    setRecoverEmail(email);
+                    setMode('recover');
+                  }}
+                  className="text-[11px] font-semibold text-teal-700 hover:text-teal-800"
+                >
+                  ¿Olvidaste tu contraseña?
+                </button>
+              </div>
             </div>
 
             {error && (
@@ -416,6 +455,73 @@ export const AuthView: React.FC = () => {
               </div>
             )}
           </form>
+        )}
+
+        {!inviteLoading && !inviteMode && mode === 'recover' && (
+          recoverSubmitted ? (
+            <div className="bg-white rounded-xl p-6 shadow-md border border-slate-200 text-center space-y-3">
+              <CheckCircle2 className="w-10 h-10 text-teal-600 mx-auto" />
+              <p className="text-sm font-bold text-slate-900">Revisá tu email</p>
+              <p className="text-xs text-slate-500">
+                Si existe una cuenta con ese email, te mandamos un enlace para elegir una contraseña nueva.
+              </p>
+              <button
+                type="button"
+                onClick={() => setMode('login')}
+                className="text-xs font-bold text-teal-700 hover:underline"
+              >
+                Volver a Ingresar
+              </button>
+            </div>
+          ) : (
+            <form
+              onSubmit={handleRequestRecovery}
+              className="bg-white rounded-xl p-5 sm:p-6 shadow-md border border-slate-200 space-y-4"
+            >
+              <div>
+                <label className={labelClass}>Email</label>
+                <input
+                  type="email"
+                  autoComplete="username"
+                  value={recoverEmail}
+                  onChange={(e) => setRecoverEmail(e.target.value)}
+                  disabled={authLoading}
+                  className={inputClass}
+                  required
+                />
+              </div>
+
+              {error && (
+                <div className="text-xs text-red-700 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{error}</div>
+              )}
+
+              <button
+                type="submit"
+                disabled={authLoading}
+                className="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-[#0F172A] hover:bg-slate-800 disabled:opacity-60 text-white font-bold text-sm rounded-lg shadow-sm transition-all"
+              >
+                {authLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Enviando…
+                  </>
+                ) : (
+                  'Enviar enlace de recuperación'
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setError(null);
+                  setMode('login');
+                }}
+                className="w-full text-center text-xs font-semibold text-slate-500 hover:text-slate-700"
+              >
+                Volver a Ingresar
+              </button>
+            </form>
+          )
         )}
 
         {!inviteLoading && !inviteMode && mode === 'register' && (

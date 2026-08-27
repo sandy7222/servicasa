@@ -15,6 +15,7 @@ import { CustomerView } from './views/CustomerView';
 import { SettingsView } from './views/SettingsView';
 import { ServicesCategoryView } from './views/ServicesCategoryView';
 import { GuestOrderStatusView } from './views/GuestOrderStatusView';
+import { ResetPasswordView } from './views/ResetPasswordView';
 import { ClientsTable } from './components/admin/ClientsTable';
 import { ClientFicha } from './components/admin/ClientFicha';
 import { ClaimsTable } from './components/admin/ClaimsTable';
@@ -83,7 +84,7 @@ const Protected: React.FC<{ children: React.ReactNode; roles?: UserRole[] }> = (
 };
 
 const AppContent: React.FC = () => {
-  const { currentPath, currentUser, remoteBusy, authReady } = useApp();
+  const { currentPath, currentUser, remoteBusy, authReady, passwordRecoveryMode } = useApp();
 
   const pathOnly = currentPath.split('?')[0];
 
@@ -237,7 +238,13 @@ const AppContent: React.FC = () => {
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-800 antialiased selection:bg-teal-500 selection:text-white">
       <Header />
       <InlineBusyBar active={remoteBusy} />
-      {!authReady ? <FullPageLoader message="Iniciando TecniUrbano…" /> : <div className="flex-1">{renderView()}</div>}
+      {!authReady ? (
+        <FullPageLoader message="Iniciando TecniUrbano…" />
+      ) : passwordRecoveryMode ? (
+        <ResetPasswordView />
+      ) : (
+        <div className="flex-1">{renderView()}</div>
+      )}
       <Toast />
     </div>
   );

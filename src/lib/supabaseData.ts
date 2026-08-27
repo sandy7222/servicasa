@@ -517,6 +517,22 @@ export async function signOut() {
   if (error) throw error;
 }
 
+// redirectTo apunta a la raíz del sitio (sin hash): Supabase le agrega sus
+// propios parámetros de recuperación como fragmento de la URL, y AppContext
+// los detecta vía onAuthStateChange (evento PASSWORD_RECOVERY) antes de que
+// el router por hash de la app llegue a interpretarlos.
+export async function requestPasswordReset(email: string) {
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin,
+  });
+  if (error) throw error;
+}
+
+export async function updatePasswordForRecoverySession(newPassword: string) {
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) throw error;
+}
+
 export const DEMO_CREDENTIALS: { role: UserRole; label: string; email: string; password: string }[] = [
   { role: 'admin', label: 'Admin', email: 'admin@tecniurbano.com.ar', password: 'TecniUrbano2026!' },
   { role: 'technician', label: 'Carlos (técnico)', email: 'carlos.mendez@tecniurbano.com.ar', password: 'TecniUrbano2026!' },

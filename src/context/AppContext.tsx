@@ -17,9 +17,11 @@ import {
   fetchTechnicianApplications,
   fetchVisitDepositAmount,
   profileToCurrentUser,
+  requestPasswordReset,
   signInWithPassword,
   signOut,
   signUpWithPassword,
+  updatePasswordForRecoverySession,
 } from '../lib/supabaseData';
 import {
   requireAdmin,
@@ -136,6 +138,9 @@ interface AppContextType {
   setCurrentUser: (user: CurrentUserData) => void;
   loginAsRole: (role: UserRole, specificId?: string) => void;
   loginWithPassword: (email: string, password: string) => Promise<void>;
+  passwordRecoveryMode: boolean;
+  requestPasswordRecovery: (email: string) => Promise<void>;
+  completePasswordRecovery: (newPassword: string) => Promise<void>;
   registerWithInvite: (input: { token: string; password: string }) => Promise<void>;
   registerCustomer: (input: CustomerRegistrationInput) => Promise<void>;
   submitTechnicianApplication: (input: TechnicianApplicationInput) => Promise<void>;
@@ -369,6 +374,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [currentUser, setCurrentUserState] = useState<CurrentUserData | null>(null);
   const [authReady, setAuthReady] = useState(!isSupabaseConfigured);
   const [authLoading, setAuthLoading] = useState(false);
+  const [passwordRecoveryMode, setPasswordRecoveryMode] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
   const [dataError, setDataError] = useState<string | null>(null);
   const [remoteBusyCount, setRemoteBusyCount] = useState(0);
@@ -523,6 +529,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const { data: sub } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_OUT') {
         clearRemoteSession();
+        return;
+      }
+      if (event === 'PASSWORD_RECOVERY') {
+        // No se llama a applyRemoteSession: esta sesión es solo para elegir
+        // una contraseña nueva, no para entrar directo al panel del rol.
+        setPasswordRecoveryMode(true);
         return;
       }
       if (session?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
@@ -689,6 +701,38 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (err) {
       const message = friendlyErrorMessage(err, 'No se pudo iniciar sesión');
       setDataError(message);
+      throw new Error(message);
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const requestPasswordRecovery = async (email: string) => {
+    setAuthLoading(true);
+    setDataError(null);
+    try {
+      await requestPasswordReset(email.trim());
+    } catch (err) {
+      const message = friendlyErrorMessage(err, 'No se pudo enviar el enlace de recuperación');
+      throw new Error(message);
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const completePasswordRecovery = async (newPassword: string) => {
+    setAuthLoading(true);
+    setDataError(null);
+    try {
+      await updatePasswordForRecoverySession(newPassword);
+      // Se cierra la sesión de recuperación a propósito: es más simple y más
+      // seguro pedirle que inicie sesión de nuevo con la contraseña nueva que
+      // intentar reanudar su sesión normal desde acá.
+      await signOut();
+      setPasswordRecoveryMode(false);
+      showToast('Contraseña actualizada. Iniciá sesión con tu nueva contraseña.', 'success');
+    } catch (err) {
+      const message = friendlyErrorMessage(err, 'No se pudo actualizar la contraseña');
       throw new Error(message);
     } finally {
       setAuthLoading(false);
@@ -2675,6 +2719,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setCurrentUser,
         loginAsRole,
         loginWithPassword,
+        passwordRecoveryMode,
+        requestPasswordRecovery,
+        completePasswordRecovery,
         registerWithInvite,
         registerCustomer,
         submitTechnicianApplication,

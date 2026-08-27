@@ -657,7 +657,7 @@ Los 3 últimos son `continue-on-error: true` a propósito (ver comentarios en el
 > - [x] **Riesgo real evaluado, no asumido:** las credenciales de Mercado Pago compartidas son de TEST/sandbox (confirmado por Sandy) — ni Preview ni Production procesan pagos reales hoy, porque todavía no se hizo el lanzamiento real (Fase 10). Baja la urgencia de separar MP ahora mismo; se retoma cuando Sandy consiga las credenciales `APP_USR-` reales para el lanzamiento.
 > - [x] Node.js `24.x` — fijado por configuración del proyecto en Vercel (no por `package.json`, que no tiene campo `engines`). El roadmap asumía 22 (hallazgo ya documentado en la Fase 0); se mantiene 24.x, que es lo que Vercel ya soporta como LTS activo.
 > - [x] `vercel.json` — ya cumplía "solo lo necesario" desde la Fase 8 (headers de seguridad únicamente, sin `functions` ni `cron`).
-> - [x] Deployment Protection está activo en el proyecto (existe `VERCEL_AUTOMATION_BYPASS_SECRET`) — los Preview no son alcanzables públicamente sin ese bypass.
+> - [ ] ~~Deployment Protection está activo en el proyecto (existe `VERCEL_AUTOMATION_BYPASS_SECRET`) — los Preview no son alcanzables públicamente sin ese bypass.~~ **Corregido en la Tercera actualización: esto estaba mal.** La existencia de esa variable no probaba nada — con un `curl` directo se confirmó que Deployment Protection no estaba encendida.
 > - [x] **Ninguna variable de servidor se filtra al navegador** — confirmado buscando literalmente `MP_ACCESS_TOKEN`/`SUPABASE_SERVICE_ROLE_KEY`/`MP_WEBHOOK_SECRET` en el bundle JS de producción: cero coincidencias (Vite ya excluye del build cualquier variable sin prefijo `VITE_` por diseño, no fue algo que hubo que configurar).
 > - [x] **Mercado Pago — URLs de retorno, webhook, idempotencia y logs, ya correctos, sin necesitar cambios:** `back_urls`/`notification_url` se arman dinámicamente desde `req.headers.host` en `api/payments/create.ts` y `api/orders/guest-checkout.ts` — nunca hay un dominio de producción hardcodeado, así que ya funcionan solos en cualquier entorno (dev, preview, producción) sin configuración extra. Idempotencia y ausencia de PII en logs ya se habían revisado y confirmado en la Octava actualización de la Fase 8.
 > - [x] **Hallazgo real de Auth: no existe recuperación de contraseña.** Ni un link "olvidé mi contraseña" ni una sola llamada a `resetPasswordForEmail` en todo `AuthView.tsx` — un usuario real que se olvide la contraseña no tiene forma de recuperar la cuenta hoy. Pendiente de decisión de Sandy (construir el flujo es trabajo nuevo, no config).
@@ -675,10 +675,10 @@ Los 3 últimos son `continue-on-error: true` a propósito (ver comentarios en el
 - [ ] Separar variables Vercel de Development, Preview y Production. **No se hizo, a propósito** — depende de tener un proyecto de Supabase separado para Preview, que quedó descartado. Riesgo aceptado y documentado.
 - [x] Confirmar Node para funciones y build — es 24.x (no 22 como asumía el roadmap), fijado en la configuración del proyecto de Vercel.
 - [x] `vercel.json` solo con lo necesario — ya cumplido desde la Fase 8 (headers de seguridad, sin funciones ni Cron).
-- [ ] Verificar Auth de Supabase — **pendiente para una sesión futura**, no se alcanzó a confirmar el dashboard esta vez:
-   - Site URL de producción;
-   - URLs permitidas de preview y producción;
-   - recuperación de contraseña — **no existe, hallazgo real, pendiente de decisión.**
+- [ ] Verificar Auth de Supabase — **parcial**:
+   - Site URL de producción — pendiente, Sandy no llegó a confirmar el dashboard;
+   - URLs permitidas de preview y producción — pendiente, ídem;
+   - recuperación de contraseña — [x] **construida y probada de punta a punta el 27/8** (ver Tercera actualización).
 - [x] Verificar Mercado Pago:
    - credenciales test/producción separadas — hoy comparten TEST en ambos ambientes, sin riesgo real porque no hubo lanzamiento todavía; separar cuando existan credenciales reales;
    - URLs de retorno — dinámicas, ya correctas;
@@ -697,6 +697,12 @@ Los 3 últimos son `continue-on-error: true` a propósito (ver comentarios en el
 - [x] Existe rollback probado y documentado (`docs/rollback.md`).
 
 **Fase cerrada el 27/8** con lo anterior. Auth de Supabase, checks/alertas de despliegue y el smoke test automático completo quedan para retomar en una sesión futura si hace falta — no estaban bloqueados por nada, simplemente no llegaron a esta sesión.
+
+> **Tercera actualización (27/8, corrección con evidencia antes del lanzamiento):** Sandy pidió no dar por cerrados dos chequeos de dashboard de la Fase 0 sin evidencia real. Uno de los dos resultó estar mal.
+> - [x] **Deployment Protection de Vercel — la Primera actualización de esta fase estaba equivocada.** Había asumido que estaba activa solo porque existía la variable `VERCEL_AUTOMATION_BYPASS_SECRET`. Confirmado con un `curl` directo, sin login, contra un Preview real: devolvió `200` con la app completa — Deployment Protection **no estaba encendida** (`ssoProtection: null` en la API de Vercel). El comentario de seguridad en `api/payments/webhook.ts` que decía lo contrario también estaba mal y se corrigió.
+> - [x] **Encendida ahora, con el alcance correcto**, vía la API de Vercel (`ssoProtection: {deploymentType: "preview"}`) — sin costo en este plan (se probó y no pidió upgrade). Verificado de nuevo con `curl`: el mismo Preview que antes daba `200` ahora da `302` (exige login de Vercel); `tecniurbano.online` sigue en `200`, sin cambios — producción queda pública, solo los Preview quedan gateados.
+> - [ ] **Webhook de Mercado Pago (URL registrada + tópicos suscriptos) — pendiente de que Sandy lo confirme desde el dashboard de MP.** Las herramientas de esta sesión no tienen forma de leer la configuración actual del webhook, solo de sobrescribirla — no se iba a asumir ni a pisar la configuración a ciegas.
+> - [x] **Recuperación de contraseña — construida y probada de punta a punta contra Supabase real.** `AuthView.tsx` tiene un link "¿Olvidaste tu contraseña?" que pide el email y llama a `resetPasswordForEmail`; `AppContext` detecta el evento `PASSWORD_RECOVERY` de Supabase (sin loguear al usuario en su panel normal) y muestra `ResetPasswordView`, que pide la contraseña nueva y cierra la sesión al guardar — hay que iniciar sesión de nuevo con la contraseña nueva, a propósito, en vez de intentar reanudar la sesión original. Prueba en vivo: se generó un link de recuperación real vía la API admin de Supabase (`auth.admin.generateLink`) para la cuenta de Julián, se navegó a él como primera carga de una pestaña nueva (clave: `supabase-js` solo parsea el token de recuperación del hash una vez, al iniciar — un simple cambio de hash en una pestaña ya cargada no alcanza), se guardó una contraseña nueva, se confirmó el cierre de sesión, y se confirmó un login real con la contraseña nueva. Contraseña de la cuenta de prueba restaurada al final a la estándar (`TecniUrbano2026!`) para no romper el resto de la suite de pruebas de la sesión.
 
 ### Pedido para Claude Code
 
