@@ -662,24 +662,22 @@ Los 3 últimos son `continue-on-error: true` a propósito (ver comentarios en el
 > - [x] **Mercado Pago — URLs de retorno, webhook, idempotencia y logs, ya correctos, sin necesitar cambios:** `back_urls`/`notification_url` se arman dinámicamente desde `req.headers.host` en `api/payments/create.ts` y `api/orders/guest-checkout.ts` — nunca hay un dominio de producción hardcodeado, así que ya funcionan solos en cualquier entorno (dev, preview, producción) sin configuración extra. Idempotencia y ausencia de PII en logs ya se habían revisado y confirmado en la Octava actualización de la Fase 8.
 > - [x] **Hallazgo real de Auth: no existe recuperación de contraseña.** Ni un link "olvidé mi contraseña" ni una sola llamada a `resetPasswordForEmail` en todo `AuthView.tsx` — un usuario real que se olvide la contraseña no tiene forma de recuperar la cuenta hoy. Pendiente de decisión de Sandy (construir el flujo es trabajo nuevo, no config).
 > - [x] Site URL / Redirect URLs / rate limiting de Supabase Auth: no leíble por API sin un token de management que no está disponible en las herramientas de esta sesión — pendiente de que Sandy lo confirme desde el dashboard.
-> - [ ] **Proyecto Supabase separado para staging/Preview — bloqueado por un límite de cuenta, no de diseño:** el plan free tope a 2 proyectos activos por usuario administrador. Sandy ya liberó cupo; la creación del proyecto (`ServiCasa-staging`, misma región `us-east-2` que producción, costo confirmado en $0/mes) sigue reintentándose.
-> - [ ] Migrar el esquema (`supabase/migrations/`) al proyecto de staging una vez creado, con datos de prueba propios.
-> - [ ] Apuntar las variables de Preview en Vercel al proyecto de staging (no al de producción).
-> - [ ] Verificar un Preview completo contra el staging antes de dar la fase por cerrada.
 > - [x] Rollback documentado (`docs/rollback.md`): `vercel rollback <id>` para código (instantáneo, sin rebuild); migraciones sin mecanismo automático — se revierten con una migración nueva escrita a mano, mismo criterio rollback-safe de toda la sesión. Documentado también el gap real: código y esquema no están versionados juntos, así que un rollback de Vercel no deshace una migración que lo acompañaba.
+>
+> **Segunda actualización (27/8, cierre de fase — decisión sobre separar Supabase):** el proyecto de staging (`ServiCasa-staging`, $0/mes, misma región que producción) quedó bloqueado por el límite de cuenta de Supabase (2 proyectos free activos por usuario administrador, sumando **todas** las organizaciones, no por organización). El segundo proyecto contando contra el cupo vive en `PescadorYA`, una organización de Sandy sin relación con TecniUrbano, que está transformando activamente con otra herramienta en paralelo — **no se toca, no se pausa, no se borra.**
+> - [x] **Se evaluó Supabase Branching como alternativa** (no cuenta como "proyecto" nuevo, evita el límite de cupo) — confirmado contra la página oficial de precios de Supabase que **Branching no está incluido en el plan Free**: la tabla comparativa de Database lista "Not included" para Free y "$0.01344 por branch/hora" recién a partir de Pro. El costo por hora no es una opción independiente activable desde Free — hace falta el plan Pro como base ($25/mes fijos) antes de que el cobro por hora exista siquiera.
+> - [x] **Decisión de Sandy: opción 3, no separar Supabase por ahora.** Ni pagar un Pro solo para esto, ni tocar el proyecto ajeno de `PescadorYA`. Preview y Production siguen compartiendo el mismo proyecto real de Supabase (`ayszrtieplmqscqtabsu`) — riesgo aceptado y documentado, no ignorado: cualquier Preview de una rama sigue viendo los datos reales (hoy sin actividad transaccional, pero con al menos una cuenta de cliente real) y usando el mismo `SUPABASE_SERVICE_ROLE_KEY`. Revisar esta decisión si en algún momento se necesita el plan Pro por otro motivo (branching quedaría gratis "de yapa"), o si aparece actividad real de clientes que vuelva más sensible ese riesgo.
+> - [ ] Auth de Supabase (Site URL, Redirect URLs, recuperación de contraseña) queda pendiente de una sesión futura — Sandy no llegó a confirmar el dashboard esta vez; no es parte de la decisión de cerrar esta fase, es trabajo que no se alcanzó a hacer.
 
 ### Trabajo
 
-- [ ] Definir ramas:
-   - `main`: producción;
-   - ramas `feature/*`: previews;
-   - staging mediante Supabase Branch o proyecto separado, según costo disponible.
-- [ ] Separar variables Vercel de Development, Preview y Production.
+- [x] Definir ramas — `main` ya es producción (Vercel despliega cada push como target `production` y el dominio lo sigue automático) y las ramas `feature/*` ya generan Preview solas. Staging mediante Supabase Branch o proyecto separado: **evaluado y descartado por decisión de Sandy** (ver Segunda actualización) — cuesta un plan Pro ($25/mes) o toca un proyecto ajeno de otra organización que no se quiere tocar.
+- [ ] Separar variables Vercel de Development, Preview y Production. **No se hizo, a propósito** — depende de tener un proyecto de Supabase separado para Preview, que quedó descartado. Riesgo aceptado y documentado.
 - [x] Confirmar Node para funciones y build — es 24.x (no 22 como asumía el roadmap), fijado en la configuración del proyecto de Vercel.
 - [x] `vercel.json` solo con lo necesario — ya cumplido desde la Fase 8 (headers de seguridad, sin funciones ni Cron).
-- [ ] Verificar Auth de Supabase:
-   - Site URL de producción — pendiente de confirmación de Sandy;
-   - URLs permitidas de preview y producción — pendiente de confirmación de Sandy;
+- [ ] Verificar Auth de Supabase — **pendiente para una sesión futura**, no se alcanzó a confirmar el dashboard esta vez:
+   - Site URL de producción;
+   - URLs permitidas de preview y producción;
    - recuperación de contraseña — **no existe, hallazgo real, pendiente de decisión.**
 - [x] Verificar Mercado Pago:
    - credenciales test/producción separadas — hoy comparten TEST en ambos ambientes, sin riesgo real porque no hubo lanzamiento todavía; separar cuando existan credenciales reales;
@@ -687,16 +685,18 @@ Los 3 últimos son `continue-on-error: true` a propósito (ver comentarios en el
    - webhook — dinámico, ya correcto;
    - protección sin impedir llamados legítimos — Deployment Protection + bypass secret en la URL registrada en MP, ya andaba;
    - idempotencia y logs — ya confirmados en la Fase 8.
-- [ ] Configurar checks de despliegue, logs y alertas básicas.
-- [ ] Agregar smoke test automático contra Preview.
+- [ ] Configurar checks de despliegue, logs y alertas básicas. Sin empezar.
+- [ ] Agregar smoke test automático contra Preview. Sin empezar más allá del `e2e-smoke` de solo lectura que ya corre en CI desde la Fase 8.
 - [x] Documentar rollback de Vercel y rollback de migraciones compatibles — `docs/rollback.md`.
 
 ### Criterio de aceptación
 
-- [ ] Preview no usa datos ni credenciales de producción. **Hoy no se cumple** — bloqueado en la creación del proyecto de staging.
+- [ ] Preview no usa datos ni credenciales de producción. **No se cumple, por decisión explícita** (opción 3) — no es un olvido, es un riesgo aceptado y documentado porque separar cuesta plan pago o toca un proyecto ajeno.
 - [x] Producción tiene todas las variables necesarias y ninguna variable servidor expuesta al navegador.
 - [x] Un deploy fallido no se promociona (comportamiento por defecto de Vercel, confirmado).
 - [x] Existe rollback probado y documentado (`docs/rollback.md`).
+
+**Fase cerrada el 27/8** con lo anterior. Auth de Supabase, checks/alertas de despliegue y el smoke test automático completo quedan para retomar en una sesión futura si hace falta — no estaban bloqueados por nada, simplemente no llegaron a esta sesión.
 
 ### Pedido para Claude Code
 
