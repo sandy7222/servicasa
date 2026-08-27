@@ -4,9 +4,10 @@ import { useApp } from '../../context/AppContext';
 import { isSupabaseConfigured, supabase } from '../../lib/supabase';
 
 export const CustomerProfilePanel: React.FC = () => {
-  const { currentUser, setCurrentUser, showToast } = useApp();
+  const { currentUser, customers, setCurrentUser, showToast } = useApp();
+  const customerRecord = customers.find((c) => c.id === currentUser?.customerId);
   const [name, setName] = useState(currentUser?.name ?? '');
-  const [phone, setPhone] = useState('');
+  const [phone, setPhone] = useState(customerRecord?.phone ?? '');
   const [avatarPreview, setAvatarPreview] = useState<string>();
   const [saving, setSaving] = useState(false);
 
@@ -14,6 +15,12 @@ export const CustomerProfilePanel: React.FC = () => {
     if (!currentUser?.avatarUrl || !isSupabaseConfigured) return;
     void supabase.storage.from('avatars').createSignedUrl(currentUser.avatarUrl, 3600).then(({ data }) => setAvatarPreview(data?.signedUrl));
   }, [currentUser?.avatarUrl]);
+
+  // The customer record loads asynchronously after this component mounts —
+  // sync the phone field once it arrives instead of leaving it blank forever.
+  useEffect(() => {
+    if (customerRecord?.phone) setPhone(customerRecord.phone);
+  }, [customerRecord?.phone]);
 
   if (!currentUser) return null;
 

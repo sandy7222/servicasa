@@ -2,6 +2,9 @@ node_modules/
 build/
 dist/
 coverage/
+test-results/
+playwright-report/
+supabase/.temp/
 .DS_Store
 *.log
 .env*
@@ -9,5 +12,10 @@ coverage/
 .cursor/mcp.json
 .cursor/*token*
 .cursor/acces*
+.mcp.json
 .codex/
 openclaude/
+claude code/
+
+.vercel
+.env*

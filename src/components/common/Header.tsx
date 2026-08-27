@@ -9,12 +9,17 @@ import {
   X,
   Home,
   ChevronDown,
+  MessageCircle,
 } from 'lucide-react';
 import { Logo } from './Logo';
 import { useApp } from '../../context/AppContext';
 import { RoleSwitcherModal } from './RoleSwitcherModal';
+import { NotificationBell } from './NotificationBell';
 import { DEMO_MODE } from '../../lib/featureFlags';
+import { fetchTotalUnreadCount } from '../../lib/conversations';
 import type { UserRole } from '../../types';
+
+const UNREAD_POLL_MS = 30000;
 
 export const Header: React.FC = () => {
   const { currentPath, navigate, currentUser, orders, isAuthenticated, authReady, logout, authLoading, usingRemoteData } =
@@ -22,10 +27,28 @@ export const Header: React.FC = () => {
   const pathOnly = currentPath.split('?')[0];
   const [isSwitcherOpen, setIsSwitcherOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [unreadMessages, setUnreadMessages] = useState(0);
 
   const activeOrdersCount = orders.filter(
     (o) => o.status !== 'completed' && o.status !== 'cancelled'
   ).length;
+
+  // Conteo liviano por polling — el hilo abierto ya tiene su propio Realtime
+  // para actualizarse al instante; esto es solo para el badge del Header.
+  React.useEffect(() => {
+    if (!isAuthenticated || !currentUser) return;
+    let cancelled = false;
+    const tick = () => {
+      fetchTotalUnreadCount()
+        .then((count) => { if (!cancelled) setUnreadMessages(count); })
+        .catch(() => {});
+    };
+    tick();
+    const interval = window.setInterval(tick, UNREAD_POLL_MS);
+    return () => { cancelled = true; window.clearInterval(interval); };
+  }, [isAuthenticated, currentUser]);
+
+  const conversationsPath = currentUser?.role === 'admin' ? '/admin/conversaciones' : currentUser?.role === 'technician' ? '/technician/conversaciones' : '/customer';
 
   const getRoleBadge = () => {
     if (!currentUser) {
@@ -66,6 +89,7 @@ export const Header: React.FC = () => {
     { label: 'Admin Hub', path: '/hub', icon: <LayoutDashboard className="w-3.5 h-3.5" />, badge: activeOrdersCount, roles: ['admin'] },
     { label: 'Técnico', path: '/technician', icon: <Wrench className="w-3.5 h-3.5" />, roles: ['admin', 'technician'] },
     { label: 'Cliente', path: '/customer', icon: <UserCheck className="w-3.5 h-3.5" />, roles: ['admin', 'customer'] },
+    { label: 'Mensajes', path: conversationsPath, icon: <MessageCircle className="w-3.5 h-3.5" />, badge: unreadMessages || undefined },
     { label: 'Ajustes', path: '/settings', icon: <Settings className="w-3.5 h-3.5" /> },
   ];
 
@@ -129,6 +153,7 @@ export const Header: React.FC = () => {
             <div className="hidden sm:flex items-center gap-2">
               {!authReady ? null : isAuthenticated && currentUser ? (
                 <>
+                  <NotificationBell />
                   {DEMO_MODE ? (
                     <button
                       onClick={() => setIsSwitcherOpen(true)}
@@ -188,6 +213,7 @@ export const Header: React.FC = () => {
 
             {/* Mobile menu trigger */}
             <div className="flex md:hidden items-center gap-1.5">
+              {authReady && isAuthenticated && currentUser && <NotificationBell />}
               {authReady && (DEMO_MODE ? (
                 <button
                   onClick={() => setIsSwitcherOpen(true)}

@@ -165,7 +165,16 @@ async function insertHistory(caseId: string, actor: ClaimActor, change: {
   throwIfError(error);
 }
 
-export async function createCase(input: ClaimInput, actor: ClaimActor): Promise<ClaimCase> {
+export async function createCase(
+  input: ClaimInput,
+  actor: ClaimActor,
+  /** El espejo en service_orders.admin_incident_status (y la pausa de
+   * liquidación) son escrituras admin-only en la base — un cliente o técnico
+   * abriendo un caso sobre su propio pedido no tiene ese permiso, así que
+   * NewClaimModal en modo autoservicio pasa isAdminActor=false para saltear
+   * ese paso. El caso en sí (support_cases) se crea igual para todos. */
+  isAdminActor = true
+): Promise<ClaimCase> {
   const { data, error } = await supabase
     .from('support_cases')
     .insert({
@@ -189,7 +198,7 @@ export async function createCase(input: ClaimInput, actor: ClaimActor): Promise<
   await insertHistory(created.id, actor, { changeType: 'created', notes: input.subject });
 
   // Espejo sobre la orden + pausa de liquidación (reutiliza la lógica existente).
-  if (input.orderId) {
+  if (input.orderId && isAdminActor) {
     await persistAdminIncident({
       orderId: input.orderId,
       reason: input.subject,
@@ -242,10 +251,15 @@ export async function addCaseMessage(
     created_by: actor.profileId ?? null,
   });
   throwIfError(error);
-  await insertHistory(claimId, actor, {
-    changeType: 'message_added',
-    notes: `Comunicación registrada vía ${payload.isInternal ? 'nota interna' : payload.channel}.`,
-  });
+  // Las notas internas no dejan rastro en el historial: cliente y técnico
+  // tienen acceso de lectura al historial de su propio caso, y ni siquiera
+  // la existencia de una nota interna debería filtrarse ahí.
+  if (!payload.isInternal) {
+    await insertHistory(claimId, actor, {
+      changeType: 'message_added',
+      notes: `Comunicación registrada vía ${payload.channel}.`,
+    });
+  }
 }
 
 export async function resolveCase(

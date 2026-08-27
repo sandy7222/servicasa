@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  # Bloqueante: instalación reproducible, lint (tsc), build y unit/component
+  # tests. Si esto rompe, la rama no debería mergearse.
+  install-lint-build-unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm ci
+      - name: Lint (chequeo de tipos TypeScript)
+        run: npm run lint
+      - name: Build
+        run: npm run build
+      - name: Unit + component tests (Vitest)
+        run: npm run test
+
+  # Informativo por ahora (no bloquea el merge): chequeo de dependencias
+  # vulnerables y de secretos commiteados por error.
+  security-and-deps:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm ci
+      - name: Auditoría de dependencias de producción
+        run: npm audit --omit=dev --audit-level=high
+      - name: Escaneo de secretos
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Confirma que las migraciones en supabase/migrations/ reconstruyen una
+  # base vacía sin errores — la reproducibilidad de la Fase 1, chequeada en
+  # cada PR en vez de solo una vez a mano. No corre la suite de
+  # supabase/tests/*.sql: esos scripts asumen las cuentas reales sembradas
+  # en el proyecto remoto (mismos UUIDs), no una base local recién creada
+  # sin seed — correrlos acá daría falsos negativos, no una prueba real.
+  supabase-migrations-reproducible:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Reconstruir el esquema desde cero con las migraciones del repo
+        run: supabase db start
+
+  # Deshabilitado por defecto: corre E2E contra el proyecto REAL de
+  # Supabase (no hay entorno local con las cuentas de prueba sembradas).
+  # Requiere los secrets del repo (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY,
+  # SUPABASE_SERVICE_ROLE_KEY) para ejecutarse — sin ellos, el job no falla,
+  # simplemente no corre nada útil. Se dejó como continue-on-error y sin
+  # bloquear el merge a propósito: correr specs que escriben datos contra el
+  # backend compartido en cada PR automáticamente es un riesgo operativo
+  # (contención de datos de prueba) que conviene decidir explícitamente, no
+  # activar por default.
+  e2e-smoke:
+    runs-on: ubuntu-latest
+    needs: install-lint-build-unit
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: E2E de solo lectura (login y ruteo por rol)
+        run: npx playwright test e2e/auth-routing.spec.ts
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_DEMO_MODE: 'true'
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

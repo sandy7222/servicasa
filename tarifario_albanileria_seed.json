@@ -1,0 +1,54 @@
+{
+  "fuentes": [
+    "https://clickie.com.ar/precios/albanil",
+    "https://servidos.ar/blog/trabajos-de-albanileria-en-buenos-aires",
+    "https://todoresuelto.com/blog/mano-obra-albanileria-precios-argentina-2026"
+  ],
+  "extraido": "2026-08-22",
+  "moneda": "ARS",
+  "criterio": "Precio = punto medio del rango de cada fuente. Si un concepto aparece en varias fuentes con el mismo alcance, se promedian los puntos medios (hay bastante dispersión entre fuentes en varios ítems, igual que pasó con Plomería). Se excluyeron a propósito las reformas/paquetes grandes (reforma de baño, baño nuevo completo, ampliación de casa/cocina, pileta, quincho) porque las fuentes discrepaban 2-3x entre sí y en la práctica son la suma de varios ítems de este mismo catálogo, no un ítem atómico — el técnico las arma combinando ítems sueltos al presupuestar. También se excluyó 'apertura de pared portante' ($415.000-$1.560.000): la fuente aclara que requiere cálculo estructural caso por caso, demasiado específico para un precio de catálogo.",
+  "items": [
+    { "categoria": "REVOQUES Y TABIQUES", "subcategoria": "Revoques y Tabiques", "detalle": "Revoque grueso", "precio": 14100, "unidad": "ARS/m2", "fuentes": ["clickie", "servidos", "todoresuelto"] },
+    { "categoria": "REVOQUES Y TABIQUES", "subcategoria": "Revoques y Tabiques", "detalle": "Revoque fino (enlucido)", "precio": 11800, "unidad": "ARS/m2", "fuentes": ["servidos", "todoresuelto"], "nota": "Fuentes dispares ($5.200-10.000 vs $12.000-20.000)." },
+    { "categoria": "REVOQUES Y TABIQUES", "subcategoria": "Revoques y Tabiques", "detalle": "Revoque completo (grueso + fino), listo para pintar", "precio": 23750, "unidad": "ARS/m2", "fuentes": ["clickie", "servidos"], "nota": "Fuentes dispares ($10.000-20.000 vs $25.000-40.000)." },
+    { "categoria": "REVOQUES Y TABIQUES", "subcategoria": "Revoques y Tabiques", "detalle": "Picado de revoque viejo, sin retiro de escombro", "precio": 5200, "unidad": "ARS/m2", "fuentes": ["todoresuelto"] },
+    { "categoria": "REVOQUES Y TABIQUES", "subcategoria": "Revoques y Tabiques", "detalle": "Pared de ladrillo hueco", "precio": 26000, "unidad": "ARS/m2", "fuentes": ["servidos"] },
+    { "categoria": "REVOQUES Y TABIQUES", "subcategoria": "Revoques y Tabiques", "detalle": "Tabique de ladrillo común, incluye revoque grueso", "precio": 39000, "unidad": "ARS/m2", "fuentes": ["todoresuelto"] },
+    { "categoria": "REVOQUES Y TABIQUES", "subcategoria": "Revoques y Tabiques", "detalle": "Tabique de durlock simple, mano de obra sin placas", "precio": 31500, "unidad": "ARS/m2", "fuentes": ["todoresuelto"] },
+    { "categoria": "REVOQUES Y TABIQUES", "subcategoria": "Revoques y Tabiques", "detalle": "Tabique de durlock doble, mano de obra sin placas ni aislante", "precio": 44000, "unidad": "ARS/m2", "fuentes": ["todoresuelto"] },
+    { "categoria": "REVOQUES Y TABIQUES", "subcategoria": "Revoques y Tabiques", "detalle": "Yeso aplicado, terminación lista para pintar", "precio": 10650, "unidad": "ARS/m2", "fuentes": ["todoresuelto"] },
+    { "categoria": "REVOQUES Y TABIQUES", "subcategoria": "Revoques y Tabiques", "detalle": "Encadenado de hormigón armado", "precio": 17500, "unidad": "ARS/metro lineal", "fuentes": ["clickie"] },
+    { "categoria": "REVOQUES Y TABIQUES", "subcategoria": "Revoques y Tabiques", "detalle": "Losa de hormigón armado, incluye encofrado, hierro y hormigón", "precio": 115000, "unidad": "ARS/m2", "fuentes": ["servidos"] },
+    { "categoria": "REVOQUES Y TABIQUES", "subcategoria": "Revoques y Tabiques", "detalle": "Colocación de placa antihumedad", "precio": 13500, "unidad": "ARS/m2", "fuentes": ["clickie"] },
+
+    { "categoria": "PISOS Y REVESTIMIENTOS", "subcategoria": "Pisos y Revestimientos", "detalle": "Colocación de cerámica, sin el material (piso o pared)", "precio": 14083, "unidad": "ARS/m2", "fuentes": ["clickie", "todoresuelto"] },
+    { "categoria": "PISOS Y REVESTIMIENTOS", "subcategoria": "Pisos y Revestimientos", "detalle": "Colocación de porcellanato, sin el material", "precio": 23750, "unidad": "ARS/m2", "fuentes": ["clickie", "todoresuelto"] },
+    { "categoria": "PISOS Y REVESTIMIENTOS", "subcategoria": "Pisos y Revestimientos", "detalle": "Colocación de baldosas, sin el material", "precio": 18750, "unidad": "ARS/m2", "fuentes": ["clickie"] },
+    { "categoria": "PISOS Y REVESTIMIENTOS", "subcategoria": "Pisos y Revestimientos", "detalle": "Colocación de venecitas o mosaicos", "precio": 16000, "unidad": "ARS/m2", "fuentes": ["clickie"] },
+    { "categoria": "PISOS Y REVESTIMIENTOS", "subcategoria": "Pisos y Revestimientos", "detalle": "Microcemento alisado", "precio": 15750, "unidad": "ARS/m2", "fuentes": ["clickie"] },
+    { "categoria": "PISOS Y REVESTIMIENTOS", "subcategoria": "Pisos y Revestimientos", "detalle": "Piso flotante, mano de obra sin el piso", "precio": 13650, "unidad": "ARS/m2", "fuentes": ["todoresuelto"] },
+
+    { "categoria": "CONTRAPISOS", "subcategoria": "Contrapisos", "detalle": "Contrapiso de hormigón, espesor estándar", "precio": 17950, "unidad": "ARS/m2", "fuentes": ["clickie", "servidos", "todoresuelto"] },
+    { "categoria": "CONTRAPISOS", "subcategoria": "Contrapisos", "detalle": "Carpeta cementicia de nivelación", "precio": 12050, "unidad": "ARS/m2", "fuentes": ["servidos", "todoresuelto"] },
+
+    { "categoria": "IMPERMEABILIZACIÓN", "subcategoria": "Impermeabilización", "detalle": "Impermeabilización de azotea o terraza, incluye membrana", "precio": 31500, "unidad": "ARS/m2", "fuentes": ["clickie", "servidos"], "nota": "Fuentes dispares ($14.000-25.000 vs $25.000-62.000)." },
+    { "categoria": "IMPERMEABILIZACIÓN", "subcategoria": "Impermeabilización", "detalle": "Reparación de humedad, según extensión y causa", "precio": 85000, "unidad": "ARS/zona afectada", "fuentes": ["servidos"] },
+
+    { "categoria": "DEMOLICIONES", "subcategoria": "Demoliciones", "detalle": "Demolición de piso existente, sin retiro de escombro", "precio": 14325, "unidad": "ARS/m2", "fuentes": ["clickie", "todoresuelto"] },
+    { "categoria": "DEMOLICIONES", "subcategoria": "Demoliciones", "detalle": "Demolición de tabique no estructural, sin retiro de escombro", "precio": 57000, "unidad": "ARS/m2", "fuentes": ["todoresuelto"] },
+    { "categoria": "DEMOLICIONES", "subcategoria": "Demoliciones", "detalle": "Retiro de escombros por volquete (4 m³)", "precio": 103500, "unidad": "ARS/volquete", "fuentes": ["todoresuelto"] },
+
+    { "categoria": "ABERTURAS Y VANOS", "subcategoria": "Aberturas y Vanos", "detalle": "Apertura de vano no estructural para puerta o ventana, incluye dintel si es necesario", "precio": 130500, "unidad": "ARS/trabajo", "fuentes": ["servidos", "todoresuelto"] },
+    { "categoria": "ABERTURAS Y VANOS", "subcategoria": "Aberturas y Vanos", "detalle": "Cierre de vano, mampostería y revoque", "precio": 80000, "unidad": "ARS/trabajo", "fuentes": ["servidos"] },
+
+    { "categoria": "VEREDAS", "subcategoria": "Veredas", "detalle": "Vereda de hormigón alisada, incluye encofrado y terminación", "precio": 34000, "unidad": "ARS/m2", "fuentes": ["todoresuelto"] },
+    { "categoria": "VEREDAS", "subcategoria": "Veredas", "detalle": "Vereda de baldosa cementicia, colocación sin las baldosas", "precio": 26000, "unidad": "ARS/m2", "fuentes": ["todoresuelto"] },
+    { "categoria": "VEREDAS", "subcategoria": "Veredas", "detalle": "Bajada de cordón estándar", "precio": 22550, "unidad": "ARS/trabajo", "fuentes": ["clickie"] },
+
+    { "categoria": "TRABAJOS PUNTUALES", "subcategoria": "Trabajos Puntuales", "detalle": "Reparación de grietas (albañilería)", "precio": 10750, "unidad": "ARS/m2", "fuentes": ["clickie"] },
+    { "categoria": "TRABAJOS PUNTUALES", "subcategoria": "Trabajos Puntuales", "detalle": "Reparación de rajadura estructural, según tamaño y profundidad", "precio": 50000, "unidad": "ARS/trabajo", "fuentes": ["servidos"] },
+    { "categoria": "TRABAJOS PUNTUALES", "subcategoria": "Trabajos Puntuales", "detalle": "Cambio de mesada de cocina, mano de obra sin la mesada", "precio": 182500, "unidad": "ARS/unidad", "fuentes": ["todoresuelto"] },
+    { "categoria": "TRABAJOS PUNTUALES", "subcategoria": "Trabajos Puntuales", "detalle": "Jornal de albañil por reparaciones varias (día de 8 horas)", "precio": 29000, "unidad": "ARS/día", "fuentes": ["clickie"] },
+    { "categoria": "TRABAJOS PUNTUALES", "subcategoria": "Trabajos Puntuales", "detalle": "Limpieza de cerámica o porcelanato post-pegado (retiro de pastina)", "precio": 2500, "unidad": "ARS/m2", "fuentes": ["todoresuelto"] }
+  ]
+}

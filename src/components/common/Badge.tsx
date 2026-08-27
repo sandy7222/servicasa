@@ -13,7 +13,8 @@ import {
   ShieldCheck,
   XCircle,
 } from 'lucide-react';
-import { OrderPriority, OrderStatus, ServiceType, UserRole } from '../../types';
+import { OrderPriority, OrderStatus, PaymentStatus, ServiceType, UserRole, WorkMode } from '../../types';
+import { isOrderPaymentSettled, orderRequiresPaymentGate } from '../../lib/workTimer';
 
 export const StatusBadge: React.FC<{ status: OrderStatus; size?: 'sm' | 'md' }> = ({
   status,
@@ -160,6 +161,49 @@ export const ServiceBadge: React.FC<{ service: ServiceType; size?: 'sm' | 'md' }
     >
       <span className="p-1 rounded-md bg-slate-100 text-slate-600 shrink-0">{getIcon()}</span>
       <span>{service}</span>
+    </span>
+  );
+};
+
+/**
+ * Same criteria as the assignTechnician payment gate (see
+ * lib/workTimer.ts) — one source of truth shown everywhere an admin can
+ * see an order: the list card, the order detail modal, and the client
+ * ficha's order history. Renders nothing for orders without a workMode
+ * (admin-created orders outside the self-service payment flow).
+ */
+export const PaymentStatusBadge: React.FC<{
+  order: { workMode?: WorkMode; paymentStatus?: PaymentStatus };
+  size?: 'sm' | 'md';
+}> = ({ order, size = 'md' }) => {
+  if (!orderRequiresPaymentGate(order)) return null;
+
+  const settled = isOrderPaymentSettled(order);
+  const sizeClasses =
+    size === 'sm'
+      ? 'px-1.5 py-0.2 text-[10px]'
+      : 'px-2 py-0.5 text-[11px]';
+  const iconClass = size === 'sm' ? 'w-3 h-3' : 'w-3.5 h-3.5';
+
+  if (settled) {
+    return (
+      <span
+        className={`inline-flex items-center gap-1 rounded border font-mono font-semibold uppercase tracking-wide ${sizeClasses} bg-emerald-50 text-emerald-800 border-emerald-200 whitespace-nowrap`}
+      >
+        <CheckCircle2 className={`${iconClass} text-emerald-600`} />
+        <span>Pagado</span>
+      </span>
+    );
+  }
+
+  const label = order.workMode === 'direct' ? 'Sin pagar' : 'Seña pendiente';
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded border font-mono font-bold uppercase tracking-wide ${sizeClasses} bg-amber-50 text-amber-900 border-amber-300 whitespace-nowrap`}
+    >
+      <AlertTriangle className={`${iconClass} text-amber-600`} />
+      <span>{label}</span>
     </span>
   );
 };

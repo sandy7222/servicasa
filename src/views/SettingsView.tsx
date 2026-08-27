@@ -16,6 +16,7 @@ import {
 import { DEMO_USERS, useApp } from '../context/AppContext';
 import { CurrentUserData } from '../types';
 import { VisitFeeSettings } from '../components/admin/VisitFeeSettings';
+import { SystemSettingsPanel } from '../components/admin/SystemSettingsPanel';
 import { DEMO_MODE } from '../lib/featureFlags';
 
 export const SettingsView: React.FC = () => {
@@ -111,6 +112,7 @@ export const SettingsView: React.FC = () => {
         </div>
 
         {currentUser.role === 'admin' && <VisitFeeSettings />}
+        {currentUser.role === 'admin' && <SystemSettingsPanel />}
 
         {/* Change User / Role Quick Grid (solo en modo demo) */}
         {DEMO_MODE && (

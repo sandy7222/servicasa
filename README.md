@@ -6,7 +6,7 @@ Plataforma web para la gestión integral de servicios técnicos a domicilio. Con
 
 Auth y datos viven en **Supabase** (Postgres + RLS). La UI lee y escribe el catálogo operativo remoto. Siguiente foco: endurecer seguridad (Fase 3) y deploy en **Vercel**.
 
-Más detalle: [`agent.md`](./agent.md) y [`ROADMAP.md`](./ROADMAP.md).
+Más detalle: [`agent.md`](./agent.md), el roadmap histórico [`ROADMAP.md`](./ROADMAP.md) y la hoja vigente de finalización [`ROADMAP-TERMINACION.md`](./ROADMAP-TERMINACION.md).
 
 ## Roles
 

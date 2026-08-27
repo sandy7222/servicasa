@@ -1,0 +1,49 @@
+{
+  "fuentes": [
+    "https://solvitapp.com.ar/blog/plomero-precios-tarifas-argentina-2026",
+    "https://www.clarin.com/informacion-general/cobra-plomero-junio-2026-arreglos-destapaciones-instalaciones_0_WWBitQRVuS.html",
+    "https://roomix.ai/blog/cuanto-cuesta-plomero-2026"
+  ],
+  "extraido": "2026-08-22",
+  "moneda": "ARS",
+  "criterio": "Precio = punto medio del rango de cada fuente. Si un ítem aparece en más de una fuente, se promedian los puntos medios. Si solo una fuente lo cubre, se usa tal cual (sin inventar promedio con datos inexistentes). Se excluyó 'visita de diagnóstico' (ya fijada por la plataforma, independiente del rubro) y los recargos por urgencia/nocturnidad (son porcentajes, no ítems de catálogo).",
+  "items": [
+    { "categoria": "REPARACIONES Y GRIFERÍA", "subcategoria": null, "detalle": "Cambio de canilla simple", "precio": 21000, "unidad": "ARS", "fuentes": ["solvit"] },
+    { "categoria": "REPARACIONES Y GRIFERÍA", "subcategoria": null, "detalle": "Cambio de canilla con monocomando / cambio de grifería", "precio": 38250, "unidad": "ARS", "fuentes": ["solvit", "clarin"] },
+    { "categoria": "REPARACIONES Y GRIFERÍA", "subcategoria": null, "detalle": "Cambio de canilla de lavatorio (mano de obra)", "precio": 30000, "unidad": "ARS", "fuentes": ["roomix"] },
+    { "categoria": "REPARACIONES Y GRIFERÍA", "subcategoria": null, "detalle": "Cambio de canilla de cocina (mano de obra)", "precio": 37500, "unidad": "ARS", "fuentes": ["roomix"] },
+    { "categoria": "REPARACIONES Y GRIFERÍA", "subcategoria": null, "detalle": "Cambio de mezcladora de ducha (mano de obra)", "precio": 45000, "unidad": "ARS", "fuentes": ["roomix"] },
+    { "categoria": "REPARACIONES Y GRIFERÍA", "subcategoria": null, "detalle": "Reparación de canilla (cambio de goma)", "precio": 22500, "unidad": "ARS", "fuentes": ["roomix"] },
+    { "categoria": "REPARACIONES Y GRIFERÍA", "subcategoria": null, "detalle": "Cambio de llave de paso", "precio": 36000, "unidad": "ARS", "fuentes": ["solvit", "clarin", "roomix"] },
+    { "categoria": "REPARACIONES Y GRIFERÍA", "subcategoria": null, "detalle": "Reparación de mochila de inodoro", "precio": 34000, "unidad": "ARS", "fuentes": ["solvit"] },
+    { "categoria": "REPARACIONES Y GRIFERÍA", "subcategoria": null, "detalle": "Cambio de inodoro o bidet (mano de obra)", "precio": 63500, "unidad": "ARS", "fuentes": ["solvit", "clarin"], "nota": "Fuentes muy dispares entre sí ($52.000–$125.000 vs $27.000–$50.000) — revisar si conviene ajustar a mano." },
+    { "categoria": "REPARACIONES Y GRIFERÍA", "subcategoria": null, "detalle": "Cambio de sifón bajo mesada", "precio": 25000, "unidad": "ARS", "fuentes": ["clarin"] },
+    { "categoria": "REPARACIONES Y GRIFERÍA", "subcategoria": null, "detalle": "Reparación de pérdida visible (unión, goma o teflón)", "precio": 38250, "unidad": "ARS", "fuentes": ["solvit", "roomix"] },
+    { "categoria": "REPARACIONES Y GRIFERÍA", "subcategoria": null, "detalle": "Reparación de pérdida en caño empotrado en pared (con rotura y reparación)", "precio": 165000, "unidad": "ARS", "fuentes": ["roomix"], "nota": "Rango de origen $80.000–$250.000+, sin techo definido." },
+    { "categoria": "REPARACIONES Y GRIFERÍA", "subcategoria": null, "detalle": "Búsqueda de pérdida oculta con detector", "precio": 62500, "unidad": "ARS", "fuentes": ["solvit"] },
+
+    { "categoria": "DESTAPACIONES", "subcategoria": null, "detalle": "Destapación de pileta de cocina / bacha", "precio": 35000, "unidad": "ARS", "fuentes": ["roomix"] },
+    { "categoria": "DESTAPACIONES", "subcategoria": null, "detalle": "Destapación de inodoro (a mano)", "precio": 40000, "unidad": "ARS", "fuentes": ["roomix"] },
+    { "categoria": "DESTAPACIONES", "subcategoria": null, "detalle": "Destapación de desagüe con máquina destapadora", "precio": 70000, "unidad": "ARS", "fuentes": ["roomix", "clarin"], "nota": "Clarín ('destapaciones urgentes', $50.000–$90.000) coincide casi exacto con el punto medio de Roomix para esta misma categoría — buena validación cruzada." },
+    { "categoria": "DESTAPACIONES", "subcategoria": null, "detalle": "Destapación de cloaca con cámara", "precio": 140000, "unidad": "ARS", "fuentes": ["roomix"] },
+
+    { "categoria": "INSTALACIONES", "subcategoria": null, "detalle": "Instalación de calefón a gas (mano de obra completa)", "precio": 134000, "unidad": "ARS", "fuentes": ["solvit"] },
+    { "categoria": "INSTALACIONES", "subcategoria": null, "detalle": "Instalación de calefón (solo conexión de agua)", "precio": 60000, "unidad": "ARS", "fuentes": ["roomix"] },
+    { "categoria": "INSTALACIONES", "subcategoria": null, "detalle": "Instalación completa de calefón (gas + agua, sin equipo)", "precio": 110000, "unidad": "ARS", "fuentes": ["roomix"] },
+    { "categoria": "INSTALACIONES", "subcategoria": null, "detalle": "Cambio de calefón existente por uno nuevo (mismo lugar)", "precio": 65000, "unidad": "ARS", "fuentes": ["roomix"] },
+    { "categoria": "INSTALACIONES", "subcategoria": null, "detalle": "Instalación de termotanque eléctrico", "precio": 73500, "unidad": "ARS", "fuentes": ["solvit"] },
+    { "categoria": "INSTALACIONES", "subcategoria": null, "detalle": "Instalación de termotanque solar", "precio": 312500, "unidad": "ARS", "fuentes": ["solvit"] },
+    { "categoria": "INSTALACIONES", "subcategoria": null, "detalle": "Conexión de lavarropas (entrada de agua y desagüe)", "precio": 49700, "unidad": "ARS", "fuentes": ["solvit", "clarin", "roomix"] },
+    { "categoria": "INSTALACIONES", "subcategoria": null, "detalle": "Instalación completa de lavarropas con cañerías nuevas", "precio": 85000, "unidad": "ARS", "fuentes": ["roomix"] },
+    { "categoria": "INSTALACIONES", "subcategoria": null, "detalle": "Instalación o cambio de bomba presurizadora", "precio": 114000, "unidad": "ARS", "fuentes": ["solvit", "clarin"] },
+
+    { "categoria": "LIMPIEZA DE TANQUES", "subcategoria": null, "detalle": "Limpieza de tanque de agua chico (hasta 1.000 litros)", "precio": 50000, "unidad": "ARS", "fuentes": ["roomix"] },
+    { "categoria": "LIMPIEZA DE TANQUES", "subcategoria": null, "detalle": "Limpieza de tanque de agua grande (2.000 a 5.000 litros)", "precio": 105000, "unidad": "ARS", "fuentes": ["roomix"] },
+    { "categoria": "LIMPIEZA DE TANQUES", "subcategoria": null, "detalle": "Limpieza de tanque con certificado (GCBA)", "precio": 140000, "unidad": "ARS", "fuentes": ["roomix"] },
+
+    { "categoria": "REFORMAS", "subcategoria": null, "detalle": "Reforma completa de baño básica (materiales estándar)", "precio": 1195000, "unidad": "ARS", "fuentes": ["solvit"] },
+    { "categoria": "REFORMAS", "subcategoria": null, "detalle": "Reforma de baño premium (cerámicos y sanitarios de marca)", "precio": 2080000, "unidad": "ARS", "fuentes": ["solvit"] },
+    { "categoria": "REFORMAS", "subcategoria": null, "detalle": "Reforma de cocina (parte plomería)", "precio": 675000, "unidad": "ARS", "fuentes": ["solvit"] },
+    { "categoria": "REFORMAS", "subcategoria": null, "detalle": "Cambio integral de cañerías por ambiente", "precio": 520000, "unidad": "ARS", "fuentes": ["solvit"] }
+  ]
+}

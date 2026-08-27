@@ -2,6 +2,8 @@
 
 Hoja de ruta hacia el lanzamiento en internet (Vercel + Supabase).
 
+> **Documento histórico.** Esta hoja describe la primera migración desde la demo y quedó desactualizada frente al estado actual. Para continuar el desarrollo desde el corte del 23/8/2026 usar [`ROADMAP-TERMINACION.md`](./ROADMAP-TERMINACION.md).
+
 **Posición actual:** Fase 2 cerrada (CRUD persistido + modo demo aislado) · **siguiente:** cerrar Fase 3 (checklist manual de los 3 roles)
 
 ---

@@ -1,0 +1,29 @@
+{
+  "fuentes": [
+    "https://servidos.ar/servicios/pintor/buenos-aires",
+    "https://ellaburante.com/blog/cuanto-cuesta-pintor-2026",
+    "https://clickie.com.ar/blogs/cuanto-cobra-pintor-metro-cuadrado-argentina-2026"
+  ],
+  "extraido": "2026-08-22",
+  "moneda": "ARS",
+  "criterio": "Precio = punto medio del rango de cada fuente. Si un concepto aparece en varias fuentes, se promedian los puntos medios. Se descartaron los ítems de 'paquete' (habitación/ambiente/departamento/casa completa) porque las fuentes discrepaban 2-3x entre sí para el mismo concepto (ej. depto 2 ambientes: $185.000-335.000 según Clickie vs $450.000-715.000 según Ellaburante) — en su lugar se usa precio por m²/unidad, que el cliente multiplica por la cantidad real de su trabajo. 'Esmalte en puerta'/'Esmalte en ventana' vienen separados solo de Clickie (las otras dos fuentes los daban combinados sin poder partir el rango). Los ítems marcados con nota 'sin segunda fuente' solo los cubre una fuente, que además aclara que es una estimación propia del sitio, no un dato de mercado verificado — se incluyen igual, mismo criterio que se usó con Soldadura.",
+  "items": [
+    { "categoria": "PINTURA INTERIOR", "subcategoria": "Pintura Interior", "detalle": "Pintura interior simple, sin preparación (látex, 2 manos)", "precio": 6383, "unidad": "ARS/m2", "fuentes": ["servidos", "ellaburante", "clickie"] },
+    { "categoria": "PINTURA INTERIOR", "subcategoria": "Pintura Interior", "detalle": "Pintura interior con enduido y preparación previa", "precio": 11250, "unidad": "ARS/m2", "fuentes": ["ellaburante", "clickie"] },
+    { "categoria": "PINTURA INTERIOR", "subcategoria": "Pintura Interior", "detalle": "Pintar cielorraso", "precio": 8500, "unidad": "ARS/m2", "fuentes": ["servidos"], "nota": "Recargo de 20-30% si el cielorraso supera 2,60m de altura (no incluido en este precio)." },
+
+    { "categoria": "PINTURA EXTERIOR", "subcategoria": "Pintura Exterior", "detalle": "Pintura de frente o fachada simple", "precio": 8250, "unidad": "ARS/m2", "fuentes": ["servidos", "ellaburante", "clickie"], "nota": "El andamio o la silleta para trabajo en altura puede cotizarse aparte." },
+    { "categoria": "PINTURA EXTERIOR", "subcategoria": "Pintura Exterior", "detalle": "Fachada con reparación de revoques", "precio": 18250, "unidad": "ARS/m2", "fuentes": ["ellaburante"] },
+
+    { "categoria": "PREPARACIÓN DE SUPERFICIES", "subcategoria": "Preparación de Superficies", "detalle": "Enduido y lijado de pared antes de pintar", "precio": 4463, "unidad": "ARS/m2", "fuentes": ["servidos", "ellaburante"] },
+    { "categoria": "PREPARACIÓN DE SUPERFICIES", "subcategoria": "Preparación de Superficies", "detalle": "Reparación de grietas", "precio": 4550, "unidad": "ARS/m2", "fuentes": ["ellaburante"] },
+    { "categoria": "PREPARACIÓN DE SUPERFICIES", "subcategoria": "Preparación de Superficies", "detalle": "Aplicación de fijador", "precio": 1475, "unidad": "ARS/m2", "fuentes": ["ellaburante"] },
+    { "categoria": "PREPARACIÓN DE SUPERFICIES", "subcategoria": "Preparación de Superficies", "detalle": "Tratamiento de humedad o sellador antes de pintar", "precio": 30000, "unidad": "ARS/metro lineal", "fuentes": ["servidos"], "nota": "Sin segunda fuente — estimación propia de servidos.ar, no verificada. El diagnóstico previo suele rondar $30.000-80.000, muchas veces descontable." },
+
+    { "categoria": "ESMALTE Y CARPINTERÍA", "subcategoria": "Esmalte y Carpintería", "detalle": "Esmalte sintético en puerta (madera o metal)", "precio": 25000, "unidad": "ARS/unidad", "fuentes": ["clickie"] },
+    { "categoria": "ESMALTE Y CARPINTERÍA", "subcategoria": "Esmalte y Carpintería", "detalle": "Esmalte sintético en ventana (madera o metal)", "precio": 14000, "unidad": "ARS/unidad", "fuentes": ["clickie"] },
+
+    { "categoria": "OTROS TRABAJOS", "subcategoria": "Otros Trabajos", "detalle": "Lijado y pintura de rejas o portón (antióxido y esmalte)", "precio": 60000, "unidad": "ARS/trabajo", "fuentes": ["servidos"], "nota": "Sin segunda fuente — estimación propia de servidos.ar, no verificada. Varía según tamaño y estado de oxidación." },
+    { "categoria": "OTROS TRABAJOS", "subcategoria": "Otros Trabajos", "detalle": "Colocación de empapelado", "precio": 11000, "unidad": "ARS/m2", "fuentes": ["servidos"], "nota": "Sin segunda fuente — estimación propia de servidos.ar, no verificada. Sacar el papel viejo y preparar la pared se cobra aparte." }
+  ]
+}

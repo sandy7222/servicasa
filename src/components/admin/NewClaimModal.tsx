@@ -9,14 +9,21 @@ export function NewClaimModal({
   isOpen,
   onClose,
   onCreated,
+  mode = 'admin',
 }: {
   isOpen: boolean;
   onClose: () => void;
   onCreated: () => void;
+  /** 'customer': autoservicio desde el portal del cliente — cliente y órdenes
+   * quedan fijos a la propia cuenta, la orden pasa a ser obligatoria (así lo
+   * exige la política RLS support_cases_insert_customer). */
+  mode?: 'admin' | 'customer';
 }) {
   const { orders, customers, technicians, currentUser, showToast } = useApp();
+  const isCustomerMode = mode === 'customer';
+  const availableOrders = isCustomerMode ? orders.filter((o) => o.clientId === currentUser?.customerId) : orders;
   const [orderId, setOrderId] = useState('');
-  const [customerId, setCustomerId] = useState('');
+  const [customerId, setCustomerId] = useState(isCustomerMode ? currentUser?.customerId ?? '' : '');
   const [technicianId, setTechnicianId] = useState('');
   const [type, setType] = useState<ClaimType>('complaint');
   const [priority, setPriority] = useState<ClaimPriority>('medium');
@@ -35,7 +42,11 @@ export function NewClaimModal({
     if (order) {
       setCustomerId(order.clientId);
       setTechnicianId(order.assignedTechnicianId ?? '');
-      setPauseSettlement(true);
+      // El default a "pausar liquidación" solo aplica al flujo de admin — en
+      // modo cliente el checkbox ni se muestra, y esto no dispara ninguna
+      // pausa real (createCase salta ese paso para actores no-admin), así
+      // que dejarlo en true acá solo mentiría en support_cases.settlement_paused.
+      setPauseSettlement(!isCustomerMode);
     } else {
       setPauseSettlement(false);
     }
@@ -44,6 +55,10 @@ export function NewClaimModal({
   const submit = async () => {
     if (!subject.trim()) {
       showToast('Ingresá un asunto para el caso.', 'warning');
+      return;
+    }
+    if (isCustomerMode && !orderId) {
+      showToast('Elegí a qué pedido corresponde el reclamo.', 'warning');
       return;
     }
     setBusy(true);
@@ -63,7 +78,8 @@ export function NewClaimModal({
           description: description.trim() || undefined,
           pauseSettlement: pauseSettlement && Boolean(orderId),
         },
-        { name: currentUser?.name ?? 'Administración', profileId: currentUser?.id }
+        { name: currentUser?.name ?? 'Administración', profileId: currentUser?.id },
+        !isCustomerMode
       );
       showToast('Caso abierto correctamente.', 'success', 'Reclamos');
       onCreated();
@@ -80,38 +96,43 @@ export function NewClaimModal({
         <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
           <div>
             <h3 className="text-base font-bold text-slate-900">Abrir caso</h3>
-            <p className="text-xs text-slate-500">El caso queda vinculado a cliente, orden y técnico (opcional).</p>
+            <p className="text-xs text-slate-500">{isCustomerMode ? 'Elegí a qué pedido corresponde.' : 'El caso queda vinculado a cliente, orden y técnico (opcional).'}</p>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-700 p-1"><X className="w-5 h-5" /></button>
         </div>
 
         <div className="space-y-3">
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Orden vinculada (opcional)</label>
+            <label className="block text-xs font-bold text-slate-700 mb-1">Orden vinculada{isCustomerMode ? ' *' : ' (opcional)'}</label>
             <select value={orderId} onChange={(e) => onOrderChange(e.target.value)} className="w-full text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg">
-              <option value="">Sin orden vinculada</option>
-              {orders.map((o) => (
-                <option key={o.id} value={o.id}>{o.id} — {o.title}</option>
+              <option value="">{isCustomerMode ? 'Elegí el pedido…' : 'Sin orden vinculada'}</option>
+              {availableOrders.map((o) => (
+                <option key={o.id} value={o.id}>{isCustomerMode ? o.title : `${o.id} — ${o.title}`}</option>
               ))}
             </select>
+            {isCustomerMode && availableOrders.length === 0 && (
+              <p className="text-[11px] text-amber-700 mt-1">No tenés pedidos sobre los cuales abrir un reclamo todavía.</p>
+            )}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Cliente</label>
-              <select value={customerId} onChange={(e) => setCustomerId(e.target.value)} className="w-full text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg">
-                <option value="">Sin cliente</option>
-                {customers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
+          {!isCustomerMode && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Cliente</label>
+                <select value={customerId} onChange={(e) => setCustomerId(e.target.value)} className="w-full text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg">
+                  <option value="">Sin cliente</option>
+                  {customers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Técnico</label>
+                <select value={technicianId} onChange={(e) => setTechnicianId(e.target.value)} className="w-full text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg">
+                  <option value="">Sin técnico</option>
+                  {technicians.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                </select>
+              </div>
             </div>
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Técnico</label>
-              <select value={technicianId} onChange={(e) => setTechnicianId(e.target.value)} className="w-full text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg">
-                <option value="">Sin técnico</option>
-                {technicians.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-              </select>
-            </div>
-          </div>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -141,7 +162,7 @@ export function NewClaimModal({
             <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} placeholder="Detalle del reclamo o garantía…" className="w-full text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg" />
           </div>
 
-          {orderId && (
+          {orderId && !isCustomerMode && (
             <label className="flex gap-2 rounded-lg bg-amber-50 border border-amber-200 p-3 text-xs text-amber-950">
               <input type="checkbox" checked={pauseSettlement} onChange={(e) => setPauseSettlement(e.target.checked)} className="mt-0.5" />
               <span><strong>Pausar liquidación al técnico.</strong><br />Las liquidaciones no pagadas de esta orden pasarán a revisión.</span>

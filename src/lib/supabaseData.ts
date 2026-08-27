@@ -5,9 +5,13 @@ import type {
   OrderEvent,
   OrderPriority,
   OrderStatus,
+  ServiceItem,
   ServiceOrder,
   ServiceType,
+  CatalogCategory,
+  CatalogSubcategory,
   TechnicalNote,
+  TechnicianApplication,
   Technician,
   TimeLog,
   UsedMaterial,
@@ -15,12 +19,16 @@ import type {
   UserRole,
 } from '../types';
 import type {
+  DbCategory,
   DbCustomer,
   DbMaterial,
   DbProfile,
+  DbService,
   DbServiceOrder,
+  DbSubcategory,
   DbOrderQuote,
   DbTechnician,
+  DbTechnicianApplication,
 } from './supabase';
 import { supabase } from './supabase';
 
@@ -40,6 +48,7 @@ export function profileToCurrentUser(profile: DbProfile): CurrentUserData {
 export function mapTechnician(row: DbTechnician): Technician {
   return {
     id: row.id,
+    technicianNumber: row.technician_number ?? undefined,
     name: row.name,
     specialty: row.specialty,
     phone: row.phone,
@@ -68,13 +77,29 @@ export function mapTechnician(row: DbTechnician): Technician {
 export function mapCustomer(row: DbCustomer): Customer {
   return {
     id: row.id,
+    customerNumber: row.customer_number ?? undefined,
     name: row.name,
     address: row.address,
     neighborhood: row.neighborhood,
+    province: row.province ?? undefined,
     phone: row.phone,
     email: row.email,
     notes: row.notes ?? undefined,
     profileId: row.profile_id ?? null,
+  };
+}
+
+export function mapTechnicianApplication(row: DbTechnicianApplication): TechnicianApplication {
+  return {
+    id: row.id,
+    fullName: row.full_name,
+    email: row.email,
+    phone: row.phone,
+    specialty: row.specialty,
+    message: row.message ?? undefined,
+    status: row.status,
+    createdAt: row.created_at,
+    reviewedAt: row.reviewed_at ?? undefined,
   };
 }
 
@@ -86,6 +111,45 @@ export function mapMaterial(row: DbMaterial): MaterialInventory {
     stock: row.stock,
     unit: row.unit,
     costEstimate: Number(row.cost_estimate),
+  };
+}
+
+export function mapService(row: DbService): ServiceItem {
+  return {
+    id: row.id,
+    name: row.name,
+    description: row.description,
+    price: Number(row.price),
+    category: row.category,
+    subcategoria: row.subcategoria ?? null,
+    categoryId: row.category_id ?? null,
+    subcategoryId: row.subcategory_id ?? null,
+    estimatedDurationMinutes: row.estimated_duration_minutes,
+    features: row.features ?? [],
+    active: row.active,
+  };
+}
+
+export function mapCatalogCategory(row: DbCategory): CatalogCategory {
+  return {
+    id: row.id,
+    name: row.name,
+    slug: row.slug,
+    icon: row.icon,
+    description: row.description,
+    displayOrder: row.display_order,
+    active: row.is_active,
+  };
+}
+
+export function mapCatalogSubcategory(row: DbSubcategory): CatalogSubcategory {
+  return {
+    id: row.id,
+    categoryId: row.category_id,
+    name: row.name,
+    slug: row.slug,
+    displayOrder: row.display_order,
+    active: row.is_active,
   };
 }
 
@@ -127,6 +191,7 @@ export function mapOrder(
     scheduledDate: row.scheduled_date,
     createdAt: row.created_at,
     completedAt: row.completed_at ?? undefined,
+    archivedAt: row.archived_at ?? undefined,
     workStartedAt: row.work_started_at ?? undefined,
     workElapsedSeconds: Number(row.work_elapsed_seconds ?? 0),
     clientId: row.customer_id,
@@ -134,6 +199,7 @@ export function mapOrder(
     clientPhone: row.client_phone,
     clientAddress: row.client_address,
     clientNeighborhood: row.client_neighborhood,
+    clientProvince: row.client_province ?? undefined,
     assignedTechnicianId: row.assigned_technician_id,
     assignedTechnicianName: row.assigned_technician_name,
     checklist: extras?.checklist ?? [],
@@ -157,18 +223,105 @@ export async function fetchProfile(userId: string): Promise<DbProfile | null> {
   return data as DbProfile | null;
 }
 
-export async function fetchCatalog() {
-  const [techRes, custRes, matRes, orderRes] = await Promise.all([
-    supabase.from('technicians').select('*').order('name'),
+/**
+ * Public catalog read — works for anonymous visitors too (services has an
+ * `anon` SELECT policy, unlike every other table in this project). Used so
+ * the Landing / services-category pages show the real Supabase catalog
+ * instead of the local mockData.ts fallback even before anyone logs in.
+ */
+export async function fetchPublicServices(): Promise<ServiceItem[]> {
+  const { data, error } = await supabase
+    .from('services')
+    .select('*')
+    .eq('active', true)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data as DbService[]).map(mapService);
+}
+
+/** Same anon-safe pattern as fetchPublicServices, for the new relational
+ * categories/subcategories (see plan-categorias-subcategorias.md Fase 3). */
+export async function fetchPublicCatalogCategories(): Promise<CatalogCategory[]> {
+  const { data, error } = await supabase
+    .from('categories')
+    .select('*')
+    .eq('is_active', true)
+    .order('display_order');
+  if (error) throw error;
+  return (data as DbCategory[]).map(mapCatalogCategory);
+}
+
+export async function fetchPublicCatalogSubcategories(): Promise<CatalogSubcategory[]> {
+  const { data, error } = await supabase
+    .from('subcategories')
+    .select('*')
+    .eq('is_active', true)
+    .order('display_order');
+  if (error) throw error;
+  return (data as DbSubcategory[]).map(mapCatalogSubcategory);
+}
+
+const VISIT_DEPOSIT_FALLBACK = 30000;
+
+/** Single source of truth for the diagnosis visit deposit amount (system_settings). */
+export async function fetchVisitDepositAmount(): Promise<number> {
+  const { data, error } = await supabase
+    .from('system_settings')
+    .select('value')
+    .eq('key', 'visit_deposit_amount')
+    .maybeSingle();
+  if (error || !data) return VISIT_DEPOSIT_FALLBACK;
+  const value = Number(data.value);
+  return Number.isFinite(value) && value >= 0 ? value : VISIT_DEPOSIT_FALLBACK;
+}
+
+/** Admin-only: pending/reviewed "quiero ser técnico" applications. */
+export async function fetchTechnicianApplications(): Promise<TechnicianApplication[]> {
+  const { data, error } = await supabase
+    .from('technician_applications')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data as DbTechnicianApplication[]).map(mapTechnicianApplication);
+}
+
+// Columnas de `technicians` seguras para cualquier usuario autenticado que
+// pueda ver la fila (RLS ya restringe eso a admin / el propio técnico /
+// cliente con una orden asignada a ese técnico). Quedan afuera a propósito
+// validation_notes (nota interna del admin sobre el técnico) y work_phone
+// (dato de contacto interno) — ninguna pantalla que lee del catálogo
+// compartido los necesita; ProfessionalProfile.tsx y TechnicianReviewCard.tsx
+// ya los piden aparte, con su propia consulta puntual, cuando corresponde.
+// is_available NO se incluye porque esa columna no existe en la tabla real
+// (verificado contra el esquema en vivo) -- nombrarla explícitamente hace
+// que PostgREST tire "column does not exist" en vez de simplemente omitirla
+// como hacía select('*').
+export const TECHNICIAN_COLUMNS_SHARED =
+  'id,technician_number,name,specialty,phone,email,rating,avatar_bg,active_orders_count,completed_orders_count,zone,province,profile_id,bio,education_level,degree_title,institution_name,public_avatar_path,validation_status,is_enabled,can_receive_orders';
+// El admin sí necesita work_phone del catálogo compartido: AdminHubView lo
+// precarga al abrir el modal de edición del técnico. validation_notes sigue
+// afuera — el admin la re-consulta puntualmente en TechnicianReviewCard.
+export const TECHNICIAN_COLUMNS_ADMIN = `${TECHNICIAN_COLUMNS_SHARED},work_phone`;
+
+export async function fetchCatalog(isAdmin: boolean) {
+  const technicianColumns = isAdmin ? TECHNICIAN_COLUMNS_ADMIN : TECHNICIAN_COLUMNS_SHARED;
+  const [techRes, custRes, matRes, orderRes, svcRes, catRes, subcatRes] = await Promise.all([
+    supabase.from('technicians').select(technicianColumns).order('name'),
     supabase.from('customers').select('*').order('name'),
     supabase.from('materials').select('*').order('name'),
     supabase.from('service_orders').select('*').order('created_at', { ascending: false }),
+    supabase.from('services').select('*').order('created_at', { ascending: false }),
+    supabase.from('categories').select('*').order('display_order'),
+    supabase.from('subcategories').select('*').order('display_order'),
   ]);
 
   if (techRes.error) throw techRes.error;
   if (custRes.error) throw custRes.error;
   if (matRes.error) throw matRes.error;
   if (orderRes.error) throw orderRes.error;
+  if (svcRes.error) throw svcRes.error;
+  if (catRes.error) throw catRes.error;
+  if (subcatRes.error) throw subcatRes.error;
 
   const orderRows = (orderRes.data ?? []) as DbServiceOrder[];
   const orderIds = orderRows.map((o) => o.id);
@@ -290,6 +443,7 @@ export async function fetchCatalog() {
         items: kids.quoteItems.filter((item) => item.quote_id === quote.id).map((item) => ({
           id: String(item.id),
           categoryId: (item.category_id as string | null) ?? undefined,
+          serviceId: (item.service_id as string | null) ?? undefined,
           itemType: item.item_type as 'labor' | 'material',
           description: String(item.description),
           quantity: Number(item.quantity),
@@ -302,7 +456,7 @@ export async function fetchCatalog() {
     });
   });
 
-  const technicians = (techRes.data as DbTechnician[]).map(mapTechnician);
+  const technicians = (techRes.data as unknown as DbTechnician[]).map(mapTechnician);
   const customers = (custRes.data as DbCustomer[]).map(mapCustomer);
 
   const { data: profileLinks } = await supabase
@@ -329,6 +483,9 @@ export async function fetchCatalog() {
     })),
     customers,
     materials: (matRes.data as DbMaterial[]).map(mapMaterial),
+    services: (svcRes.data as DbService[]).map(mapService),
+    catalogCategories: (catRes.data as DbCategory[]).map(mapCatalogCategory),
+    catalogSubcategories: (subcatRes.data as DbSubcategory[]).map(mapCatalogSubcategory),
     orders,
   };
 }

@@ -27,6 +27,8 @@ import {
   Landmark,
   BarChart3,
   History,
+  ShieldAlert,
+  MessageCircle,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useApp } from '../context/AppContext';
@@ -38,6 +40,9 @@ import { ProfessionalProfile } from '../components/technician/ProfessionalProfil
 import { EarningsView } from '../components/technician/EarningsView';
 import { AvailabilityView } from '../components/technician/AvailabilityView';
 import { WorkHistoryView } from '../components/technician/WorkHistoryView';
+import { TechnicianClaimsView } from '../components/technician/TechnicianClaimsView';
+import { TechnicianConversationsView } from '../components/technician/TechnicianConversationsView';
+import { startOrderConversation } from '../lib/conversations';
 import { TechnicianStatisticsView } from '../components/technician/TechnicianStatisticsView';
 
 // Google Maps URLs are cross-platform and require no Maps API key.
@@ -79,6 +84,12 @@ export const TechnicianView: React.FC = () => {
   }
   if (currentPath.split('?')[0] === '/technician/statistics') {
     return <TechnicianStatisticsView />;
+  }
+  if (currentPath.split('?')[0] === '/technician/reclamos') {
+    return <TechnicianClaimsView />;
+  }
+  if (currentPath.split('?')[0] === '/technician/conversaciones') {
+    return <TechnicianConversationsView />;
   }
 
   const techId = currentUser?.technicianId || '';
@@ -260,6 +271,12 @@ export const TechnicianView: React.FC = () => {
             <button onClick={() => navigate('/technician/statistics')} className="hidden lg:inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-bold text-slate-200 hover:border-teal-500/60 hover:text-teal-300">
               <BarChart3 className="w-3.5 h-3.5" /> Estadísticas
             </button>
+            <button onClick={() => navigate('/technician/reclamos')} className="hidden lg:inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-bold text-slate-200 hover:border-teal-500/60 hover:text-teal-300">
+              <ShieldAlert className="w-3.5 h-3.5" /> Reclamos
+            </button>
+            <button onClick={() => navigate('/technician/conversaciones')} className="hidden lg:inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-bold text-slate-200 hover:border-teal-500/60 hover:text-teal-300">
+              <MessageCircle className="w-3.5 h-3.5" /> Conversaciones
+            </button>
           </div>
 
           {/* Mobile-only quick access: the buttons above are hidden below sm, so without this
@@ -271,6 +288,8 @@ export const TechnicianView: React.FC = () => {
               { path: '/technician/availability', label: 'Disponibilidad', icon: Calendar },
               { path: '/technician/history', label: 'Historial', icon: History },
               { path: '/technician/statistics', label: 'Estadísticas', icon: BarChart3 },
+              { path: '/technician/reclamos', label: 'Reclamos', icon: ShieldAlert },
+              { path: '/technician/conversaciones', label: 'Conversaciones', icon: MessageCircle },
             ].map(({ path, label, icon: Icon }) => (
               <button
                 key={path}
@@ -327,6 +346,11 @@ export const TechnicianView: React.FC = () => {
                       </div>
 
                       <h3 className="font-bold text-xs text-slate-900 line-clamp-1">{ord.title}</h3>
+                      {ord.quoteStatus === 'rejected' && (
+                        <span className="mt-1 inline-block rounded border border-rose-200 bg-rose-50 px-1.5 py-0.5 text-[10px] font-bold text-rose-800">
+                          Presupuesto rechazado
+                        </span>
+                      )}
 
                       <div className="space-y-1 mt-1.5 text-xs text-slate-600">
                         <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-800">
@@ -384,7 +408,13 @@ export const TechnicianView: React.FC = () => {
                         </button>
                       )}
 
-                      {activeOrder.status === 'assigned' && !canExecutePaidWork(activeOrder) && (
+                      {activeOrder.status === 'assigned' && !canExecutePaidWork(activeOrder) && activeOrder.quoteStatus === 'rejected' && (
+                        <span className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-900">
+                          Presupuesto rechazado por el cliente
+                        </span>
+                      )}
+
+                      {activeOrder.status === 'assigned' && !canExecutePaidWork(activeOrder) && activeOrder.quoteStatus !== 'rejected' && (
                         <span className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-900">
                           {activeOrder.workMode === 'diagnosis' ? 'Esperando aceptación y pago' : 'Esperando pago confirmado'}
                         </span>
@@ -446,6 +476,20 @@ export const TechnicianView: React.FC = () => {
                       <span className="text-slate-700 font-mono text-xs">{activeOrder.clientPhone}</span>
                     </div>
                   </div>
+
+                  <button
+                    onClick={async () => {
+                      try {
+                        const conversationId = await startOrderConversation(activeOrder.id);
+                        window.location.hash = `#/technician/conversaciones/${conversationId}`;
+                      } catch {
+                        showToast('No se pudo abrir la conversación.', 'error');
+                      }
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 text-xs font-bold"
+                  >
+                    <MessageCircle className="w-3.5 h-3.5" />Escribir al cliente
+                  </button>
 
                   {activeOrder.adminIncidentStatus === 'open' && (
                     <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950">

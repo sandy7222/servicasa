@@ -37,7 +37,7 @@ const CATEGORY_ICON_MAP: Record<string, { icon: React.ReactNode; bg: string; bor
 };
 
 export const LandingView: React.FC = () => {
-  const { navigate, serviceCategories, services } = useApp();
+  const { navigate, catalogCategories, services } = useApp();
 
   const getServiceVisuals = (category: { name: string; icon?: string }) => {
     if (category.icon && CATEGORY_ICON_MAP[category.icon]) {
@@ -164,8 +164,7 @@ export const LandingView: React.FC = () => {
               </div>
 
               <p className="text-sm sm:text-base text-blue-100/90 max-w-2xl leading-relaxed mx-auto">
-                La plataforma operativa que conecta a administradores, técnicos en campo y clientes
-                para resolver reparaciones, instalaciones y urgencias del hogar con trazabilidad total.
+                Servicios técnicos a domicilio con seguimiento en tiempo real, de principio a fin.
               </p>
 
               {/* Único CTA principal */}
@@ -199,7 +198,10 @@ export const LandingView: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {serviceCategories.filter((cat) => cat.active !== false).map((category) => {
+            {[...catalogCategories]
+              .filter((cat) => cat.active !== false)
+              .sort((a, b) => a.displayOrder - b.displayOrder)
+              .map((category) => {
               const serviciosEnCategoria = services.filter(
                 (s) => s.category === category.name && s.active !== false
               ).length;

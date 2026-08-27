@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Download, ExternalLink, Search, ShieldCheck, Users } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { formatCustomerCode } from '../../lib/codes';
 
 type SortKey = 'name' | 'orders' | 'spent' | 'warranties' | 'lastOrder';
 
@@ -40,7 +41,7 @@ export function ClientsTable({ onOpen }: { onOpen: (customerId: string) => void 
   }), [customers, orders]);
 
   const filtered = useMemo(() => rows.filter((row) => {
-    const haystack = `${row.customer.name} ${row.customer.email} ${row.customer.phone}`.toLowerCase();
+    const haystack = `${row.customer.name} ${row.customer.email} ${row.customer.phone} ${formatCustomerCode(row.customer.customerNumber) ?? ''}`.toLowerCase();
     return (!query.trim() || haystack.includes(query.toLowerCase())) && (!onlyWarranty || row.warranties > 0);
   }).sort((a, b) => {
     const value = (row: typeof a) => {
@@ -61,8 +62,8 @@ export function ClientsTable({ onOpen }: { onOpen: (customerId: string) => void 
   const indicator = (key: SortKey) => sort.key === key ? (sort.direction === 'asc' ? ' ▲' : ' ▼') : '';
 
   const exportRows = () => downloadCsv('tecniurbano-clientes.csv', [
-    ['Cliente', 'Email', 'Teléfono', 'Órdenes', 'Completadas', 'Total abonado', 'Garantías activas', 'Última orden'],
-    ...filtered.map((row) => [row.customer.name, row.customer.email, row.customer.phone, String(row.totalOrders), String(row.completedOrders), String(row.totalSpent), String(row.warranties), row.lastOrder ? new Date(row.lastOrder).toLocaleDateString('es-AR') : '—']),
+    ['N°', 'Cliente', 'Email', 'Teléfono', 'Órdenes', 'Completadas', 'Total abonado', 'Garantías activas', 'Última orden'],
+    ...filtered.map((row) => [formatCustomerCode(row.customer.customerNumber) ?? '—', row.customer.name, row.customer.email, row.customer.phone, String(row.totalOrders), String(row.completedOrders), String(row.totalSpent), String(row.warranties), row.lastOrder ? new Date(row.lastOrder).toLocaleDateString('es-AR') : '—']),
   ]);
 
   return <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-5">
@@ -76,7 +77,7 @@ export function ClientsTable({ onOpen }: { onOpen: (customerId: string) => void 
         <label className="inline-flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" checked={onlyWarranty} onChange={(event) => { setOnlyWarranty(event.target.checked); setPage(1); }} className="accent-teal-600" />Con garantía activa</label>
       </div>
       <div className="overflow-x-auto"><table className="min-w-[960px] w-full text-left text-sm"><thead className="sticky top-0 bg-slate-50 text-slate-600 text-xs uppercase tracking-wide"><tr>{([['name', 'Cliente'], ['orders', 'Órdenes'], ['spent', 'Total abonado'], ['warranties', 'Garantías'], ['lastOrder', 'Última orden']] as [SortKey, string][]).map(([key, label]) => <th key={key} className="px-4 py-3"><button onClick={() => order(key)} className="font-bold hover:text-teal-700">{label}{indicator(key)}</button></th>)}<th className="px-4 py-3">Contacto</th><th className="px-4 py-3 text-right">Acción</th></tr></thead>
-        <tbody>{visible.map((row) => <tr key={row.customer.id} onClick={() => onOpen(row.customer.id)} className="border-t border-slate-100 cursor-pointer hover:bg-teal-50/60 transition"><td className="px-4 py-3"><div className="font-bold text-slate-900">{row.customer.name}</div><div className="text-xs text-slate-500">{row.customer.address} · {row.customer.neighborhood}</div></td><td className="px-4 py-3"><strong>{row.totalOrders}</strong><span className="text-slate-500"> / {row.completedOrders} cerradas</span></td><td className="px-4 py-3 font-mono font-semibold">{money.format(row.totalSpent)}</td><td className="px-4 py-3">{row.warranties ? <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold"><ShieldCheck className="w-4 h-4" />{row.warranties} activa{row.warranties > 1 ? 's' : ''}</span> : <span className="text-slate-400">—</span>}</td><td className="px-4 py-3">{row.lastOrder ? new Date(row.lastOrder).toLocaleDateString('es-AR') : '—'}</td><td className="px-4 py-3"><div>{row.customer.phone || '—'}</div><div className="text-xs text-slate-500">{row.customer.email || '—'}</div></td><td className="px-4 py-3 text-right"><button onClick={(event) => { event.stopPropagation(); onOpen(row.customer.id); }} className="inline-flex items-center gap-1 text-teal-700 font-bold hover:underline">Abrir ficha <ExternalLink className="w-3.5 h-3.5" /></button></td></tr>)}{visible.length === 0 && <tr><td colSpan={7} className="p-10 text-center text-slate-500">No encontramos clientes con esos filtros.</td></tr>}</tbody></table></div>
+        <tbody>{visible.map((row) => <tr key={row.customer.id} onClick={() => onOpen(row.customer.id)} className="border-t border-slate-100 cursor-pointer hover:bg-teal-50/60 transition"><td className="px-4 py-3"><div className="flex items-center gap-1.5"><span className="font-mono text-[10px] font-bold text-teal-700 bg-teal-50 border border-teal-200 rounded px-1 py-0.5">{formatCustomerCode(row.customer.customerNumber) ?? '—'}</span><div className="font-bold text-slate-900">{row.customer.name}</div></div><div className="text-xs text-slate-500">{row.customer.address} · {row.customer.neighborhood}</div></td><td className="px-4 py-3"><strong>{row.totalOrders}</strong><span className="text-slate-500"> / {row.completedOrders} cerradas</span></td><td className="px-4 py-3 font-mono font-semibold">{money.format(row.totalSpent)}</td><td className="px-4 py-3">{row.warranties ? <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold"><ShieldCheck className="w-4 h-4" />{row.warranties} activa{row.warranties > 1 ? 's' : ''}</span> : <span className="text-slate-400">—</span>}</td><td className="px-4 py-3">{row.lastOrder ? new Date(row.lastOrder).toLocaleDateString('es-AR') : '—'}</td><td className="px-4 py-3"><div>{row.customer.phone || '—'}</div><div className="text-xs text-slate-500">{row.customer.email || '—'}</div></td><td className="px-4 py-3 text-right"><button onClick={(event) => { event.stopPropagation(); onOpen(row.customer.id); }} className="inline-flex items-center gap-1 text-teal-700 font-bold hover:underline">Abrir ficha <ExternalLink className="w-3.5 h-3.5" /></button></td></tr>)}{visible.length === 0 && <tr><td colSpan={7} className="p-10 text-center text-slate-500">No encontramos clientes con esos filtros.</td></tr>}</tbody></table></div>
       <footer className="p-3 border-t border-slate-100 flex items-center justify-between text-sm"><span className="text-slate-500">{filtered.length} cliente{filtered.length === 1 ? '' : 's'}</span><div className="flex gap-2"><button disabled={page === 1} onClick={() => setPage((value) => value - 1)} className="px-3 py-1.5 rounded border disabled:opacity-40">Anterior</button><span className="px-2 py-1.5">{page} / {pages}</span><button disabled={page === pages} onClick={() => setPage((value) => value + 1)} className="px-3 py-1.5 rounded border disabled:opacity-40">Siguiente</button></div></footer>
     </section>
   </main>;

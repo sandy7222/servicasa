@@ -30,6 +30,7 @@ export type DbProfile = {
 
 export type DbTechnician = {
   id: string;
+  technician_number?: number | null;
   name: string;
   specialty: string;
   phone: string;
@@ -56,9 +57,11 @@ export type DbTechnician = {
 
 export type DbCustomer = {
   id: string;
+  customer_number?: number | null;
   name: string;
   address: string;
   neighborhood: string;
+  province: string | null;
   phone: string;
   email: string;
   notes: string | null;
@@ -72,6 +75,58 @@ export type DbMaterial = {
   stock: number;
   unit: string;
   cost_estimate: number;
+};
+
+export type DbService = {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  category: string;
+  subcategoria: string | null;
+  category_id: string | null;
+  subcategory_id: string | null;
+  estimated_duration_minutes: number;
+  features: string[];
+  active: boolean;
+};
+
+export type DbCategory = {
+  id: string;
+  name: string;
+  slug: string;
+  icon: string | null;
+  description: string | null;
+  display_order: number;
+  is_active: boolean;
+};
+
+export type DbSubcategory = {
+  id: string;
+  category_id: string;
+  name: string;
+  slug: string;
+  display_order: number;
+  is_active: boolean;
+};
+
+export type DbSystemSetting = {
+  key: string;
+  value: unknown;
+  updated_at: string;
+  updated_by: string | null;
+};
+
+export type DbTechnicianApplication = {
+  id: string;
+  full_name: string;
+  email: string;
+  phone: string;
+  specialty: string;
+  message: string | null;
+  status: 'pending' | 'approved' | 'rejected';
+  created_at: string;
+  reviewed_at: string | null;
 };
 
 export type DbServiceOrder = {
@@ -91,6 +146,7 @@ export type DbServiceOrder = {
   client_phone: string;
   client_address: string;
   client_neighborhood: string;
+  client_province?: string | null;
   assigned_technician_id: string | null;
   assigned_technician_name: string | null;
   work_mode?: 'diagnosis' | 'direct' | null;
@@ -109,6 +165,7 @@ export type DbServiceOrder = {
   admin_incident_resolved_at?: string | null;
   admin_exception_reason?: string | null;
   admin_exception_closed_at?: string | null;
+  archived_at?: string | null;
 };
 
 export type DbOrderQuote = {
@@ -172,5 +229,55 @@ export type DbSupportCaseHistory = {
   previous_value: string | null;
   new_value: string | null;
   notes: string | null;
+  created_at: string;
+};
+
+export type DbConversation = {
+  id: string;
+  order_id: string | null;
+  case_id: string | null;
+  subject: string | null;
+  subject_order_title: string | null;
+  created_by: string | null;
+  created_at: string;
+  last_message_at: string;
+};
+
+export type DbConversationParticipant = {
+  id: string;
+  conversation_id: string;
+  profile_id: string;
+  role: 'admin' | 'technician' | 'customer';
+  display_name: string | null;
+  added_at: string;
+};
+
+export type DbMessage = {
+  id: string;
+  conversation_id: string;
+  sender_id: string | null;
+  sender_role: 'admin' | 'technician' | 'customer' | 'system';
+  body: string;
+  is_internal: boolean;
+  created_at: string;
+};
+
+export type DbMessageRead = {
+  id: string;
+  message_id: string;
+  profile_id: string;
+  read_at: string;
+};
+
+export type DbNotification = {
+  id: string;
+  recipient_profile_id: string;
+  type: string;
+  title: string;
+  body: string | null;
+  entity_type: string | null;
+  entity_id: string | null;
+  priority: 'low' | 'normal' | 'high';
+  read_at: string | null;
   created_at: string;
 };

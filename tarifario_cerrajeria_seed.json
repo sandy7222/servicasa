@@ -1,0 +1,23 @@
+{
+  "fuentes": [
+    "https://roomix.ai/blog/cuanto-cuesta-cerrajero-2026",
+    "https://www.muovi.com.ar/precios/cerrajero/"
+  ],
+  "extraido": "2026-08-22",
+  "moneda": "ARS",
+  "criterio": "Precio = punto medio del rango de cada fuente. Si un ítem aparece en ambas fuentes, se promedian los puntos medios. Si solo una fuente lo cubre, se usa tal cual. Se excluyó 'visita técnica/diagnóstico' (ya fijada por la plataforma), los recargos por urgencia/nocturnidad (porcentajes o tarifas de llamado, no ítems de catálogo), las llaves con chip para autos (fuera del rubro hogar) y el costo de la cerradura/material en sí (mano de obra únicamente, salvo aclaración de la fuente).",
+  "items": [
+    { "categoria": "APERTURAS", "subcategoria": null, "detalle": "Apertura de puerta sin dañar la cerradura", "precio": 42500, "unidad": "ARS", "fuentes": ["muovi", "roomix"], "nota": "Ambas fuentes coinciden casi exacto ($25.000–$60.000) — buena señal de precio confiable." },
+    { "categoria": "APERTURAS", "subcategoria": null, "detalle": "Apertura de caja fuerte", "precio": 125000, "unidad": "ARS", "fuentes": ["roomix"], "nota": "Rango de origen $50.000–$200.000+, sin techo definido." },
+
+    { "categoria": "CERRADURAS", "subcategoria": null, "detalle": "Cambio de cerradura (mano de obra, cerradura aparte)", "precio": 38750, "unidad": "ARS", "fuentes": ["muovi", "roomix"], "nota": "Fuentes dispares ($15.000–$40.000 vs $30.000–$70.000) — revisar si conviene ajustar a mano." },
+    { "categoria": "CERRADURAS", "subcategoria": null, "detalle": "Instalación de cerradura nueva (mano de obra, cerradura aparte)", "precio": 65000, "unidad": "ARS", "fuentes": ["muovi"] },
+    { "categoria": "CERRADURAS", "subcategoria": null, "detalle": "Instalación de cerradura inteligente / electrónica (mano de obra, equipo aparte)", "precio": 100000, "unidad": "ARS", "fuentes": ["muovi"] },
+    { "categoria": "CERRADURAS", "subcategoria": null, "detalle": "Reparación de cerradura (ajuste sin cambio)", "precio": 35000, "unidad": "ARS", "fuentes": ["muovi"] },
+
+    { "categoria": "LLAVES", "subcategoria": null, "detalle": "Copia de llave estándar", "precio": 5750, "unidad": "ARS", "fuentes": ["muovi", "roomix"] },
+    { "categoria": "LLAVES", "subcategoria": null, "detalle": "Copia de llave de alta seguridad (ISEO, Mul-T-Lock)", "precio": 27500, "unidad": "ARS", "fuentes": ["roomix"] },
+
+    { "categoria": "HERRAJES DE SEGURIDAD", "subcategoria": null, "detalle": "Instalación de cerrojo o pasador adicional (mano de obra, herraje aparte)", "precio": 25000, "unidad": "ARS", "fuentes": ["roomix"] }
+  ]
+}
