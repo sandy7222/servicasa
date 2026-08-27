@@ -17,9 +17,14 @@ import { supabaseAdmin } from '../lib/supabaseAdmin.js';
  * attacker spamming arbitrary payment ids can, at worst, trigger a lookup
  * that finds nothing to update.
  *
- * This endpoint's URL itself is not public: Vercel Deployment Protection
- * still gates every request behind the ?x-vercel-protection-bypass secret
- * configured in the Mercado Pago webhook URL.
+ * This endpoint IS publicly reachable — confirmed 27/8 with a direct
+ * unauthenticated request against a live deployment (200, no auth
+ * challenge): Vercel Deployment Protection is not actually enabled on this
+ * project (ssoProtection is null), despite an earlier comment here claiming
+ * otherwise. The `?x-vercel-protection-bypass` query param that may still be
+ * configured on the Mercado Pago webhook URL is harmless but unnecessary —
+ * this endpoint's real defense is entirely the re-fetch-and-match logic
+ * above, not deployment-level gating.
  */
 function mapStatus(mpStatus: string | undefined): 'pending' | 'approved' | 'rejected' | 'cancelled' | 'refunded' {
   switch (mpStatus) {
