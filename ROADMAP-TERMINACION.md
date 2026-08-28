@@ -763,6 +763,15 @@ TecniUrbano v1 se considera terminado cuando:
 
 > Ejecutá la Fase 10 como release manager. No agregues funciones. Corré la matriz completa, prepará backup y rollback, generá el checklist de lanzamiento y detenete antes de cualquier paso irreversible o pago real que requiera mi confirmación.
 
+> **Primera actualización (27-28/8, primera pasada de release manager):** checklist completo con evidencia real en `docs/fase10-checklist.md`. **No listo para lanzar todavía** — resumen:
+> - [x] Panel de "Cuentas de prueba" — corregido en la Fase 9, reverificado hoy contra producción real con sesión limpia (DOM leído directamente, sin panel visible). Captura de pantalla pendiente por una limitación del panel del navegador de esta sesión, no del sitio.
+> - [x] Advisors de seguridad, lint, build y tests — todo verde, corrido hoy. Un hallazgo nuevo y accionable: "Leaked Password Protection" desactivada en Supabase Auth (activar en el dashboard, gratis).
+> - [ ] **Bloqueante real: 24 migraciones aplicadas en la base, solo 6 archivos en el repo** — reconstruir desde el repo hoy no reproduce el estado real. Lista completa de las 18 faltantes en el checklist.
+> - [ ] Backup: confirmado que el plan Free no tiene backup automático (documentación oficial). Se sacó una foto manual de los datos de catálogo/cuentas (`backups/snapshot-datos-2026-08-28.json`, fuera de git) a falta de la contraseña de Postgres para un `pg_dump` real.
+> - [ ] Auth (Site URL/Redirect URLs) y Mercado Pago (webhook) siguen pendientes de que Sandy confirme los dashboards — arrastrado desde la Fase 9.
+> - [ ] Smoke test de producción: solo landing/login/logout/recuperación reverificados hoy; el resto de los 10 flujos tiene evidencia de sesiones anteriores pero no se re-corrió hoy — documentado explícitamente en el checklist para no inflar el estado.
+> - [x] Rollback: `docs/rollback.md` actualizado con el hallazgo de hoy (`vercel cache purge` no sirvió para lo que se necesitaba; `vercel redeploy --target production` sí).
+
 ---
 
 ## 6. Después de la v1

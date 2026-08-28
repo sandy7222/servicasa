@@ -19,3 +19,4 @@ claude code/
 
 .vercel
 .env*
+backups/

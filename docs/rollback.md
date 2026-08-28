@@ -20,6 +20,14 @@ npx vercel rollback <deployment-id-o-url>
 
 **Ojo con esto:** cada deployment de Vercel queda con las variables de entorno que estaban configuradas en el momento en que se construyó, no las de ahora. Si hiciste rollback a un deploy viejo después de cambiar una variable de entorno (agregar una nueva, rotar una credencial), ese deploy viejo puede no tener la variable nueva, o puede tener una credencial que ya rotaste. Antes de un rollback bajo presión, confirmá que las env vars relevantes no cambiaron entre el deploy bueno y el actual.
 
+**Si el dominio parece servir contenido viejo después de un rollback o un deploy nuevo** (hallazgo real del 27/8): `vercel cache purge` existe pero, probado en vivo, no tuvo ningún efecto visible — el `ETag`/bundle servido siguió siendo el mismo después de correrlo. Lo que sí funcionó fue forzar un rebuild real:
+
+```bash
+npx vercel redeploy <deployment-id-o-url> --target production
+```
+
+Esto reconstruye y re-aliasea en ~30-60s. Antes de sospechar de un problema de caché, confirmá primero que no es un error de comparación propio — verificá el hash del bundle contra un build local hecho desde el mismo commit exacto (`git stash` cualquier cambio sin commitear antes de comparar), no contra un build con cambios mezclados.
+
 ## Migraciones de Supabase (esquema)
 
 **No hay rollback automático.** Los archivos en `supabase/migrations/` son solo el `up` — no existen archivos `.down.sql` ni un mecanismo de reversión automática. Revertir un cambio de esquema significa escribir y aplicar una migración nueva que deshaga el cambio anterior, con el mismo criterio que usamos toda esta sesión: mostrar el DDL, probarlo con un script rollback-safe (`begin; ... rollback;`) contra la base real antes de aplicarlo de verdad.
