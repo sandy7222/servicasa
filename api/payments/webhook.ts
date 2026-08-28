@@ -436,20 +436,41 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const status = mapStatus(payment.status);
 
       if (guestDraft) {
-        if (guestDraft.status === 'approved') {
-          // Reintento del webhook después de ya haber creado la orden — no hacer nada.
-          return res.status(200).json({ received: true, note: 'borrador ya procesado' });
-        }
         if (status === 'approved') {
+          // Guard de idempotencia real: Mercado Pago reenvia notificaciones,
+          // y dos llamadas casi simultaneas pueden leer 'pending' antes de
+          // que ninguna termine de escribir 'approved' (pasó de verdad: un
+          // solo pago, mp_payment_id=176084558890, creó 2 ordenes con 269ms
+          // de diferencia). Un SELECT-luego-UPDATE no cierra esa ventana —
+          // hace falta que el UPDATE mismo sea la condición: solo una
+          // llamada concurrente puede ganar la fila con status='pending',
+          // Postgres serializa el resto contra ese mismo UPDATE.
+          const { data: claimed, error: claimError } = await supabaseAdmin
+            .from('guest_checkout_drafts')
+            .update({ status: 'approved', mp_payment_id: String(payment.id), updated_at: new Date().toISOString() })
+            .eq('id', guestDraft.id)
+            .eq('status', 'pending')
+            .select('id, payload')
+            .maybeSingle();
+          if (claimError) {
+            console.error('[payments/webhook] Error reclamando borrador de invitado', claimError);
+            return res.status(500).json({ error: 'No se pudo procesar la confirmación de pago.' });
+          }
+          if (!claimed) {
+            // Otra llamada (retry de MP o esta misma en paralelo) ya lo procesó.
+            return res.status(200).json({ received: true, note: 'borrador ya procesado' });
+          }
           try {
-            await createOrderFromApprovedGuestDraft(guestDraft.id, guestDraft.payload as GuestDraftPayload, payment);
-            await supabaseAdmin.from('guest_checkout_drafts').update({ status: 'approved', mp_payment_id: String(payment.id), updated_at: new Date().toISOString() }).eq('id', guestDraft.id);
+            await createOrderFromApprovedGuestDraft(claimed.id, claimed.payload as GuestDraftPayload, payment);
           } catch (err) {
+            // La orden no llegó a crearse — revertir a 'pending' para que un
+            // reintento genuino de MP pueda volver a intentarlo.
+            await supabaseAdmin.from('guest_checkout_drafts').update({ status: 'pending' }).eq('id', guestDraft.id);
             console.error('[payments/webhook] Error creando orden desde borrador aprobado', err);
             return res.status(500).json({ error: 'No se pudo crear la orden confirmada.' });
           }
         } else if (status === 'rejected' || status === 'cancelled') {
-          await supabaseAdmin.from('guest_checkout_drafts').update({ status, updated_at: new Date().toISOString() }).eq('id', guestDraft.id);
+          await supabaseAdmin.from('guest_checkout_drafts').update({ status }).eq('id', guestDraft.id).eq('status', 'pending');
         }
         // status === 'pending' (ej. boleto de Pago Fácil sin pagar todavía): el
         // borrador queda 'pending', sin crear nada — Mercado Pago mandará otro
@@ -459,19 +480,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       // customerDraft: mismo circuito, para "Solicitar diagnóstico"/"Sé qué
       // trabajo necesito" de un cliente ya logueado.
-      if (customerDraft!.status === 'approved') {
-        return res.status(200).json({ received: true, note: 'borrador ya procesado' });
-      }
       if (status === 'approved') {
+        const { data: claimed, error: claimError } = await supabaseAdmin
+          .from('customer_order_drafts')
+          .update({ status: 'approved', mp_payment_id: String(payment.id), updated_at: new Date().toISOString() })
+          .eq('id', customerDraft!.id)
+          .eq('status', 'pending')
+          .select('id, customer_id, payload')
+          .maybeSingle();
+        if (claimError) {
+          console.error('[payments/webhook] Error reclamando borrador de cliente', claimError);
+          return res.status(500).json({ error: 'No se pudo procesar la confirmación de pago.' });
+        }
+        if (!claimed) {
+          return res.status(200).json({ received: true, note: 'borrador ya procesado' });
+        }
         try {
-          await createOrderFromApprovedCustomerDraft(customerDraft!.id, customerDraft!.customer_id, customerDraft!.payload as CustomerDraftPayload, payment);
-          await supabaseAdmin.from('customer_order_drafts').update({ status: 'approved', mp_payment_id: String(payment.id), updated_at: new Date().toISOString() }).eq('id', customerDraft!.id);
+          await createOrderFromApprovedCustomerDraft(claimed.id, claimed.customer_id, claimed.payload as CustomerDraftPayload, payment);
         } catch (err) {
+          await supabaseAdmin.from('customer_order_drafts').update({ status: 'pending' }).eq('id', customerDraft!.id);
           console.error('[payments/webhook] Error creando orden desde borrador de cliente aprobado', err);
           return res.status(500).json({ error: 'No se pudo crear la orden confirmada.' });
         }
       } else if (status === 'rejected' || status === 'cancelled') {
-        await supabaseAdmin.from('customer_order_drafts').update({ status, updated_at: new Date().toISOString() }).eq('id', customerDraft!.id);
+        await supabaseAdmin.from('customer_order_drafts').update({ status }).eq('id', customerDraft!.id).eq('status', 'pending');
       }
       return res.status(200).json({ received: true });
     }
