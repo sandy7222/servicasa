@@ -3,7 +3,6 @@ import type {
   CatalogSubcategory,
   Customer,
   CustomerRegistrationInput,
-  CustomerServiceRequestInput,
   MaterialInventory,
   OrderEventType,
   OrderPriority,
@@ -612,53 +611,6 @@ export async function persistCreateOrder(input: {
   const full = await fetchOrderById(orderId);
   if (!full) throw new Error('No se pudo recargar la orden creada.');
   return full;
-}
-
-/**
- * Customer-side request creation deliberately stores an initial request only.
- * It never marks money as paid and never assigns a technician. A server-side
- * Mercado Pago endpoint will be the only authority that changes payment state.
- */
-export async function persistCreateCustomerRequest(input: {
-  request: CustomerServiceRequestInput;
-  customer: Customer;
-  visitDepositAmount: number;
-}): Promise<ServiceOrder> {
-  const requestedDescription = `${input.request.description.trim()}\n\nDisponibilidad solicitada: ${input.request.appointmentWindow}`;
-  const { data, error } = await supabase
-    .from('service_orders')
-    .insert({
-      title: input.request.title.trim(),
-      description: requestedDescription,
-      service_type: input.request.serviceType,
-      priority: input.request.priority,
-      // The legacy enum does not have "pending". The separate service_status
-      // holds the real lifecycle value introduced by the payments migration.
-      status: 'assigned',
-      service_status: 'pending',
-      work_mode: input.request.workMode,
-      quote_status: 'none',
-      payment_status: 'pending',
-      visit_deposit_amount: input.request.workMode === 'diagnosis' ? input.visitDepositAmount : 0,
-      total_quoted_amount: input.request.workMode === 'direct' ? Number(input.request.requestedTotal ?? 0) : 0,
-      fixed_price_service_id: input.request.workMode === 'direct' ? input.request.fixedPriceServiceId ?? null : null,
-      fixed_price_quantity: input.request.workMode === 'direct' ? input.request.quantity ?? null : null,
-      total_paid_amount: 0,
-      extra_amount: 0,
-      scheduled_date: input.request.scheduledDate,
-      customer_id: input.customer.id,
-      client_name: input.customer.name,
-      client_phone: input.customer.phone,
-      client_address: input.request.address.trim(),
-      client_neighborhood: input.request.neighborhood.trim() || input.customer.neighborhood || 'A confirmar',
-      client_province: input.request.province.trim() || input.customer.province || null,
-      assigned_technician_id: null,
-      assigned_technician_name: null,
-    })
-    .select('*')
-    .single();
-  throwIfError(error);
-  return mapOrder(data as DbServiceOrder);
 }
 
 export async function fetchOrderById(orderId: string): Promise<ServiceOrder | null> {

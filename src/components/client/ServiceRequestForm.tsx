@@ -1,18 +1,18 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { CalendarDays, CheckCircle2, ClipboardPlus, CreditCard, MapPin, Search, Wrench } from 'lucide-react';
+import { AlertCircle, CalendarDays, CheckCircle2, ClipboardPlus, CreditCard, MapPin, Search, Wrench } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { formatArs } from '../../lib/pricing';
-import { redirectToPayment } from '../../lib/paymentClient';
+import { redirectToCustomerServiceRequest, fetchPendingDraft, retryDraftPayment, type PendingCustomerDraft } from '../../lib/paymentClient';
 import { ARGENTINA_PROVINCES } from '../../lib/argentina';
 import type { OrderPriority, ServiceItem, ServiceType, WorkMode } from '../../types';
 
 const DATE_TODAY = new Date().toISOString().slice(0, 10);
 
-/** A request starts a service workflow; the actual charge happens via a
- * server-side Mercado Pago redirect right after the order is created. */
+/** A request only becomes a real order once Mercado Pago confirms the
+ * payment — see api/orders/request-service.ts. Until then it's just a
+ * draft, so nothing here ever touches the app's order list directly. */
 export const ServiceRequestForm: React.FC = () => {
-  const { currentUser, customers, services, catalogSubcategories, createCustomerRequest, showToast, visitDepositAmount } =
-    useApp();
+  const { currentUser, customers, services, catalogSubcategories, showToast, visitDepositAmount } = useApp();
   const customer = customers.find((item) => item.id === currentUser?.customerId);
   const [mode, setMode] = useState<WorkMode>('diagnosis');
   const [serviceType, setServiceType] = useState<ServiceType>('Electricidad');
@@ -28,6 +28,33 @@ export const ServiceRequestForm: React.FC = () => {
   const [priority, setPriority] = useState<OrderPriority>('media');
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
+  const [pendingDraft, setPendingDraft] = useState<PendingCustomerDraft | null>(null);
+  const [resumingPayment, setResumingPayment] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchPendingDraft()
+      .then((draft) => {
+        if (!cancelled) setPendingDraft(draft);
+      })
+      .catch(() => {
+        /* silencioso: si falla, el cliente igual puede armar una solicitud nueva */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const resumePayment = async () => {
+    if (!pendingDraft) return;
+    setResumingPayment(true);
+    try {
+      await retryDraftPayment(pendingDraft.id);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'No se pudo retomar el pago.', 'error');
+      setResumingPayment(false);
+    }
+  };
 
   const categories = useMemo(() => {
     const values = new Set<string>(['Electricidad']);
@@ -107,7 +134,8 @@ export const ServiceRequestForm: React.FC = () => {
 
     setSubmitting(true);
     try {
-      const orderId = await createCustomerRequest({
+      showToast('Te llevamos a pagar de forma segura...', 'info', 'Un paso más');
+      await redirectToCustomerServiceRequest({
         title: requestTitle,
         description: description.trim(),
         serviceType,
@@ -122,38 +150,14 @@ export const ServiceRequestForm: React.FC = () => {
         fixedPriceServiceId: mode === 'direct' ? selectedService!.id : undefined,
         quantity: mode === 'direct' ? quantity : undefined,
       });
+      // redirectToCustomerServiceRequest navega afuera si sale bien — nada más que hacer acá.
       setSent(true);
       setTitle(''); setDescription(''); setSelectedService(null); setQuantity(1);
-
-      if (mode === 'diagnosis') {
-        showToast('Solicitud registrada. Te llevamos a pagar la seña de forma segura...', 'info', 'Pedido recibido');
-        try {
-          await redirectToPayment(orderId, 'visit_deposit');
-        } catch (paymentError) {
-          showToast(
-            paymentError instanceof Error
-              ? `Tu solicitud se guardó, pero no pudimos iniciar el pago: ${paymentError.message}`
-              : 'Tu solicitud se guardó, pero no pudimos iniciar el pago de la seña. Contactá a soporte.',
-            'error',
-            'No se pudo iniciar el pago'
-          );
-        }
-      } else {
-        showToast('Solicitud registrada. Te llevamos a pagar de forma segura...', 'info', 'Pedido recibido');
-        try {
-          await redirectToPayment(orderId, 'full_advance');
-        } catch (paymentError) {
-          showToast(
-            paymentError instanceof Error
-              ? `Tu solicitud se guardó, pero no pudimos iniciar el pago: ${paymentError.message}`
-              : 'Tu solicitud se guardó, pero no pudimos iniciar el pago. Contactá a soporte.',
-            'error',
-            'No se pudo iniciar el pago'
-          );
-        }
-      }
     } catch (error) {
-      showToast(error instanceof Error ? error.message : 'No se pudo enviar la solicitud.', 'error', 'Solicitud no enviada');
+      // Acá el pedido todavía NO existe en ningún lado — a diferencia del
+      // flujo viejo, no queda un pedido a medias esperando pago: el cliente
+      // puede reintentar directamente.
+      showToast(error instanceof Error ? error.message : 'No se pudo iniciar el pago seguro.', 'error', 'No se pudo enviar la solicitud');
     } finally {
       setSubmitting(false);
     }
@@ -168,6 +172,29 @@ export const ServiceRequestForm: React.FC = () => {
           <p className="text-[11px] text-slate-500">El domicilio y el horario se usan únicamente para este pedido.</p>
         </div>
       </div>
+
+      {pendingDraft && pendingDraft.status === 'pending' && (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 flex flex-col sm:flex-row sm:items-center gap-2.5 justify-between">
+          <div className="flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-xs font-bold text-amber-950">Tenés un pago pendiente</p>
+              <p className="text-[11px] text-amber-800">
+                "{pendingDraft.title}" — {formatArs(pendingDraft.amount)}. Retomá el pago sin tener que cargar todo de nuevo.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => void resumePayment()}
+            disabled={resumingPayment}
+            className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg bg-amber-600 px-3 py-2 text-xs font-bold text-white hover:bg-amber-700 disabled:opacity-50"
+          >
+            <CreditCard className="w-3.5 h-3.5" />
+            {resumingPayment ? 'Abriendo pago…' : 'Continuar pago'}
+          </button>
+        </div>
+      )}
 
       <div className="grid sm:grid-cols-2 gap-2">
         <button type="button" onClick={() => chooseMode('diagnosis')} className={`text-left rounded-xl border p-3 transition ${mode === 'diagnosis' ? 'border-teal-500 bg-teal-50/60 ring-1 ring-teal-500/20' : 'border-slate-200 hover:bg-slate-50'}`}>

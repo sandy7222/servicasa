@@ -47,7 +47,6 @@ import {
   persistAssignTechnician,
   persistCreateAccountInvite,
   persistCreateCustomer,
-  persistCreateCustomerRequest,
   persistCreateCustomerSelf,
   persistCreateMaterial,
   persistCreateOrder,
@@ -90,7 +89,6 @@ import {
   CurrentUserData,
   Customer,
   CustomerRegistrationInput,
-  CustomerServiceRequestInput,
   MaterialInventory,
   OrderEventType,
   OrderStatus,
@@ -167,8 +165,6 @@ interface AppContextType {
     scheduledDate: string;
     customChecklist?: string[];
   }) => string;
-  createCustomerRequest: (request: CustomerServiceRequestInput) => Promise<string>;
-
   updateOrder: (
     orderId: string,
     patch: {
@@ -1915,53 +1911,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return newId;
   };
 
-  const createCustomerRequest = async (request: CustomerServiceRequestInput): Promise<string> => {
-    requireCustomer(currentUser);
-    if (!currentUser?.customerId) throw new SecurityError('Tu cuenta no está vinculada a un cliente.', 'CUSTOMER_LINK_REQUIRED');
-
-    const customer = customers.find((item) => item.id === currentUser.customerId);
-    if (!customer) throw new SecurityError('No se encontró tu perfil de cliente.', 'CUSTOMER_NOT_FOUND');
-
-    if (usingRemoteData) {
-      const created = await withRemote(() =>
-        persistCreateCustomerRequest({ request, customer, visitDepositAmount })
-      );
-      setOrders((previous) => [created, ...previous.filter((order) => order.id !== created.id)]);
-      return created.id;
-    }
-
-    const created: ServiceOrder = {
-      id: crypto.randomUUID(),
-      title: request.title.trim(),
-      description: `${request.description.trim()}\n\nDisponibilidad solicitada: ${request.appointmentWindow}`,
-      serviceType: request.serviceType,
-      priority: request.priority,
-      status: 'assigned',
-      serviceStatus: 'pending',
-      quoteStatus: 'none',
-      paymentStatus: 'pending',
-      workMode: request.workMode,
-      visitDepositAmount: request.workMode === 'diagnosis' ? visitDepositAmount : 0,
-      totalQuotedAmount: request.workMode === 'direct' ? request.requestedTotal ?? 0 : 0,
-      totalPaidAmount: 0,
-      extraAmount: 0,
-      scheduledDate: request.scheduledDate,
-      createdAt: new Date().toISOString(),
-      clientId: customer.id,
-      clientName: customer.name,
-      clientPhone: customer.phone,
-      clientAddress: request.address.trim(),
-      clientNeighborhood: request.neighborhood.trim() || customer.neighborhood,
-      clientProvince: request.province.trim() || customer.province,
-      assignedTechnicianId: null,
-      assignedTechnicianName: null,
-      checklist: [], timeLogs: [], technicalNotes: [], usedMaterials: [], customerSignature: null,
-      events: [],
-    };
-    setOrders((previous) => [created, ...previous]);
-    return created.id;
-  };
-
   const addCustomer = (data: Omit<Customer, 'id'>): string => {
     if (usingRemoteData) {
       const tempId = `tmp-cli-${Date.now()}`;
@@ -2734,7 +2683,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         showToast,
         hideToast,
         createOrder,
-        createCustomerRequest,
         updateOrder,
         deleteOrder,
         deleteCustomerOrder,

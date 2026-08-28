@@ -25,6 +25,7 @@ import { PriorityBadge, ServiceBadge, StatusBadge } from '../components/common/B
 import { SignaturePad } from '../components/common/SignaturePad';
 import { ServiceOrder } from '../types';
 import { formatElapsedTime, getOrderElapsedSeconds } from '../lib/workTimer';
+import { formatArs } from '../lib/pricing';
 import { CustomerProfilePanel } from '../components/client/CustomerProfilePanel';
 import { ServiceRequestForm } from '../components/client/ServiceRequestForm';
 import { QuoteViewer } from '../components/client/QuoteViewer';
@@ -32,6 +33,7 @@ import { AssignedTechnicianCard } from '../components/client/AssignedTechnicianC
 import { MyClaimsPanel } from '../components/common/MyClaimsPanel';
 import { ConversationsPanel } from '../components/common/ConversationsPanel';
 import { startOrderConversation } from '../lib/conversations';
+import { fetchPendingDraft, retryDraftPayment, type PendingCustomerDraft } from '../lib/paymentClient';
 
 export const CustomerView: React.FC = () => {
   const { orders, currentUser, saveCustomerSignature, showToast, currentPath, navigate, deleteCustomerOrder } = useApp();
@@ -44,6 +46,8 @@ export const CustomerView: React.FC = () => {
   });
   const [clockNow, setClockNow] = useState(() => Date.now());
   const [orderPendingDelete, setOrderPendingDelete] = useState<ServiceOrder | null>(null);
+  const [linkedDraft, setLinkedDraft] = useState<PendingCustomerDraft | null | undefined>(undefined);
+  const [resumingPayment, setResumingPayment] = useState(false);
 
   useEffect(() => {
     const interval = window.setInterval(() => setClockNow(Date.now()), 1000);
@@ -55,6 +59,40 @@ export const CustomerView: React.FC = () => {
   const activeOrder = isDetailPage
     ? customerOrders.find((order) => order.id === orderIdFromPath)
     : customerOrders.find((order) => order.id === selectedOrderId) || customerOrders[0];
+
+  // Un aviso de tipo 'payment' puede apuntar a un borrador que todavía no es
+  // una orden real (ver api/orders/request-service.ts) — si el id de la ruta
+  // no matchea ninguna orden propia, antes de decir "no encontramos ese
+  // servicio" hay que chequear si es un borrador nuestro esperando pago.
+  useEffect(() => {
+    if (!isDetailPage || activeOrder || !orderIdFromPath) {
+      setLinkedDraft(undefined);
+      return;
+    }
+    let cancelled = false;
+    setLinkedDraft(undefined);
+    fetchPendingDraft(orderIdFromPath)
+      .then((draft) => {
+        if (!cancelled) setLinkedDraft(draft);
+      })
+      .catch(() => {
+        if (!cancelled) setLinkedDraft(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isDetailPage, activeOrder, orderIdFromPath]);
+
+  const resumeDraftPayment = async () => {
+    if (!linkedDraft) return;
+    setResumingPayment(true);
+    try {
+      await retryDraftPayment(linkedDraft.id);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'No se pudo retomar el pago.', 'error');
+      setResumingPayment(false);
+    }
+  };
 
   const completedChecklistCount = activeOrder?.checklist.filter((item) => item.completed).length ?? 0;
   const checklistTotal = activeOrder?.checklist.length ?? 0;
@@ -115,7 +153,52 @@ export const CustomerView: React.FC = () => {
             <ArrowLeft className="w-4 h-4" /> Volver a mis servicios
           </button>
         )}
-        {customerOrders.length === 0 ? (
+        {isDetailPage && !activeOrder && linkedDraft === undefined ? (
+          <div className="bg-white rounded-xl p-8 border border-slate-200 text-center max-w-md mx-auto shadow-xs">
+            <p className="text-xs text-slate-400">Buscando esa solicitud…</p>
+          </div>
+        ) : isDetailPage && !activeOrder && linkedDraft ? (
+          <div className="bg-white rounded-xl p-6 border border-slate-200 text-center max-w-md mx-auto shadow-xs space-y-3">
+            {linkedDraft.status === 'pending' ? (
+              <>
+                <AlertCircle className="w-6 h-6 text-amber-500 mx-auto" />
+                <div>
+                  <h2 className="text-sm font-bold text-slate-900">Pago pendiente</h2>
+                  <p className="text-xs text-slate-500 mt-1">
+                    "{linkedDraft.title}" — {formatArs(linkedDraft.amount)}. Todavía no confirmamos el pago, así que esta solicitud no se activó.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void resumeDraftPayment()}
+                  disabled={resumingPayment}
+                  className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-teal-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-teal-700 disabled:opacity-50"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  {resumingPayment ? 'Abriendo pago…' : 'Continuar pago'}
+                </button>
+              </>
+            ) : linkedDraft.status === 'approved' ? (
+              <>
+                <CheckCircle2 className="w-6 h-6 text-emerald-500 mx-auto" />
+                <h2 className="text-sm font-bold text-slate-900">Pago confirmado</h2>
+                <p className="text-xs text-slate-500 mt-1">Ya se activó tu solicitud — buscala en "Mis servicios".</p>
+              </>
+            ) : (
+              <>
+                <AlertCircle className="w-6 h-6 text-rose-500 mx-auto" />
+                <h2 className="text-sm font-bold text-slate-900">Pago no confirmado</h2>
+                <p className="text-xs text-slate-500 mt-1">Esta solicitud no llegó a activarse. Podés volver a pedirla desde "Solicitar un servicio".</p>
+              </>
+            )}
+          </div>
+        ) : isDetailPage && !activeOrder ? (
+          <div className="bg-white rounded-xl p-8 border border-slate-200 text-center max-w-md mx-auto shadow-xs">
+            <AlertCircle className="w-6 h-6 text-amber-500 mx-auto mb-2" />
+            <h2 className="text-sm font-bold text-slate-900">No encontramos ese servicio</h2>
+            <p className="text-xs text-slate-500 mt-1">Puede que no pertenezca a tu cuenta o que ya no esté disponible.</p>
+          </div>
+        ) : customerOrders.length === 0 ? (
           <div className="bg-white rounded-xl p-8 border border-slate-200 text-center max-w-md mx-auto mt-4 shadow-xs">
             <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center mx-auto mb-2.5">
               <ShieldCheck className="w-5 h-5" />
@@ -124,12 +207,6 @@ export const CustomerView: React.FC = () => {
             <p className="text-xs text-slate-500 mt-1">
               Actualmente no tenés órdenes asociadas a esta cuenta demo.
             </p>
-          </div>
-        ) : isDetailPage && !activeOrder ? (
-          <div className="bg-white rounded-xl p-8 border border-slate-200 text-center max-w-md mx-auto shadow-xs">
-            <AlertCircle className="w-6 h-6 text-amber-500 mx-auto mb-2" />
-            <h2 className="text-sm font-bold text-slate-900">No encontramos ese servicio</h2>
-            <p className="text-xs text-slate-500 mt-1">Puede que no pertenezca a tu cuenta o que ya no esté disponible.</p>
           </div>
         ) : (
           <div className={`grid grid-cols-1 gap-4 ${isDetailPage ? '' : 'lg:grid-cols-12'}`}>
