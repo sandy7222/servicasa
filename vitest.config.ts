@@ -19,6 +19,6 @@ export default defineConfig({
       reporter: ['text', 'html'],
       include: ['src/lib/**', 'src/components/**'],
     },
-    exclude: ['node_modules', 'dist', 'e2e/**'],
+    exclude: ['node_modules', 'dist', '**/e2e/**', '.claude/**'],
   },
 });

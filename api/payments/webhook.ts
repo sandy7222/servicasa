@@ -512,27 +512,58 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const status = mapStatus(payment.status);
     const amount = Number(payment.transaction_amount ?? 0);
 
-    const { error: updateError } = await supabaseAdmin
-      .from('payment_transactions')
-      .update({
-        status,
-        mp_payment_id: String(payment.id),
-        mp_payment_method: payment.payment_method_id ?? null,
-        mp_installments: payment.installments ?? null,
-        mp_fee_amount: feeAmount,
-        provider_payload: payment,
-        paid_at: status === 'approved' ? payment.date_approved ?? new Date().toISOString() : null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', transaction.id);
-
-    if (updateError) {
-      console.error('[payments/webhook] Error actualizando payment_transactions', updateError);
-      return res.status(500).json({ error: 'No se pudo registrar el pago.' });
-    }
-
     if (status === 'approved') {
-      await syncOrderAfterApprovedPayment(transaction.payment_type, transaction.order_id, transaction.quote_id, amount);
+      // Mismo riesgo de fondo que el guard de borradores arriba: Mercado Pago
+      // reenvía notificaciones (confirmado en producción, ver comentario más
+      // arriba), y sin este guard cada reenvío volvería a sumar `amount` a
+      // service_orders.total_paid_amount — a diferencia de la rama de
+      // borradores, acá no se crea una fila duplicada fácil de detectar, se
+      // duplica silenciosamente el monto acreditado. El UPDATE mismo es la
+      // condición (neq status 'approved'), no un SELECT previo.
+      const { data: claimed, error: updateError } = await supabaseAdmin
+        .from('payment_transactions')
+        .update({
+          status,
+          mp_payment_id: String(payment.id),
+          mp_payment_method: payment.payment_method_id ?? null,
+          mp_installments: payment.installments ?? null,
+          mp_fee_amount: feeAmount,
+          provider_payload: payment,
+          paid_at: payment.date_approved ?? new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', transaction.id)
+        .neq('status', 'approved')
+        .select('id')
+        .maybeSingle();
+
+      if (updateError) {
+        console.error('[payments/webhook] Error actualizando payment_transactions', updateError);
+        return res.status(500).json({ error: 'No se pudo registrar el pago.' });
+      }
+
+      if (claimed) {
+        await syncOrderAfterApprovedPayment(transaction.payment_type, transaction.order_id, transaction.quote_id, amount);
+      }
+    } else {
+      const { error: updateError } = await supabaseAdmin
+        .from('payment_transactions')
+        .update({
+          status,
+          mp_payment_id: String(payment.id),
+          mp_payment_method: payment.payment_method_id ?? null,
+          mp_installments: payment.installments ?? null,
+          mp_fee_amount: feeAmount,
+          provider_payload: payment,
+          paid_at: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', transaction.id);
+
+      if (updateError) {
+        console.error('[payments/webhook] Error actualizando payment_transactions', updateError);
+        return res.status(500).json({ error: 'No se pudo registrar el pago.' });
+      }
     }
 
     // Esta rama es para pagos de clientes logueados (api/payments/create.ts):

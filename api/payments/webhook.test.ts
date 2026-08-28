@@ -15,12 +15,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 type Row = Record<string, unknown>;
 
 function makeFakeSupabaseAdmin(tables: Record<string, Row[]>) {
-  function matches(row: Row, filters: Array<[string, unknown]>) {
-    return filters.every(([col, val]) => row[col] === val);
+  function matches(row: Row, filters: Array<[string, unknown, 'eq' | 'neq']>) {
+    return filters.every(([col, val, op]) => (op === 'neq' ? row[col] !== val : row[col] === val));
   }
 
   function builder(table: string) {
-    const filters: Array<[string, unknown]> = [];
+    const filters: Array<[string, unknown, 'eq' | 'neq']> = [];
     let mode: 'select' | 'insert' | 'update' | null = null;
     let payload: Row | null = null;
     let selectCols: string | null = null;
@@ -42,11 +42,15 @@ function makeFakeSupabaseAdmin(tables: Record<string, Row[]>) {
         return api;
       },
       eq(col: string, val: unknown) {
-        filters.push([col, val]);
+        filters.push([col, val, 'eq']);
+        return api;
+      },
+      neq(col: string, val: unknown) {
+        filters.push([col, val, 'neq']);
         return api;
       },
       is(col: string, val: unknown) {
-        filters.push([col, val]);
+        filters.push([col, val, 'eq']);
         return api;
       },
       async single() {
@@ -183,5 +187,31 @@ describe('api/payments/webhook idempotency', () => {
     expect(tables.service_orders).toHaveLength(1);
     expect(tables.payment_transactions).toHaveLength(1);
     expect(tables.customer_order_drafts[0].status).toBe('approved');
+  });
+
+  it('only credits total_paid_amount once when a balance_payment notification arrives twice', async () => {
+    tables.service_orders = [{ id: 'order-1', customer_id: 'cust-1', total_paid_amount: 50000, payment_status: 'deposit_paid', quote_status: 'pending' }];
+    tables.payment_transactions = [
+      { id: 'txn-1', order_id: 'order-1', quote_id: null, payment_type: 'balance_payment', status: 'pending' },
+    ];
+    mpGetMock.mockResolvedValue({
+      id: 176084558891,
+      status: 'approved',
+      external_reference: 'txn-1',
+      transaction_amount: 30000,
+      date_approved: '2026-08-28T19:40:00.000Z',
+      fee_details: [],
+      payment_method_id: 'master',
+      installments: 1,
+    });
+
+    const { default: handler } = await import('./webhook');
+    const req = { method: 'GET', query: { topic: 'payment', id: '176084558891' } } as never;
+
+    await handler(req, makeRes() as never);
+    await handler(req, makeRes() as never);
+
+    expect(tables.service_orders[0].total_paid_amount).toBe(80000);
+    expect(tables.payment_transactions[0].status).toBe('approved');
   });
 });
