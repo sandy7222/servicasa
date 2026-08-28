@@ -736,10 +736,14 @@ export async function persistDeleteOrder(orderId: string) {
 
 export async function persistAdminCancelOrder(input: { orderId: string; reason: string; author: string; actorProfileId?: string; workElapsedSeconds: number }) {
   const now = new Date().toISOString();
+  // Cancelar y archivar quedan unidos en un mismo paso: la seña de visita no
+  // se reintegra, así que una orden cancelada no tiene ningún seguimiento
+  // pendiente — no hace falta un click aparte para sacarla de la vista
+  // activa del Admin Hub. Nunca se borra, sigue accesible en "Archivadas".
   const { error } = await supabase.from('service_orders').update({
     status: 'cancelled', cancellation_reason: input.reason, cancelled_at: now,
     cancelled_by: input.actorProfileId ?? null, work_started_at: null,
-    work_elapsed_seconds: input.workElapsedSeconds,
+    work_elapsed_seconds: input.workElapsedSeconds, archived_at: now,
   }).eq('id', input.orderId);
   throwIfError(error);
   const { error: eventError } = await supabase.from('order_events').insert({

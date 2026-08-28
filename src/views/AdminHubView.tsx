@@ -892,16 +892,18 @@ export const AdminHubView: React.FC = () => {
 
         {/* Action buttons */}
         <div className="flex items-center gap-1.5 pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-100">
-          <button
-            onClick={() => {
-              setOrderToAssign(order);
-              setIsAssignModalOpen(true);
-            }}
-            className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-md transition-colors border border-slate-200"
-            title="Asignar o reasignar técnico"
-          >
-            Asignar
-          </button>
+          {order.status !== 'cancelled' && !order.archivedAt && (
+            <button
+              onClick={() => {
+                setOrderToAssign(order);
+                setIsAssignModalOpen(true);
+              }}
+              className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-md transition-colors border border-slate-200"
+              title="Asignar o reasignar técnico"
+            >
+              Asignar
+            </button>
+          )}
 
           <button
             onClick={() => openEditOrder(order)}
