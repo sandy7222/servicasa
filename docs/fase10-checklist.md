@@ -4,7 +4,7 @@ Fecha de esta pasada: 27-28/8/2026. Cada ítem indica cómo se verificó — no 
 
 ## Resumen ejecutivo
 
-**Actualización 28/8:** los dos bloqueantes que dependían de trabajo técnico (migraciones no reproducibles, backup sin `pg_dump` real) **quedaron resueltos con evidencia real**, no solo con una decisión de aceptar el riesgo. Lo único que sigue pendiente es lo que nunca dependió de Claude: que Sandy confirme dos dashboards (Auth de Supabase, panel de Mercado Pago) que no son legibles por API, y que active "Leaked Password Protection" (1 click).
+**Actualización 28/8 (segunda pasada):** los cuatro bloqueantes originales quedaron cerrados: migraciones y backup con evidencia técnica real; Auth y Mercado Pago confirmados por Sandy en los dashboards (Site URL/Redirect URLs, webhook de MP probado con el simulador, `200 OK`). "Leaked Password Protection" se descarta por ahora — requiere plan Pro, decisión explícita de quedarse en Free. Lo que sigue abierto para Fase 10 no son bloqueantes de seguridad/infraestructura sino cobertura de pruebas: 8 de los 10 flujos del smoke test del roadmap no se re-corrieron en esta pasada (ver sección 3).
 
 ---
 
@@ -37,7 +37,7 @@ Fecha de esta pasada: 27-28/8/2026. Cada ítem indica cómo se verificó — no 
 - No hay "staging" real para probar el orden primero (ver Fase 9 — decisión explícita de Sandy de no separar Supabase). El flujo real de esta sesión fue "aplicar directo a producción con DDL mostrado y aprobado antes" — funcionó, pero no es lo mismo que "primero en staging".
 
 ### Advisors, lint, build, tests y checklist manual completos
-- **[x] Advisors de seguridad**, corridos ahora mismo: **0 ítems ERROR** (el único que había — `technician_public_view` SECURITY DEFINER — se cerró en la Fase 9). Quedan WARN ya revisados y aceptados en sesiones anteriores (`get_account_invite`/`redeem_account_invite`, `is_admin`/`current_user_role`, funciones RPC con auth interna) más **uno nuevo, real y accionable: "Leaked Password Protection" está desactivada** — HaveIBeenPwned no filtra contraseñas comprometidas al registrarse o cambiarla. Es un toggle de un click en el dashboard (Authentication → Policies) que no puedo activar por API — se lo dejo pendiente a Sandy.
+- **[x] Advisors de seguridad**, corridos ahora mismo: **0 ítems ERROR** (el único que había — `technician_public_view` SECURITY DEFINER — se cerró en la Fase 9). Quedan WARN ya revisados y aceptados en sesiones anteriores (`get_account_invite`/`redeem_account_invite`, `is_admin`/`current_user_role`, funciones RPC con auth interna) más un ítem revisado y descartado por decisión de Sandy: **"Leaked Password Protection" está desactivada, pero activarla requiere plan Pro ($25/mes)** — no es un toggle gratis como se pensó inicialmente. Evaluado junto con el backup automático (otro beneficio de Pro), Sandy decidió quedarse en Free por costo. Este ítem queda descartado, no pendiente, hasta que se justifique el upgrade.
 - **[x] `npm run lint`** (tsc --noEmit): limpio, corrido en esta sesión.
 - **[x] `npm run build`**: limpio, corrido en esta sesión (dos veces, incluida la verificación del fix de `DEMO_MODE`).
 - **[x] `npx vitest run`**: 67/67 tests pasando, corrido en esta sesión.
@@ -45,8 +45,8 @@ Fecha de esta pasada: 27-28/8/2026. Cada ítem indica cómo se verificó — no 
 
 ### Verificar dominio, TLS, Auth, Mercado Pago y correo de recuperación
 - **[x] Dominio y TLS**: `tecniurbano.online` responde `200` con `Strict-Transport-Security` y certificado válido (confirmado en cada `curl` de esta sesión).
-- **[ ] Auth (Site URL / Redirect URLs)**: **pendiente de que Sandy confirme el dashboard** (Authentication → URL Configuration) — no hay forma de leerlo por API, ya lo probamos en la Fase 9. Evidencia indirecta a favor: un link de recuperación real, generado hoy, redirigió correctamente a `https://tecniurbano.online` con los tokens — eso prueba que ese dominio específico está permitido, pero no cubre el resto de la configuración (Site URL exacto, wildcard de previews).
-- **[ ] Mercado Pago (webhook, credenciales test/producción)**: **pendiente de que Sandy confirme el panel de MP** — mismo motivo, sin API de lectura. Confirmado en sesiones anteriores: credenciales hoy son TEST/sandbox en Production y Preview por igual (sin riesgo real porque no hubo lanzamiento con plata real todavía); URLs de retorno y webhook se arman dinámicamente en el código, sin dominio hardcodeado.
+- **[x] Auth (Site URL / Redirect URLs)**: **confirmado por Sandy (28/8).** Site URL corregido a `https://tecniurbano.online`, 2 Redirect URLs guardadas en el dashboard.
+- **[x] Mercado Pago (webhook, credenciales test/producción)**: **confirmado por Sandy (28/8).** Webhook configurado en Modo de prueba y Modo productivo, URL `https://tecniurbano-plum.vercel.app/api/payments/webhook`, solo evento "Pagos (legacy)" tildado. Probado con el simulador de MP contra producción: respuesta `200 OK` sin desafío de autenticación.
 - **[x] Correo de recuperación**: probado de punta a punta hoy, dos veces — una con la cuenta de prueba de Julián (local) y una con la cuenta real de admin (producción). Sandy confirmó que entró y cambió la contraseña con éxito.
 
 ### Crear cuentas de prueba controladas para cada rol
@@ -95,7 +95,7 @@ Estado real, sin inflar:
 
 1. ~~**Migraciones**~~ — resuelto 28/8: línea base única + historial reconciliado, verificado con `pg_dump` en vivo (0 diferencias).
 2. ~~**Backup**~~ — resuelto 28/8: `pg_dump` real contra producción, guardado en `backups/pg_dump_2026_08_28.sql`.
-3. **Auth/MP**: confirmar Site URL + Redirect URLs de Supabase, y URL/eventos del webhook de MP — sigue pendiente desde la Fase 9, no hay forma de verificarlo por API.
-4. **Leaked Password Protection**: activarla en el dashboard (1 click, sin costo).
+3. ~~**Auth/MP**~~ — confirmado por Sandy 28/8: Site URL + 2 Redirect URLs en Supabase, webhook de MP (test y producción) probado con el simulador, `200 OK` sin desafío de auth.
+4. ~~**Leaked Password Protection**~~ — descartado (no pendiente): requiere plan Pro ($25/mes), no es gratis como se pensaba. Decisión de Sandy: seguir en Free por ahora.
 
 No toqué nada irreversible ni ningún pago real en esta pasada — todo lo de arriba es lectura, o cambios ya mostrados/aprobados en mensajes anteriores.
