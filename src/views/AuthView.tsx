@@ -12,6 +12,8 @@ import {
   MapPin,
   ClipboardList,
   CheckCircle2,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { DEMO_CREDENTIALS } from '../lib/supabaseData';
@@ -33,6 +35,7 @@ const inputClass =
   'w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/40 focus:border-teal-500 disabled:bg-slate-50 disabled:opacity-70';
 const inputWithIconClass =
   'w-full rounded-lg border border-slate-200 pl-9 pr-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/40 focus:border-teal-500 disabled:bg-slate-50 disabled:opacity-70';
+const inputPasswordWithToggleClass = inputWithIconClass.replace('pr-3', 'pr-9');
 const labelClass = 'block text-xs font-bold text-slate-700 font-mono uppercase tracking-wider mb-1.5';
 
 export const AuthView: React.FC = () => {
@@ -65,6 +68,7 @@ export const AuthView: React.FC = () => {
   // Login
   const [email, setEmail] = useState(DEMO_MODE ? 'admin@tecniurbano.com.ar' : '');
   const [password, setPassword] = useState(DEMO_MODE ? 'TecniUrbano2026!' : '');
+  const [showPassword, setShowPassword] = useState(false);
 
   // Invite (existing account activation)
   const [invitePassword, setInvitePassword] = useState('');
@@ -368,6 +372,9 @@ export const AuthView: React.FC = () => {
               <input
                 type="email"
                 autoComplete="username"
+                autoCapitalize="off"
+                autoCorrect="off"
+                spellCheck={false}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={authLoading}
@@ -381,14 +388,26 @@ export const AuthView: React.FC = () => {
               <div className="relative">
                 <Lock className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                  spellCheck={false}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={authLoading}
-                  className={inputWithIconClass}
+                  className={inputPasswordWithToggleClass}
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  tabIndex={-1}
+                  aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
+                  {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                </button>
               </div>
               <div className="mt-1.5 text-right">
                 <button

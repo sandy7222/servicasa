@@ -677,7 +677,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setAuthLoading(true);
     setDataError(null);
     try {
-      const { user } = await signInWithPassword(email.trim(), password);
+      const { user } = await signInWithPassword(email.trim().toLowerCase(), password.trim());
       if (!user) throw new Error('No se pudo iniciar sesión.');
       const pendingInvite = sessionStorage.getItem('tecniurbano_pending_invite');
       if (pendingInvite) {
