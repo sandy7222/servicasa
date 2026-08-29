@@ -33,7 +33,7 @@ import confetti from 'canvas-confetti';
 import { useApp } from '../context/AppContext';
 import { PriorityBadge, ServiceBadge, StatusBadge } from '../components/common/Badge';
 import { ServiceOrder } from '../types';
-import { canExecutePaidWork, formatElapsedTime, getOrderElapsedSeconds } from '../lib/workTimer';
+import { isOrderPaymentSettled, formatElapsedTime, getOrderElapsedSeconds } from '../lib/workTimer';
 import { QuoteBuilder } from '../components/technician/QuoteBuilder';
 import { ProfessionalProfile } from '../components/technician/ProfessionalProfile';
 import { EarningsView } from '../components/technician/EarningsView';
@@ -134,16 +134,16 @@ export const TechnicianView: React.FC = () => {
   // Orders that were already in progress before the persistent timer existed
   // receive their start timestamp at the first opening after this upgrade.
   useEffect(() => {
-    if (activeOrder?.status === 'in_progress' && !activeOrder.workStartedAt && canExecutePaidWork(activeOrder)) {
+    if (activeOrder?.status === 'in_progress' && !activeOrder.workStartedAt && isOrderPaymentSettled(activeOrder)) {
       updateOrderStatus(activeOrder.id, 'in_progress');
     }
   }, [activeOrder?.id, activeOrder?.status, activeOrder?.workStartedAt]);
 
   const handleStartOrResumeService = (order: ServiceOrder) => {
-    if (!canExecutePaidWork(order)) {
+    if (!isOrderPaymentSettled(order)) {
       showToast(
         order.workMode === 'diagnosis'
-          ? 'El trabajo se iniciará automáticamente al confirmarse el pago del presupuesto aceptado.'
+          ? 'El trabajo se iniciará automáticamente al confirmarse el pago de la seña.'
           : 'El trabajo se iniciará automáticamente al confirmarse el pago completo.',
         'info',
         'Esperando pago'
@@ -408,7 +408,7 @@ export const TechnicianView: React.FC = () => {
                         </div>
                       )}
 
-                      {activeOrder.status === 'assigned' && activeOrder.technicianResponseStatus === 'accepted' && canExecutePaidWork(activeOrder) && (
+                      {activeOrder.status === 'assigned' && activeOrder.technicianResponseStatus === 'accepted' && isOrderPaymentSettled(activeOrder) && (
                         <button
                           onClick={() => handleStartOrResumeService(activeOrder)}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-lg shadow-xs transition-colors"
@@ -418,15 +418,15 @@ export const TechnicianView: React.FC = () => {
                         </button>
                       )}
 
-                      {activeOrder.status === 'assigned' && activeOrder.technicianResponseStatus === 'accepted' && !canExecutePaidWork(activeOrder) && activeOrder.quoteStatus === 'rejected' && (
+                      {activeOrder.status === 'assigned' && activeOrder.technicianResponseStatus === 'accepted' && !isOrderPaymentSettled(activeOrder) && activeOrder.quoteStatus === 'rejected' && (
                         <span className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-900">
                           Presupuesto rechazado por el cliente
                         </span>
                       )}
 
-                      {activeOrder.status === 'assigned' && activeOrder.technicianResponseStatus === 'accepted' && !canExecutePaidWork(activeOrder) && activeOrder.quoteStatus !== 'rejected' && (
+                      {activeOrder.status === 'assigned' && activeOrder.technicianResponseStatus === 'accepted' && !isOrderPaymentSettled(activeOrder) && activeOrder.quoteStatus !== 'rejected' && (
                         <span className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-900">
-                          {activeOrder.workMode === 'diagnosis' ? 'Esperando aceptación y pago' : 'Esperando pago confirmado'}
+                          {activeOrder.workMode === 'diagnosis' ? 'Esperando pago de la seña' : 'Esperando pago confirmado'}
                         </span>
                       )}
 
@@ -450,7 +450,7 @@ export const TechnicianView: React.FC = () => {
                         </div>
                       )}
 
-                      {activeOrder.status === 'paused' && canExecutePaidWork(activeOrder) && (
+                      {activeOrder.status === 'paused' && isOrderPaymentSettled(activeOrder) && (
                         <button
                           onClick={() => handleStartOrResumeService(activeOrder)}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-lg shadow-xs transition-colors"

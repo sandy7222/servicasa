@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canExecutePaidWork, formatElapsedTime, getOrderElapsedSeconds, isOrderPaymentSettled, orderRequiresPaymentGate } from './workTimer';
+import { formatElapsedTime, getOrderElapsedSeconds, isOrderPaymentSettled, orderRequiresPaymentGate } from './workTimer';
 import type { ServiceOrder } from '../types';
 
 function baseOrder(overrides: Partial<ServiceOrder> = {}): ServiceOrder {
@@ -12,44 +12,24 @@ function baseOrder(overrides: Partial<ServiceOrder> = {}): ServiceOrder {
   } as ServiceOrder;
 }
 
-describe('canExecutePaidWork — nunca dejar trabajar sin pago confirmado', () => {
-  it('una orden sin workMode (legacy, creada fuera del flujo de pago) siempre puede trabajar', () => {
-    expect(canExecutePaidWork(baseOrder({ workMode: undefined }))).toBe(true);
+describe('isOrderPaymentSettled — gate único para asignar Y para arrancar/reanudar el cronómetro (assigned/paused -> in_progress)', () => {
+  it('una orden sin workMode (legacy, creada fuera del flujo de pago) siempre está saldada', () => {
+    expect(isOrderPaymentSettled(baseOrder({ workMode: undefined }))).toBe(true);
   });
 
   it('precio fijo (direct): requiere paid_in_full exacto, ningún otro estado alcanza', () => {
-    expect(canExecutePaidWork(baseOrder({ workMode: 'direct', paymentStatus: 'paid_in_full' }))).toBe(true);
-    expect(canExecutePaidWork(baseOrder({ workMode: 'direct', paymentStatus: 'pending' }))).toBe(false);
-    expect(canExecutePaidWork(baseOrder({ workMode: 'direct', paymentStatus: 'deposit_paid' }))).toBe(false);
-    expect(canExecutePaidWork(baseOrder({ workMode: 'direct', paymentStatus: 'balance_pending' }))).toBe(false);
-    expect(canExecutePaidWork(baseOrder({ workMode: 'direct', paymentStatus: 'refunded' }))).toBe(false);
+    expect(isOrderPaymentSettled(baseOrder({ workMode: 'direct', paymentStatus: 'paid_in_full' }))).toBe(true);
+    expect(isOrderPaymentSettled(baseOrder({ workMode: 'direct', paymentStatus: 'pending' }))).toBe(false);
+    expect(isOrderPaymentSettled(baseOrder({ workMode: 'direct', paymentStatus: 'deposit_paid' }))).toBe(false);
+    expect(isOrderPaymentSettled(baseOrder({ workMode: 'direct', paymentStatus: 'balance_pending' }))).toBe(false);
+    expect(isOrderPaymentSettled(baseOrder({ workMode: 'direct', paymentStatus: 'refunded' }))).toBe(false);
   });
 
-  it('diagnóstico: requiere presupuesto aceptado Y saldo pagado — ninguna de las dos sola alcanza', () => {
-    expect(canExecutePaidWork(baseOrder({ workMode: 'diagnosis', quoteStatus: 'accepted', paymentStatus: 'paid_in_full' }))).toBe(true);
-    // presupuesto aceptado pero el saldo todavía no se pagó
-    expect(canExecutePaidWork(baseOrder({ workMode: 'diagnosis', quoteStatus: 'accepted', paymentStatus: 'balance_pending' }))).toBe(false);
-    // saldo ya pagado pero el presupuesto no fue aceptado (no debería pasar, pero el gate igual lo bloquea)
-    expect(canExecutePaidWork(baseOrder({ workMode: 'diagnosis', quoteStatus: 'sent', paymentStatus: 'paid_in_full' }))).toBe(false);
-    // solo la seña de la visita, todavía no es el saldo
-    expect(canExecutePaidWork(baseOrder({ workMode: 'diagnosis', quoteStatus: 'accepted', paymentStatus: 'deposit_paid' }))).toBe(false);
-  });
-});
-
-describe('isOrderPaymentSettled — mismo criterio que canExecutePaidWork para el gate de asignación', () => {
-  it('direct necesita paid_in_full', () => {
-    expect(isOrderPaymentSettled({ workMode: 'direct', paymentStatus: 'paid_in_full' })).toBe(true);
-    expect(isOrderPaymentSettled({ workMode: 'direct', paymentStatus: 'deposit_paid' })).toBe(false);
-  });
-
-  it('diagnosis alcanza con la seña (deposit_paid) o con todo pagado', () => {
-    expect(isOrderPaymentSettled({ workMode: 'diagnosis', paymentStatus: 'deposit_paid' })).toBe(true);
-    expect(isOrderPaymentSettled({ workMode: 'diagnosis', paymentStatus: 'paid_in_full' })).toBe(true);
-    expect(isOrderPaymentSettled({ workMode: 'diagnosis', paymentStatus: 'pending' })).toBe(false);
-  });
-
-  it('sin workMode (orden admin fuera del flujo de pago) se trata como saldada', () => {
-    expect(isOrderPaymentSettled({ workMode: undefined, paymentStatus: 'pending' })).toBe(true);
+  it('diagnóstico: la seña (deposit_paid) ya alcanza — el primer viaje es a diagnosticar, antes de que exista presupuesto', () => {
+    expect(isOrderPaymentSettled(baseOrder({ workMode: 'diagnosis', quoteStatus: undefined, paymentStatus: 'deposit_paid' }))).toBe(true);
+    expect(isOrderPaymentSettled(baseOrder({ workMode: 'diagnosis', quoteStatus: 'accepted', paymentStatus: 'paid_in_full' }))).toBe(true);
+    // sin ningún pago todavía, ni siquiera la seña
+    expect(isOrderPaymentSettled(baseOrder({ workMode: 'diagnosis', paymentStatus: 'pending' }))).toBe(false);
   });
 });
 

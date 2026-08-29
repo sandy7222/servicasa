@@ -973,6 +973,11 @@ export async function persistAddNote(input: {
   return data;
 }
 
+/** Registra el uso de un material y descuenta materials.stock en un solo
+ * paso atómico vía register_material_usage (SECURITY DEFINER) — la tabla
+ * materials solo tiene grant de escritura para admin, así que un técnico no
+ * puede tocar el stock directamente; la RPC valida adentro que el llamador
+ * sea el técnico asignado a la orden (o admin) antes de descontar. */
 export async function persistAddUsedMaterial(input: {
   orderId: string;
   materialId: string;
@@ -982,18 +987,12 @@ export async function persistAddUsedMaterial(input: {
   note?: string;
   author: string;
 }) {
-  const { data, error } = await supabase
-    .from('order_materials_used')
-    .insert({
-      order_id: input.orderId,
-      material_id: input.materialId,
-      material_name: input.materialName,
-      quantity: input.quantity,
-      unit: input.unit,
-      note: input.note ?? null,
-    })
-    .select('*')
-    .single();
+  const { error } = await supabase.rpc('register_material_usage', {
+    p_order_id: input.orderId,
+    p_material_id: input.materialId,
+    p_quantity: input.quantity,
+    p_note: input.note ?? null,
+  });
   throwIfError(error);
 
   await supabase.from('order_events').insert({
@@ -1002,8 +1001,6 @@ export async function persistAddUsedMaterial(input: {
     description: `Material usado: ${input.materialName} x${input.quantity}.`,
     author: input.author,
   });
-
-  return data;
 }
 
 export async function persistSignature(input: {

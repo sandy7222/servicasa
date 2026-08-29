@@ -4,6 +4,47 @@ Registro de cambios funcionales relevantes de TecniUrbano. No reemplaza `git log
 (los detalles de implementación están en los commits y las migraciones) — es un
 resumen de qué cambió para el negocio y qué evidencia lo respalda.
 
+## 2026-08-29 (más noche) — Problema 8: gate de "salió hacia el domicilio" y stock de materiales
+
+**"Salí hacia el domicilio" nunca se podía usar en un pedido de diagnóstico.**
+El botón, el handler y la persistencia ya existían (Fase 3 Tanda 2, commit
+`a00897e`) y funcionaban bien para `work_mode='direct'`. El gate
+(`canExecutePaidWork`) exigía para diagnóstico presupuesto aceptado + saldo
+pagado — imposible de cumplir en el primer viaje, porque ese viaje es
+justamente para diagnosticar, antes de que exista ningún presupuesto. Cambiado
+el gate (en el botón, en `updateOrderStatus`, y en el aviso de "esperando
+pago") a `isOrderPaymentSettled`, que para diagnóstico alcanza con la seña.
+`canExecutePaidWork` quedó sin ningún llamador — se eliminó (ya no es "dejarlo
+por las dudas", es código muerto real) y sus tests se consolidaron dentro de
+los de `isOrderPaymentSettled`, actualizados para documentar la regla nueva.
+No se tocó `assignTechnician` ni el gate de asignación (ya usaban
+`isOrderPaymentSettled`) ni el bloqueo de superposición horaria.
+
+**"Inventario descontado" no descontaba nada.** El código sí intentaba
+restar `materials.stock` — pero `materials_write_admin` es la única política
+de escritura de esa tabla y exige `is_admin()`, así que el `UPDATE` de un
+técnico quedaba bloqueado por RLS en silencio (sin `.select()`, 0 filas
+afectadas no tira error) mientras el estado optimista de React ya mostraba el
+descuento — eso también explicaba el "Stock: 118" visto en pantalla con
+`materials.stock` real en 120: quedó pegado del intento anterior, nunca
+confirmado contra la base. Arreglado con `register_material_usage`
+(`SECURITY DEFINER`, mismo patrón que `self_register_technician`): inserta en
+`order_materials_used` y descuenta `materials.stock` en un solo paso atómico,
+validando adentro que el llamador sea el técnico asignado a esa orden (o
+admin) — sin abrir `materials` a escritura general. De paso, `addUsedMaterial`
+ahora revierte el descuento optimista de stock y la fila de material
+agregada si el guardado remoto falla, para que la pantalla nunca vuelva a
+mostrar un número que la base no tiene.
+
+Verificado con transacciones de impersonación con rollback (orden de prueba
+efímera, borrada dentro de la misma transacción): técnico asignado descuenta
+bien (120→118, fila insertada); técnico no asignado a esa orden, rechazado;
+admin puede registrar igual sin estar asignado; orden `completed` rechaza el
+registro aunque sea el técnico asignado.
+
+**Verificación:** `tsc --noEmit`, `vitest run` (66/66, 3 tests consolidados
+sin perder cobertura), `npm run build`.
+
 ## 2026-08-29 (noche) — Problema 7: remaining_amount y sync de documentos/requisitos
 
 Dos de los tres temas reales que Sandy armó en el "Problema 7" de su tablero

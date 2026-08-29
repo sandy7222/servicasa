@@ -1,15 +1,5 @@
 import type { PaymentStatus, ServiceOrder, WorkMode } from '../types';
 
-/**
- * New payment-aware orders can execute only after the platform confirms the
- * payment. Legacy orders without workMode remain usable during migration.
- */
-export function canExecutePaidWork(order: ServiceOrder): boolean {
-  if (!order.workMode) return true;
-  if (order.workMode === 'direct') return order.paymentStatus === 'paid_in_full';
-  return order.quoteStatus === 'accepted' && order.paymentStatus === 'paid_in_full';
-}
-
 type OrderPaymentShape = { workMode?: WorkMode; paymentStatus?: PaymentStatus };
 
 /**
@@ -23,10 +13,14 @@ export function orderRequiresPaymentGate(order: OrderPaymentShape): boolean {
 
 /**
  * Single source of truth for "has this order been paid enough to move
- * forward" — same criteria that blocks assignTechnician in AppContext.tsx:
- * direct (precio fijo) needs the full amount; diagnosis needs at least the
- * visit deposit. Orders with no workMode are treated as settled (the gate
- * doesn't apply to them at all — check orderRequiresPaymentGate first).
+ * forward" — same criteria that blocks assignTechnician in AppContext.tsx,
+ * and also gates starting/resuming the work timer (assigned/paused ->
+ * in_progress) in updateOrderStatus and TechnicianView: direct (precio fijo)
+ * needs the full amount; diagnosis needs at least the visit deposit, since
+ * the technician's first trip out is the diagnosis visit itself — the final
+ * quote doesn't exist yet at that point. Orders with no workMode are treated
+ * as settled (the gate doesn't apply to them at all — check
+ * orderRequiresPaymentGate first).
  */
 export function isOrderPaymentSettled(order: OrderPaymentShape): boolean {
   if (order.workMode === 'direct') return order.paymentStatus === 'paid_in_full';

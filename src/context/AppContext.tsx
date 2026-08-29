@@ -82,7 +82,7 @@ import {
   persistUpdateVisitDepositAmount,
 } from '../lib/supabaseMutations';
 import { friendlyErrorMessage } from '../components/common/AppStatus';
-import { canExecutePaidWork, isOrderPaymentSettled, orderRequiresPaymentGate } from '../lib/workTimer';
+import { isOrderPaymentSettled, orderRequiresPaymentGate } from '../lib/workTimer';
 import {
   CatalogCategory,
   CatalogSubcategory,
@@ -960,9 +960,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return { success: false, message: msg };
     }
 
-    if (newStatus === 'in_progress' && !canExecutePaidWork(order)) {
+    if (newStatus === 'in_progress' && !isOrderPaymentSettled(order)) {
       const msg = order.workMode === 'diagnosis'
-        ? 'El cronómetro se habilita al aceptar el presupuesto y confirmarse el pago.'
+        ? 'El cronómetro se habilita cuando se confirme el pago de la seña.'
         : 'El cronómetro se habilita cuando se confirme el pago completo.';
       showToast(msg, 'warning', 'Pago pendiente');
       return { success: false, message: msg };
@@ -1484,8 +1484,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
 
     if (usingRemoteData) {
-      void withRemote(async () => {
-        await persistAddUsedMaterial({
+      void withRemote(() =>
+        persistAddUsedMaterial({
           orderId,
           materialId: mat.id,
           materialName: mat.name,
@@ -1493,12 +1493,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           unit: mat.unit,
           note: note?.trim(),
           author: currentUser?.name ?? 'Sistema',
+        })
+      )
+        .then(() => {
+          showToast(`Material registrado: ${quantity} ${mat.unit} de ${mat.name}`, 'success', 'Inventario descontado');
+        })
+        .catch((err) => {
+          // El guardado remoto es la única fuente de verdad del stock — si
+          // falla, revertir el descuento optimista para no dejar la pantalla
+          // mostrando un número que la base nunca tuvo.
+          setMaterials((prev) => prev.map((m) => (m.id === materialId ? { ...m, stock: mat.stock } : m)));
+          setOrders((prev) =>
+            prev.map((o) =>
+              o.id === orderId
+                ? {
+                    ...o,
+                    usedMaterials: o.usedMaterials.filter((u) => u.id !== newUsedItem.id),
+                    events: o.events.filter((e) => e.id !== newEvent.id),
+                  }
+                : o
+            )
+          );
+          showToast(friendlyErrorMessage(err, 'Error al registrar material'), 'error');
         });
-        const nextStock = Math.max(0, mat.stock - quantity);
-        await persistUpdateMaterialStock(mat.id, nextStock);
-      }).catch((err) => {
-        showToast(friendlyErrorMessage(err, 'Error al registrar material'), 'error');
-      });
+      return true;
     }
 
     showToast(`Material registrado: ${quantity} ${mat.unit} de ${mat.name}`, 'success', 'Inventario descontado');
