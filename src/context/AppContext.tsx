@@ -55,7 +55,6 @@ import {
   persistCreateTechnicianApplication,
   persistDeleteCustomer,
   persistDeleteMaterial,
-  persistDeleteOrder,
   persistHideOwnOrder,
   persistDeleteService,
   persistCreateCategory,
@@ -179,7 +178,6 @@ interface AppContextType {
     }
   ) => void;
 
-  deleteOrder: (orderId: string) => void;
   deleteCustomerOrder: (orderId: string) => void;
   cancelOrderAsAdmin: (orderId: string, reason: string) => void;
   reportOrderIncident: (orderId: string, reason: string, pauseSettlements: boolean) => void;
@@ -1640,35 +1638,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showToast('Orden actualizada', 'success');
   };
 
-  const deleteOrder = (orderId: string) => {
-    // ✓ SECURITY: Only admin can delete orders
-    try {
-      requireAdmin(currentUser);
-      validateOrderId(orderId);
-    } catch (err) {
-      const msg = err instanceof SecurityError ? err.message : 'No autorizado';
-      showToast(msg, 'error', 'Seguridad');
-      return;
-    }
-
-    if (usingRemoteData) {
-      void withRemote(async () => {
-        try {
-          await persistDeleteOrder(orderId);
-          setOrders((prev) => prev.filter((o) => o.id !== orderId));
-          showToast('Orden eliminada de Supabase', 'success', 'Eliminada');
-        } catch (err) {
-          showToast(friendlyErrorMessage(err, 'No se pudo eliminar la orden'), 'error');
-        }
-      });
-      setOrders((prev) => prev.filter((o) => o.id !== orderId));
-      return;
-    }
-
-    setOrders((prev) => prev.filter((o) => o.id !== orderId));
-    showToast('Orden eliminada', 'success');
-  };
-
   /** Customer-facing: lets a customer remove their OWN cancelled orders from
    * "Mis Servicios a Domicilio" — never a real delete. Only sets
    * hidden_from_customer_at (via hide_own_cancelled_order, SECURITY DEFINER)
@@ -2687,7 +2656,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         hideToast,
         createOrder,
         updateOrder,
-        deleteOrder,
         deleteCustomerOrder,
         cancelOrderAsAdmin,
         reportOrderIncident,

@@ -741,11 +741,6 @@ export async function persistHideOwnOrder(orderId: string) {
   throwIfError(error);
 }
 
-export async function persistDeleteOrder(orderId: string) {
-  const { error } = await supabase.from('service_orders').delete().eq('id', orderId);
-  throwIfError(error);
-}
-
 export async function persistAdminCancelOrder(input: { orderId: string; reason: string; author: string; actorProfileId?: string; workElapsedSeconds: number }) {
   const now = new Date().toISOString();
   // Cancelar y archivar quedan unidos en un mismo paso: la seña de visita no
