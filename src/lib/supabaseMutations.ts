@@ -871,6 +871,18 @@ export async function persistAssignTechnician(input: {
   throwIfError(eventError);
 }
 
+/** Acepta o rechaza una asignación ofrecida al propio técnico — la RPC
+ * (SECURITY DEFINER) revalida que la orden esté ofrecida a este técnico y
+ * pendiente de respuesta; si rechaza, dispara el reofrecimiento automático
+ * al siguiente técnico elegible. */
+export async function persistRespondToAssignment(orderId: string, response: 'accepted' | 'rejected') {
+  const { error } = await supabase.rpc('respond_to_technician_assignment', {
+    p_order_id: orderId,
+    p_response: response,
+  });
+  throwIfError(error);
+}
+
 export async function persistToggleChecklistItem(itemId: string, completed: boolean) {
   const { error } = await supabase
     .from('order_checklist_items')

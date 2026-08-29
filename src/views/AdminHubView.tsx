@@ -896,6 +896,17 @@ export const AdminHubView: React.FC = () => {
                 Sin asignar
               </span>
             )}
+            {order.assignedTechnicianName && order.status === 'assigned' && (
+              order.technicianResponseStatus === 'pending' ? (
+                <span className="text-amber-700 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200 text-[9px] font-bold uppercase">
+                  Sin responder
+                </span>
+              ) : order.technicianResponseStatus === 'accepted' ? (
+                <span className="text-teal-700 bg-teal-50 px-1.5 py-0.2 rounded border border-teal-200 text-[9px] font-bold uppercase">
+                  Aceptó · no salió
+                </span>
+              ) : null
+            )}
           </div>
 
           {/* Progress pills */}

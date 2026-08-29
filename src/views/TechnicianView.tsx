@@ -60,6 +60,7 @@ export const TechnicianView: React.FC = () => {
     updateOrderStatus,
     toggleChecklistItem,
     addChecklistItem,
+    respondToAssignment,
     addTimeLog,
     addTechnicalNote,
     addUsedMaterial,
@@ -389,23 +390,41 @@ export const TechnicianView: React.FC = () => {
 
                     {/* Quick State Action Buttons */}
                     <div className="flex items-center gap-1.5 shrink-0">
-                      {activeOrder.status === 'assigned' && canExecutePaidWork(activeOrder) && (
+                      {activeOrder.status === 'assigned' && activeOrder.technicianResponseStatus === 'pending' && (
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() => void respondToAssignment(activeOrder.id, 'rejected')}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-700 text-xs font-bold rounded-lg border border-slate-200 transition-colors"
+                          >
+                            <span>Rechazar</span>
+                          </button>
+                          <button
+                            onClick={() => void respondToAssignment(activeOrder.id, 'accepted')}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-lg shadow-xs transition-colors"
+                          >
+                            <CheckCircle2 className="w-3 h-3" />
+                            <span>Aceptar visita</span>
+                          </button>
+                        </div>
+                      )}
+
+                      {activeOrder.status === 'assigned' && activeOrder.technicianResponseStatus === 'accepted' && canExecutePaidWork(activeOrder) && (
                         <button
                           onClick={() => handleStartOrResumeService(activeOrder)}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-lg shadow-xs transition-colors"
                         >
                           <Play className="w-3 h-3" />
-                          <span>Iniciar Servicio</span>
+                          <span>Salí hacia el domicilio</span>
                         </button>
                       )}
 
-                      {activeOrder.status === 'assigned' && !canExecutePaidWork(activeOrder) && activeOrder.quoteStatus === 'rejected' && (
+                      {activeOrder.status === 'assigned' && activeOrder.technicianResponseStatus === 'accepted' && !canExecutePaidWork(activeOrder) && activeOrder.quoteStatus === 'rejected' && (
                         <span className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-900">
                           Presupuesto rechazado por el cliente
                         </span>
                       )}
 
-                      {activeOrder.status === 'assigned' && !canExecutePaidWork(activeOrder) && activeOrder.quoteStatus !== 'rejected' && (
+                      {activeOrder.status === 'assigned' && activeOrder.technicianResponseStatus === 'accepted' && !canExecutePaidWork(activeOrder) && activeOrder.quoteStatus !== 'rejected' && (
                         <span className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-900">
                           {activeOrder.workMode === 'diagnosis' ? 'Esperando aceptación y pago' : 'Esperando pago confirmado'}
                         </span>

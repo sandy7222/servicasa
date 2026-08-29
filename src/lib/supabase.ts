@@ -160,6 +160,8 @@ export type DbServiceOrder = {
   cancellation_reason?: string | null;
   cancelled_at?: string | null;
   pause_reason?: string | null;
+  technician_response_status?: 'pending' | 'accepted' | 'rejected' | null;
+  technician_response_due_at?: string | null;
   admin_incident_status?: 'none' | 'open' | 'resolved' | null;
   admin_incident_reason?: string | null;
   admin_incident_opened_at?: string | null;

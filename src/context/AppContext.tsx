@@ -37,6 +37,7 @@ import {
 } from '../lib/securityValidations';
 import {
   persistAddChecklistItem,
+  persistRespondToAssignment,
   persistAddNote,
   persistAddTimeLog,
   persistAddUsedMaterial,
@@ -193,6 +194,7 @@ interface AppContextType {
   assignTechnician: (orderId: string, technicianId: string) => void;
   toggleChecklistItem: (orderId: string, itemId: string) => void;
   addChecklistItem: (orderId: string, label: string) => void;
+  respondToAssignment: (orderId: string, response: 'accepted' | 'rejected') => Promise<void>;
   addTimeLog: (orderId: string, minutes: number, note: string) => void;
   addTechnicalNote: (orderId: string, text: string) => void;
   addUsedMaterial: (
@@ -1268,6 +1270,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         });
     }
     showToast('Tarea añadida al checklist', 'info');
+  };
+
+  /** El técnico acepta o rechaza una asignación ofrecida a su propia cuenta.
+   * Un rechazo puede reasignar la orden a otro técnico (o devolverla a la
+   * bandeja del admin) del lado del servidor — se refresca todo en vez de
+   * intentar predecir el resultado en el estado local. */
+  const respondToAssignment = async (orderId: string, response: 'accepted' | 'rejected') => {
+    try {
+      requireTechnician(currentUser);
+    } catch (err) {
+      showToast(err instanceof SecurityError ? err.message : 'No autorizado', 'error', 'Seguridad');
+      return;
+    }
+    if (!usingRemoteData) return;
+    try {
+      await persistRespondToAssignment(orderId, response);
+      await refreshRemoteData();
+      showToast(
+        response === 'accepted' ? 'Asignación aceptada.' : 'Asignación rechazada — se ofrece al siguiente técnico disponible.',
+        response === 'accepted' ? 'success' : 'info'
+      );
+    } catch (err) {
+      showToast(friendlyErrorMessage(err, 'No se pudo registrar la respuesta'), 'error');
+    }
   };
 
   const addTimeLog = (orderId: string, minutes: number, note: string) => {
@@ -2667,6 +2693,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         assignTechnician,
         toggleChecklistItem,
         addChecklistItem,
+        respondToAssignment,
         addTimeLog,
         addTechnicalNote,
         addUsedMaterial,

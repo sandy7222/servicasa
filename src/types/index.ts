@@ -194,6 +194,9 @@ export interface ServiceOrder {
   cancelledAt?: string;
   /** Motivo de la pausa actual del técnico (se limpia al reanudar). */
   pauseReason?: string;
+  /** Respuesta del técnico a la asignación — condiciona si puede marcar salida. */
+  technicianResponseStatus?: 'pending' | 'accepted' | 'rejected';
+  technicianResponseDueAt?: string;
   adminIncidentStatus?: AdminIncidentStatus;
   adminIncidentReason?: string;
   adminIncidentOpenedAt?: string;

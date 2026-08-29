@@ -183,6 +183,8 @@ export function mapOrder(
     cancellationReason: row.cancellation_reason ?? undefined,
     cancelledAt: row.cancelled_at ?? undefined,
     pauseReason: row.pause_reason ?? undefined,
+    technicianResponseStatus: row.technician_response_status ?? undefined,
+    technicianResponseDueAt: row.technician_response_due_at ?? undefined,
     adminIncidentStatus: row.admin_incident_status ?? 'none',
     adminIncidentReason: row.admin_incident_reason ?? undefined,
     adminIncidentOpenedAt: row.admin_incident_opened_at ?? undefined,
