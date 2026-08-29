@@ -4,6 +4,58 @@ Registro de cambios funcionales relevantes de TecniUrbano. No reemplaza `git log
 (los detalles de implementación están en los commits y las migraciones) — es un
 resumen de qué cambió para el negocio y qué evidencia lo respalda.
 
+## 2026-08-29 (noche) — Problema 7: remaining_amount y sync de documentos/requisitos
+
+Dos de los tres temas reales que Sandy armó en el "Problema 7" de su tablero
+(el tercero, chequeo de rama sin PR a `main`, se descartó: era un dato viejo
+del 23/8 nunca reconfirmado — `feature/mercadopago-payments-backend` ya tiene
+su PR #1 mergeada y la otra rama está a 0 commits sobre `main`).
+
+**`remaining_amount` no baja tras pagar el saldo.** Diagnóstico de Sandy,
+confirmado leyendo el trigger completo: `prevent_sent_quote_content_change`
+congela `remaining_amount` (entre otros campos) apenas el presupuesto sale de
+`draft` — a propósito, para que no se pueda manipular un presupuesto ya
+enviado — pero nada lo recalcula cuando el pago se confirma después. Antes de
+tocar nada, rastreé cada lectura de `remaining_amount`/`remainingAmount` en
+todo el repo: `QuoteViewer.tsx` (cliente) y `ClientFicha.tsx` (admin) ya
+esconden el valor congelado detrás de "Pagado" en cuanto `quote.status ===
+'accepted'`, así que ahí no había ningún bug visible hoy. El único lugar sin
+ese resguardo era `QuoteBuilder.tsx` (vista del técnico) — mostraba
+"Restante: $X" para siempre, incluso con el presupuesto ya aceptado y
+cobrado. Corregido con el mismo patrón que ya usan las otras dos pantallas.
+El endpoint que cobra el saldo (`api/payments/create.ts`) ya estaba a salvo:
+rechaza con 409 si `quote.status !== 'sent'`, así que nunca puede recobrar
+usando un `remaining_amount` viejo de un presupuesto ya aceptado.
+
+**Sync `technician_documents`/`technician_matriculas` → `technician_requirements`.**
+Mismo patrón de diagnóstico que el bug de la CBU (Fase 6 Tanda 1), pero
+causa distinta: acá `lock_technician_review_fields()` ya tenía
+`SECURITY DEFINER` (confirmado, no faltaba eso) — el gap real era que las
+ramas de `technician_matriculas` y `technician_documents` solo reseteaban los
+campos del documento/matrícula mismo, nunca hacían el UPDATE cruzado a
+`technician_requirements` que sí tiene la rama de `technician_payment_accounts`.
+Mapeo documento→requisito confirmado contra el código real (no supuesto):
+`TechnicianReviewCard.renderRequirementEvidence` solo usa `document_type`
+`'monotributo'`→`monotributo_approved` e `'identity'`→`identity_verified`.
+`'degree'` se sube (`ProfessionalProfile`, "Título o certificación") pero
+`education_verified` nunca lo mira — su evidencia en la revisión del admin es
+el texto libre de `technicians.degree_title`/`education_level`/`institution_name`,
+no el PDF. Esa desconexión queda como hallazgo aparte, sin tocar. `'certificate'`
+y `'license_support'` están permitidos por el CHECK de la columna pero no los
+produce ninguna pantalla — vestigiales. Agregado también el reset para
+`technician_matriculas` → `matricula_validated` (mismo bug, mismo lugar,
+no pedido explícitamente pero es el mismo gap de al lado en la misma función).
+
+Verificado con transacciones de impersonación con rollback contra datos
+reales (Carlos Méndez, con los 6 requisitos ya aprobados): nueva identidad →
+`identity_verified` vuelve a `pending`; nuevo monotributo → `monotributo_approved`
+vuelve a `pending`; nueva matrícula → `matricula_validated` vuelve a `pending`;
+nuevo `degree` → nada cambia (correcto, no está mapeado); admin subiendo en
+nombre del técnico → no dispara ningún reset (mismo comportamiento que ya
+tenía el fix de la CBU).
+
+**Verificación:** `tsc --noEmit`, `vitest run` (69/69).
+
 ## 2026-08-29 — Fase 6 ampliada: alta y perfil de técnico, Tanda 2 (flujo visible)
 
 Segunda tanda, sobre el schema/backend de la Tanda 1. Esta es la que cambia el
