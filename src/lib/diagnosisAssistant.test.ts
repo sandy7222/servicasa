@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
   answer,
   ELECTRICIDAD_SLUGS,
-  isEmergencyServiceName,
   matchesVoltage,
   pickCatalogItem,
   skipItemPick,
@@ -54,13 +53,6 @@ describe('matchesVoltage', () => {
   });
 });
 
-describe('emergency names', () => {
-  it('solo marca los ítems de Emergencias dentro de Mantenimiento', () => {
-    expect(isEmergencyServiceName('Emergencias Lunes a Viernes — Hasta 5 km')).toBe(true);
-    expect(isEmergencyServiceName('Mantenimiento preventivo')).toBe(false);
-  });
-});
-
 describe('árbol de Electricidad', () => {
   it('abre en Pregunta 0 sin bienvenida genérica', () => {
     const session = startAssistant();
@@ -68,16 +60,17 @@ describe('árbol de Electricidad', () => {
     expect(visiblePrompt(session).kind).toBe('buttons');
   });
 
-  it('Paso 0 Sí corta a emergencia urgente en Mantenimiento', () => {
+  it('Paso 0 Sí corta el cuestionario sin armar pedido', () => {
     const session = walk(['Electricidad', 'yes']);
     const prompt = visiblePrompt(session);
-    expect(prompt.kind).toBe('emergency');
-    if (prompt.kind !== 'emergency') return;
-    expect(prompt.draft.priority).toBe('urgente');
-    expect(prompt.draft.emergency).toBe(true);
-    expect(prompt.draft.serviceType).toBe('Electricidad');
-    expect(prompt.draft.subcategorySlugs).toEqual([ELECTRICIDAD_SLUGS.mantenimiento]);
-    expect(prompt.draft.workMode).toBe('diagnosis');
+    expect(prompt.kind).toBe('safety-stop');
+    expect(session.draft).toBeUndefined();
+    if (prompt.kind !== 'safety-stop') return;
+    expect(prompt.message).toMatch(/cortá la llave térmica/i);
+    expect(prompt.message).toMatch(/bomberos/i);
+    expect(prompt.message).toMatch(/horario comercial/i);
+    expect(prompt.message).not.toMatch(/urgente/i);
+    expect(prompt.message).not.toMatch(/subcategor/i);
   });
 
   it('energía parcial va a cableado/canalización sin preguntar tensión', () => {
@@ -98,10 +91,15 @@ describe('árbol de Electricidad', () => {
     expect(session.draft).toBeUndefined();
   });
 
-  it('llave quemada deriva a emergencia igual que Paso 0', () => {
+  it('llave quemada corta igual que Paso 0, sin pedido', () => {
     const session = walk(['Electricidad', 'no', 'repair', 'yes', 'hot']);
     const prompt = visiblePrompt(session);
-    expect(prompt.kind).toBe('emergency');
+    expect(prompt.kind).toBe('safety-stop');
+    expect(session.draft).toBeUndefined();
+    if (prompt.kind !== 'safety-stop') return;
+    expect(prompt.message).toMatch(/bomberos/i);
+    expect(prompt.message).toMatch(/horario comercial/i);
+    expect(prompt.message).not.toMatch(/urgente/i);
   });
 
   it('no sé las llaves deja nota para el técnico y pregunta tensión', () => {

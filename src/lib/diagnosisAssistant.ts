@@ -9,7 +9,6 @@ export const ELECTRICIDAD_SLUGS = {
   artefactos: 'colocacion-de-artefactos',
   luminarias: 'colocacion-de-luminarias',
   correccion: 'correccion-de-potencia',
-  mantenimiento: 'mantenimiento',
   proyecto: 'proyecto-electrico',
   tierra: 'puesta-a-tierra',
   tablero: 'tablero-domiciliario',
@@ -57,9 +56,8 @@ export type VisiblePrompt =
       message: string;
     }
   | {
-      kind: 'emergency';
+      kind: 'safety-stop';
       message: string;
-      draft: AssistantDraft;
     };
 
 export type AssistantDraft = {
@@ -71,7 +69,6 @@ export type AssistantDraft = {
   subcategorySlugs: string[];
   fixedPriceServiceId?: string;
   quantity: number;
-  emergency?: boolean;
   photoName?: string;
 };
 
@@ -112,7 +109,7 @@ type StepId =
   | 'pick-items'
   | 'summary'
   | 'outage'
-  | 'emergency';
+  | 'safety-stop';
 
 export type AssistantSession = {
   step: StepId;
@@ -149,8 +146,8 @@ const Q_VOLTAGE = '¿Sabés qué tensión te llega: 220V, 380V, las dos, o no sa
 const Q_INSTALL = '¿Qué tipo de instalación necesitás?';
 const PLACEHOLDER_PROMPT =
   'Contanos con tus palabras qué pasa. Si tenés una foto, adjuntarla ayuda al técnico.';
-const EMERGENCY_MESSAGE =
-  'Esto puede ser una emergencia eléctrica. Si podés hacerlo sin riesgo, cortá la llave térmica general y no uses esa instalación.';
+const SAFETY_STOP_MESSAGE =
+  'Esto puede ser una emergencia eléctrica. Si podés hacerlo sin riesgo, cortá la llave térmica general y no uses esa instalación.\n\nSi hay riesgo activo — fuego o chispas en curso — no es algo que nosotros resolvamos: contactá a bomberos o a la empresa distribuidora, según corresponda.\n\nAtendemos en horario comercial. No ofrecemos servicio de emergencia.';
 const OUTAGE_MESSAGE =
   'Si también se quedó sin luz el vecindario, es un corte de la empresa distribuidora — no un problema que un técnico nuestro pueda resolver en tu casa. Reportalo a tu distribuidora (Edenor, Edesur u otra, según tu zona). No vamos a cobrarte una visita que no te va a solucionar nada.';
 
@@ -167,10 +164,6 @@ function push(session: AssistantSession, role: ChatMessage['role'], text: string
 function serviceTypeForRubro(rubro: RubroChoice): ServiceType {
   if (rubro === 'unsure') return 'Mantenimiento general';
   return rubro;
-}
-
-export function isEmergencyServiceName(name: string): boolean {
-  return /^emergencias\b/i.test(name.trim());
 }
 
 export function voltageFilterFromChoice(choice: VoltageChoice): VoltageFilter | undefined {
@@ -287,8 +280,8 @@ export function visiblePrompt(session: AssistantSession): VisiblePrompt {
       return { kind: 'summary', draft: session.draft! };
     case 'outage':
       return { kind: 'outage', message: OUTAGE_MESSAGE };
-    case 'emergency':
-      return { kind: 'emergency', message: EMERGENCY_MESSAGE, draft: session.draft! };
+    case 'safety-stop':
+      return { kind: 'safety-stop', message: SAFETY_STOP_MESSAGE };
   }
 }
 
@@ -350,23 +343,6 @@ function pickPrompt(session: AssistantSession): VisiblePrompt {
   };
 }
 
-function emergencyDraft(answers: Answers, extra?: string): AssistantDraft {
-  return {
-    serviceType: 'Electricidad',
-    workMode: 'diagnosis',
-    title: 'Emergencia eléctrica',
-    description: naturalDescription([
-      'El cliente reportó olor a quemado, chispas, humo o zumbido raro en tablero/enchufe — o una llave térmica quemada/caliente.',
-      extra,
-      'Pedido derivado a Emergencias (subcategoría Mantenimiento de Electricidad). Prioridad urgente.',
-    ]),
-    priority: 'urgente',
-    subcategorySlugs: [ELECTRICIDAD_SLUGS.mantenimiento],
-    quantity: 1,
-    emergency: true,
-  };
-}
-
 function diagnosisDraft(
   answers: Answers,
   title: string,
@@ -425,10 +401,9 @@ function goSummary(session: AssistantSession, draft: AssistantDraft, assistantTe
   return { ...withMsg, step: 'summary', draft };
 }
 
-function goEmergency(session: AssistantSession, extra?: string): AssistantSession {
-  const draft = emergencyDraft(session.answers, extra);
-  const withMsg = push({ ...session, draft, step: 'emergency' }, 'assistant', EMERGENCY_MESSAGE);
-  return { ...withMsg, step: 'emergency', draft };
+function goSafetyStop(session: AssistantSession): AssistantSession {
+  const withMsg = push({ ...session, draft: undefined, step: 'safety-stop' }, 'assistant', SAFETY_STOP_MESSAGE);
+  return { ...withMsg, step: 'safety-stop', draft: undefined };
 }
 
 function afterVoltage(session: AssistantSession): AssistantSession {
@@ -457,7 +432,7 @@ function afterVoltage(session: AssistantSession): AssistantSession {
 }
 
 export function answer(session: AssistantSession, optionId: string, optionLabel: string): AssistantSession {
-  if (session.step === 'summary' || session.step === 'outage' || session.step === 'emergency') return session;
+  if (session.step === 'summary' || session.step === 'outage' || session.step === 'safety-stop') return session;
 
   let next: AssistantSession = push(session, 'user', optionLabel);
 
@@ -474,7 +449,7 @@ export function answer(session: AssistantSession, optionId: string, optionLabel:
     }
     case 'elec-safety': {
       next = { ...next, answers: { ...next.answers, safety: optionId as 'yes' | 'no' } };
-      if (optionId === 'yes') return goEmergency(next);
+      if (optionId === 'yes') return goSafetyStop(next);
       next = push({ ...next, step: 'elec-work-type' }, 'assistant', Q_WORK);
       return { ...next, step: 'elec-work-type' };
     }
@@ -517,7 +492,7 @@ export function answer(session: AssistantSession, optionId: string, optionLabel:
     case 'elec-breaker': {
       next = { ...next, answers: { ...next.answers, breaker: optionId as Answers['breaker'] } };
       if (optionId === 'hot') {
-        return goEmergency(next, 'El cliente indicó que una llave térmica está quemada o caliente.');
+        return goSafetyStop(next);
       }
       next = {
         ...next,
@@ -675,17 +650,6 @@ export function filterServicesForPrompt(
     if (!slug || !prompt.slugs.includes(slug)) return false;
     if (prompt.voltage && !matchesVoltage(service.name, prompt.voltage)) return false;
     return true;
-  });
-}
-
-export function emergencyServices(
-  services: readonly ServiceItem[],
-  slugsById: Map<string, string>
-): ServiceItem[] {
-  return services.filter((service) => {
-    if (service.active === false) return false;
-    const slug = service.subcategoryId ? slugsById.get(service.subcategoryId) : undefined;
-    return slug === ELECTRICIDAD_SLUGS.mantenimiento && isEmergencyServiceName(service.name);
   });
 }
 

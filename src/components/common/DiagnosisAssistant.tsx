@@ -4,7 +4,6 @@ import { useApp } from '../../context/AppContext';
 import { formatArs } from '../../lib/pricing';
 import {
   answer,
-  emergencyServices,
   filterServicesForPrompt,
   optionLabel,
   pickCatalogItem,
@@ -57,10 +56,10 @@ export const DiagnosisAssistant: React.FC = () => {
 
   const choose = (id: string, label: string) => setSession((current) => answer(current, id, label));
 
-  const handoff = (options?: { emergency?: boolean }) => {
+  const handoff = () => {
     const draft = session.draft;
     if (!draft) return;
-    saveAssistantDraft({ ...draft, emergency: options?.emergency || draft.emergency });
+    saveAssistantDraft(draft);
     setOpen(false);
     if (currentUser?.role === 'customer') {
       navigate('/customer');
@@ -70,13 +69,7 @@ export const DiagnosisAssistant: React.FC = () => {
     } else {
       navigate('/auth');
     }
-    showToast(
-      draft.emergency
-        ? 'Pedido de emergencia armado. Confirmá el domicilio y la seña para despacharlo.'
-        : 'Revisá el pedido armado y confirmalo cuando esté bien.',
-      draft.emergency ? 'warning' : 'success',
-      'Asistente de diagnóstico'
-    );
+    showToast('Revisá el pedido armado y confirmalo cuando esté bien.', 'success', 'Asistente de diagnóstico');
   };
 
   return (
@@ -107,7 +100,7 @@ export const DiagnosisAssistant: React.FC = () => {
                   <img src={assistantPortrait} alt="" className="w-7 h-7 rounded-full object-cover object-top bg-white border border-slate-200 shrink-0 mt-0.5" />
                 )}
                 <p
-                  className={`max-w-[85%] rounded-2xl px-3 py-2 text-xs leading-relaxed ${
+                  className={`max-w-[85%] rounded-2xl px-3 py-2 text-xs leading-relaxed whitespace-pre-line ${
                     message.role === 'assistant'
                       ? 'bg-white border border-slate-200 text-slate-800 rounded-tl-md'
                       : 'bg-teal-600 text-white rounded-tr-md'
@@ -196,25 +189,10 @@ export const DiagnosisAssistant: React.FC = () => {
               </div>
             )}
 
-            {prompt.kind === 'outage' && (
+            {(prompt.kind === 'outage' || prompt.kind === 'safety-stop') && (
               <button type="button" onClick={restart} className="w-full rounded-xl bg-slate-800 px-3 py-2 text-xs font-bold text-white">
                 Entendido
               </button>
-            )}
-
-            {prompt.kind === 'emergency' && (
-              <div className="space-y-2">
-                <p className="text-[11px] text-rose-800 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2">
-                  Vamos a armar el pedido como Emergencia, prioridad urgente. No hace falta seguir el cuestionario.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => handoff({ emergency: true })}
-                  className="w-full rounded-xl bg-rose-600 px-3 py-2 text-xs font-bold text-white hover:bg-rose-700"
-                >
-                  Pedir visita de emergencia
-                </button>
-              </div>
             )}
 
             {prompt.kind === 'summary' && session.draft && (
@@ -224,7 +202,6 @@ export const DiagnosisAssistant: React.FC = () => {
                 onDescription={(value) => setSession((current) => updateDraftDescription(current, value))}
                 onQuantity={(value) => setSession((current) => updateDraftQuantity(current, value))}
                 onConfirm={() => handoff()}
-                emergencyHint={emergencyServices(services, slugsById).length > 0}
               />
             )}
           </div>
@@ -250,13 +227,11 @@ const SummaryPane: React.FC<{
   onDescription: (value: string) => void;
   onQuantity: (value: number) => void;
   onConfirm: () => void;
-  emergencyHint: boolean;
-}> = ({ session, services, onDescription, onQuantity, onConfirm, emergencyHint }) => {
+}> = ({ session, services, onDescription, onQuantity, onConfirm }) => {
   const draft = session.draft!;
   const priced = draft.fixedPriceServiceId
     ? services.find((service) => service.id === draft.fixedPriceServiceId)
     : undefined;
-  void emergencyHint;
   return (
     <div className="space-y-2">
       <p className="text-[11px] font-bold text-slate-800">{draft.title}</p>

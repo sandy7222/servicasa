@@ -33,7 +33,6 @@ export const ServiceRequestForm: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
   const [fromAssistant, setFromAssistant] = useState(false);
-  const [emergency, setEmergency] = useState(false);
   const [pendingDraft, setPendingDraft] = useState<PendingCustomerDraft | null>(null);
   const [resumingPayment, setResumingPayment] = useState(false);
 
@@ -84,7 +83,6 @@ export const ServiceRequestForm: React.FC = () => {
   useEffect(() => {
     const applyDraft = (draft: AssistantDraft) => {
       setFromAssistant(true);
-      setEmergency(Boolean(draft.emergency));
       setServiceType(draft.serviceType);
       setTitle(draft.title);
       setDescription(draft.description);
@@ -201,12 +199,7 @@ export const ServiceRequestForm: React.FC = () => {
         <div>
           <h2 id="service-request-title" className="text-sm font-bold text-slate-900">Solicitar un servicio</h2>
           <p className="text-[11px] text-slate-500">El domicilio y el horario se usan únicamente para este pedido.</p>
-          {emergency && (
-            <p className="mt-2 text-xs font-semibold text-rose-800 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">
-              Emergencia eléctrica: cortá la térmica general si podés hacerlo sin riesgo. Confirmá para despachar la visita urgente.
-            </p>
-          )}
-          {fromAssistant && !emergency && (
+          {fromAssistant && (
             <p className="mt-2 text-[11px] text-teal-800 bg-teal-50 border border-teal-200 rounded-lg px-3 py-2">
               El asistente precargó este pedido. Revisá la descripción antes de confirmar.
             </p>
