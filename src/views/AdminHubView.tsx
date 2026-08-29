@@ -1602,7 +1602,7 @@ export const AdminHubView: React.FC = () => {
           </div>
 
           {/* Sub Navigation Tabs - High density */}
-          <div className="flex items-center gap-1.5 mt-4 pt-3 border-t border-slate-100">
+          <div className="flex flex-wrap items-center gap-1.5 mt-4 pt-3 border-t border-slate-100">
             <button
               onClick={() => setActiveTab('orders')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
