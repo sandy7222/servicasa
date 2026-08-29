@@ -22,6 +22,7 @@ import { isSupabaseConfigured } from '../lib/supabase';
 import { friendlyErrorMessage } from '../components/common/AppStatus';
 import { fetchAccountInvite, type AccountInvitePreview } from '../lib/supabaseMutations';
 import { GuestServiceRequestForm } from '../components/client/GuestServiceRequestForm';
+import { hasAssistantDraft, ASSISTANT_DRAFT_EVENT } from '../lib/diagnosisDraft';
 
 function readInviteToken() {
   const hash = window.location.hash.replace(/^#/, '');
@@ -52,10 +53,18 @@ export const AuthView: React.FC = () => {
   // and go straight to the guest checkout form, no login/register/technician
   // detour. The general /auth entry point (header link, direct visit) is
   // unaffected — this only fires for this one specific referrer.
-  const [orderIntent] = useState(() => Boolean(localStorage.getItem('tecniurbano_selectedServiceId')));
+  const [orderIntent] = useState(() =>
+    Boolean(localStorage.getItem('tecniurbano_selectedServiceId') || hasAssistantDraft())
+  );
 
   const [mode, setMode] = useState<AuthMode>(orderIntent ? 'guest' : 'login');
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const onDraft = () => setMode('guest');
+    window.addEventListener(ASSISTANT_DRAFT_EVENT, onDraft);
+    return () => window.removeEventListener(ASSISTANT_DRAFT_EVENT, onDraft);
+  }, []);
 
   // Login
   const [email, setEmail] = useState(DEMO_MODE ? 'admin@tecniurbano.com.ar' : '');

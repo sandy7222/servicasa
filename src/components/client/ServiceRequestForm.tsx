@@ -6,6 +6,8 @@ import { groupItemsBySubcategory } from '../../lib/catalogOrder';
 import { SubcategorySectionHeader } from '../common/SubcategorySectionHeader';
 import { redirectToCustomerServiceRequest, fetchPendingDraft, retryDraftPayment, type PendingCustomerDraft } from '../../lib/paymentClient';
 import { ARGENTINA_PROVINCES } from '../../lib/argentina';
+import { ASSISTANT_DRAFT_EVENT, readAssistantDraft, clearAssistantDraft } from '../../lib/diagnosisDraft';
+import type { AssistantDraft } from '../../lib/diagnosisAssistant';
 import type { OrderPriority, ServiceItem, ServiceType, WorkMode } from '../../types';
 
 const DATE_TODAY = new Date().toISOString().slice(0, 10);
@@ -30,6 +32,8 @@ export const ServiceRequestForm: React.FC = () => {
   const [priority, setPriority] = useState<OrderPriority>('media');
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
+  const [fromAssistant, setFromAssistant] = useState(false);
+  const [emergency, setEmergency] = useState(false);
   const [pendingDraft, setPendingDraft] = useState<PendingCustomerDraft | null>(null);
   const [resumingPayment, setResumingPayment] = useState(false);
 
@@ -78,14 +82,49 @@ export const ServiceRequestForm: React.FC = () => {
   const directTotal = selectedService ? selectedService.price * quantity : 0;
 
   useEffect(() => {
-    const pendingServiceId = localStorage.getItem('tecniurbano_selectedServiceId');
-    if (!pendingServiceId) return;
-    const catalogItem = services.find((service) => service.id === pendingServiceId);
-    localStorage.removeItem('tecniurbano_selectedServiceId');
-    if (!catalogItem) return;
-    setServiceType(catalogItem.category);
-    setTitle(catalogItem.name);
-    setDescription(catalogItem.description);
+    const applyDraft = (draft: AssistantDraft) => {
+      setFromAssistant(true);
+      setEmergency(Boolean(draft.emergency));
+      setServiceType(draft.serviceType);
+      setTitle(draft.title);
+      setDescription(draft.description);
+      setPriority(draft.priority);
+      setQuantity(draft.quantity || 1);
+      if (draft.workMode === 'direct' && draft.fixedPriceServiceId) {
+        const catalogItem = services.find((service) => service.id === draft.fixedPriceServiceId);
+        if (!catalogItem && services.length === 0) return false;
+        setMode('direct');
+        if (catalogItem) setSelectedService(catalogItem);
+      } else {
+        setMode('diagnosis');
+        setSelectedService(null);
+      }
+      clearAssistantDraft();
+      return true;
+    };
+
+    const stored = readAssistantDraft();
+    if (stored) applyDraft(stored);
+
+    const onDraft = (event: Event) => {
+      const draft = (event as CustomEvent<AssistantDraft>).detail;
+      if (draft) applyDraft(draft);
+    };
+    window.addEventListener(ASSISTANT_DRAFT_EVENT, onDraft);
+
+    if (!stored) {
+      const pendingServiceId = localStorage.getItem('tecniurbano_selectedServiceId');
+      if (pendingServiceId) {
+        const catalogItem = services.find((service) => service.id === pendingServiceId);
+        if (catalogItem) {
+          localStorage.removeItem('tecniurbano_selectedServiceId');
+          setServiceType(catalogItem.category);
+          setTitle(catalogItem.name);
+          setDescription(catalogItem.description);
+        }
+      }
+    }
+    return () => window.removeEventListener(ASSISTANT_DRAFT_EVENT, onDraft);
   }, [services]);
 
   useEffect(() => {
@@ -156,12 +195,22 @@ export const ServiceRequestForm: React.FC = () => {
   };
 
   return (
-    <section className="bg-white rounded-xl p-4 border border-slate-200 shadow-xs space-y-4" aria-labelledby="service-request-title">
+    <section id="solicitar-servicio" className="bg-white rounded-xl p-4 border border-slate-200 shadow-xs space-y-4" aria-labelledby="service-request-title">
       <div className="flex gap-2.5">
         <span className="w-9 h-9 shrink-0 rounded-lg bg-teal-50 border border-teal-200 text-teal-700 flex items-center justify-center"><ClipboardPlus className="w-4.5 h-4.5" /></span>
         <div>
           <h2 id="service-request-title" className="text-sm font-bold text-slate-900">Solicitar un servicio</h2>
           <p className="text-[11px] text-slate-500">El domicilio y el horario se usan únicamente para este pedido.</p>
+          {emergency && (
+            <p className="mt-2 text-xs font-semibold text-rose-800 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">
+              Emergencia eléctrica: cortá la térmica general si podés hacerlo sin riesgo. Confirmá para despachar la visita urgente.
+            </p>
+          )}
+          {fromAssistant && !emergency && (
+            <p className="mt-2 text-[11px] text-teal-800 bg-teal-50 border border-teal-200 rounded-lg px-3 py-2">
+              El asistente precargó este pedido. Revisá la descripción antes de confirmar.
+            </p>
+          )}
         </div>
       </div>
 

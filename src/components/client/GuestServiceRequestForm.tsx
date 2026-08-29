@@ -6,6 +6,8 @@ import { groupItemsBySubcategory } from '../../lib/catalogOrder';
 import { SubcategorySectionHeader } from '../common/SubcategorySectionHeader';
 import { redirectToGuestPayment } from '../../lib/paymentClient';
 import { ARGENTINA_PROVINCES } from '../../lib/argentina';
+import { ASSISTANT_DRAFT_EVENT, readAssistantDraft, clearAssistantDraft } from '../../lib/diagnosisDraft';
+import type { AssistantDraft } from '../../lib/diagnosisAssistant';
 import type { OrderPriority, ServiceItem, ServiceType, WorkMode } from '../../types';
 
 const DATE_TODAY = new Date().toISOString().slice(0, 10);
@@ -32,6 +34,8 @@ export const GuestServiceRequestForm: React.FC = () => {
   const [appointmentWindow, setAppointmentWindow] = useState('A coordinar');
   const [priority, setPriority] = useState<OrderPriority>('media');
   const [submitting, setSubmitting] = useState(false);
+  const [fromAssistant, setFromAssistant] = useState(false);
+  const [emergency, setEmergency] = useState(false);
 
   const categories = useMemo(() => {
     const values = new Set<string>(['Electricidad']);
@@ -51,14 +55,51 @@ export const GuestServiceRequestForm: React.FC = () => {
   const directTotal = selectedService ? selectedService.price * quantity : 0;
 
   useEffect(() => {
+    const applyDraft = (draft: AssistantDraft) => {
+      setFromAssistant(true);
+      setEmergency(Boolean(draft.emergency));
+      setServiceType(draft.serviceType);
+      setTitle(draft.title);
+      setDescription(draft.description);
+      setPriority(draft.priority);
+      setQuantity(draft.quantity || 1);
+      if (draft.workMode === 'direct' && draft.fixedPriceServiceId) {
+        const catalogItem = services.find((service) => service.id === draft.fixedPriceServiceId);
+        if (!catalogItem && services.length === 0) return false;
+        setMode('direct');
+        if (catalogItem) setSelectedService(catalogItem);
+      } else {
+        setMode('diagnosis');
+        setSelectedService(null);
+      }
+      clearAssistantDraft();
+      return true;
+    };
+
+    const stored = readAssistantDraft();
+    if (stored) applyDraft(stored);
+
+    const onDraft = (event: Event) => {
+      const draft = (event as CustomEvent<AssistantDraft>).detail;
+      if (draft) applyDraft(draft);
+    };
+    window.addEventListener(ASSISTANT_DRAFT_EVENT, onDraft);
+
+    if (stored) {
+      return () => window.removeEventListener(ASSISTANT_DRAFT_EVENT, onDraft);
+    }
+
     const pendingServiceId = localStorage.getItem('tecniurbano_selectedServiceId');
-    if (!pendingServiceId) return;
-    const catalogItem = services.find((service) => service.id === pendingServiceId);
-    localStorage.removeItem('tecniurbano_selectedServiceId');
-    if (!catalogItem) return;
-    setServiceType(catalogItem.category);
-    setTitle(catalogItem.name);
-    setDescription(catalogItem.description);
+    if (pendingServiceId) {
+      const catalogItem = services.find((service) => service.id === pendingServiceId);
+      if (catalogItem) {
+        localStorage.removeItem('tecniurbano_selectedServiceId');
+        setServiceType(catalogItem.category);
+        setTitle(catalogItem.name);
+        setDescription(catalogItem.description);
+      }
+    }
+    return () => window.removeEventListener(ASSISTANT_DRAFT_EVENT, onDraft);
   }, [services]);
 
   const chooseMode = (nextMode: WorkMode) => {
@@ -114,12 +155,22 @@ export const GuestServiceRequestForm: React.FC = () => {
   };
 
   return (
-    <section className="bg-white rounded-xl p-4 border border-slate-200 shadow-xs space-y-4" aria-labelledby="guest-request-title">
+    <section id="solicitar-servicio" className="bg-white rounded-xl p-4 border border-slate-200 shadow-xs space-y-4" aria-labelledby="guest-request-title">
       <div>
         <h2 id="guest-request-title" className="text-sm font-bold text-slate-900">Pedir un servicio como invitado</h2>
         <p className="text-[11px] text-slate-500">
           No hace falta crear cuenta ahora. Después de pagar te damos un link para armar tu contraseña y hacer seguimiento.
         </p>
+        {emergency && (
+          <p className="mt-2 text-xs font-semibold text-rose-800 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">
+            Emergencia eléctrica: cortá la térmica general si podés hacerlo sin riesgo. Confirmá el domicilio para despachar la visita urgente.
+          </p>
+        )}
+        {fromAssistant && !emergency && (
+          <p className="mt-2 text-[11px] text-teal-800 bg-teal-50 border border-teal-200 rounded-lg px-3 py-2">
+            El asistente precargó este pedido. Revisá la descripción y confirmá cuando esté bien.
+          </p>
+        )}
       </div>
 
       <div className="grid sm:grid-cols-2 gap-2">

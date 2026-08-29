@@ -16,6 +16,7 @@ import { SettingsView } from './views/SettingsView';
 import { ServicesCategoryView } from './views/ServicesCategoryView';
 import { GuestOrderStatusView } from './views/GuestOrderStatusView';
 import { ResetPasswordView } from './views/ResetPasswordView';
+import { DiagnosisAssistant } from './components/common/DiagnosisAssistant';
 import { ClientsTable } from './components/admin/ClientsTable';
 import { ClientFicha } from './components/admin/ClientFicha';
 import { ClaimsTable } from './components/admin/ClaimsTable';
@@ -246,6 +247,7 @@ const AppContent: React.FC = () => {
         <div className="flex-1">{renderView()}</div>
       )}
       <Toast />
+      {!passwordRecoveryMode && <DiagnosisAssistant />}
     </div>
   );
 };
