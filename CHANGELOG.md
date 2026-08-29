@@ -20,6 +20,20 @@ los de `isOrderPaymentSettled`, actualizados para documentar la regla nueva.
 No se tocó `assignTechnician` ni el gate de asignación (ya usaban
 `isOrderPaymentSettled`) ni el bloqueo de superposición horaria.
 
+**El cambio del lado del cliente no alcanzaba solo.** Probando el flujo real
+en el navegador (login como Carlos, orden de diagnóstico con solo la seña
+pagada) el click en "Salí hacia el domicilio" seguía devolviendo 400 —
+`prevent_unpaid_execution_timer`, un trigger de `service_orders` que nunca
+había mirado en la investigación original, duplicaba server-side la regla
+vieja exacta (`quote_status='accepted' AND payment_status='paid_in_full'`
+para diagnóstico) como defensa en profundidad, independiente del gate de
+React. Corregido para espejar `isOrderPaymentSettled`: diagnóstico alcanza
+con la seña, sin mirar `quote_status`; `direct` sigue exigiendo todo pagado.
+Re-probado en el navegador con una orden real: `PATCH` a `service_orders`
+devuelve 204, el estado sobrevive un reload duro, `work_started_at` queda
+seteado, el cronómetro corre en pantalla, y `notify_technician_en_route`
+disparó la notificación al cliente por primera vez en todo el proyecto.
+
 **"Inventario descontado" no descontaba nada.** El código sí intentaba
 restar `materials.stock` — pero `materials_write_admin` es la única política
 de escritura de esa tabla y exige `is_admin()`, así que el `UPDATE` de un
@@ -43,7 +57,9 @@ admin puede registrar igual sin estar asignado; orden `completed` rechaza el
 registro aunque sea el técnico asignado.
 
 **Verificación:** `tsc --noEmit`, `vitest run` (66/66, 3 tests consolidados
-sin perder cobertura), `npm run build`.
+sin perder cobertura), `npm run build`, más la prueba en vivo en el navegador
+descripta arriba. Orden de prueba y su notificación/evento borrados al
+terminar — 0 `service_orders` reales en la base.
 
 ## 2026-08-29 (noche) — Problema 7: remaining_amount y sync de documentos/requisitos
 
