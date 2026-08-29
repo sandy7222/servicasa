@@ -729,6 +729,18 @@ export async function persistUpdateOrder(input: {
   return full;
 }
 
+/**
+ * Customer-facing "eliminar orden cancelada": nunca borra la fila, solo
+ * marca hidden_from_customer_at para que deje de listarse en su propio
+ * portal — el admin la sigue viendo entera. La función RPC (SECURITY
+ * DEFINER) es la única que puede escribir esa columna, ya validando ahí
+ * mismo que sea una orden cancelada y del propio cliente.
+ */
+export async function persistHideOwnOrder(orderId: string) {
+  const { error } = await supabase.rpc('hide_own_cancelled_order', { p_order_id: orderId });
+  throwIfError(error);
+}
+
 export async function persistDeleteOrder(orderId: string) {
   const { error } = await supabase.from('service_orders').delete().eq('id', orderId);
   throwIfError(error);

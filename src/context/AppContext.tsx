@@ -56,6 +56,7 @@ import {
   persistDeleteCustomer,
   persistDeleteMaterial,
   persistDeleteOrder,
+  persistHideOwnOrder,
   persistDeleteService,
   persistCreateCategory,
   persistUpdateCategory,
@@ -1668,10 +1669,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showToast('Orden eliminada', 'success');
   };
 
-  /** Customer-facing: lets a customer permanently remove their OWN cancelled
-   * orders so they stop piling up in "Mis Servicios a Domicilio". RLS
-   * (service_orders_delete_customer_cancelled) enforces the same two
-   * conditions server-side; these checks are defense in depth. */
+  /** Customer-facing: lets a customer remove their OWN cancelled orders from
+   * "Mis Servicios a Domicilio" — never a real delete. Only sets
+   * hidden_from_customer_at (via hide_own_cancelled_order, SECURITY DEFINER)
+   * so the row stays fully intact and auditable for admin. The RPC
+   * re-validates the same two conditions server-side; these checks are
+   * defense in depth. */
   const deleteCustomerOrder = (orderId: string) => {
     try {
       requireCustomer(currentUser);
@@ -1688,18 +1691,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return;
     }
     if (order.status !== 'cancelled') {
-      showToast('Solo se pueden eliminar órdenes canceladas.', 'warning');
+      showToast('Solo se pueden ocultar órdenes canceladas.', 'warning');
       return;
     }
 
     if (usingRemoteData) {
       void withRemote(async () => {
         try {
-          await persistDeleteOrder(orderId);
+          await persistHideOwnOrder(orderId);
           setOrders((prev) => prev.filter((o) => o.id !== orderId));
-          showToast('Orden eliminada', 'success');
+          showToast('Orden quitada de tu lista', 'success');
         } catch (err) {
-          showToast(friendlyErrorMessage(err, 'No se pudo eliminar la orden'), 'error');
+          showToast(friendlyErrorMessage(err, 'No se pudo quitar la orden'), 'error');
         }
       });
       setOrders((prev) => prev.filter((o) => o.id !== orderId));
@@ -1707,7 +1710,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     setOrders((prev) => prev.filter((o) => o.id !== orderId));
-    showToast('Orden eliminada', 'success');
+    showToast('Orden quitada de tu lista', 'success');
   };
 
   const adminOrderAction = (orderId: string, reason: string, action: 'cancel' | 'incident' | 'resolve_incident' | 'exceptional_close', pauseSettlements = false) => {

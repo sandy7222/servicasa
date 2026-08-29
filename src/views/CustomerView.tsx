@@ -39,7 +39,9 @@ export const CustomerView: React.FC = () => {
   const { orders, currentUser, saveCustomerSignature, showToast, currentPath, navigate, deleteCustomerOrder } = useApp();
 
   const customerId = currentUser?.customerId || '';
-  const customerOrders = orders.filter((o) => o.clientId === customerId);
+  // hiddenFromCustomerAt: el cliente la "eliminó" de su propia lista, pero la
+  // fila sigue intacta y auditable para admin — ver hide_own_cancelled_order.
+  const customerOrders = orders.filter((o) => o.clientId === customerId && !o.hiddenFromCustomerAt);
 
   const [selectedOrderId, setSelectedOrderId] = useState<string>(() => {
     return customerOrders[0]?.id || '';
@@ -244,7 +246,7 @@ export const CustomerView: React.FC = () => {
                                 e.stopPropagation();
                                 setOrderPendingDelete(ord);
                               }}
-                              title="Eliminar orden cancelada"
+                              title="Quitar de mi lista"
                               className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -613,10 +615,10 @@ export const CustomerView: React.FC = () => {
                 <Trash2 className="w-5 h-5" />
               </span>
               <div>
-                <h3 className="text-base font-bold text-slate-900">Eliminar orden</h3>
+                <h3 className="text-base font-bold text-slate-900">Quitar de mi lista</h3>
                 <p className="text-xs text-slate-600 mt-1">
-                  Vas a eliminar <strong>"{orderPendingDelete.title}"</strong>. Esta acción no se puede
-                  deshacer.
+                  <strong>"{orderPendingDelete.title}"</strong> va a dejar de aparecer en tus servicios.
+                  El pedido no se borra — sigue registrado.
                 </p>
               </div>
             </div>
@@ -637,7 +639,7 @@ export const CustomerView: React.FC = () => {
                 }}
                 className="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold shadow-xs"
               >
-                Eliminar
+                Quitar
               </button>
             </div>
           </div>

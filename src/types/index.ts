@@ -203,6 +203,9 @@ export interface ServiceOrder {
   createdAt: string;
   completedAt?: string;
   archivedAt?: string;
+  /** El cliente la "eliminó" de su propia lista — nunca se borra la fila,
+   * solo deja de listarse en su portal. El admin la sigue viendo entera. */
+  hiddenFromCustomerAt?: string;
   /** Inicio de la sesión de trabajo actualmente en curso. */
   workStartedAt?: string;
   /** Segundos de trabajo acumulados en sesiones ya pausadas o finalizadas. */

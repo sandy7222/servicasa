@@ -166,6 +166,7 @@ export type DbServiceOrder = {
   admin_exception_reason?: string | null;
   admin_exception_closed_at?: string | null;
   archived_at?: string | null;
+  hidden_from_customer_at?: string | null;
 };
 
 export type DbOrderQuote = {
