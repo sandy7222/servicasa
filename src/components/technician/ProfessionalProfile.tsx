@@ -6,7 +6,8 @@ import { ValidationStatusView } from './ValidationStatusView';
 
 type Professional = {
   name: string; work_phone: string; bio: string; education_level: string; degree_title: string;
-  institution_name: string; public_avatar_path: string | null; validation_status: string; validation_notes: string | null;
+  institution_name: string; address: string; email: string;
+  public_avatar_path: string | null; validation_status: string; validation_notes: string | null;
 };
 type Checklist = { profile_complete: boolean; identity_verified: boolean; tax_document_approved: boolean; payment_account_valid: boolean; professional_license_valid: boolean; is_ready: boolean };
 type DocumentRow = { id: string; document_type: string; label: string; storage_path: string; validation_status: string; validation_notes: string | null; created_at: string };
@@ -31,7 +32,7 @@ export const ProfessionalProfile: React.FC = () => {
   const load = async () => {
     if (!technician || !isSupabaseConfigured) return;
     const [profileRes, checklistRes, documentsRes, accountRes] = await Promise.all([
-      supabase.from('technicians').select('name, work_phone, bio, education_level, degree_title, institution_name, public_avatar_path, validation_status, validation_notes').eq('id', technician.id).single(),
+      supabase.from('technicians').select('name, work_phone, bio, education_level, degree_title, institution_name, address, email, public_avatar_path, validation_status, validation_notes').eq('id', technician.id).single(),
       supabase.from('technician_enablement_checklist').select('*').eq('technician_id', technician.id).maybeSingle(),
       supabase.from('technician_documents').select('id, document_type, label, storage_path, validation_status, validation_notes, created_at').eq('technician_id', technician.id).eq('is_current', true).order('created_at', { ascending: false }),
       supabase.from('technician_payment_accounts').select('account_holder, cbu_cvu, alias, provider, validation_status').eq('technician_id', technician.id).maybeSingle(),
@@ -46,6 +47,8 @@ export const ProfessionalProfile: React.FC = () => {
       education_level: profileRes.data.education_level ?? '',
       degree_title: profileRes.data.degree_title ?? '',
       institution_name: profileRes.data.institution_name ?? '',
+      address: profileRes.data.address ?? '',
+      email: profileRes.data.email ?? technician.email,
       public_avatar_path: profileRes.data.public_avatar_path ?? null,
       validation_status: profileRes.data.validation_status ?? 'pending',
       validation_notes: profileRes.data.validation_notes ?? null,
@@ -60,20 +63,34 @@ export const ProfessionalProfile: React.FC = () => {
   useEffect(() => { void load(); }, [technician?.id]);
   if (!technician || !currentUser) return null;
 
-  // Teléfono laboral, formación, presentación, título e institución los carga
-  // y mantiene administración (desde "Editar" en la Cuadrilla de Técnicos) —
-  // el técnico solo los ve acá. Antes se podían editar desde las dos pantallas
-  // a la vez, lo que hacía imposible saber cuál valor era el correcto.
+  // Estos campos ahora los carga y edita el propio técnico (antes eran de
+  // solo lectura acá y los mantenía administración desde "Editar" en la
+  // Cuadrilla — el formulario de admin ya no los expone, para no volver a la
+  // situación de antes donde se podían editar desde las dos pantallas a la
+  // vez y no se sabía cuál valor era el correcto).
   const saveProfile = async () => {
-    if (!profile?.name.trim()) return;
+    if (!profile?.name.trim() || !profile.email.trim()) return;
     setSaving(true);
     try {
       const { error } = await supabase.from('technicians').update({
         name: profile.name.trim(),
+        work_phone: profile.work_phone.trim() || null,
+        bio: profile.bio.trim() || null,
+        education_level: profile.education_level || null,
+        degree_title: profile.degree_title.trim() || null,
+        institution_name: profile.institution_name.trim() || null,
+        address: profile.address.trim(),
+        email: profile.email.trim(),
       }).eq('id', technician.id).select('id').single();
       if (error) throw error;
-      await refreshRemoteData(); showToast('Nombre profesional guardado.', 'success');
-    } catch (error) { showToast(`No se pudo guardar el nombre: ${error instanceof Error ? error.message : 'revisá los permisos.'}`, 'error'); } finally { setSaving(false); }
+      // Mismo criterio que ya usa el formulario de admin al editar un
+      // técnico: el email de contacto de la ficha se actualiza acá; el email
+      // de login (auth.users) es aparte y no se toca con este guardado.
+      if (technician.profileId) {
+        await supabase.from('profiles').update({ full_name: profile.name.trim(), email: profile.email.trim() }).eq('id', technician.profileId);
+      }
+      await refreshRemoteData(); showToast('Perfil profesional guardado.', 'success');
+    } catch (error) { showToast(`No se pudo guardar el perfil: ${error instanceof Error ? error.message : 'revisá los permisos.'}`, 'error'); } finally { setSaving(false); }
   };
 
   const saveAccount = async () => {
@@ -127,23 +144,31 @@ export const ProfessionalProfile: React.FC = () => {
     <ValidationStatusView />
     {profile && <section className="bg-white rounded-xl border border-slate-200 p-4 space-y-4"><div className="flex items-center justify-between"><h2 className="font-bold text-sm">Perfil público</h2><span className={`text-[11px] font-bold rounded-full px-2 py-1 ${profile.validation_status === 'approved' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>{statusCopy[profile.validation_status] ?? profile.validation_status}</span></div>
       <div className="flex gap-4 items-center"><div className="w-16 h-16 rounded-full overflow-hidden border border-slate-200 bg-slate-50 flex items-center justify-center font-bold text-slate-500">{avatarUrl ? <img src={avatarUrl} alt="Foto profesional" className="w-full h-full object-cover" /> : technician.name.slice(0, 2).toUpperCase()}</div><label className="cursor-pointer text-xs font-bold text-teal-700"><Camera className="inline w-4 mr-1" />Cambiar foto<input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => void uploadAvatar(e.target.files?.[0])} /></label></div>
-      <div className="grid sm:grid-cols-2 gap-3"><Field label="Nombre profesional" value={profile.name} onChange={(value) => setProfile({ ...profile, name: value })} /><ReadOnlyField label="Teléfono laboral" value={profile.work_phone} /><ReadOnlyField label="Nivel de formación" value={educationOptions.find(([value]) => value === profile.education_level)?.[1]} /><ReadOnlyField label="Título / certificación" value={profile.degree_title} /><ReadOnlyField label="Institución emisora" value={profile.institution_name} /></div>
-      <ReadOnlyField label="Presentación profesional" value={profile.bio} multiline />
-      <p className="text-[11px] text-slate-500"><Building2 className="inline w-3.5 mr-1 text-teal-600" />Teléfono laboral, formación, presentación, título e institución los carga y actualiza administración — si algo está mal, avisales.</p>
-      {profile.validation_notes && <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800"><CircleAlert className="inline w-4 mr-1" />{profile.validation_notes}</p>}<button onClick={() => void saveProfile()} disabled={saving} className="inline-flex items-center gap-1.5 rounded-lg bg-teal-600 px-3 py-2 text-xs font-bold text-white disabled:opacity-60"><Save className="w-3.5" />Guardar nombre</button></section>}
+      <div className="grid sm:grid-cols-2 gap-3">
+        <Field label="Nombre profesional" value={profile.name} onChange={(value) => setProfile({ ...profile, name: value })} />
+        <Field label="Email" value={profile.email} onChange={(value) => setProfile({ ...profile, email: value })} type="email" />
+        <Field label="Teléfono laboral" value={profile.work_phone} onChange={(value) => setProfile({ ...profile, work_phone: value })} />
+        <Field label="Dirección" value={profile.address} onChange={(value) => setProfile({ ...profile, address: value })} />
+        <label className="block text-xs font-semibold text-slate-700">
+          Nivel de formación
+          <select value={profile.education_level} onChange={(e) => setProfile({ ...profile, education_level: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-sm font-normal">
+            <option value="">Elegí una opción</option>
+            {educationOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          </select>
+        </label>
+        <Field label="Título / certificación" value={profile.degree_title} onChange={(value) => setProfile({ ...profile, degree_title: value })} />
+        <Field label="Institución emisora" value={profile.institution_name} onChange={(value) => setProfile({ ...profile, institution_name: value })} />
+      </div>
+      <label className="block text-xs font-semibold text-slate-700">
+        Presentación profesional
+        <textarea value={profile.bio} onChange={(e) => setProfile({ ...profile, bio: e.target.value })} rows={3} className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-sm font-normal resize-none" />
+      </label>
+      <p className="text-[11px] text-slate-500"><Building2 className="inline w-3.5 mr-1 text-teal-600" />Estos datos los revisa administración antes de habilitarte — mantenelos actualizados.</p>
+      {profile.validation_notes && <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800"><CircleAlert className="inline w-4 mr-1" />{profile.validation_notes}</p>}<button onClick={() => void saveProfile()} disabled={saving} className="inline-flex items-center gap-1.5 rounded-lg bg-teal-600 px-3 py-2 text-xs font-bold text-white disabled:opacity-60"><Save className="w-3.5" />Guardar perfil</button></section>}
     <section className="bg-white rounded-xl border border-slate-200 p-4 space-y-3"><div className="flex items-center gap-2"><FileText className="w-4 text-teal-600" /><div><h2 className="font-bold text-sm">Documentación privada</h2><p className="text-[11px] text-slate-500">Sólo vos y la administración pueden ver estos PDFs.</p></div></div><div className="grid sm:grid-cols-2 gap-2">{[['monotributo', 'Constancia de monotributo'], ['identity', 'Documento de identidad'], ['degree', 'Título o certificación']].map(([type, label]) => { const row = documents.find((doc) => doc.document_type === type); return <label key={type} className="rounded-lg border border-slate-200 p-3 cursor-pointer hover:border-teal-300"><span className="block text-xs font-bold text-slate-800">{label}</span><span className="block mt-1 text-[11px] text-slate-500">{row ? `${row.label} · ${statusCopy[row.validation_status] ?? row.validation_status}` : 'Adjuntar PDF, JPG o PNG (máx. 10 MB)'}</span>{row?.validation_notes && <span className="block mt-1 text-[11px] text-amber-700">{row.validation_notes}</span>}<input type="file" accept="application/pdf,image/jpeg,image/png" className="hidden" onChange={(e) => void uploadDocument(type, e.target.files?.[0])} /></label>; })}</div></section>
     <section className="bg-white rounded-xl border border-slate-200 p-4 space-y-3"><div className="flex items-center gap-2"><Landmark className="w-4 text-teal-600" /><div><h2 className="font-bold text-sm">Cuenta para liquidaciones</h2><p className="text-[11px] text-slate-500">Sólo vos y los administradores ven estos datos.</p></div></div><div className="grid sm:grid-cols-2 gap-3"><Field label="Titular de la cuenta" value={account.account_holder} onChange={(value) => setAccount({ ...account, account_holder: value })} /><Field label="CBU o CVU (22 dígitos)" value={account.cbu_cvu} onChange={(value) => setAccount({ ...account, cbu_cvu: value.replace(/\D/g, '').slice(0, 22) })} /><Field label="Alias (opcional)" value={account.alias ?? ''} onChange={(value) => setAccount({ ...account, alias: value })} /><label className="text-xs font-semibold text-slate-700">Entidad<select value={account.provider} onChange={(e) => setAccount({ ...account, provider: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-sm"><option value="bank">Banco</option><option value="mercadopago">Mercado Pago</option><option value="other">Otra billetera</option></select></label></div><p className="text-[11px] text-slate-500"><ShieldCheck className="inline w-3.5 mr-1 text-teal-600" />Estado de cuenta: {statusCopy[account.validation_status] ?? 'Pendiente'}</p><button onClick={() => void saveAccount()} disabled={saving} className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-2 text-xs font-bold text-white disabled:opacity-60"><CreditCard className="w-3.5" />Guardar datos de cobro</button></section>
     <section className="bg-white rounded-xl border border-slate-200 p-4"><div className="flex items-center gap-2 mb-3"><BadgeCheck className="w-4 text-teal-600" /><h2 className="font-bold text-sm">Habilitación para recibir trabajos</h2></div>{checklist ? <div className="space-y-2">{requirements.map(([label, done]) => <div key={String(label)} className="flex justify-between rounded-lg bg-slate-50 px-3 py-2 text-xs"><span>{label}</span><span className={done ? 'text-emerald-700 font-bold' : 'text-amber-700 font-bold'}>{done ? 'Listo' : 'Pendiente'}</span></div>)}<p className={`mt-3 text-xs font-bold ${checklist.is_ready ? 'text-emerald-700' : 'text-slate-500'}`}>{checklist.is_ready ? 'Tu perfil está habilitado para recibir trabajos.' : 'Completá los requisitos y administración revisará tu perfil.'}</p></div> : <p className="text-xs text-slate-500">El checklist se generará al guardar los primeros datos.</p>}</section>
   </div>;
 };
 
-const Field: React.FC<{ label: string; value: string; onChange: (value: string) => void }> = ({ label, value, onChange }) => <label className="block text-xs font-semibold text-slate-700">{label}<input value={value} onChange={(e) => onChange(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-sm font-normal" /></label>;
-
-const ReadOnlyField: React.FC<{ label: string; value?: string | null; multiline?: boolean }> = ({ label, value, multiline }) => (
-  <div className={multiline ? 'block' : ''}>
-    <span className="block text-xs font-semibold text-slate-700">{label}</span>
-    <p className={`mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 p-2 text-sm text-slate-700 ${multiline ? 'min-h-24 whitespace-pre-wrap' : ''}`}>
-      {value?.trim() || 'Sin cargar'}
-    </p>
-  </div>
-);
+const Field: React.FC<{ label: string; value: string; onChange: (value: string) => void; type?: string }> = ({ label, value, onChange, type }) => <label className="block text-xs font-semibold text-slate-700">{label}<input type={type ?? 'text'} value={value} onChange={(e) => onChange(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-sm font-normal" /></label>;

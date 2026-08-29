@@ -53,7 +53,7 @@ import {
   persistCreateOrder,
   persistCreateService,
   persistCreateTechnician,
-  persistCreateTechnicianApplication,
+  persistSelfRegisterTechnician,
   persistDeleteCustomer,
   persistDeleteMaterial,
   persistHideOwnOrder,
@@ -69,7 +69,6 @@ import {
   persistMergeSubcategory,
   persistSwapSubcategoryOrder,
   persistDeleteTechnician,
-  persistReviewTechnicianApplication,
   persistSignature,
   redeemAccountInvite,
   persistToggleChecklistItem,
@@ -101,7 +100,7 @@ import {
   ServiceType,
   Technician,
   TechnicianApplication,
-  TechnicianApplicationInput,
+  TechnicianRegistrationInput,
   TechnicianInput,
   UserRole,
 } from '../types';
@@ -142,12 +141,8 @@ interface AppContextType {
   completePasswordRecovery: (newPassword: string) => Promise<void>;
   registerWithInvite: (input: { token: string; password: string }) => Promise<void>;
   registerCustomer: (input: CustomerRegistrationInput) => Promise<void>;
-  submitTechnicianApplication: (input: TechnicianApplicationInput) => Promise<void>;
+  registerTechnician: (input: TechnicianRegistrationInput) => Promise<void>;
   technicianApplications: TechnicianApplication[];
-  reviewTechnicianApplication: (
-    applicationId: string,
-    status: 'approved' | 'rejected'
-  ) => Promise<void>;
   createAccountInviteLink: (kind: 'technician' | 'customer', targetId: string) => Promise<string>;
   logout: () => Promise<void>;
   refreshRemoteData: () => Promise<void>;
@@ -820,40 +815,39 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const submitTechnicianApplication = async (input: TechnicianApplicationInput) => {
+  const registerTechnician = async (input: TechnicianRegistrationInput) => {
     setAuthLoading(true);
+    setDataError(null);
     try {
-      await persistCreateTechnicianApplication(input);
-      showToast(
-        'Recibimos tu solicitud. Te contactaremos si sos seleccionado.',
-        'success',
-        'Solicitud enviada'
-      );
+      const signed = await signUpWithPassword({
+        email: input.email,
+        password: input.password,
+        fullName: input.fullName,
+      });
+      const user = signed.user;
+      const session = signed.session;
+      if (!user) throw new Error('No se pudo crear la cuenta.');
+
+      if (!session) {
+        showToast(
+          'Revisá tu email para confirmar la cuenta. Después ingresá y completá tu perfil profesional.',
+          'info',
+          'Confirmá el correo'
+        );
+        return;
+      }
+
+      await persistSelfRegisterTechnician(input);
+      await applyRemoteSession(user.id);
+      navigate('/technician');
+      showToast(`Cuenta creada. Bienvenido/a ${input.fullName}`, 'success', 'Listo');
     } catch (err) {
-      const message = friendlyErrorMessage(err, 'No se pudo enviar la solicitud');
-      showToast(message, 'error');
+      const message = friendlyErrorMessage(err, 'No se pudo crear la cuenta');
+      setDataError(message);
       throw new Error(message);
     } finally {
       setAuthLoading(false);
     }
-  };
-
-  const reviewTechnicianApplication = async (
-    applicationId: string,
-    status: 'approved' | 'rejected'
-  ) => {
-    requireAdmin(currentUser);
-    if (!currentUser) throw new Error('No autenticado.');
-    await withRemote(() => persistReviewTechnicianApplication(applicationId, status, currentUser.id));
-    setTechnicianApplications((prev) =>
-      prev.map((app) =>
-        app.id === applicationId ? { ...app, status, reviewedAt: new Date().toISOString() } : app
-      )
-    );
-    showToast(
-      status === 'approved' ? 'Solicitud aprobada' : 'Solicitud rechazada',
-      'success'
-    );
   };
 
   const createAccountInviteLink = async (kind: 'technician' | 'customer', targetId: string) => {
@@ -2140,11 +2134,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 zone: patch.zone,
                 province: patch.province,
                 address: patch.address,
-                workPhone: patch.workPhone || undefined,
-                bio: patch.bio || undefined,
-                educationLevel: patch.educationLevel || undefined,
-                degreeTitle: patch.degreeTitle || undefined,
-                institutionName: patch.institutionName || undefined,
               }
             : t
         )
@@ -2684,9 +2673,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         completePasswordRecovery,
         registerWithInvite,
         registerCustomer,
-        submitTechnicianApplication,
+        registerTechnician,
         technicianApplications,
-        reviewTechnicianApplication,
         createAccountInviteLink,
         logout,
         refreshRemoteData,

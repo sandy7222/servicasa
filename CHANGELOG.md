@@ -4,6 +4,51 @@ Registro de cambios funcionales relevantes de TecniUrbano. No reemplaza `git log
 (los detalles de implementación están en los commits y las migraciones) — es un
 resumen de qué cambió para el negocio y qué evidencia lo respalda.
 
+## 2026-08-29 — Fase 6 ampliada: alta y perfil de técnico, Tanda 2 (flujo visible)
+
+Segunda tanda, sobre el schema/backend de la Tanda 1. Esta es la que cambia el
+flujo real que usan técnicos y admin.
+
+**"Ser técnico" ahora es un alta real** — pide contraseña y rubros (checkboxes
+de categorías reales, no un `<select>` de un solo valor) y crea la cuenta +
+ficha del técnico al enviar el formulario (`self_register_technician`), sin
+esperar ningún paso de admin. Se loguea al toque en `/technician`. Si Supabase
+pide confirmar el email antes de dar sesión, se avisa igual que en el alta de
+cliente (mismo patrón que `registerCustomer`).
+
+**"Mi perfil profesional" ahora es editable** — teléfono laboral, formación,
+título, institución, presentación, dirección y email pasan de ser de solo
+lectura a editables por el propio técnico. La contrapartida: "Editar Técnico"
+(admin) dejó de exponer esos mismos campos — ya no hay dos pantallas
+escribiendo el mismo dato, que era justo el bug que motivó que antes fueran
+de solo lectura para el técnico. CBU sigue en su propia sección (ya era
+editable desde la Tanda 1's fix).
+
+**Panel "Solicitudes 'Ser técnico'" pasa a ser bitácora de solo lectura** — sin
+botones de Aprobar/Rechazar (ya no hace falta: la cuenta ya existe para
+cuando el admin ve la fila). La aprobación real del perfil sigue pasando por
+"Validación de técnicos", sin cambios ahí.
+
+**Verificado de punta a punta con una cuenta de prueba real** (creada por el
+formulario público real, no simulada): alta con rubro "Plomería" → ficha
+`technicians` creada con `validation_status='pending'`, 6 requisitos
+sembrados, `technician_specialties` correcto, redirigido a `/technician`
+automáticamente; edité "Mi perfil profesional" (teléfono laboral, dirección,
+formación, título, institución, presentación) y confirmé cada campo escrito
+en la base; confirmé desde el admin que "Solicitudes" la muestra sin botones
+de acción, "Validación de técnicos" la lista como pendiente, y "Editar
+Técnico" ya no tiene los campos removidos. Cuenta de prueba (`auth.users`
+incluido) borrada al terminar — 4 técnicos reales sin residuo.
+
+Código removido en el proceso (quedaba muerto tras el cambio de flujo):
+`submitTechnicianApplication`/`persistCreateTechnicianApplication`,
+`reviewTechnicianApplication`/`persistReviewTechnicianApplication`,
+`TechnicianApplicationInput`, `handleApproveApplication`, los 5 campos de
+"perfil profesional" en `TechnicianInput` y en el UPDATE de
+`persistUpdateTechnician`.
+
+**Verificación:** `tsc --noEmit`, `vitest run` (69/69), `npm run build`.
+
 ## 2026-08-29 — Fase 6 ampliada: alta y perfil de técnico, Tanda 1 (schema y backend)
 
 Primera de dos tandas del rediseño de alta y perfil de técnico, a partir de una

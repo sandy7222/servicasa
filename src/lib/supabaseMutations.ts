@@ -12,7 +12,7 @@ import type {
   ServiceOrder,
   ServiceType,
   Technician,
-  TechnicianApplicationInput,
+  TechnicianRegistrationInput,
   TechnicianInput,
 } from '../types';
 import { supabase } from './supabase';
@@ -414,11 +414,6 @@ export async function persistUpdateTechnician(
       zone: input.zone,
       province: input.province,
       address: input.address?.trim() || '',
-      work_phone: input.workPhone?.trim() || null,
-      bio: input.bio?.trim() || null,
-      education_level: input.educationLevel || null,
-      degree_title: input.degreeTitle?.trim() || null,
-      institution_name: input.institutionName?.trim() || null,
     })
     .eq('id', technicianId)
     .select('*')
@@ -498,30 +493,19 @@ export async function persistDeleteMaterial(materialId: string) {
   throwIfError(error);
 }
 
-/** Public "quiero ser técnico" form — no auth required. Deliberately no
- * .select() after insert: the anon/authenticated insert policy doesn't grant
- * SELECT on this table (only admin can read applications back), so asking
- * PostgREST to return the row would fail its own RLS check on the RETURNING. */
-export async function persistCreateTechnicianApplication(input: TechnicianApplicationInput): Promise<void> {
-  const { error } = await supabase.from('technician_applications').insert({
-    full_name: input.fullName.trim(),
-    email: input.email.trim(),
-    phone: input.phone.trim(),
-    specialty: input.specialty.trim(),
-    message: input.message?.trim() || null,
+/** "Ser técnico" ahora es un alta real: crea la cuenta y la ficha del
+ * técnico (pendiente de aprobación final) en un solo paso atómico vía
+ * self_register_technician (SECURITY DEFINER) — reemplaza el viejo flujo de
+ * solicitud-revisada-a-mano. Se llama después de signUpWithPassword, con
+ * sesión ya activa. */
+export async function persistSelfRegisterTechnician(input: TechnicianRegistrationInput): Promise<void> {
+  const { error } = await supabase.rpc('self_register_technician', {
+    p_full_name: input.fullName.trim(),
+    p_phone: input.phone.trim(),
+    p_address: '',
+    p_category_ids: input.specialtyIds,
+    p_message: input.message?.trim() || null,
   });
-  throwIfError(error);
-}
-
-export async function persistReviewTechnicianApplication(
-  applicationId: string,
-  status: 'approved' | 'rejected',
-  reviewerId: string
-): Promise<void> {
-  const { error } = await supabase
-    .from('technician_applications')
-    .update({ status, reviewed_at: new Date().toISOString(), reviewed_by: reviewerId })
-    .eq('id', applicationId);
   throwIfError(error);
 }
 

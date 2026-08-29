@@ -306,11 +306,6 @@ export type TechnicianInput = {
   customerAddress?: string;
   customerNeighborhood?: string;
   customerNotes?: string;
-  workPhone?: string;
-  bio?: string;
-  educationLevel?: 'idoneo' | 'curso_certificado' | 'tecnico' | 'tecnico_superior' | 'ingeniero' | 'otro' | '';
-  degreeTitle?: string;
-  institutionName?: string;
 };
 
 export interface Customer {
@@ -335,11 +330,12 @@ export type CustomerRegistrationInput = {
   neighborhood: string;
 };
 
-export type TechnicianApplicationInput = {
+export type TechnicianRegistrationInput = {
   fullName: string;
   email: string;
+  password: string;
   phone: string;
-  specialty: string;
+  specialtyIds: string[];
   message?: string;
 };
 

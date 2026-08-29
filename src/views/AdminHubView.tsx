@@ -70,7 +70,6 @@ import {
   ServiceType,
   Customer,
   Technician,
-  TechnicianApplication,
   TechnicianInput,
   MaterialInventory,
 } from '../types';
@@ -399,11 +398,6 @@ export const AdminHubView: React.FC = () => {
   const [editTechAlsoCustomer, setEditTechAlsoCustomer] = useState(false);
   const [editTechAddress, setEditTechAddress] = useState('');
   const [editTechNeighborhood, setEditTechNeighborhood] = useState('');
-  const [editTechWorkPhone, setEditTechWorkPhone] = useState('');
-  const [editTechBio, setEditTechBio] = useState('');
-  const [editTechEducationLevel, setEditTechEducationLevel] = useState<TechnicianInput['educationLevel']>('');
-  const [editTechDegreeTitle, setEditTechDegreeTitle] = useState('');
-  const [editTechInstitution, setEditTechInstitution] = useState('');
 
   // New Material Form state
   const [newMatName, setNewMatName] = useState('');
@@ -1108,24 +1102,6 @@ export const AdminHubView: React.FC = () => {
     setNewTechNeighborhood('');
   };
 
-  const handleApproveApplication = (app: TechnicianApplication) => {
-    setNewTechName(app.fullName);
-    // app.specialty todavía es texto libre de la solicitud pública (eso
-    // cambia en la Tanda 2, cuando el alta pasa a ser automática) — no hay
-    // un id de categoría confiable para preseleccionar, así que el admin
-    // elige el/los rubro(s) reales acá.
-    setNewTechSpecialtyIds([]);
-    setNewTechPhone(app.phone);
-    setNewTechEmail(app.email);
-    setNewTechZone('');
-    setNewTechProvince('CABA');
-    setNewTechAlsoCustomer(false);
-    setNewTechAddress('');
-    setNewTechNeighborhood('');
-    setIsNewTechnicianModalOpen(true);
-    showToast('Solicitud aprobada. Completá la ficha para darlo de alta.', 'success');
-  };
-
   const handleCreateTechnicianSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTechName.trim() || !newTechEmail.trim()) return;
@@ -1161,11 +1137,6 @@ export const AdminHubView: React.FC = () => {
     setEditTechAlsoCustomer(Boolean(linkedCustomer || tech.customerId));
     setEditTechAddress(linkedCustomer?.address ?? '');
     setEditTechNeighborhood(linkedCustomer?.neighborhood ?? '');
-    setEditTechWorkPhone(tech.workPhone ?? '');
-    setEditTechBio(tech.bio ?? '');
-    setEditTechEducationLevel(tech.educationLevel ?? '');
-    setEditTechDegreeTitle(tech.degreeTitle ?? '');
-    setEditTechInstitution(tech.institutionName ?? '');
     setIsEditTechnicianModalOpen(true);
   };
 
@@ -1188,11 +1159,6 @@ export const AdminHubView: React.FC = () => {
       alsoAsCustomer: editTechAlsoCustomer,
       customerAddress: editTechAddress.trim() || undefined,
       customerNeighborhood: editTechNeighborhood.trim() || editTechZone.trim() || undefined,
-      workPhone: editTechWorkPhone.trim() || undefined,
-      bio: editTechBio.trim() || undefined,
-      educationLevel: editTechEducationLevel || undefined,
-      degreeTitle: editTechDegreeTitle.trim() || undefined,
-      institutionName: editTechInstitution.trim() || undefined,
     });
 
     setIsEditTechnicianModalOpen(false);
@@ -2090,7 +2056,7 @@ export const AdminHubView: React.FC = () => {
         {/* ================= TAB 3: TECHNICIANS ================= */}
         {activeTab === 'technicians' && (
           <div className="space-y-3">
-            <TechnicianApplications onApprove={handleApproveApplication} />
+            <TechnicianApplications />
             <TechnicianValidation />
             <PayoutScheduler />
             <PayoutBatchesPanel />
@@ -4231,65 +4197,11 @@ export const AdminHubView: React.FC = () => {
               )}
 
               <div className="pt-3 border-t border-slate-100">
-                <p className="text-xs font-bold text-slate-700 mb-2">Perfil profesional</p>
-                <div className="space-y-2">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Teléfono laboral</label>
-                    <input
-                      type="text"
-                      value={editTechWorkPhone}
-                      onChange={(e) => setEditTechWorkPhone(e.target.value)}
-                      className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">Nivel de formación</label>
-                      <select
-                        value={editTechEducationLevel}
-                        onChange={(e) => setEditTechEducationLevel(e.target.value as TechnicianInput['educationLevel'])}
-                        className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
-                      >
-                        <option value="">Seleccionar</option>
-                        <option value="idoneo">Idóneo/a</option>
-                        <option value="curso_certificado">Curso certificado</option>
-                        <option value="tecnico">Técnico/a</option>
-                        <option value="tecnico_superior">Técnico/a superior</option>
-                        <option value="ingeniero">Ingeniero/a</option>
-                        <option value="otro">Otro</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">Título / certificación</label>
-                      <input
-                        type="text"
-                        value={editTechDegreeTitle}
-                        onChange={(e) => setEditTechDegreeTitle(e.target.value)}
-                        className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Institución emisora</label>
-                    <input
-                      type="text"
-                      value={editTechInstitution}
-                      onChange={(e) => setEditTechInstitution(e.target.value)}
-                      className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Presentación profesional</label>
-                    <textarea
-                      value={editTechBio}
-                      onChange={(e) => setEditTechBio(e.target.value)}
-                      rows={3}
-                      maxLength={500}
-                      placeholder="Experiencia y especialidades para mostrarle al cliente."
-                      className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
-                    />
-                  </div>
-                </div>
+                <p className="text-[11px] text-slate-500">
+                  Teléfono laboral, formación, presentación, título, institución, dirección y email
+                  de contacto ahora los carga y actualiza el propio técnico desde "Mi perfil
+                  profesional" — se revisan desde "Validación de técnicos", no desde acá.
+                </p>
               </div>
 
               <div className="pt-3 border-t border-slate-100 flex justify-end gap-2">

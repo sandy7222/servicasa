@@ -1,51 +1,37 @@
 import React from 'react';
-import { ClipboardList, Check, X, Mail, Phone, Wrench } from 'lucide-react';
+import { ClipboardList, Mail, Phone, Wrench } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import type { TechnicianApplication } from '../../types';
 
-interface Props {
-  onApprove: (application: TechnicianApplication) => void;
-}
+const statusCopy: Record<string, string> = {
+  pending: 'Sin procesar (solicitud previa al alta automática)',
+  approved: 'Cuenta creada',
+  rejected: 'Rechazada',
+};
 
-export const TechnicianApplications: React.FC<Props> = ({ onApprove }) => {
-  const { technicianApplications, reviewTechnicianApplication, showToast } = useApp();
-  const pending = technicianApplications.filter((a) => a.status === 'pending');
+/** Bitácora de solo lectura: "Ser técnico" ahora crea la cuenta y la ficha
+ * del técnico automáticamente al enviar el formulario (self_register_technician),
+ * así que no hay nada que aprobar o rechazar acá — la aprobación real pasa a
+ * "Validación de técnicos". Esta lista solo muestra qué puso cada persona al
+ * registrarse, para referencia. */
+export const TechnicianApplications: React.FC = () => {
+  const { technicianApplications } = useApp();
 
-  if (!pending.length) return null;
-
-  const handleReject = async (app: TechnicianApplication) => {
-    try {
-      await reviewTechnicianApplication(app.id, 'rejected');
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : 'No se pudo rechazar', 'error');
-    }
-  };
-
-  const handleApprove = async (app: TechnicianApplication) => {
-    try {
-      await reviewTechnicianApplication(app.id, 'approved');
-      onApprove(app);
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : 'No se pudo aprobar', 'error');
-    }
-  };
+  if (!technicianApplications.length) return null;
 
   return (
     <section className="rounded-xl border border-slate-200 bg-white p-4">
       <div className="flex items-start gap-2 mb-3">
         <ClipboardList className="w-4 h-4 text-teal-600 mt-0.5 shrink-0" />
         <div>
-          <h3 className="text-sm font-bold text-slate-900">Solicitudes "Quiero ser técnico"</h3>
+          <h3 className="text-sm font-bold text-slate-900">Solicitudes "Ser técnico"</h3>
           <p className="text-[11px] text-slate-500">
-            Aprobar prepara el alta formal (Nuevo Técnico + enlace de invitación). No crea acceso por sí sola.
+            Bitácora de alta — la cuenta y la ficha se crean automáticamente al enviar el
+            formulario. La aprobación final del perfil se hace desde "Validación de técnicos".
           </p>
         </div>
-        <span className="ml-auto shrink-0 px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-bold font-mono">
-          {pending.length} pendiente{pending.length > 1 ? 's' : ''}
-        </span>
       </div>
       <div className="space-y-2">
-        {pending.map((app) => (
+        {technicianApplications.map((app) => (
           <div key={app.id} className="rounded-lg border border-slate-200 p-3">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div className="min-w-0">
@@ -70,20 +56,9 @@ export const TechnicianApplications: React.FC<Props> = ({ onApprove }) => {
                   </p>
                 )}
               </div>
-              <div className="flex gap-1.5 shrink-0">
-                <button
-                  onClick={() => void handleReject(app)}
-                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 text-[11px] font-bold transition-colors"
-                >
-                  <X className="w-3.5 h-3.5" /> Rechazar
-                </button>
-                <button
-                  onClick={() => void handleApprove(app)}
-                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#0F172A] hover:bg-slate-800 text-teal-300 text-[11px] font-bold transition-colors"
-                >
-                  <Check className="w-3.5 h-3.5 text-teal-400" /> Aprobar
-                </button>
-              </div>
+              <span className="shrink-0 px-2 py-0.5 rounded-full bg-slate-50 text-slate-600 border border-slate-200 text-[10px] font-bold">
+                {statusCopy[app.status] ?? app.status}
+              </span>
             </div>
           </div>
         ))}

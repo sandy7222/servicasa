@@ -39,16 +39,8 @@ const inputPasswordWithToggleClass = inputWithIconClass.replace('pr-3', 'pr-9');
 const labelClass = 'block text-xs font-bold text-slate-700 font-mono uppercase tracking-wider mb-1.5';
 
 export const AuthView: React.FC = () => {
-  const { loginWithPassword, requestPasswordRecovery, registerWithInvite, registerCustomer, submitTechnicianApplication, authLoading, showToast, services } =
+  const { loginWithPassword, requestPasswordRecovery, registerWithInvite, registerCustomer, registerTechnician, authLoading, showToast, catalogCategories } =
     useApp();
-  // Only rubros the platform actually works — same source the customer's own
-  // "Solicitar servicio" form uses — so a technician can't apply for a
-  // specialty ServiCasa doesn't offer.
-  const specialtyOptions = useMemo(() => {
-    const values = new Set<string>(['Electricidad']);
-    services.filter((service) => service.active !== false).forEach((service) => values.add(service.category));
-    return [...values].sort((a, b) => a.localeCompare(b, 'es'));
-  }, [services]);
   const inviteToken = useMemo(() => readInviteToken(), []);
   const [invite, setInvite] = useState<AccountInvitePreview | null>(null);
   const [inviteLoading, setInviteLoading] = useState(Boolean(inviteToken));
@@ -86,11 +78,12 @@ export const AuthView: React.FC = () => {
   const [regNeighborhood, setRegNeighborhood] = useState('');
   const [registerSubmitted, setRegisterSubmitted] = useState(false);
 
-  // "Quiero ser técnico" application
+  // "Ser técnico" — alta real de cuenta
   const [appFullName, setAppFullName] = useState('');
   const [appEmail, setAppEmail] = useState('');
+  const [appPassword, setAppPassword] = useState('');
   const [appPhone, setAppPhone] = useState('');
-  const [appSpecialty, setAppSpecialty] = useState('');
+  const [appSpecialtyIds, setAppSpecialtyIds] = useState<string[]>([]);
   const [appMessage, setAppMessage] = useState('');
   const [applySubmitted, setApplySubmitted] = useState(false);
 
@@ -207,23 +200,28 @@ export const AuthView: React.FC = () => {
   const handleApplyTechnician = async (e?: React.FormEvent) => {
     e?.preventDefault();
     setError(null);
-    if (!appFullName.trim() || !appEmail.trim() || !appPhone.trim() || !appSpecialty.trim()) {
-      setError('Completá nombre, email, teléfono y especialidad.');
+    if (!appFullName.trim() || !appEmail.trim() || !appPhone.trim() || appSpecialtyIds.length === 0) {
+      setError('Completá nombre, email, teléfono y al menos un rubro.');
+      return;
+    }
+    if (appPassword.length < 8) {
+      setError('La contraseña debe tener al menos 8 caracteres.');
       return;
     }
     try {
-      await submitTechnicianApplication({
+      await registerTechnician({
         fullName: appFullName,
         email: appEmail,
+        password: appPassword,
         phone: appPhone,
-        specialty: appSpecialty,
+        specialtyIds: appSpecialtyIds,
         message: appMessage.trim() || undefined,
       });
       setApplySubmitted(true);
     } catch (err) {
-      const message = friendlyErrorMessage(err, 'No se pudo enviar la solicitud');
+      const message = friendlyErrorMessage(err, 'No se pudo crear la cuenta');
       setError(message);
-      showToast(message, 'error', 'No se pudo enviar');
+      showToast(message, 'error', 'No se pudo registrar');
     }
   };
 
@@ -242,21 +240,21 @@ export const AuthView: React.FC = () => {
             ? 'Pedí un servicio sin cuenta'
             : mode === 'recover'
               ? 'Recuperar contraseña'
-              : 'Quiero ser técnico';
+              : 'Creá tu cuenta de técnico';
 
   const headerSubtitle = inviteMode
     ? `Te invitaron como ${roleLabel}. Elegí una contraseña para vincular tu ficha.`
     : orderIntent
       ? 'Completá tus datos y pagá — después te invitamos a crear tu cuenta.'
       : mode === 'login'
-        ? 'Ingresá con tu cuenta de Supabase Auth (email y contraseña).'
+        ? 'Ingresá con tu cuenta.'
         : mode === 'register'
           ? 'Registrate como cliente para pedir servicios en minutos.'
           : mode === 'guest'
             ? 'Completá el pedido y pagá — después te invitamos a crear tu cuenta.'
             : mode === 'recover'
               ? 'Ingresá tu email y te mandamos un enlace para elegir una contraseña nueva.'
-              : 'Contanos de vos. El equipo revisa tu solicitud y te contacta si sos seleccionado.';
+              : 'Creá tu cuenta y entrá ahora — completá el resto de tu perfil y el equipo lo revisa antes de asignarte trabajos.';
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-10 sm:py-16 px-4 sm:px-6 lg:px-8" id="tecniurbano-auth-view">
@@ -267,28 +265,43 @@ export const AuthView: React.FC = () => {
         </div>
 
         {!inviteMode && !inviteLoading && !orderIntent && (
-          <div className="grid grid-cols-4 gap-1.5 mb-5 bg-slate-100 rounded-lg p-1">
-            {([
-              ['login', 'Ingresar'],
-              ['register', 'Crear cuenta'],
-              ['guest', 'Sin cuenta'],
-              ['apply', 'Ser técnico'],
-            ] as [AuthMode, string][]).map(([m, label]) => (
+          mode === 'login' ? (
+            <div className="grid grid-cols-2 gap-3 mb-5">
               <button
-                key={m}
                 type="button"
                 onClick={() => {
-                  setMode(m);
+                  setMode('register');
                   setError(null);
                 }}
-                className={`px-2 py-2 rounded-md text-[11px] sm:text-xs font-bold transition-all ${
-                  mode === m ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-                }`}
+                className="flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-3 text-sm font-bold text-slate-800 shadow-sm hover:border-teal-500 hover:text-teal-700 transition-all"
               >
-                {label}
+                <User className="w-4 h-4" />
+                Soy cliente
               </button>
-            ))}
-          </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('apply');
+                  setError(null);
+                }}
+                className="flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-3 text-sm font-bold text-slate-800 shadow-sm hover:border-teal-500 hover:text-teal-700 transition-all"
+              >
+                <Wrench className="w-4 h-4" />
+                Soy técnico
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                setMode('login');
+                setError(null);
+              }}
+              className="mb-4 text-xs font-semibold text-slate-500 hover:text-slate-700"
+            >
+              ‹ Volver
+            </button>
+          )
         )}
 
         {inviteLoading && (
@@ -474,6 +487,20 @@ export const AuthView: React.FC = () => {
               </div>
             )}
           </form>
+        )}
+
+        {!inviteLoading && !inviteMode && mode === 'login' && (
+          <button
+            type="button"
+            onClick={() => {
+              setMode('guest');
+              setError(null);
+            }}
+            className="mt-3 w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-lg shadow-sm transition-all"
+          >
+            Pedir servicio
+            <ArrowRight className="w-4 h-4" />
+          </button>
         )}
 
         {!inviteLoading && !inviteMode && mode === 'recover' && (
@@ -684,9 +711,9 @@ export const AuthView: React.FC = () => {
           applySubmitted ? (
             <div className="bg-white rounded-xl p-6 shadow-md border border-slate-200 text-center space-y-3">
               <CheckCircle2 className="w-10 h-10 text-teal-600 mx-auto" />
-              <p className="text-sm font-bold text-slate-900">¡Solicitud enviada!</p>
+              <p className="text-sm font-bold text-slate-900">¡Listo! Revisá tu email</p>
               <p className="text-xs text-slate-500">
-                El equipo va a revisar tus datos. Si sos seleccionado, te van a contactar para darte de alta.
+                Te enviamos un correo para confirmar la cuenta. Después ingresá y completá tu perfil profesional.
               </p>
               <button
                 type="button"
@@ -703,7 +730,7 @@ export const AuthView: React.FC = () => {
             >
               <div className="rounded-lg bg-slate-50 border border-slate-200 px-3 py-2 text-xs text-slate-600 flex items-start gap-2">
                 <ClipboardList className="w-3.5 h-3.5 text-teal-700 shrink-0 mt-0.5" />
-                Esto no crea una cuenta. Es una solicitud que revisa el equipo antes de darte acceso.
+                Vas a poder ingresar apenas te registres. El equipo revisa tu ficha antes de asignarte trabajos.
               </div>
 
               <div>
@@ -727,9 +754,27 @@ export const AuthView: React.FC = () => {
                   <Mail className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="email"
+                    autoComplete="username"
                     value={appEmail}
                     onChange={(e) => setAppEmail(e.target.value)}
                     disabled={authLoading}
+                    className={inputWithIconClass}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className={labelClass}>Contraseña</label>
+                <div className="relative">
+                  <Lock className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="password"
+                    autoComplete="new-password"
+                    value={appPassword}
+                    onChange={(e) => setAppPassword(e.target.value)}
+                    disabled={authLoading}
+                    placeholder="Mínimo 8 caracteres"
                     className={inputWithIconClass}
                     required
                   />
@@ -752,21 +797,23 @@ export const AuthView: React.FC = () => {
               </div>
 
               <div>
-                <label className={labelClass}>Especialidad</label>
-                <div className="relative">
-                  <Wrench className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  <select
-                    value={appSpecialty}
-                    onChange={(e) => setAppSpecialty(e.target.value)}
-                    disabled={authLoading}
-                    className={inputWithIconClass}
-                    required
-                  >
-                    <option value="">Elegí un rubro</option>
-                    {specialtyOptions.map((option) => (
-                      <option key={option} value={option}>{option}</option>
-                    ))}
-                  </select>
+                <label className={labelClass}>Rubros</label>
+                <div className="grid grid-cols-2 gap-1.5 rounded-lg border border-slate-200 p-2">
+                  {catalogCategories.filter((c) => c.active !== false).map((c) => (
+                    <label key={c.id} className="flex items-center gap-1.5 text-xs text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={appSpecialtyIds.includes(c.id)}
+                        disabled={authLoading}
+                        onChange={(e) =>
+                          setAppSpecialtyIds((prev) =>
+                            e.target.checked ? [...prev, c.id] : prev.filter((id) => id !== c.id)
+                          )
+                        }
+                      />
+                      {c.name}
+                    </label>
+                  ))}
                 </div>
               </div>
 
@@ -794,11 +841,11 @@ export const AuthView: React.FC = () => {
                 {authLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Enviando…
+                    Creando cuenta…
                   </>
                 ) : (
                   <>
-                    Enviar solicitud
+                    Crear cuenta
                     <ArrowRight className="w-4 h-4 text-teal-400" />
                   </>
                 )}
