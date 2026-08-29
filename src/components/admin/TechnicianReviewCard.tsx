@@ -39,14 +39,19 @@ export function TechnicianReviewCard({ technicianId, onClose, onChanged }: { tec
 
   const load = async () => {
     setLoading(true);
-    const [t, r, d, l, a] = await Promise.all([
+    const [t, r, d, l, a, sp] = await Promise.all([
       supabase.from('technicians').select('id,name,specialty,phone,work_phone,bio,education_level,degree_title,institution_name,validation_status,validation_notes').eq('id', technicianId).single(),
       supabase.from('technician_requirements').select('*').eq('technician_id', technicianId).order('requirement_type'),
       supabase.from('technician_documents').select('id,document_type,label,storage_path,validation_status,validation_notes').eq('technician_id', technicianId).eq('is_current', true),
       supabase.from('technician_matriculas').select('id,issuing_entity,license_number,specialty,validation_status,validation_notes').eq('technician_id', technicianId),
       supabase.from('technician_payment_accounts').select('id,account_holder,cbu_cvu,alias,provider,validation_status,validation_notes').eq('technician_id', technicianId).maybeSingle(),
+      supabase.from('technician_specialties').select('categories(name)').eq('technician_id', technicianId),
     ]);
-    setTech(t.data as TechnicianRow | null);
+    const specialtyNames = ((sp.data ?? []) as unknown as { categories: { name: string } | null }[])
+      .map((row) => row.categories?.name)
+      .filter((name): name is string => Boolean(name));
+    const techRow = t.data as TechnicianRow | null;
+    setTech(techRow ? { ...techRow, specialty: specialtyNames.length ? specialtyNames.join(', ') : techRow.specialty } : null);
     setRequirements((r.data ?? []) as Requirement[]);
     setDocs((d.data ?? []) as DocumentRow[]);
     setLicenses((l.data ?? []) as License[]);
@@ -141,12 +146,12 @@ export function TechnicianReviewCard({ technicianId, onClose, onChanged }: { tec
 
   const uploadDocumentForTechnician = async (docType: 'monotributo' | 'identity', file?: File) => {
     if (!file) return;
-    if (file.type !== 'application/pdf' || file.size > 10 * 1024 * 1024) return showToast('El documento debe ser PDF y pesar hasta 10 MB.', 'warning');
+    if (!['application/pdf', 'image/jpeg', 'image/png'].includes(file.type) || file.size > 10 * 1024 * 1024) return showToast('El documento debe ser PDF, JPG o PNG, y pesar hasta 10 MB.', 'warning');
     setUploadingDocType(docType);
     const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, '-');
     const path = `${technicianId}/${docType}-${Date.now()}-${safe}`;
-    const { error } = await supabase.storage.from('technician-documents').upload(path, file, { contentType: 'application/pdf' });
-    if (error) { setUploadingDocType(null); return showToast('No se pudo subir el PDF.', 'error'); }
+    const { error } = await supabase.storage.from('technician-documents').upload(path, file, { contentType: file.type });
+    if (error) { setUploadingDocType(null); return showToast('No se pudo subir el documento.', 'error'); }
     await supabase.from('technician_documents').update({ is_current: false }).eq('technician_id', technicianId).eq('document_type', docType).eq('is_current', true);
     const { error: dbError } = await supabase.from('technician_documents').insert({ technician_id: technicianId, document_type: docType, label: file.name, storage_path: path });
     if (dbError) { setUploadingDocType(null); return showToast('El PDF subió, pero no se pudo registrar.', 'error'); }
@@ -214,8 +219,8 @@ export function TechnicianReviewCard({ technicianId, onClose, onChanged }: { tec
       if (doc) return <button type="button" onClick={() => void openDocument(doc.storage_path)} className="mt-1 inline-flex items-center gap-1 text-[11px] font-bold text-teal-700 hover:underline"><FileText className="w-3.5 h-3.5" />Ver PDF: {doc.label} · {doc.validation_status}</button>;
       return (
         <label className="mt-1.5 inline-flex cursor-pointer items-center gap-1.5 text-[11px] font-bold text-teal-700">
-          <Upload className="w-3.5 h-3.5" />{uploadingDocType === docType ? 'Subiendo…' : 'Adjuntar PDF'}
-          <input type="file" accept="application/pdf" className="hidden" disabled={uploadingDocType !== null} onChange={(e) => void uploadDocumentForTechnician(docType, e.target.files?.[0])} />
+          <Upload className="w-3.5 h-3.5" />{uploadingDocType === docType ? 'Subiendo…' : 'Adjuntar documento'}
+          <input type="file" accept="application/pdf,image/jpeg,image/png" className="hidden" disabled={uploadingDocType !== null} onChange={(e) => void uploadDocumentForTechnician(docType, e.target.files?.[0])} />
         </label>
       );
     }

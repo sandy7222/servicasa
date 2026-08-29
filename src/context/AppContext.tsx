@@ -2033,14 +2033,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   };
 
+  const specialtiesForIds = (ids: string[]) =>
+    catalogCategories.filter((c) => ids.includes(c.id)).map((c) => ({ id: c.id, name: c.name }));
+
   const addTechnician = (data: TechnicianInput): string => {
     const alsoCustomer = Boolean(data.alsoAsCustomer);
+    const specialties = specialtiesForIds(data.specialtyIds);
     if (usingRemoteData) {
       const tempId = `tmp-tech-${Date.now()}`;
       const tempTech: Technician = {
         id: tempId,
         name: data.name,
-        specialty: data.specialty,
+        specialty: specialties.map((s) => s.name).join(', '),
+        specialties,
         phone: data.phone,
         email: data.email,
         rating: data.rating ?? 5,
@@ -2049,6 +2054,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         completedOrdersCount: 0,
         zone: data.zone,
         province: data.province,
+        address: data.address,
       };
       setTechnicians((prev) => [...prev, tempTech]);
       void withRemote(async () => {
@@ -2074,7 +2080,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const newTech: Technician = {
       id: newId,
       name: data.name,
-      specialty: data.specialty,
+      specialty: specialties.map((s) => s.name).join(', '),
+      specialties,
       phone: data.phone,
       email: data.email,
       rating: data.rating ?? 5,
@@ -2083,6 +2090,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       completedOrdersCount: 0,
       zone: data.zone,
       province: data.province,
+      address: data.address,
     };
     setTechnicians((prev) => [...prev, newTech]);
 
@@ -2116,6 +2124,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateTechnician = (technicianId: string, patch: TechnicianInput) => {
+    const patchedSpecialties = specialtiesForIds(patch.specialtyIds);
     const applyLocal = () => {
       setTechnicians((prev) =>
         prev.map((t) =>
@@ -2123,12 +2132,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             ? {
                 ...t,
                 name: patch.name,
-                specialty: patch.specialty,
+                specialty: patchedSpecialties.map((s) => s.name).join(', '),
+                specialties: patchedSpecialties,
                 phone: patch.phone,
                 email: patch.email,
                 rating: patch.rating ?? t.rating,
                 zone: patch.zone,
                 province: patch.province,
+                address: patch.address,
                 workPhone: patch.workPhone || undefined,
                 bio: patch.bio || undefined,
                 educationLevel: patch.educationLevel || undefined,

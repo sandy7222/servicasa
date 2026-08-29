@@ -381,7 +381,7 @@ export const AdminHubView: React.FC = () => {
 
   // Technician form state
   const [newTechName, setNewTechName] = useState('');
-  const [newTechSpecialty, setNewTechSpecialty] = useState('Plomería');
+  const [newTechSpecialtyIds, setNewTechSpecialtyIds] = useState<string[]>([]);
   const [newTechPhone, setNewTechPhone] = useState('');
   const [newTechEmail, setNewTechEmail] = useState('');
   const [newTechZone, setNewTechZone] = useState('');
@@ -391,7 +391,7 @@ export const AdminHubView: React.FC = () => {
   const [newTechNeighborhood, setNewTechNeighborhood] = useState('');
 
   const [editTechName, setEditTechName] = useState('');
-  const [editTechSpecialty, setEditTechSpecialty] = useState('Plomería');
+  const [editTechSpecialtyIds, setEditTechSpecialtyIds] = useState<string[]>([]);
   const [editTechPhone, setEditTechPhone] = useState('');
   const [editTechEmail, setEditTechEmail] = useState('');
   const [editTechZone, setEditTechZone] = useState('');
@@ -1098,7 +1098,7 @@ export const AdminHubView: React.FC = () => {
 
   const resetNewTechnicianForm = () => {
     setNewTechName('');
-    setNewTechSpecialty('Plomería');
+    setNewTechSpecialtyIds([]);
     setNewTechPhone('');
     setNewTechEmail('');
     setNewTechZone('');
@@ -1110,7 +1110,11 @@ export const AdminHubView: React.FC = () => {
 
   const handleApproveApplication = (app: TechnicianApplication) => {
     setNewTechName(app.fullName);
-    setNewTechSpecialty(app.specialty);
+    // app.specialty todavía es texto libre de la solicitud pública (eso
+    // cambia en la Tanda 2, cuando el alta pasa a ser automática) — no hay
+    // un id de categoría confiable para preseleccionar, así que el admin
+    // elige el/los rubro(s) reales acá.
+    setNewTechSpecialtyIds([]);
     setNewTechPhone(app.phone);
     setNewTechEmail(app.email);
     setNewTechZone('');
@@ -1128,7 +1132,7 @@ export const AdminHubView: React.FC = () => {
 
     addTechnician({
       name: newTechName.trim(),
-      specialty: newTechSpecialty.trim() || 'General',
+      specialtyIds: newTechSpecialtyIds,
       phone: newTechPhone.trim() || '+54 9 11 0000-0000',
       email: newTechEmail.trim(),
       zone: newTechZone.trim(),
@@ -1149,7 +1153,7 @@ export const AdminHubView: React.FC = () => {
 
     setTechnicianToEdit(tech);
     setEditTechName(tech.name);
-    setEditTechSpecialty(tech.specialty);
+    setEditTechSpecialtyIds(tech.specialties.map((s) => s.id));
     setEditTechPhone(tech.phone);
     setEditTechEmail(tech.email);
     setEditTechZone(tech.zone ?? '');
@@ -1171,11 +1175,15 @@ export const AdminHubView: React.FC = () => {
 
     updateTechnician(technicianToEdit.id, {
       name: editTechName.trim(),
-      specialty: editTechSpecialty.trim() || 'General',
+      specialtyIds: editTechSpecialtyIds,
       phone: editTechPhone.trim() || '+54 9 11 0000-0000',
       email: editTechEmail.trim(),
       zone: editTechZone.trim(),
       province: editTechProvince,
+      // La dirección propia del técnico ahora la carga y edita él mismo
+      // desde "Mi perfil profesional" — este formulario no la toca, así que
+      // hay que reenviar el valor actual para no pisarlo con vacío.
+      address: technicianToEdit.address,
       rating: technicianToEdit.rating,
       alsoAsCustomer: editTechAlsoCustomer,
       customerAddress: editTechAddress.trim() || undefined,
@@ -3303,7 +3311,7 @@ export const AdminHubView: React.FC = () => {
                     <option value="">Dejar sin asignar</option>
                     {technicians.map((t) => (
                       <option key={t.id} value={t.id}>
-                        {t.name} ({t.specialty.split(' ')[0]})
+                        {t.name} ({t.specialty.split(',')[0]})
                       </option>
                     ))}
                   </select>
@@ -3470,7 +3478,7 @@ export const AdminHubView: React.FC = () => {
                     <option value="">Sin asignar</option>
                     {technicians.map((t) => (
                       <option key={t.id} value={t.id}>
-                        {t.name} ({t.specialty.split(' ')[0]})
+                        {t.name} ({t.specialty.split(',')[0]})
                       </option>
                     ))}
                   </select>
@@ -3970,14 +3978,23 @@ export const AdminHubView: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Especialidad</label>
-                <input
-                  type="text"
-                  value={newTechSpecialty}
-                  onChange={(e) => setNewTechSpecialty(e.target.value)}
-                  placeholder="Ej: Plomería y mantenimiento"
-                  className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
-                />
+                <label className="block text-xs font-bold text-slate-700 mb-1">Rubros</label>
+                <div className="grid grid-cols-2 gap-1.5 rounded-lg border border-slate-200 p-2">
+                  {catalogCategories.filter((c) => c.active !== false).map((c) => (
+                    <label key={c.id} className="flex items-center gap-1.5 text-xs text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={newTechSpecialtyIds.includes(c.id)}
+                        onChange={(e) =>
+                          setNewTechSpecialtyIds((prev) =>
+                            e.target.checked ? [...prev, c.id] : prev.filter((id) => id !== c.id)
+                          )
+                        }
+                      />
+                      {c.name}
+                    </label>
+                  ))}
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
@@ -4118,13 +4135,23 @@ export const AdminHubView: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Especialidad</label>
-                <input
-                  type="text"
-                  value={editTechSpecialty}
-                  onChange={(e) => setEditTechSpecialty(e.target.value)}
-                  className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
-                />
+                <label className="block text-xs font-bold text-slate-700 mb-1">Rubros</label>
+                <div className="grid grid-cols-2 gap-1.5 rounded-lg border border-slate-200 p-2">
+                  {catalogCategories.filter((c) => c.active !== false).map((c) => (
+                    <label key={c.id} className="flex items-center gap-1.5 text-xs text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={editTechSpecialtyIds.includes(c.id)}
+                        onChange={(e) =>
+                          setEditTechSpecialtyIds((prev) =>
+                            e.target.checked ? [...prev, c.id] : prev.filter((id) => id !== c.id)
+                          )
+                        }
+                      />
+                      {c.name}
+                    </label>
+                  ))}
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>

@@ -11,15 +11,17 @@ import { TECHNICIAN_COLUMNS_ADMIN, TECHNICIAN_COLUMNS_SHARED } from './supabaseD
  * compartida, este test lo detecta.
  */
 describe('columnas de technicians en el catálogo compartido', () => {
-  it('la lista compartida (no-admin) nunca incluye validation_notes ni work_phone', () => {
+  it('la lista compartida (no-admin) nunca incluye validation_notes, work_phone ni address', () => {
     const columns = TECHNICIAN_COLUMNS_SHARED.split(',');
     expect(columns).not.toContain('validation_notes');
     expect(columns).not.toContain('work_phone');
+    expect(columns).not.toContain('address');
   });
 
-  it('la lista de admin incluye work_phone pero nunca validation_notes', () => {
+  it('la lista de admin incluye work_phone y address pero nunca validation_notes', () => {
     const columns = TECHNICIAN_COLUMNS_ADMIN.split(',');
     expect(columns).toContain('work_phone');
+    expect(columns).toContain('address');
     expect(columns).not.toContain('validation_notes');
   });
 
@@ -29,6 +31,6 @@ describe('columnas de technicians en el catálogo compartido', () => {
     for (const col of shared) {
       expect(admin).toContain(col);
     }
-    expect(admin.length).toBe(shared.length + 1);
+    expect(admin.length).toBe(shared.length + 2);
   });
 });

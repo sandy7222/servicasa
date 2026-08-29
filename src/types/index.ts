@@ -268,6 +268,7 @@ export interface Technician {
   technicianNumber?: number;
   name: string;
   specialty: string;
+  specialties: { id: string; name: string }[];
   phone: string;
   email: string;
   rating: number;
@@ -276,6 +277,7 @@ export interface Technician {
   completedOrdersCount: number;
   zone: string;
   province: string;
+  address?: string;
   profileId?: string | null;
   customerId?: string | null;
   workPhone?: string;
@@ -293,11 +295,12 @@ export interface Technician {
 
 export type TechnicianInput = {
   name: string;
-  specialty: string;
+  specialtyIds: string[];
   phone: string;
   email: string;
   zone: string;
   province: string;
+  address?: string;
   rating?: number;
   alsoAsCustomer?: boolean;
   customerAddress?: string;

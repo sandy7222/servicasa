@@ -45,12 +45,13 @@ export function profileToCurrentUser(profile: DbProfile): CurrentUserData {
   };
 }
 
-export function mapTechnician(row: DbTechnician): Technician {
+export function mapTechnician(row: DbTechnician, specialties: { id: string; name: string }[] = []): Technician {
   return {
     id: row.id,
     technicianNumber: row.technician_number ?? undefined,
     name: row.name,
-    specialty: row.specialty,
+    specialty: specialties.length ? specialties.map((s) => s.name).join(', ') : row.specialty,
+    specialties,
     phone: row.phone,
     email: row.email,
     rating: Number(row.rating),
@@ -59,6 +60,7 @@ export function mapTechnician(row: DbTechnician): Technician {
     completedOrdersCount: row.completed_orders_count,
     zone: row.zone ?? '',
     province: row.province ?? '',
+    address: row.address ?? '',
     profileId: row.profile_id ?? null,
     workPhone: row.work_phone ?? undefined,
     bio: row.bio ?? undefined,
@@ -302,15 +304,17 @@ export async function fetchTechnicianApplications(): Promise<TechnicianApplicati
 // como hacía select('*').
 export const TECHNICIAN_COLUMNS_SHARED =
   'id,technician_number,name,specialty,phone,email,rating,avatar_bg,active_orders_count,completed_orders_count,zone,province,profile_id,bio,education_level,degree_title,institution_name,public_avatar_path,validation_status,is_enabled,can_receive_orders';
-// El admin sí necesita work_phone del catálogo compartido: AdminHubView lo
-// precarga al abrir el modal de edición del técnico. validation_notes sigue
-// afuera — el admin la re-consulta puntualmente en TechnicianReviewCard.
-export const TECHNICIAN_COLUMNS_ADMIN = `${TECHNICIAN_COLUMNS_SHARED},work_phone`;
+// El admin sí necesita work_phone y address del catálogo compartido:
+// AdminHubView los precarga al abrir el modal de edición del técnico.
+// validation_notes sigue afuera — el admin la re-consulta puntualmente en
+// TechnicianReviewCard.
+export const TECHNICIAN_COLUMNS_ADMIN = `${TECHNICIAN_COLUMNS_SHARED},work_phone,address`;
 
 export async function fetchCatalog(isAdmin: boolean) {
   const technicianColumns = isAdmin ? TECHNICIAN_COLUMNS_ADMIN : TECHNICIAN_COLUMNS_SHARED;
-  const [techRes, custRes, matRes, orderRes, svcRes, catRes, subcatRes] = await Promise.all([
+  const [techRes, techSpecialtiesRes, custRes, matRes, orderRes, svcRes, catRes, subcatRes] = await Promise.all([
     supabase.from('technicians').select(technicianColumns).order('name'),
+    supabase.from('technician_specialties').select('technician_id, categories(id, name)'),
     supabase.from('customers').select('*').order('name'),
     supabase.from('materials').select('*').order('name'),
     supabase.from('service_orders').select('*').order('created_at', { ascending: false }),
@@ -320,12 +324,21 @@ export async function fetchCatalog(isAdmin: boolean) {
   ]);
 
   if (techRes.error) throw techRes.error;
+  if (techSpecialtiesRes.error) throw techSpecialtiesRes.error;
   if (custRes.error) throw custRes.error;
   if (matRes.error) throw matRes.error;
   if (orderRes.error) throw orderRes.error;
   if (svcRes.error) throw svcRes.error;
   if (catRes.error) throw catRes.error;
   if (subcatRes.error) throw subcatRes.error;
+
+  const specialtiesByTechnician = new Map<string, { id: string; name: string }[]>();
+  for (const row of (techSpecialtiesRes.data ?? []) as unknown as { technician_id: string; categories: { id: string; name: string } | null }[]) {
+    if (!row.categories) continue;
+    const list = specialtiesByTechnician.get(row.technician_id) ?? [];
+    list.push({ id: row.categories.id, name: row.categories.name });
+    specialtiesByTechnician.set(row.technician_id, list);
+  }
 
   const orderRows = (orderRes.data ?? []) as DbServiceOrder[];
   const orderIds = orderRows.map((o) => o.id);
@@ -460,7 +473,9 @@ export async function fetchCatalog(isAdmin: boolean) {
     });
   });
 
-  const technicians = (techRes.data as unknown as DbTechnician[]).map(mapTechnician);
+  const technicians = (techRes.data as unknown as DbTechnician[]).map((row) =>
+    mapTechnician(row, specialtiesByTechnician.get(row.id) ?? [])
+  );
   const customers = (custRes.data as DbCustomer[]).map(mapCustomer);
 
   const { data: profileLinks } = await supabase

@@ -186,14 +186,40 @@ function pickAvatarBg(seed: string) {
 // migration ran.
 const TECHNICIAN_REQUIREMENT_TYPES = ['profile_complete', 'education_verified', 'matricula_validated', 'monotributo_approved', 'identity_verified', 'bank_account_valid'] as const;
 
-async function seedTechnicianRequirements(technicianId: string, specialty: string) {
-  const requiresMatricula = /(electric|refriger|plomer)/i.test(specialty);
+async function seedTechnicianRequirements(technicianId: string, specialtyNames: string[]) {
+  const requiresMatricula = specialtyNames.some((name) => /(electric|refriger|plomer)/i.test(name));
   const rows = TECHNICIAN_REQUIREMENT_TYPES.map((requirement_type) => {
     const is_required = requirement_type === 'matricula_validated' ? requiresMatricula : true;
     return { technician_id: technicianId, requirement_type, is_required, status: is_required ? 'pending' : 'not_required' };
   });
   const { error } = await supabase.from('technician_requirements').insert(rows);
   throwIfError(error);
+}
+
+// Replaces the technician's full set of rubros in technician_specialties
+// (delete + insert, simplest correct sync for a small multi-select list)
+// and returns the resulting {id, name} pairs for the caller to build the
+// mapped Technician object without a second round trip.
+async function setTechnicianSpecialties(
+  technicianId: string,
+  categoryIds: string[]
+): Promise<{ id: string; name: string }[]> {
+  const { error: deleteError } = await supabase
+    .from('technician_specialties')
+    .delete()
+    .eq('technician_id', technicianId);
+  throwIfError(deleteError);
+
+  if (categoryIds.length === 0) return [];
+
+  const { error: insertError } = await supabase
+    .from('technician_specialties')
+    .insert(categoryIds.map((category_id) => ({ technician_id: technicianId, category_id })));
+  throwIfError(insertError);
+
+  const { data, error } = await supabase.from('categories').select('id, name').in('id', categoryIds);
+  throwIfError(error);
+  return (data ?? []) as { id: string; name: string }[];
 }
 
 export type TechnicianWriteInput = TechnicianInput;
@@ -354,20 +380,23 @@ export async function persistCreateTechnician(
     .from('technicians')
     .insert({
       name: input.name,
-      specialty: input.specialty,
       phone: input.phone,
       email: input.email,
       rating: input.rating ?? 5,
       avatar_bg: pickAvatarBg(input.email || input.name),
       zone: input.zone,
       province: input.province,
+      address: input.address?.trim() || '',
     })
     .select('*')
     .single();
   throwIfError(error);
 
-  const tech = mapTechnician(data as DbTechnician);
-  await seedTechnicianRequirements(tech.id, tech.specialty);
+  const dbTech = data as DbTechnician;
+  const specialties = await setTechnicianSpecialties(dbTech.id, input.specialtyIds);
+  await seedTechnicianRequirements(dbTech.id, specialties.map((s) => s.name));
+
+  const tech = mapTechnician(dbTech, specialties);
   return linkTechnicianAsCustomer(tech, input);
 }
 
@@ -379,12 +408,12 @@ export async function persistUpdateTechnician(
     .from('technicians')
     .update({
       name: input.name,
-      specialty: input.specialty,
       phone: input.phone,
       email: input.email,
       rating: input.rating ?? 5,
       zone: input.zone,
       province: input.province,
+      address: input.address?.trim() || '',
       work_phone: input.workPhone?.trim() || null,
       bio: input.bio?.trim() || null,
       education_level: input.educationLevel || null,
@@ -402,7 +431,8 @@ export async function persistUpdateTechnician(
     .eq('assigned_technician_id', technicianId);
   throwIfError(ordersError);
 
-  const tech = mapTechnician(data as DbTechnician);
+  const specialties = await setTechnicianSpecialties(technicianId, input.specialtyIds);
+  const tech = mapTechnician(data as DbTechnician, specialties);
 
   if (tech.profileId) {
     const { error: profileError } = await supabase
@@ -1022,7 +1052,20 @@ export async function persistSignature(input: {
 export async function reloadTechnicians() {
   const { data, error } = await supabase.from('technicians').select('*').order('name');
   throwIfError(error);
-  return (data as DbTechnician[]).map(mapTechnician);
+  const rows = data as DbTechnician[];
+  const { data: specialtyRows, error: specialtyError } = await supabase
+    .from('technician_specialties')
+    .select('technician_id, categories(id, name)')
+    .in('technician_id', rows.map((r) => r.id));
+  throwIfError(specialtyError);
+  const specialtiesByTechnician = new Map<string, { id: string; name: string }[]>();
+  for (const row of (specialtyRows ?? []) as unknown as { technician_id: string; categories: { id: string; name: string } | null }[]) {
+    if (!row.categories) continue;
+    const list = specialtiesByTechnician.get(row.technician_id) ?? [];
+    list.push({ id: row.categories.id, name: row.categories.name });
+    specialtiesByTechnician.set(row.technician_id, list);
+  }
+  return rows.map((row) => mapTechnician(row, specialtiesByTechnician.get(row.id) ?? []));
 }
 
 export type AccountInviteKind = 'technician' | 'customer';

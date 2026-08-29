@@ -41,6 +41,7 @@ export type DbTechnician = {
   completed_orders_count: number;
   zone: string;
   province: string;
+  address?: string | null;
   profile_id: string | null;
   work_phone?: string | null;
   bio?: string | null;
