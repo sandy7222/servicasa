@@ -62,6 +62,8 @@ import { PayoutScheduler } from '../components/admin/PayoutScheduler';
 import { PayoutBatchesPanel } from '../components/admin/PayoutBatchesPanel';
 import { SettlementReconciliation } from '../components/admin/SettlementReconciliation';
 import { canTechnicianReceiveOrders } from '../lib/technicianEligibility';
+import { compareByDisplayOrder, sortByDisplayOrder, UNGROUPED_DISPLAY_ORDER, UNGROUPED_SUBCATEGORY_LABEL } from '../lib/catalogOrder';
+import { SubcategorySectionHeader } from '../components/common/SubcategorySectionHeader';
 import {
   OrderPriority,
   ServiceItem,
@@ -72,6 +74,8 @@ import {
   Technician,
   TechnicianInput,
   MaterialInventory,
+  CatalogCategory,
+  CatalogSubcategory,
 } from '../types';
 
 type MaterialCategory = MaterialInventory['category'];
@@ -98,17 +102,17 @@ function AccountBadge({ hasAccount }: { hasAccount: boolean }) {
 
 const CATEGORY_VISUALS: Record<
   string,
-  { bg: string; border: string; text: string; label: string }
+  { bg: string; border: string; text: string; label: string; accent: string }
 > = {
-  Wrench: { bg: 'bg-sky-50', border: 'border-sky-200', text: 'text-sky-600', label: 'Plomería / Reparaciones' },
-  Zap: { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-600', label: 'Electricidad' },
-  Hammer: { bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-600', label: 'Hogar / Albañilería' },
-  Settings: { bg: 'bg-slate-50', border: 'border-slate-200', text: 'text-slate-600', label: 'Mantenimiento' },
-  ShieldCheck: { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-600', label: 'Instalación de equipos' },
-  Droplets: { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-600', label: 'Agua / Saneamiento' },
-  Flame: { bg: 'bg-rose-50', border: 'border-rose-200', text: 'text-rose-600', label: 'Gas / Calefacción' },
-  Lightbulb: { bg: 'bg-yellow-50', border: 'border-yellow-200', text: 'text-yellow-600', label: 'Iluminación' },
-  Sparkles: { bg: 'bg-teal-50', border: 'border-teal-200', text: 'text-teal-600', label: 'General' },
+  Wrench: { bg: 'bg-sky-50', border: 'border-sky-200', text: 'text-sky-600', label: 'Plomería / Reparaciones', accent: 'bg-sky-500' },
+  Zap: { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-600', label: 'Electricidad', accent: 'bg-amber-500' },
+  Hammer: { bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-600', label: 'Hogar / Albañilería', accent: 'bg-orange-500' },
+  Settings: { bg: 'bg-slate-50', border: 'border-slate-200', text: 'text-slate-600', label: 'Mantenimiento', accent: 'bg-slate-500' },
+  ShieldCheck: { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-600', label: 'Instalación de equipos', accent: 'bg-emerald-500' },
+  Droplets: { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-600', label: 'Agua / Saneamiento', accent: 'bg-blue-500' },
+  Flame: { bg: 'bg-rose-50', border: 'border-rose-200', text: 'text-rose-600', label: 'Gas / Calefacción', accent: 'bg-rose-500' },
+  Lightbulb: { bg: 'bg-yellow-50', border: 'border-yellow-200', text: 'text-yellow-600', label: 'Iluminación', accent: 'bg-yellow-500' },
+  Sparkles: { bg: 'bg-teal-50', border: 'border-teal-200', text: 'text-teal-600', label: 'General', accent: 'bg-teal-500' },
 };
 
 const CATEGORY_ICON_KEYS = Object.keys(CATEGORY_VISUALS);
@@ -417,6 +421,7 @@ export const AdminHubView: React.FC = () => {
   const [serviceCategoryFilter, setServiceCategoryFilter] = useState('all');
   const [serviceSortBy, setServiceSortBy] = useState<'name' | 'price-asc' | 'price-desc' | 'duration'>('price-asc');
   const [collapsedCatalogCategoryIds, setCollapsedCatalogCategoryIds] = useState<Set<string>>(new Set());
+  const [collapsedCatalogSubgroupIds, setCollapsedCatalogSubgroupIds] = useState<Set<string>>(new Set());
   const [isNewServiceModalOpen, setIsNewServiceModalOpen] = useState(false);
   const [isEditServiceModalOpen, setIsEditServiceModalOpen] = useState(false);
   const [serviceToEdit, setServiceToEdit] = useState<ServiceItem | null>(null);
@@ -578,25 +583,43 @@ export const AdminHubView: React.FC = () => {
       const subKey = subcat?.id ?? 'sin-subcategoria';
       let subgroup = group.subgroups.find((s) => (s.subcategoryId ?? 'sin-subcategoria') === subKey);
       if (!subgroup) {
-        subgroup = { subcategoryId: subcat?.id ?? null, subcategoryName: subcat?.name ?? null, services: [] };
+        subgroup = { subcategoryId: subcat?.id ?? null, subcategoryName: subcat?.name ?? UNGROUPED_SUBCATEGORY_LABEL, services: [] };
         group.subgroups.push(subgroup);
       }
       subgroup.services.push(srv);
     });
 
     groupsByKey.forEach((group) => {
-      group.subgroups.sort((a, b) => {
-        const orderA = catalogSubcategories.find((s) => s.id === a.subcategoryId)?.displayOrder ?? 999;
-        const orderB = catalogSubcategories.find((s) => s.id === b.subcategoryId)?.displayOrder ?? 999;
-        return orderA - orderB;
-      });
+      group.subgroups.sort((a, b) =>
+        compareByDisplayOrder(
+          {
+            displayOrder: catalogSubcategories.find((s) => s.id === a.subcategoryId)?.displayOrder ?? UNGROUPED_DISPLAY_ORDER,
+            name: a.subcategoryName,
+          },
+          {
+            displayOrder: catalogSubcategories.find((s) => s.id === b.subcategoryId)?.displayOrder ?? UNGROUPED_DISPLAY_ORDER,
+            name: b.subcategoryName,
+          }
+        )
+      );
     });
 
-    return Array.from(groupsByKey.values()).sort((a, b) => a.displayOrder - b.displayOrder);
+    return Array.from(groupsByKey.values()).sort((a, b) =>
+      compareByDisplayOrder({ displayOrder: a.displayOrder, name: a.categoryName }, { displayOrder: b.displayOrder, name: b.categoryName })
+    );
   }, [filteredServices, catalogCategories, catalogSubcategories]);
 
   const toggleCatalogCategoryCollapsed = (key: string) => {
     setCollapsedCatalogCategoryIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const toggleCatalogSubgroupCollapsed = (key: string) => {
+    setCollapsedCatalogSubgroupIds((prev) => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
       else next.add(key);
@@ -2477,14 +2500,23 @@ export const AdminHubView: React.FC = () => {
                       </button>
 
                       {!isCollapsed && (
-                        <div className="px-4 pb-4 pt-1 border-t border-slate-100 space-y-4">
-                          {group.subgroups.map((subgroup) => (
-                            <div key={subgroup.subcategoryId ?? 'sin-subcategoria'}>
-                              {subgroup.subcategoryName && (
-                                <h4 className="text-[11px] font-mono font-bold uppercase tracking-wide text-slate-400 mb-2 pt-2">
-                                  {subgroup.subcategoryName}
-                                </h4>
-                              )}
+                        <div className="px-4 pb-4 pt-1 border-t border-slate-100 space-y-5">
+                          {group.subgroups.map((subgroup) => {
+                            const subKey = `${groupKey}::${subgroup.subcategoryId ?? 'sin-subcategoria'}`;
+                            const subCollapsed = collapsedCatalogSubgroupIds.has(subKey);
+                            const ungrouped = !subgroup.subcategoryId;
+                            return (
+                            <div key={subKey}>
+                              <SubcategorySectionHeader
+                                name={subgroup.subcategoryName ?? UNGROUPED_SUBCATEGORY_LABEL}
+                                count={subgroup.services.length}
+                                ungrouped={ungrouped}
+                                compact
+                                collapsed={subCollapsed}
+                                accentBarClass={ungrouped ? 'bg-slate-300' : visual.accent}
+                                onToggle={() => toggleCatalogSubgroupCollapsed(subKey)}
+                              />
+                              {!subCollapsed && (
                               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
                                 {subgroup.services.map((srv) => (
                     <div
@@ -2589,8 +2621,10 @@ export const AdminHubView: React.FC = () => {
                     </div>
                                 ))}
                               </div>
+                              )}
                             </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       )}
                     </div>
@@ -2691,16 +2725,15 @@ export const AdminHubView: React.FC = () => {
               </div>
             ) : (
               <div className="space-y-3">
-                {[...catalogCategories]
-                  .sort((a, b) => a.displayOrder - b.displayOrder)
+                {sortByDisplayOrder<CatalogCategory>(catalogCategories)
                   .map((cat, catIndex, catArray) => {
                     const visual = getCategoryVisual(cat.icon);
                     const count = countServicesForCategory(cat.id);
                     const isActive = cat.active !== false;
                     const isCollapsed = collapsedManageCategoryIds.has(cat.id);
-                    const subcats = catalogSubcategories
-                      .filter((s) => s.categoryId === cat.id)
-                      .sort((a, b) => a.displayOrder - b.displayOrder);
+                    const subcats = sortByDisplayOrder<CatalogSubcategory>(
+                      catalogSubcategories.filter((s) => s.categoryId === cat.id)
+                    );
 
                     return (
                       <div
@@ -4645,8 +4678,7 @@ export const AdminHubView: React.FC = () => {
                     {!catalogCategories.some((c) => c.name === newServiceCategory) && (
                       <option value={`text:${newServiceCategory}`}>{newServiceCategory}</option>
                     )}
-                    {[...catalogCategories]
-                      .sort((a, b) => a.displayOrder - b.displayOrder)
+                    {sortByDisplayOrder<CatalogCategory>(catalogCategories)
                       .map((c) => (
                         <option key={c.id} value={c.id}>
                           {c.name}
@@ -4736,10 +4768,9 @@ export const AdminHubView: React.FC = () => {
                       className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
                     >
                       <option value="">Sin subcategoría</option>
-                      {catalogSubcategories
-                        .filter((s) => s.categoryId === newServiceCategoryId)
-                        .sort((a, b) => a.displayOrder - b.displayOrder)
-                        .map((s) => (
+                      {sortByDisplayOrder<CatalogSubcategory>(
+                        catalogSubcategories.filter((s) => s.categoryId === newServiceCategoryId)
+                      ).map((s) => (
                           <option key={s.id} value={s.id}>
                             {s.name}
                           </option>
@@ -4863,8 +4894,7 @@ export const AdminHubView: React.FC = () => {
                     {!catalogCategories.some((c) => c.name === editServiceCategory) && (
                       <option value={`text:${editServiceCategory}`}>{editServiceCategory}</option>
                     )}
-                    {[...catalogCategories]
-                      .sort((a, b) => a.displayOrder - b.displayOrder)
+                    {sortByDisplayOrder<CatalogCategory>(catalogCategories)
                       .map((c) => (
                         <option key={c.id} value={c.id}>
                           {c.name}
@@ -4954,10 +4984,9 @@ export const AdminHubView: React.FC = () => {
                       className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
                     >
                       <option value="">Sin subcategoría</option>
-                      {catalogSubcategories
-                        .filter((s) => s.categoryId === editServiceCategoryId)
-                        .sort((a, b) => a.displayOrder - b.displayOrder)
-                        .map((s) => (
+                      {sortByDisplayOrder<CatalogSubcategory>(
+                        catalogSubcategories.filter((s) => s.categoryId === editServiceCategoryId)
+                      ).map((s) => (
                           <option key={s.id} value={s.id}>
                             {s.name}
                           </option>

@@ -22,6 +22,8 @@ import {
 } from 'lucide-react';
 import { Logo } from '../components/common/Logo';
 import { useApp } from '../context/AppContext';
+import { sortByDisplayOrder } from '../lib/catalogOrder';
+import type { CatalogCategory } from '../types';
 import logoTecniUrbano from '../assets/logo-tecniurbano.png';
 
 const CATEGORY_ICON_MAP: Record<string, { icon: React.ReactNode; bg: string; border: string }> = {
@@ -198,10 +200,7 @@ export const LandingView: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...catalogCategories]
-              .filter((cat) => cat.active !== false)
-              .sort((a, b) => a.displayOrder - b.displayOrder)
-              .map((category) => {
+            {sortByDisplayOrder<CatalogCategory>(catalogCategories.filter((cat) => cat.active !== false)).map((category) => {
               const serviciosEnCategoria = services.filter(
                 (s) => s.category === category.name && s.active !== false
               ).length;

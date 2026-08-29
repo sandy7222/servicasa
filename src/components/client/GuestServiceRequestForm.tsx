@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { CalendarDays, CreditCard, Mail, MapPin, Phone, Search, User, Wrench } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { formatArs } from '../../lib/pricing';
+import { groupItemsBySubcategory } from '../../lib/catalogOrder';
+import { SubcategorySectionHeader } from '../common/SubcategorySectionHeader';
 import { redirectToGuestPayment } from '../../lib/paymentClient';
 import { ARGENTINA_PROVINCES } from '../../lib/argentina';
 import type { OrderPriority, ServiceItem, ServiceType, WorkMode } from '../../types';
@@ -41,20 +43,10 @@ export const GuestServiceRequestForm: React.FC = () => {
   // subcategoría — ver la misma nota en ServiceRequestForm.tsx.
   const directServiceGroups = useMemo(() => {
     const items = services.filter((s) => s.category === serviceType && s.active !== false);
-    const groups = new Map<string, { name: string; order: number; items: ServiceItem[] }>();
-    for (const item of items) {
-      const sub = item.subcategoryId ? catalogSubcategories.find((s) => s.id === item.subcategoryId) : undefined;
-      const key = sub?.id ?? 'sin-subcategoria';
-      let group = groups.get(key);
-      if (!group) {
-        group = { name: sub?.name ?? 'Otros', order: sub?.displayOrder ?? 999, items: [] };
-        groups.set(key, group);
-      }
-      group.items.push(item);
-    }
-    return Array.from(groups.values())
-      .sort((a, b) => a.order - b.order)
-      .map((g) => [g.name, [...g.items].sort((a, b) => a.name.localeCompare(b.name, 'es'))] as [string, ServiceItem[]]);
+    return groupItemsBySubcategory<ServiceItem>(items, catalogSubcategories).map((g) => ({
+      ...g,
+      items: [...g.items].sort((a, b) => a.name.localeCompare(b.name, 'es')),
+    }));
   }, [services, catalogSubcategories, serviceType]);
   const directTotal = selectedService ? selectedService.price * quantity : 0;
 
@@ -172,11 +164,11 @@ export const GuestServiceRequestForm: React.FC = () => {
               <p className="text-xs text-amber-700">Este rubro aún no tiene servicios de precio fijo. Elegí diagnóstico para recibir un presupuesto.</p>
             ) : (
               <div className="max-h-72 space-y-3 overflow-y-auto pr-1">
-                {directServiceGroups.map(([groupName, items]) => (
-                  <div key={groupName}>
-                    <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-slate-500">{groupName}</p>
+                {directServiceGroups.map((group) => (
+                  <div key={group.id ?? 'sin-subcategoria'}>
+                    <SubcategorySectionHeader name={group.name} count={group.items.length} ungrouped={!group.id} compact sticky />
                     <div className="grid gap-2">
-                      {items.map((service) => (
+                      {group.items.map((service) => (
                         <button
                           type="button"
                           key={service.id}

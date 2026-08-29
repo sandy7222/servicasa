@@ -83,6 +83,7 @@ import {
 } from '../lib/supabaseMutations';
 import { friendlyErrorMessage } from '../components/common/AppStatus';
 import { isOrderPaymentSettled, orderRequiresPaymentGate } from '../lib/workTimer';
+import { sortByDisplayOrder } from '../lib/catalogOrder';
 import {
   CatalogCategory,
   CatalogSubcategory,
@@ -2406,7 +2407,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       await withRemote(async () => {
         try {
           const created = await persistCreateCategory(input);
-          setCatalogCategories((prev) => [...prev, created].sort((a, b) => a.displayOrder - b.displayOrder));
+          setCatalogCategories((prev) => sortByDisplayOrder<CatalogCategory>([...prev, created]));
           showToast(`Categoría "${created.name}" creada`, 'success', 'Categorías');
         } catch (err) {
           showToast(friendlyErrorMessage(err, 'No se pudo crear la categoría'), 'error');
@@ -2500,7 +2501,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const moveCategory = async (id: string, direction: 'up' | 'down'): Promise<void> => {
-    const sorted = [...catalogCategories].sort((a, b) => a.displayOrder - b.displayOrder);
+    const sorted = sortByDisplayOrder<CatalogCategory>(catalogCategories);
     const index = sorted.findIndex((c) => c.id === id);
     const neighborIndex = direction === 'up' ? index - 1 : index + 1;
     if (index === -1 || neighborIndex < 0 || neighborIndex >= sorted.length) return;
@@ -2630,9 +2631,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const moveSubcategory = async (id: string, direction: 'up' | 'down'): Promise<void> => {
     const target = catalogSubcategories.find((s) => s.id === id);
     if (!target) return;
-    const siblings = catalogSubcategories
-      .filter((s) => s.categoryId === target.categoryId)
-      .sort((a, b) => a.displayOrder - b.displayOrder);
+    const siblings = sortByDisplayOrder<CatalogSubcategory>(
+      catalogSubcategories.filter((s) => s.categoryId === target.categoryId)
+    );
     const index = siblings.findIndex((s) => s.id === id);
     const neighborIndex = direction === 'up' ? index - 1 : index + 1;
     if (neighborIndex < 0 || neighborIndex >= siblings.length) return;

@@ -3,6 +3,8 @@ import { FileCheck2, Minus, Plus, Send, Trash2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { formatArs } from '../../lib/pricing';
 import { getCategoriesByRubro, getRubros, getTarifarioByRubroName, type CatalogCategory, type ServiceRubro, type TarifarioItem } from '../../lib/catalog';
+import { groupItemsBySubcategory } from '../../lib/catalogOrder';
+import { SubcategorySectionHeader } from '../common/SubcategorySectionHeader';
 import { supabase } from '../../lib/supabase';
 import type { OrderQuote, ServiceOrder } from '../../types';
 
@@ -80,25 +82,10 @@ export const QuoteBuilder: React.FC<Props> = ({ order }) => {
     return tarifario.filter((item) => item.name.toLowerCase().includes(query));
   }, [tarifario, tarifarioSearch]);
 
-  // Agrupa por subcategory_id real (plan-categorias-subcategorias.md Fase 3
-  // paso 3), no por el texto subcategoria — así el orden sigue el
-  // display_order de verdad en vez del orden alfabético del string.
-  const tarifarioGroups = useMemo(() => {
-    const groups = new Map<string, { name: string; order: number; items: TarifarioItem[] }>();
-    for (const item of filteredTarifario) {
-      const sub = item.subcategoryId ? catalogSubcategories.find((s) => s.id === item.subcategoryId) : undefined;
-      const key = sub?.id ?? 'sin-subcategoria';
-      let group = groups.get(key);
-      if (!group) {
-        group = { name: sub?.name ?? 'Otros', order: sub?.displayOrder ?? 999, items: [] };
-        groups.set(key, group);
-      }
-      group.items.push(item);
-    }
-    return Array.from(groups.values())
-      .sort((a, b) => a.order - b.order)
-      .map((group) => [group.name, group.items] as [string, TarifarioItem[]]);
-  }, [filteredTarifario, catalogSubcategories]);
+  const tarifarioGroups = useMemo(
+    () => groupItemsBySubcategory<TarifarioItem>(filteredTarifario, catalogSubcategories, { includeInactive: true }),
+    [filteredTarifario, catalogSubcategories]
+  );
 
   const ensureDraft = async (): Promise<string> => {
     if (quote) return quote.id;
@@ -235,11 +222,11 @@ export const QuoteBuilder: React.FC<Props> = ({ order }) => {
       {(loadingTarifario || tarifario.length > 0) && <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
         <div className="flex items-center justify-between gap-2"><h4 className="text-xs font-bold text-slate-800">Tarifario completo ({tarifario.length} ítems)</h4></div>
         <input value={tarifarioSearch} onChange={(event) => setTarifarioSearch(event.target.value)} placeholder="Buscar por nombre…" className="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-xs" />
-        {loadingTarifario ? <p className="text-xs text-slate-500">Cargando tarifario…</p> : <div className="max-h-80 space-y-3 overflow-y-auto pr-1">
+        {loadingTarifario ? <p className="text-xs text-slate-500">Cargando tarifario…</p> : <div className="max-h-80 space-y-4 overflow-y-auto pr-1">
           {tarifarioGroups.length === 0 && <p className="text-xs text-slate-500">Sin resultados para "{tarifarioSearch}".</p>}
-          {tarifarioGroups.map(([group, items]) => <div key={group}>
-            <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-slate-500">{group}</p>
-            <div className="space-y-1">{items.map((item) => { const selected = quote?.items.find((qi) => qi.serviceId === item.id); return <button key={item.id} type="button" disabled={busy} onClick={() => void addTarifarioItem(item)} className={`flex w-full items-center justify-between gap-2 rounded-lg border p-2 text-left transition disabled:opacity-60 ${selected ? 'border-teal-500 bg-teal-50' : 'border-slate-200 hover:border-teal-300'}`}><span className="text-[11px] text-slate-800">{item.name}{selected && <span className="ml-1 font-bold text-teal-700">· x{selected.quantity}</span>}</span><span className="shrink-0 text-[11px] font-black text-teal-800">{formatArs(item.price)}</span></button>; })}</div>
+          {tarifarioGroups.map((group) => <div key={group.id ?? 'sin-subcategoria'}>
+            <SubcategorySectionHeader name={group.name} count={group.items.length} ungrouped={!group.id} compact sticky />
+            <div className="space-y-1">{group.items.map((item) => { const selected = quote?.items.find((qi) => qi.serviceId === item.id); return <button key={item.id} type="button" disabled={busy} onClick={() => void addTarifarioItem(item)} className={`flex w-full items-center justify-between gap-2 rounded-lg border p-2 text-left transition disabled:opacity-60 ${selected ? 'border-teal-500 bg-teal-50' : 'border-slate-200 hover:border-teal-300'}`}><span className="text-[11px] text-slate-800">{item.name}{selected && <span className="ml-1 font-bold text-teal-700">· x{selected.quantity}</span>}</span><span className="shrink-0 text-[11px] font-black text-teal-800">{formatArs(item.price)}</span></button>; })}</div>
           </div>)}
         </div>}
       </div>}

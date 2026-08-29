@@ -13,6 +13,9 @@ import {
   Clock,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { SubcategorySectionHeader } from '../components/common/SubcategorySectionHeader';
+import { sortByDisplayOrder, UNGROUPED_SUBCATEGORY_LABEL } from '../lib/catalogOrder';
+import type { CatalogSubcategory } from '../types';
 
 const formatDuration = (minutes?: number) => {
   if (!minutes) return null;
@@ -26,6 +29,7 @@ export const ServicesCategoryView: React.FC = () => {
   const { navigate, services, catalogCategories, catalogSubcategories, currentPath, currentUser, showToast } = useApp();
   const [search, setSearch] = useState('');
   const [openId, setOpenId] = useState<string>();
+  const [collapsedOverride, setCollapsedOverride] = useState<Record<string, boolean>>({});
 
   // Extraer la categoría del path (ej: "#/services-category/Plomería")
   const selectedCategory = useMemo(() => {
@@ -52,12 +56,12 @@ export const ServicesCategoryView: React.FC = () => {
       (c) => c.name.toLowerCase() === (selectedCategory ?? '').toLowerCase()
     );
     const orderedSubcategories = category
-      ? catalogSubcategories
-          .filter((sc) => sc.categoryId === category.id)
-          .sort((a, b) => a.displayOrder - b.displayOrder)
+      ? sortByDisplayOrder<CatalogSubcategory>(
+          catalogSubcategories.filter((sc) => sc.categoryId === category.id && sc.active !== false)
+        )
       : [];
 
-    const groups: { id: string | null; name: string | null; services: typeof categoryServices }[] = [];
+    const groups: { id: string | null; name: string; services: typeof categoryServices }[] = [];
     const placedIds = new Set<string>();
     orderedSubcategories.forEach((sc) => {
       const items = categoryServices.filter((s) => s.subcategoryId === sc.id);
@@ -71,7 +75,7 @@ export const ServicesCategoryView: React.FC = () => {
     // todavía no cargó (ej. RLS de lectura anónima pendiente) — se muestra
     // igual, sin encabezado, en vez de desaparecer silenciosamente.
     const ungrouped = categoryServices.filter((s) => !placedIds.has(s.id));
-    if (ungrouped.length > 0) groups.push({ id: null, name: null, services: ungrouped });
+    if (ungrouped.length > 0) groups.push({ id: null, name: UNGROUPED_SUBCATEGORY_LABEL, services: ungrouped });
     return groups;
   }, [categoryServices, catalogCategories, catalogSubcategories, selectedCategory]);
 
@@ -84,21 +88,21 @@ export const ServicesCategoryView: React.FC = () => {
   const getCategoryVisuals = (category: string) => {
     const cat = (category || '').toLowerCase();
     if (cat.includes('plom') || cat.includes('agua') || cat.includes('cañ')) {
-      return { icon: <Wrench className="w-6 h-6 text-sky-600" />, bg: 'bg-sky-50', border: 'border-sky-200', textColor: 'text-sky-700' };
+      return { icon: <Wrench className="w-6 h-6 text-sky-600" />, bg: 'bg-sky-50', border: 'border-sky-200', textColor: 'text-sky-700', accent: 'bg-sky-500' };
     }
     if (cat.includes('elec')) {
-      return { icon: <Zap className="w-6 h-6 text-amber-600" />, bg: 'bg-amber-50', border: 'border-amber-200', textColor: 'text-amber-700' };
+      return { icon: <Zap className="w-6 h-6 text-amber-600" />, bg: 'bg-amber-50', border: 'border-amber-200', textColor: 'text-amber-700', accent: 'bg-amber-500' };
     }
     if (cat.includes('repara') || cat.includes('hogar')) {
-      return { icon: <Hammer className="w-6 h-6 text-orange-600" />, bg: 'bg-orange-50', border: 'border-orange-200', textColor: 'text-orange-700' };
+      return { icon: <Hammer className="w-6 h-6 text-orange-600" />, bg: 'bg-orange-50', border: 'border-orange-200', textColor: 'text-orange-700', accent: 'bg-orange-500' };
     }
     if (cat.includes('mante')) {
-      return { icon: <Settings className="w-6 h-6 text-slate-600" />, bg: 'bg-slate-50', border: 'border-slate-200', textColor: 'text-slate-700' };
+      return { icon: <Settings className="w-6 h-6 text-slate-600" />, bg: 'bg-slate-50', border: 'border-slate-200', textColor: 'text-slate-700', accent: 'bg-slate-500' };
     }
     if (cat.includes('instala')) {
-      return { icon: <ShieldCheck className="w-6 h-6 text-emerald-600" />, bg: 'bg-emerald-50', border: 'border-emerald-200', textColor: 'text-emerald-700' };
+      return { icon: <ShieldCheck className="w-6 h-6 text-emerald-600" />, bg: 'bg-emerald-50', border: 'border-emerald-200', textColor: 'text-emerald-700', accent: 'bg-emerald-500' };
     }
-    return { icon: <Wrench className="w-6 h-6 text-teal-600" />, bg: 'bg-teal-50', border: 'border-teal-200', textColor: 'text-teal-700' };
+    return { icon: <Wrench className="w-6 h-6 text-teal-600" />, bg: 'bg-teal-50', border: 'border-teal-200', textColor: 'text-teal-700', accent: 'bg-teal-500' };
   };
 
   const handleCreateOrder = (serviceId: string) => {
@@ -141,10 +145,21 @@ export const ServicesCategoryView: React.FC = () => {
 
   const visuals = getCategoryVisuals(selectedCategory);
 
+  const isGroupCollapsed = (groupId: string, ignoreSearch = false) => {
+    if (!ignoreSearch && search.trim()) return false;
+    if (Object.prototype.hasOwnProperty.call(collapsedOverride, groupId)) return collapsedOverride[groupId];
+    const group = subcategoryGroups.find((g) => (g.id ?? 'sin-subcategoria') === groupId);
+    return (group?.services.length ?? 0) > 8;
+  };
+
+  const toggleGroup = (groupId: string) => {
+    setCollapsedOverride((prev) => ({ ...prev, [groupId]: !isGroupCollapsed(groupId, true) }));
+  };
+
   return (
-    <div className="min-h-screen bg-white">
+    <div className="h-screen flex flex-col bg-white">
       {/* Header */}
-      <div className="bg-white border-b border-slate-200 sticky top-0 z-40">
+      <div className="bg-white border-b border-slate-200 shrink-0">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <button
             onClick={() => navigate('/')}
@@ -179,7 +194,8 @@ export const ServicesCategoryView: React.FC = () => {
       </div>
 
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="flex-1 min-h-0 overflow-y-auto">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {categoryServices.length === 0 ? (
           <div className="bg-slate-50 rounded-2xl p-12 border border-slate-200 text-center">
             <div className="w-12 h-12 rounded-xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-4">
@@ -195,12 +211,23 @@ export const ServicesCategoryView: React.FC = () => {
             </p>
           </div>
         ) : (
-          <div className="space-y-6">
-            {subcategoryGroups.map((group) => (
-              <div key={group.id ?? 'sin-subcategoria'}>
-                {group.name && (
-                  <h2 className="text-sm font-bold text-slate-700 mb-2 px-1">{group.name}</h2>
-                )}
+          <div className="space-y-8">
+            {subcategoryGroups.map((group) => {
+              const groupId = group.id ?? 'sin-subcategoria';
+              const ungrouped = group.id === null;
+              const collapsed = isGroupCollapsed(groupId);
+              return (
+              <section key={groupId}>
+                <SubcategorySectionHeader
+                  name={group.name ?? UNGROUPED_SUBCATEGORY_LABEL}
+                  count={group.services.length}
+                  ungrouped={ungrouped}
+                  sticky
+                  collapsed={collapsed}
+                  accentBarClass={ungrouped ? 'bg-slate-300' : visuals.accent}
+                  onToggle={() => toggleGroup(groupId)}
+                />
+                {!collapsed && (
                 <div className="rounded-2xl border border-slate-200 divide-y divide-slate-100 overflow-hidden">
                   {group.services.map((srv) => {
                     const isOpen = openId === srv.id;
@@ -260,10 +287,13 @@ export const ServicesCategoryView: React.FC = () => {
                     );
                   })}
                 </div>
-              </div>
-            ))}
+                )}
+              </section>
+              );
+            })}
           </div>
         )}
+        </div>
       </main>
     </div>
   );
