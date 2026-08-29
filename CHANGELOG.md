@@ -4,6 +4,46 @@ Registro de cambios funcionales relevantes de TecniUrbano. No reemplaza `git log
 (los detalles de implementación están en los commits y las migraciones) — es un
 resumen de qué cambió para el negocio y qué evidencia lo respalda.
 
+## 2026-08-29 (madrugada) — Problema 6 (mobile) investigado, no reproducido; Fase 10 tercera pasada
+
+**Problema 6 — panel de admin desbordado en mobile.** Los tres elementos que
+Sandy reportó desde su celular (fila de chips del Admin Hub, desplegable de
+"Asignar técnico", panel de notificaciones) ya habían sido arreglados en un
+commit previo de esta misma sesión (`c1e05a6`, ya en producción). Probé los
+tres en vivo contra `https://tecniurbano.online` real, logueado como admin,
+en viewport de 375px y 360px: ningún elemento se corta, `document.documentElement.scrollWidth`
+coincide exactamente con `innerWidth` (sin overflow horizontal de página), y
+las tres capturas confirman texto completo sin truncar. No encontré nada
+para arreglar. Hipótesis más probable de por qué Sandy lo seguía viendo: el
+sitio es una PWA con service worker activo (`registerType: 'autoUpdate'`,
+confirmado registrado en el navegador) — si tenía la app abierta o instalada
+desde antes del deploy del fix, una navegación puramente interna (hash-route)
+nunca dispara la verificación de actualización del service worker; hace
+falta cerrar la app del todo y volver a abrirla (o un hard refresh) para que
+tome el bundle nuevo. Sin código para commitear en este punto — quedo a la
+espera de que Sandy confirme si un cierre completo de la app resolvió lo que
+veía.
+
+**Fase 10 — tercera pasada, reporte de estado (sin ejecutar nada nuevo).**
+Detalle completo en `docs/fase10-checklist.md` (secciones "Resumen
+ejecutivo" del 29/8, y nuevas secciones 5 "Primeras 48 horas" y 6
+"Definición de terminado"). Resumen: `tsc`/`vitest` (66/66)/`build` limpios;
+25 migraciones remoto=local; secretos limpios en todo el historial de git;
+**las 10 suites de `supabase/tests/*.sql` corridas hoy por primera vez todas
+juntas** (91 aserciones) — 8/10 pasan tal cual están escritas, 2 fallan por
+fixtures desactualizados (les falta un campo que un gate de una fase
+posterior ahora exige) y se confirmó que las 10 pasan corrigiendo el fixture
+al vuelo, sin tocar los archivos del repo. **Regresión real encontrada y
+corregida en el camino:** el advisor de seguridad volvió a marcar ERROR en
+`technician_public_view` (`CREATE OR REPLACE VIEW` de esta misma sesión,
+antes de este reporte, había pisado el `security_invoker=true` puesto en la
+Fase 9 sin volver a declararlo) — corregido con
+`alter view ... set (security_invoker = true)`
+(`20260829195048_restore_technician_public_view_security_invoker.sql`),
+advisor reverificado en 0 ERROR. Smoke test de 10 flujos en producción real
+y primeras 48 horas post-lanzamiento siguen necesitando a Sandy con
+navegador — no son ejecutables desde acá.
+
 ## 2026-08-29 (más noche) — Problema 8: gate de "salió hacia el domicilio" y stock de materiales
 
 **"Salí hacia el domicilio" nunca se podía usar en un pedido de diagnóstico.**

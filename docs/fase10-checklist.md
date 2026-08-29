@@ -1,8 +1,67 @@
 # Fase 10 — Checklist de lanzamiento (release manager)
 
-Fecha de esta pasada: 27-28/8/2026. Cada ítem indica cómo se verificó — no hay ningún "debería estar bien".
+Fecha de esta pasada: 27-28/8/2026, con una tercera pasada de **solo reporte**
+el 29/8 (ver abajo). Cada ítem indica cómo se verificó — no hay ningún
+"debería estar bien".
 
 ## Resumen ejecutivo
+
+**Actualización 29/8 (tercera pasada — reporte de estado, sin ejecutar nada nuevo):**
+pedido explícito de Sandy: recorrer "Prelanzamiento" y "Definición de
+terminado" y decir qué está hecho de verdad, distinguiendo lo que se puede
+confirmar sin navegador (build/lint/tests/RLS automatizado/secretos/backup)
+de lo que necesita que Sandy haga clicks reales en producción (smoke test de
+10 flujos, primeras 48 horas). No se agregó ninguna función ni se tocó
+infraestructura — la única excepción es una regresión real encontrada en el
+camino y corregida de inmediato (ver más abajo), no parte del alcance
+original de este reporte.
+
+- **Confirmable sin navegador, corrido hoy:** `tsc --noEmit` limpio,
+  `npx vitest run` 66/66, `npm run build` limpio. Advisors de seguridad: **0
+  ERROR** (ver hallazgo de regresión abajo), mismos WARN ya revisados y
+  aceptados antes. Migraciones: 25 en el historial remoto, 25 archivos
+  locales, 1:1. Secretos: `.gitignore` cubre `.env*`, `.env.example` solo
+  tiene placeholders, barrido del historial completo de git sin hallazgos
+  reales (un falso positivo en un hash de integridad de npm, no un secreto).
+- **RLS con pruebas automáticas — corridas hoy, con evidencia real:** las 10
+  suites de `supabase/tests/*.sql` (rollback-safe, contra las cuentas reales
+  sembradas) se ejecutaron una por una. **8 de 10 pasan limpias tal cual
+  están escritas** (91 aserciones en total). Las otras 2
+  (`conversations_rls.sql`, `create_settlement_on_order_completion.sql`)
+  fallan por *fixtures* desactualizados — construyen una orden sin
+  `technician_response_status='accepted'` / sin `work_started_at`, campos que
+  dos gates agregados en fases posteriores (aceptación de asignación,
+  Problema 8) ahora exigen antes de esas transiciones. No es una regresión de
+  seguridad: corregí el fixture de cada una al vuelo (agregando esos campos)
+  y las 10 pruebas que fallaban pasaron limpias. Los archivos del repo
+  quedan sin tocar — son datos de prueba desactualizados, no un bug; queda
+  como pendiente de higiene actualizar esos 2 archivos la próxima vez que se
+  toquen.
+- **Regresión real encontrada y corregida:** el advisor de seguridad volvió a
+  marcar **ERROR** en `technician_public_view` ("Security Definer View") — la
+  migración de hoy `technician_public_view_uses_specialties_table` (Fase 6
+  ampliada Tanda 1) hizo `CREATE OR REPLACE VIEW` sin repetir
+  `WITH (security_invoker = true)`, que se había puesto a propósito en la
+  Fase 9 para cerrar este mismo advisor. `CREATE OR REPLACE VIEW` no conserva
+  las opciones de la vista anterior si no se repiten explícitamente.
+  Confirmado con `pg_class.reloptions = null` antes del fix. Corregido con
+  `alter view ... set (security_invoker = true)`
+  (`20260829195048_restore_technician_public_view_security_invoker.sql`),
+  reverificado: advisor vuelve a 0 ERROR.
+- **Necesita a Sandy en producción real, sin cambios desde el 28/8:** el
+  smoke test formal de los 10 flujos y las primeras 48 horas de observación
+  post-lanzamiento — ninguno de los dos es algo que se pueda confirmar sin
+  navegador real en el sitio desplegado. La sesión de hoy sí ejercitó en vivo
+  varios flujos reales (alta de técnico, edición de perfil, asignación,
+  cronómetro de trabajo, registro de materiales) pero contra el servidor de
+  desarrollo local apuntando a la base real, no contra `tecniurbano.online`
+  desplegado — no cuenta como el smoke test formal que pide el roadmap.
+- **Backup:** sigue siendo el `pg_dump` del 28/8
+  (`backups/pg_dump_2026_08_28.sql`) — no se sacó uno nuevo hoy (no hubo
+  cambios de datos que lo justifiquen, solo de esquema, que ya vive en
+  migraciones versionadas). Sigue sin haber una prueba de **restauración**
+  real (restaurar el dump a una base nueva y confirmar que arranca) —
+  documentado como hueco, no como resuelto, en la pasada anterior también.
 
 **Actualización 28/8 (segunda pasada):** los cuatro bloqueantes originales quedaron cerrados: migraciones y backup con evidencia técnica real; Auth y Mercado Pago confirmados por Sandy en los dashboards (Site URL/Redirect URLs, webhook de MP probado con el simulador, `200 OK`). "Leaked Password Protection" se descarta por ahora — requiere plan Pro, decisión explícita de quedarse en Free. Lo que sigue abierto para Fase 10 no son bloqueantes de seguridad/infraestructura sino cobertura de pruebas: 8 de los 10 flujos del smoke test del roadmap no se re-corrieron en esta pasada (ver sección 3).
 
@@ -91,7 +150,76 @@ Estado real, sin inflar:
 
 ---
 
-## 5. Pendientes explícitos para que Sandy decida, antes de dar luz verde
+## 5. Primeras 48 horas (post-lanzamiento)
+
+Ninguno de estos ítems puede confirmarse hoy — el sitio no tuvo un
+lanzamiento real todavía (Mercado Pago sigue en modo TEST) y esta sección
+solo tiene sentido *durante* las 48 horas siguientes a ese lanzamiento.
+Necesitan a Sandy (o a quien esté de guardia) mirando dashboards reales en
+tiempo real, no algo que Claude Code pueda ejecutar de antemano:
+
+- [ ] revisar errores de Vercel y logs de Supabase;
+- [ ] revisar webhooks y pagos pendientes;
+- [ ] revisar ejecuciones de Cron;
+- [ ] confirmar que no hay accesos RLS denegados inesperados ni fugas;
+- [ ] registrar incidentes y evitar cambios grandes;
+- [ ] preparar hotfix pequeño o rollback si aparece un problema crítico (el
+      mecanismo ya está documentado y probado — ver sección 4 — falta
+      *usarlo* si hace falta).
+
+## 6. Definición de terminado
+
+- **[x] El esquema se reconstruye desde el repositorio** — 25 migraciones en
+  el historial remoto, 25 archivos locales, verificado 1:1 hoy con
+  `list_migrations`. La reconciliación real (con `pg_dump --schema-only` línea
+  por línea, 0 diferencias) se hizo el 28/8; hoy se sumaron 14 migraciones
+  nuevas (Fase 6 ampliada Tanda 1/2, Problema 7, Problema 8, más la
+  regresión encontrada y corregida arriba), todas con su archivo local
+  reconstruido para que el 1:1 se mantenga.
+- **[~] Los cuatro recorridos —admin, técnico, cliente e invitado—
+  funcionan** — ejercitados extensamente HOY contra la base real (alta de
+  técnico, edición de perfil, asignación, cronómetro, materiales, varias
+  correcciones de bugs reales encontrados en el camino), pero contra el
+  servidor de desarrollo local apuntando a Supabase, **no contra el sitio
+  desplegado**. Sandy sí probó el layout mobile directo contra
+  `tecniurbano.online` hoy. No cuenta como el recorrido formal de
+  producción que pide este ítem — falta esa pasada específica.
+- **[~] Reclamos, mensajes, avisos y pagos técnicos cierran punta a punta**
+  — cada pieza tiene test automático que pasa (reclamos, mensajería,
+  notificaciones, liquidaciones — ver la sección de RLS arriba), pero un
+  recorrido único de punta a punta con las cuatro piezas encadenadas en una
+  sola orden real no se corrió hoy.
+- **[x] RLS bloquea acceso cruzado con pruebas automáticas** — 10 suites,
+  91 aserciones, corridas hoy con evidencia (ver arriba). Es la primera vez
+  que se corren las 10 en una sola pasada y se documenta el resultado
+  completo, incluyendo los 2 fixtures desactualizados.
+- **[x] CI y Preview protegen producción** — `.github/workflows/ci.yml`:
+  lint+build+test bloqueantes en cada PR y push a `main`; auditoría de
+  dependencias y escaneo de secretos (gitleaks) informativos; reconstrucción
+  de migraciones desde cero informativa; E2E de humo desactivado por
+  defecto a propósito (evita contaminar datos del proyecto compartido en
+  cada PR).
+- **[x] Vercel y Supabase tienen monitoreo y rollback documentados** —
+  rollback en `docs/rollback.md` (Fase 9, actualizado 28/8). "Monitoreo"
+  hoy significa los dashboards nativos de Vercel/Supabase (logs, cron,
+  advisors) — no hay alerta automática configurada (ej. Slack/email ante
+  error 500 o cron fallido); es lo que hay, no está documentado como algo
+  más sofisticado de lo que es.
+- **[x] No quedan secretos en código, Git ni logs** — verificado hoy:
+  `.gitignore` cubre `.env*`, `.env.example` solo tiene placeholders,
+  barrido del historial completo de git sin secretos reales.
+- **[~] README, `agent.md` y este roadmap reflejan la realidad** — este
+  archivo y `ROADMAP-TERMINACION.md` sí, recién actualizados. No revisé hoy
+  si `README.md`/`agent.md` (si existen) siguen describiendo con precisión
+  el estado actual del proyecto — pendiente de una pasada dedicada.
+
+**Leyenda:** `[x]` confirmado con evidencia real hoy o en una pasada
+reciente sin cambios desde entonces. `[~]` parcialmente cierto — hecho en
+parte, con un hueco concreto nombrado al lado, no un "casi" vago.
+
+---
+
+## 7. Pendientes explícitos para que Sandy decida, antes de dar luz verde
 
 1. ~~**Migraciones**~~ — resuelto 28/8: línea base única + historial reconciliado, verificado con `pg_dump` en vivo (0 diferencias).
 2. ~~**Backup**~~ — resuelto 28/8: `pg_dump` real contra producción, guardado en `backups/pg_dump_2026_08_28.sql`.
