@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ArrowLeft,
   Plus,
@@ -13,7 +13,6 @@ import {
   Clock,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { SubcategorySectionHeader } from '../components/common/SubcategorySectionHeader';
 import { sortByDisplayOrder, UNGROUPED_SUBCATEGORY_LABEL } from '../lib/catalogOrder';
 import type { CatalogSubcategory } from '../types';
 
@@ -25,17 +24,74 @@ const formatDuration = (minutes?: number) => {
   return rest === 0 ? `${hours} h` : `${hours} h ${rest} min`;
 };
 
+const SubcategoryCardHeader: React.FC<{
+  name: string;
+  count: number;
+  ungrouped: boolean;
+  collapsed: boolean;
+  expanded: boolean;
+  accentBarClass: string;
+  onToggle: () => void;
+}> = ({ name, count, ungrouped, collapsed, expanded, accentBarClass, onToggle }) => {
+  const countLabel = `${count} servicio${count !== 1 ? 's' : ''}`;
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={!collapsed}
+      className={[
+        'flex w-full items-center gap-2 text-left min-h-11 px-3 py-2.5 transition-colors hover:bg-slate-50/80',
+        expanded ? 'sticky top-0 z-10 bg-white/95 backdrop-blur-sm border-b border-slate-100' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+    >
+      <span
+        className={`w-1 shrink-0 self-stretch rounded-full min-h-[1.5rem] ${ungrouped ? 'bg-slate-300' : accentBarClass}`}
+        aria-hidden
+      />
+      <span
+        className={
+          ungrouped
+            ? 'min-w-0 flex-1 line-clamp-2 text-xs font-semibold italic text-slate-500'
+            : 'min-w-0 flex-1 line-clamp-2 text-xs sm:text-sm font-bold text-slate-900'
+        }
+      >
+        {name}
+      </span>
+      <span
+        title={countLabel}
+        className={`shrink-0 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border ${
+          ungrouped ? 'bg-slate-50 text-slate-500 border-slate-200' : 'bg-slate-50 text-slate-600 border-slate-200'
+        }`}
+      >
+        {count}
+      </span>
+      <ChevronDown
+        className={`w-4 h-4 text-slate-400 shrink-0 transition-transform ${collapsed ? '' : 'rotate-180'}`}
+        aria-hidden
+      />
+    </button>
+  );
+};
+
 export const ServicesCategoryView: React.FC = () => {
   const { navigate, services, catalogCategories, catalogSubcategories, currentPath, currentUser, showToast } = useApp();
   const [search, setSearch] = useState('');
   const [openId, setOpenId] = useState<string>();
-  const [collapsedOverride, setCollapsedOverride] = useState<Record<string, boolean>>({});
+  const [openGroupId, setOpenGroupId] = useState<string | null>(null);
 
   // Extraer la categoría del path (ej: "#/services-category/Plomería")
   const selectedCategory = useMemo(() => {
     const match = currentPath.match(/services-category\/(.+)/);
     return match ? decodeURIComponent(match[1]) : null;
   }, [currentPath]);
+
+  useEffect(() => {
+    setOpenGroupId(null);
+    setOpenId(undefined);
+    setSearch('');
+  }, [selectedCategory]);
 
   const categoryServices = useMemo(() => {
     if (!selectedCategory) return [];
@@ -144,23 +200,32 @@ export const ServicesCategoryView: React.FC = () => {
   }
 
   const visuals = getCategoryVisuals(selectedCategory);
+  const isSearching = Boolean(search.trim());
 
-  const isGroupCollapsed = (groupId: string, ignoreSearch = false) => {
-    if (!ignoreSearch && search.trim()) return false;
-    if (Object.prototype.hasOwnProperty.call(collapsedOverride, groupId)) return collapsedOverride[groupId];
-    const group = subcategoryGroups.find((g) => (g.id ?? 'sin-subcategoria') === groupId);
-    return (group?.services.length ?? 0) > 8;
+  const isGroupCollapsed = (groupId: string) => {
+    if (isSearching) return false;
+    return openGroupId !== groupId;
   };
 
   const toggleGroup = (groupId: string) => {
-    setCollapsedOverride((prev) => ({ ...prev, [groupId]: !isGroupCollapsed(groupId, true) }));
+    if (isSearching) return;
+    setOpenGroupId((current) => (current === groupId ? null : groupId));
+    setOpenId(undefined);
   };
+
+  const groupCount = subcategoryGroups.length;
+  const gridClass =
+    groupCount <= 1
+      ? 'grid grid-cols-1 gap-3 sm:gap-4'
+      : groupCount === 2
+        ? 'grid grid-cols-2 gap-3 sm:gap-4'
+        : 'grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4';
 
   return (
     <div className="h-screen flex flex-col bg-white">
       {/* Header */}
       <div className="bg-white border-b border-slate-200 shrink-0">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <button
             onClick={() => navigate('/')}
             className="inline-flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-4"
@@ -195,7 +260,7 @@ export const ServicesCategoryView: React.FC = () => {
 
       {/* Main Content */}
       <main className="flex-1 min-h-0 overflow-y-auto">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {categoryServices.length === 0 ? (
           <div className="bg-slate-50 rounded-2xl p-12 border border-slate-200 text-center">
             <div className="w-12 h-12 rounded-xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-4">
@@ -211,83 +276,90 @@ export const ServicesCategoryView: React.FC = () => {
             </p>
           </div>
         ) : (
-          <div className="space-y-8">
+          <div className={gridClass}>
             {subcategoryGroups.map((group) => {
               const groupId = group.id ?? 'sin-subcategoria';
               const ungrouped = group.id === null;
               const collapsed = isGroupCollapsed(groupId);
+              const expanded = !collapsed;
               return (
-              <section key={groupId}>
-                <SubcategorySectionHeader
-                  name={group.name ?? UNGROUPED_SUBCATEGORY_LABEL}
-                  count={group.services.length}
-                  ungrouped={ungrouped}
-                  sticky
-                  collapsed={collapsed}
-                  accentBarClass={ungrouped ? 'bg-slate-300' : visuals.accent}
-                  onToggle={() => toggleGroup(groupId)}
-                />
-                {!collapsed && (
-                <div className="rounded-2xl border border-slate-200 divide-y divide-slate-100 overflow-hidden">
-                  {group.services.map((srv) => {
-                    const isOpen = openId === srv.id;
-                    const duration = formatDuration(srv.estimatedDurationMinutes);
-                    return (
-                      <div key={srv.id} className="bg-white">
-                        <button
-                          type="button"
-                          onClick={() => setOpenId(isOpen ? undefined : srv.id)}
-                          className="w-full flex items-center justify-between gap-3 px-4 sm:px-5 py-3.5 text-left hover:bg-slate-50 transition-colors"
-                        >
-                          <div className="min-w-0 flex-1">
-                            <p className="font-semibold text-sm text-slate-900 truncate">{srv.name}</p>
-                            {duration && (
-                              <span className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-slate-500">
-                                <Clock className="w-3 h-3" />
-                                {duration}
+              <section key={groupId} className={expanded ? 'col-span-full' : undefined}>
+                <article
+                  className={`h-full rounded-2xl border border-slate-200 bg-white overflow-hidden ${
+                    expanded ? 'shadow-sm' : 'hover:border-slate-300 hover:shadow-sm transition-shadow'
+                  }`}
+                >
+                  <SubcategoryCardHeader
+                    name={group.name ?? UNGROUPED_SUBCATEGORY_LABEL}
+                    count={group.services.length}
+                    ungrouped={ungrouped}
+                    collapsed={collapsed}
+                    expanded={expanded}
+                    accentBarClass={ungrouped ? 'bg-slate-300' : visuals.accent}
+                    onToggle={() => toggleGroup(groupId)}
+                  />
+                  {expanded && (
+                  <div className="divide-y divide-slate-100">
+                    {group.services.map((srv) => {
+                      const isOpen = openId === srv.id;
+                      const duration = formatDuration(srv.estimatedDurationMinutes);
+                      return (
+                        <div key={srv.id} className="bg-white">
+                          <button
+                            type="button"
+                            onClick={() => setOpenId(isOpen ? undefined : srv.id)}
+                            className="w-full flex items-center justify-between gap-3 px-4 sm:px-5 py-3.5 text-left hover:bg-slate-50 transition-colors"
+                          >
+                            <div className="min-w-0 flex-1">
+                              <p className="font-semibold text-sm text-slate-900 truncate">{srv.name}</p>
+                              {duration && (
+                                <span className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-slate-500">
+                                  <Clock className="w-3 h-3" />
+                                  {duration}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-3 shrink-0">
+                              <span className="font-mono font-bold text-teal-800 bg-teal-50 border border-teal-200 px-2 py-1 rounded-lg text-xs sm:text-sm">
+                                ${srv.price.toLocaleString('es-AR')}
                               </span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-3 shrink-0">
-                            <span className="font-mono font-bold text-teal-800 bg-teal-50 border border-teal-200 px-2 py-1 rounded-lg text-xs sm:text-sm">
-                              ${srv.price.toLocaleString('es-AR')}
-                            </span>
-                            <ChevronDown
-                              className={`w-4 h-4 text-slate-400 transition-transform shrink-0 ${isOpen ? 'rotate-180' : ''}`}
-                            />
-                          </div>
-                        </button>
+                              <ChevronDown
+                                className={`w-4 h-4 text-slate-400 transition-transform shrink-0 ${isOpen ? 'rotate-180' : ''}`}
+                              />
+                            </div>
+                          </button>
 
-                        {isOpen && (
-                          <div className="px-4 sm:px-5 pb-4 pt-1 border-t border-slate-100 bg-slate-50/60 space-y-3">
-                            <p className="text-sm text-slate-600 leading-relaxed pt-3">{srv.description}</p>
+                          {isOpen && (
+                            <div className="px-4 sm:px-5 pb-4 pt-1 border-t border-slate-100 bg-slate-50/60 space-y-3">
+                              <p className="text-sm text-slate-600 leading-relaxed pt-3">{srv.description}</p>
 
-                            {srv.features && srv.features.length > 0 && (
-                              <div className="space-y-1.5">
-                                {srv.features.map((feat, idx) => (
-                                  <div key={idx} className="flex items-center gap-2 text-xs text-slate-700">
-                                    <CheckCircle2 className="w-3.5 h-3.5 text-teal-600 shrink-0" />
-                                    <span>{feat}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
+                              {srv.features && srv.features.length > 0 && (
+                                <div className="space-y-1.5">
+                                  {srv.features.map((feat, idx) => (
+                                    <div key={idx} className="flex items-center gap-2 text-xs text-slate-700">
+                                      <CheckCircle2 className="w-3.5 h-3.5 text-teal-600 shrink-0" />
+                                      <span>{feat}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
 
-                            <button
-                              type="button"
-                              onClick={() => handleCreateOrder(srv.id)}
-                              className="w-full sm:w-auto px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-colors shadow-xs"
-                            >
-                              <Plus className="w-4 h-4" />
-                              Crear Orden
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-                )}
+                              <button
+                                type="button"
+                                onClick={() => handleCreateOrder(srv.id)}
+                                className="w-full sm:w-auto px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-colors shadow-xs"
+                              >
+                                <Plus className="w-4 h-4" />
+                                Crear Orden
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  )}
+                </article>
               </section>
               );
             })}
