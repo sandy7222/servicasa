@@ -1065,6 +1065,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             completedAt: newStatus === 'completed' ? formatNow() : o.completedAt,
             workStartedAt: nextWorkStartedAt,
             workElapsedSeconds: nextWorkElapsedSeconds,
+            pauseReason: newStatus === 'paused' ? reason ?? undefined : undefined,
             events: [newEvent, ...o.events],
           };
         }
@@ -1083,6 +1084,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           completedAt: newStatus === 'completed' ? transitionAtIso : null,
           workStartedAt: nextWorkStartedAt ?? null,
           workElapsedSeconds: nextWorkElapsedSeconds,
+          pauseReason: newStatus === 'paused' ? reason ?? null : null,
         })
       ).catch((err) => {
         showToast(friendlyErrorMessage(err, 'Error al guardar estado'), 'error');

@@ -192,6 +192,8 @@ export interface ServiceOrder {
   extraAmount?: number;
   cancellationReason?: string;
   cancelledAt?: string;
+  /** Motivo de la pausa actual del técnico (se limpia al reanudar). */
+  pauseReason?: string;
   adminIncidentStatus?: AdminIncidentStatus;
   adminIncidentReason?: string;
   adminIncidentOpenedAt?: string;

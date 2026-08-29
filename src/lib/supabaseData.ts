@@ -182,6 +182,7 @@ export function mapOrder(
     extraAmount: row.extra_amount == null ? undefined : Number(row.extra_amount),
     cancellationReason: row.cancellation_reason ?? undefined,
     cancelledAt: row.cancelled_at ?? undefined,
+    pauseReason: row.pause_reason ?? undefined,
     adminIncidentStatus: row.admin_incident_status ?? 'none',
     adminIncidentReason: row.admin_incident_reason ?? undefined,
     adminIncidentOpenedAt: row.admin_incident_opened_at ?? undefined,

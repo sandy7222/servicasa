@@ -46,6 +46,7 @@ import {
   MessageCircle,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { startOrderConversation } from '../lib/conversations';
 import { PaymentStatusBadge, PriorityBadge, ServiceBadge, StatusBadge } from '../components/common/Badge';
 import { Timeline } from '../components/common/Timeline';
 import { EntityActionsMenu } from '../components/common/EntityActionsMenu';
@@ -805,11 +806,29 @@ export const AdminHubView: React.FC = () => {
 
   // Shared card renderer for both the main Orders list and the "Pendientes
   // de pago" tab, so the two stay visually identical without duplicating markup.
+  const handleMessageTechnician = async (order: ServiceOrder) => {
+    try {
+      const conversationId = await startOrderConversation(order.id);
+      window.location.hash = `#/admin/conversaciones/${conversationId}`;
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'No se pudo abrir la conversación.', 'error');
+    }
+  };
+
   const renderOrderCard = (order: ServiceOrder) => {
     const completedChecklistCount = order.checklist.filter((c) => c.completed).length;
     const totalChecklist = order.checklist.length;
     const hasSignature = !!order.customerSignature;
     const quoteRejected = order.quotes?.some((quote) => quote.status === 'rejected');
+    // Punto 3 del ADR de mensajería: sin franja horaria persistida todavía
+    // (solo queda como texto libre en la descripción al pedir el turno), así
+    // que por ahora el aviso es a nivel de día agendado, no de hora exacta.
+    const scheduledStartOfDay = new Date(`${order.scheduledDate}T00:00:00`);
+    const isOverdueNoDeparture =
+      order.status === 'assigned' &&
+      !!order.assignedTechnicianId &&
+      !order.workStartedAt &&
+      scheduledStartOfDay.getTime() < new Date().setHours(0, 0, 0, 0);
 
     return (
       <div
@@ -826,6 +845,16 @@ export const AdminHubView: React.FC = () => {
             {quoteRejected && (
               <span className="rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-800">
                 Presupuesto rechazado · seña en revisión
+              </span>
+            )}
+            {isOverdueNoDeparture && (
+              <span className="rounded border border-rose-300 bg-rose-50 px-1.5 py-0.5 text-[10px] font-bold text-rose-800" title="Ya pasó la fecha agendada y el técnico no marcó salida">
+                Sin salida · fecha vencida
+              </span>
+            )}
+            {order.status === 'paused' && order.pauseReason && (
+              <span className="rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-800" title={order.pauseReason}>
+                Pausada: {order.pauseReason}
               </span>
             )}
             <PriorityBadge priority={order.priority} />
@@ -913,6 +942,17 @@ export const AdminHubView: React.FC = () => {
             <Pencil className="w-3 h-3" />
             <span>Editar</span>
           </button>
+
+          {order.assignedTechnicianId && (
+            <button
+              onClick={() => void handleMessageTechnician(order)}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-100 hover:bg-teal-50 text-slate-700 hover:text-teal-700 text-xs font-semibold rounded-md transition-colors border border-slate-200"
+              title="Escribirle al técnico asignado"
+            >
+              <MessageCircle className="w-3 h-3" />
+              <span>Técnico</span>
+            </button>
+          )}
 
           {order.status !== 'completed' && order.status !== 'cancelled' && (
             <button
