@@ -42,6 +42,8 @@ envío válido real para no crear un draft ni tocar Mercado Pago en vivo sin
 necesidad. `tsc --noEmit`, `vitest run` (84/84), `npm run build` sin
 errores.
 
+Commit: `b6a1001`.
+
 ## 2026-08-30 (tarde, cont.) — Rediseño de dirección, Fase 1: columnas de localidad en órdenes + cobertura de técnicos por zona
 
 **Origen:** documento de Sandy a partir del reporte de Marcos Abate (escribió
