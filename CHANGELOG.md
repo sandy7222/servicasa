@@ -4,6 +4,56 @@ Registro de cambios funcionales relevantes de TecniUrbano. No reemplaza `git log
 (los detalles de implementación están en los commits y las migraciones) — es un
 resumen de qué cambió para el negocio y qué evidencia lo respalda.
 
+## 2026-08-30 (noche, cont.) — Rediseño de dirección, Fase 3: guardar y reutilizar direcciones del cliente
+
+Alcance definido por el propio documento de Fase 3 de Sandy —
+`docs/adr-address-redesign.md` tiene el detalle completo.
+
+**Gap encontrado al re-verificar antes de tocar nada:** Sandy había
+marcado "estado verificado, no requiere cambios", pero `customer_addresses`
+**no tiene columna de provincia** (confirmado contra
+`information_schema.columns`). Como pidió explícitamente "Fase 3 sin
+migraciones nuevas", se implementó con ese trade-off declarado: una
+dirección guardada no recuerda la provincia, así que al reutilizarla el
+cliente confirma la provincia con un clic (no vuelve a *tipear* nada). Una
+migración de una columna lo resolvería del todo si se prefiere.
+
+**Implementado:**
+- `src/lib/useCustomerAddresses.ts`: único hook con todo el CRUD sobre
+  `customer_addresses` (list/create/update/delete/set default), usado por
+  `ServiceRequestForm.tsx` y el nuevo `CustomerAddressesPanel.tsx` — mismo
+  criterio anti-duplicación que `AddressFields.tsx` en la Fase 2.
+- `ServiceRequestForm.tsx`: selector de dirección guardada (con la default
+  preseleccionada) + "Agregar nueva dirección"; elegir una precarga los
+  campos, **editables** (decisión mía — el documento lo dejaba "a
+  definir"), sin modificar la dirección guardada.
+- Checkbox "Guardar esta dirección para próximos pedidos", solo en modo
+  "nueva dirección"; la primera dirección de un cliente queda
+  `is_default = true` automáticamente.
+- `service_orders.client_address_id` conectado de punta a punta —
+  incluida una verificación server-side en
+  `api/orders/request-service.ts` de que el id de dirección realmente
+  pertenezca al caller antes de confiarlo (la ruta corre con
+  `supabaseAdmin`, sin RLS).
+- `CustomerAddressesPanel.tsx` en "Mi perfil" (`#/customer`): listar,
+  crear, editar, eliminar y marcar predeterminada — resuelve el reclamo
+  original de Marcos de no poder actualizar su dirección desde su cuenta.
+- Guardado de dirección best-effort: si falla, el pedido se envía igual
+  con los datos tipeados, nunca bloquea el pago.
+- `splitAddressLine()` en `src/lib/address.ts` separa el `address_line`
+  combinado guardado en calle/número al precargar, sin agregar columnas.
+
+**Verificación:** primera vez que se escribe de verdad en
+`customer_addresses` (antes tenía 0 filas) — ciclo completo insert x2 →
+select → cambiar default → update → delete probado con un cliente real
+impersonado en rollback; aislamiento confirmado aparte (otro cliente
+impersonado no puede ver, actualizar ni borrar una dirección ajena,
+`GET DIAGNOSTICS row_count = 0`). Persistido como
+`supabase/sql/test_customer_addresses_rls.sql`. Cero residuo confirmado
+después. `tsc --noEmit`, `vitest run` (84/84), `npm run build` sin
+errores. No hubo click-through en navegador de las pantallas nuevas
+(requieren sesión de cliente real autenticada).
+
 ## 2026-08-30 (noche) — Rediseño de dirección, Fase 2: componente de dirección compartido, sin más resta de localidad/altura
 
 Corrige el bug real de Marcos Abate (escribió la altura "547" en el campo

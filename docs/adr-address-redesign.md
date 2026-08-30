@@ -1,6 +1,6 @@
 # ADR — Rediseño del dato "dirección"
 
-Estado: **Fases 1 y 2 implementadas y verificadas. Fases 3-6 pendientes, a confirmar antes de cada una.**
+Estado: **Fases 1, 2 y 3 implementadas y verificadas. Fases 4-6 pendientes, a confirmar antes de cada una.**
 Fecha: 2026-08-30.
 Origen: documento de Sandy ("Rediseño del dato 'dirección' — TecniUrbano"),
 a partir de un reporte real de Marcos Abate (no pudo completar el campo de
@@ -125,10 +125,82 @@ crear un draft de verdad ni tocar la API de Mercado Pago en vivo sin
 necesidad — la ruta ya quedó revisada de punta a punta por código. `tsc
 --noEmit`, `vitest run` (84/84), `npm run build` sin errores.
 
+## Fase 3 — Implementada
+
+Alcance definido por Sandy en su propio documento de la Fase 3, con una
+nota de prioridad explícita: no bloquea la prueba de cobro con tarjeta
+(el formulario ya se podía enviar desde Fase 2) — es mejora de UX.
+
+**Gap encontrado al re-verificar el estado de la base antes de tocar
+nada** (Sandy había marcado "no requiere cambios"): `customer_addresses`
+**no tiene columna de provincia**. Confirmado directo contra
+`information_schema.columns`. Esto significa que una dirección guardada no
+puede recordar la provincia — al elegirla en un pedido nuevo, el cliente
+igual tiene que confirmar la provincia (no volver a *tipear* nada, pero sí
+un clic más). Dado que Sandy pidió explícitamente "Fase 3 sin migraciones
+nuevas", se implementó así — con este trade-off declarado en vez de
+agregar la columna por mi cuenta. Si se prefiere resolverlo del todo, hace
+falta una migración de una sola columna (`customer_addresses.province`),
+trivial de agregar después.
+
+**Implementado:**
+
+1. Hook único `src/lib/useCustomerAddresses.ts` — todo el CRUD contra
+   `customer_addresses` en un solo lugar (list/create/update/delete/set
+   default), usado tanto por `ServiceRequestForm.tsx` como por el nuevo
+   `CustomerAddressesPanel.tsx` — mismo criterio que `AddressFields.tsx`
+   en la Fase 2: nunca dos caminos que escriban lo mismo por separado.
+2. `ServiceRequestForm.tsx`: si el cliente tiene direcciones guardadas,
+   selector "Dirección" arriba de `AddressFields` (con la default
+   preseleccionada) + opción "+ Agregar nueva dirección". Elegir una
+   guardada precarga calle/número/barrio/localidad en los campos —
+   **editables**, no de solo lectura (decisión mía, el documento lo dejaba
+   "a definir"): si el cliente ajusta algo para este pedido puntual, no
+   modifica la dirección guardada — el pedido siempre guarda su propia
+   copia, nunca una referencia viva.
+3. Checkbox "Guardar esta dirección para próximos pedidos", visible solo
+   en modo "nueva dirección" (como pedía el documento) — la primera
+   dirección de un cliente queda automáticamente `is_default = true`.
+4. `service_orders.client_address_id` se completa de punta a punta: viaja
+   como `addressId` en `CustomerServiceRequestInput` →
+   `api/orders/request-service.ts` (que **verifica server-side que la
+   dirección sea realmente del caller** antes de confiarla — la ruta corre
+   con `supabaseAdmin`, sin RLS, así que un id ajeno se descarta en
+   silencio en vez de confiar en lo que mande el cliente) → payload del
+   draft → `api/payments/webhook.ts` lo escribe al crear la orden real.
+5. `CustomerAddressesPanel.tsx` ("Mi perfil", `#/customer`): listar,
+   crear, editar, eliminar y marcar predeterminada — resuelve el reclamo
+   original de Marcos de no poder actualizar su dirección desde su cuenta.
+   Reusa `AddressFields` con `showProvince={false}` (nuevo prop) ya que
+   acá no aplica.
+6. Guardado de dirección **best-effort**: si falla (ver
+   `ServiceRequestForm.tsx`, bloque `try/catch` alrededor de
+   `createSavedAddress`), el pedido se envía igual con los datos tipeados
+   — nunca bloquea llegar al pago.
+7. `splitAddressLine()` en `src/lib/address.ts`: separa el
+   `address_line` combinado guardado ("Calle Número") en calle/número al
+   precargar una dirección guardada — sin agregar columnas nuevas, en
+   línea con la restricción de Sandy. Best-effort (último token = altura);
+   si el split queda raro, el cliente lo corrige a mano en el campo.
+
+**Fuera de alcance, como pedía el documento:** `GuestServiceRequestForm.tsx`
+sin cambios (no tiene `customer_id`); `formatAddress()` centralizado sigue
+en Fase 4.
+
+**Verificado con transacciones de rollback contra la base real** (primera
+vez que se escribe de verdad en `customer_addresses` — antes tenía 0
+filas): ciclo completo insert x2 → select → cambiar default → update →
+delete, con un cliente real impersonado. Aislamiento confirmado aparte: un
+segundo cliente impersonado no puede ver, actualizar (`GET DIAGNOSTICS
+row_count = 0`) ni borrar una dirección ajena. Persistido como
+`supabase/sql/test_customer_addresses_rls.sql`. Cero residuo confirmado
+después (`select count(*) from customer_addresses` → 0). `tsc --noEmit`,
+`vitest run` (84/84), `npm run build` sin errores. No hubo click-through en
+navegador de las pantallas nuevas (selector, checkbox, panel de "Mi
+perfil") — requieren una sesión de cliente real autenticada, que no tengo.
+
 ## Fases pendientes (orden sugerido por el documento original, sin confirmar todavía)
 
-3. Conectar `customer_addresses`: guardar/reutilizar direcciones desde el
-   formulario de pedido y el perfil del cliente.
 4. Centralizar `formatAddress()` y reemplazar el armado manual de
    dirección en admin, exports, PDFs y notificaciones.
 5. Gestión de `technician_coverage_areas` en la ficha de técnico del

@@ -114,6 +114,7 @@ type CustomerDraftPayload = {
   neighborhood: string;
   city: string;
   province: string;
+  addressId: string | null;
   visitDepositAmount: number;
   totalQuotedAmount: number;
   fixedPriceServiceId: string | null;
@@ -292,6 +293,7 @@ async function createOrderFromApprovedCustomerDraft(
       client_neighborhood: payload.neighborhood || '',
       client_city: payload.city,
       client_province: payload.province,
+      client_address_id: payload.addressId,
       assigned_technician_id: null,
       assigned_technician_name: null,
     })

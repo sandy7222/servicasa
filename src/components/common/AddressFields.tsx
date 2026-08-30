@@ -17,7 +17,11 @@ export type AddressFieldsValue = {
 export const AddressFields: React.FC<{
   value: AddressFieldsValue;
   onChange: (next: AddressFieldsValue) => void;
-}> = ({ value, onChange }) => {
+  /** false para direcciones guardadas: customer_addresses no tiene columna
+   * de provincia (ver docs/adr-address-redesign.md, Fase 3), así que no
+   * tiene sentido mostrar un selector que no se va a guardar. */
+  showProvince?: boolean;
+}> = ({ value, onChange, showProvince = true }) => {
   const set = (key: keyof AddressFieldsValue, raw: string) => onChange({ ...value, [key]: raw });
   const setCapitalized = (key: keyof AddressFieldsValue, raw: string) => onChange({ ...value, [key]: capitalizeWords(raw) });
 
@@ -44,7 +48,7 @@ export const AddressFields: React.FC<{
           />
         </label>
       </div>
-      <div className="grid sm:grid-cols-2 gap-2">
+      <div className={showProvince ? 'grid sm:grid-cols-2 gap-2' : 'grid gap-2'}>
         <label className="text-xs font-semibold text-slate-700">
           Localidad
           <input
@@ -54,17 +58,19 @@ export const AddressFields: React.FC<{
             className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
           />
         </label>
-        <label className="text-xs font-semibold text-slate-700">
-          Provincia
-          <select
-            value={value.province}
-            onChange={(event) => set('province', event.target.value)}
-            className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
-          >
-            <option value="" disabled>Elegí tu provincia</option>
-            {ARGENTINA_PROVINCES.map((p) => <option key={p} value={p}>{p}</option>)}
-          </select>
-        </label>
+        {showProvince && (
+          <label className="text-xs font-semibold text-slate-700">
+            Provincia
+            <select
+              value={value.province}
+              onChange={(event) => set('province', event.target.value)}
+              className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+            >
+              <option value="" disabled>Elegí tu provincia</option>
+              {ARGENTINA_PROVINCES.map((p) => <option key={p} value={p}>{p}</option>)}
+            </select>
+          </label>
+        )}
       </div>
       <label className="block text-xs font-semibold text-slate-700">
         Barrio <span className="font-normal text-slate-400">(opcional, ej. en CABA)</span>

@@ -27,6 +27,7 @@ import { ServiceOrder } from '../types';
 import { formatElapsedTime, getOrderElapsedSeconds } from '../lib/workTimer';
 import { formatArs } from '../lib/pricing';
 import { CustomerProfilePanel } from '../components/client/CustomerProfilePanel';
+import { CustomerAddressesPanel } from '../components/client/CustomerAddressesPanel';
 import { ServiceRequestForm } from '../components/client/ServiceRequestForm';
 import { QuoteViewer } from '../components/client/QuoteViewer';
 import { AssignedTechnicianCard } from '../components/client/AssignedTechnicianCard';
@@ -149,7 +150,7 @@ export const CustomerView: React.FC = () => {
       </div>
 
       <main className="max-w-7xl mx-auto px-3 sm:px-5 lg:px-6 pt-4">
-        {!isDetailPage && <><CustomerProfilePanel /><div className="h-4" /><ConversationsPanel title="Mis conversaciones" emptyLabel="No tenés conversaciones todavía." hideWhenEmpty onOpen={(id) => (window.location.hash = `#/customer/conversaciones/${id}`)} /><div className="h-4" /><MyClaimsPanel onOpen={(claimId) => (window.location.hash = `#/customer/reclamos/${claimId}`)} /><div className="h-4" /><ServiceRequestForm /><div className="h-4" /></>}
+        {!isDetailPage && <><CustomerProfilePanel /><div className="h-4" /><CustomerAddressesPanel /><div className="h-4" /><ConversationsPanel title="Mis conversaciones" emptyLabel="No tenés conversaciones todavía." hideWhenEmpty onOpen={(id) => (window.location.hash = `#/customer/conversaciones/${id}`)} /><div className="h-4" /><MyClaimsPanel onOpen={(claimId) => (window.location.hash = `#/customer/reclamos/${claimId}`)} /><div className="h-4" /><ServiceRequestForm /><div className="h-4" /></>}
         {isDetailPage && (
           <button type="button" onClick={() => navigate('/customer')} className="mb-4 inline-flex items-center gap-1.5 text-xs font-bold text-teal-700 hover:text-teal-800">
             <ArrowLeft className="w-4 h-4" /> Volver a mis servicios

@@ -5,8 +5,9 @@ import { formatArs } from '../../lib/pricing';
 import { groupItemsBySubcategory } from '../../lib/catalogOrder';
 import { SubcategorySectionHeader } from '../common/SubcategorySectionHeader';
 import { redirectToCustomerServiceRequest, fetchPendingDraft, retryDraftPayment, type PendingCustomerDraft } from '../../lib/paymentClient';
-import { validateAddressDraft } from '../../lib/address';
+import { validateAddressDraft, splitAddressLine } from '../../lib/address';
 import { AddressFields, type AddressFieldsValue } from '../common/AddressFields';
+import { useCustomerAddresses } from '../../lib/useCustomerAddresses';
 import { ASSISTANT_DRAFT_EVENT, readAssistantDraft, clearAssistantDraft } from '../../lib/diagnosisDraft';
 import type { AssistantDraft } from '../../lib/diagnosisAssistant';
 import type { OrderPriority, ServiceItem, ServiceType, WorkMode } from '../../types';
@@ -32,6 +33,12 @@ export const ServiceRequestForm: React.FC = () => {
     city: '',
     province: '',
   });
+  const { addresses: savedAddresses, createAddress: createSavedAddress } = useCustomerAddresses(currentUser?.customerId);
+  // '' = todavía sin decidir (antes de que carguen las direcciones guardadas),
+  // 'new' = cargando una dirección nueva, cualquier otro valor = el id de una
+  // dirección guardada elegida del selector.
+  const [selectedAddressId, setSelectedAddressId] = useState<string>('');
+  const [saveAddressChecked, setSaveAddressChecked] = useState(false);
   const [scheduledDate, setScheduledDate] = useState(DATE_TODAY);
   const [appointmentWindow, setAppointmentWindow] = useState('A coordinar');
   const [priority, setPriority] = useState<OrderPriority>('media');
@@ -142,6 +149,33 @@ export const ServiceRequestForm: React.FC = () => {
     }));
   }, [customer?.neighborhood, customer?.province]);
 
+  // Apenas cargan las direcciones guardadas, elegí la default (o la primera)
+  // como punto de partida — sin pisar una elección que el cliente ya haya
+  // hecho a mano en esta sesión.
+  useEffect(() => {
+    if (selectedAddressId !== '') return;
+    if (savedAddresses.length === 0) {
+      setSelectedAddressId('new');
+      return;
+    }
+    const defaultAddress = savedAddresses.find((a) => a.isDefault) ?? savedAddresses[0];
+    setSelectedAddressId(defaultAddress.id);
+    const { street, streetNumber } = splitAddressLine(defaultAddress.addressLine);
+    setAddressDraft((prev) => ({ ...prev, street, streetNumber, neighborhood: defaultAddress.neighborhood ?? '', city: defaultAddress.city }));
+  }, [savedAddresses, selectedAddressId]);
+
+  const selectSavedAddress = (value: string) => {
+    setSelectedAddressId(value);
+    if (value === 'new') {
+      setAddressDraft((prev) => ({ street: '', streetNumber: '', neighborhood: '', city: '', province: prev.province }));
+      return;
+    }
+    const picked = savedAddresses.find((a) => a.id === value);
+    if (!picked) return;
+    const { street, streetNumber } = splitAddressLine(picked.addressLine);
+    setAddressDraft((prev) => ({ ...prev, street, streetNumber, neighborhood: picked.neighborhood ?? '', city: picked.city }));
+  };
+
   const chooseMode = (nextMode: WorkMode) => {
     setMode(nextMode);
     setSent(false);
@@ -171,6 +205,26 @@ export const ServiceRequestForm: React.FC = () => {
 
     setSubmitting(true);
     try {
+      // Guardado de dirección best-effort: si falla, no debe impedir llegar
+      // al pago — el pedido igual se crea con los datos tipeados (ver
+      // docs/adr-address-redesign.md, Fase 3, criterio de tolerancia a fallos).
+      let addressId: string | undefined = selectedAddressId !== 'new' ? selectedAddressId : undefined;
+      if (selectedAddressId === 'new' && saveAddressChecked) {
+        try {
+          const saved = await createSavedAddress(
+            {
+              addressLine: `${addressDraft.street.trim()} ${addressDraft.streetNumber.trim()}`.trim(),
+              neighborhood: addressDraft.neighborhood.trim(),
+              city: addressDraft.city.trim(),
+            },
+            savedAddresses.length === 0
+          );
+          addressId = saved?.id;
+        } catch {
+          // best-effort — seguimos sin addressId
+        }
+      }
+
       showToast('Te llevamos a pagar de forma segura...', 'info', 'Un paso más');
       await redirectToCustomerServiceRequest({
         title: requestTitle,
@@ -187,9 +241,11 @@ export const ServiceRequestForm: React.FC = () => {
         requestedTotal: mode === 'direct' ? directTotal : undefined,
         fixedPriceServiceId: mode === 'direct' ? selectedService!.id : undefined,
         quantity: mode === 'direct' ? quantity : undefined,
+        addressId,
       });
       // redirectToCustomerServiceRequest navega afuera si sale bien — nada más que hacer acá.
       setSent(true);
+      setSaveAddressChecked(false);
       setTitle(''); setDescription(''); setSelectedService(null); setQuantity(1);
     } catch (error) {
       // Acá el pedido todavía NO existe en ningún lado — a diferencia del
@@ -297,7 +353,30 @@ export const ServiceRequestForm: React.FC = () => {
 
         <div className="rounded-xl border border-slate-200 p-3 space-y-2">
           <p className="text-xs font-bold text-slate-800"><MapPin className="inline w-3.5 h-3.5 mr-1 text-teal-700" />Datos de esta visita</p>
+          {savedAddresses.length > 0 && (
+            <label className="block text-xs font-semibold text-slate-700">
+              Dirección
+              <select
+                value={selectedAddressId === '' ? 'new' : selectedAddressId}
+                onChange={(event) => selectSavedAddress(event.target.value)}
+                className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+              >
+                {savedAddresses.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.label ? `${a.label} — ` : ''}{a.addressLine}, {a.city}{a.isDefault ? ' (predeterminada)' : ''}
+                  </option>
+                ))}
+                <option value="new">+ Agregar nueva dirección</option>
+              </select>
+            </label>
+          )}
           <AddressFields value={addressDraft} onChange={setAddressDraft} />
+          {selectedAddressId === 'new' && (
+            <label className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+              <input type="checkbox" checked={saveAddressChecked} onChange={(event) => setSaveAddressChecked(event.target.checked)} className="rounded border-slate-300" />
+              Guardar esta dirección para próximos pedidos
+            </label>
+          )}
           <div className="grid sm:grid-cols-2 gap-2"><label className="text-xs text-slate-600"><CalendarDays className="inline w-3.5 h-3.5 mr-1" />Fecha<input type="date" min={DATE_TODAY} value={scheduledDate} onChange={(event) => setScheduledDate(event.target.value)} className="mt-1 block w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label><label className="text-xs text-slate-600">Franja para este pedido<select value={appointmentWindow} onChange={(event) => setAppointmentWindow(event.target.value)} className="mt-1 block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"><option>A coordinar</option><option>Mañana (08–12 h)</option><option>Mediodía (12–15 h)</option><option>Tarde (15–19 h)</option></select></label></div>
         </div>
 

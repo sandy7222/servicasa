@@ -259,6 +259,26 @@ export type CustomerServiceRequestInput = {
    * recompute the real price. */
   fixedPriceServiceId?: string;
   quantity?: number;
+  /** Solo cliente logueado (guest checkout no tiene customer_id, así que
+   * nunca la manda): de qué customer_addresses vino este pedido, si vino de
+   * una guardada. El server verifica que sea realmente del caller antes de
+   * confiarla — ver api/orders/request-service.ts. Ver
+   * docs/adr-address-redesign.md, Fase 3. */
+  addressId?: string;
+};
+
+/** Dirección guardada de un cliente, reutilizable entre pedidos —
+ * customer_addresses. El pedido siempre guarda su propia copia de los
+ * datos (client_address/client_city/etc.), nunca una referencia viva: si
+ * el cliente edita o borra esta dirección después, los pedidos ya creados
+ * no cambian. Ver docs/adr-address-redesign.md, Fase 3. */
+export type CustomerAddress = {
+  id: string;
+  label: string | null;
+  addressLine: string;
+  neighborhood: string | null;
+  city: string;
+  isDefault: boolean;
 };
 
 /** Same as CustomerServiceRequestInput, plus the contact data a guest (no

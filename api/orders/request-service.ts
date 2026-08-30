@@ -20,6 +20,7 @@ type RequestServiceBody = {
   workMode?: WorkMode;
   fixedPriceServiceId?: string;
   quantity?: number;
+  addressId?: string;
 };
 
 const MAX_TEXT = 500;
@@ -81,6 +82,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: 'Elegí un servicio de precio fijo válido.' });
   }
 
+  // El id de dirección guardada lo manda el cliente, pero esta ruta corre
+  // con supabaseAdmin (sin RLS) — hay que verificar acá que realmente sea
+  // suya antes de confiarlo, o cualquiera podría mandar el id de la
+  // dirección de otra persona. Si no es suya, se descarta en silencio (es
+  // solo trazabilidad — el pedido igual guarda su propia copia de los
+  // datos de dirección tipeados).
+  let addressId: string | null = null;
+  const requestedAddressId = trimmed(body.addressId, 100);
+  if (requestedAddressId) {
+    const { data: ownedAddress } = await supabaseAdmin
+      .from('customer_addresses')
+      .select('id')
+      .eq('id', requestedAddressId)
+      .eq('customer_id', caller.customerId)
+      .maybeSingle();
+    addressId = ownedAddress?.id ?? null;
+  }
+
   // Nunca confiar en un monto que venga del cliente: se recalcula acá desde
   // la fuente confiable, igual que en guest-checkout.ts.
   let amount: number;
@@ -122,6 +141,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     neighborhood,
     city,
     province,
+    addressId,
     visitDepositAmount: workMode === 'diagnosis' ? amount : 0,
     totalQuotedAmount: workMode === 'direct' ? amount : 0,
     fixedPriceServiceId: workMode === 'direct' ? fixedPriceServiceId : null,
