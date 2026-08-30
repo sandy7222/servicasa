@@ -298,7 +298,7 @@ export const ServiceRequestForm: React.FC = () => {
       <div className="grid sm:grid-cols-2 gap-2">
         <button type="button" onClick={() => chooseMode('diagnosis')} className={`text-left rounded-xl border p-3 transition ${mode === 'diagnosis' ? 'border-teal-500 bg-teal-50/60 ring-1 ring-teal-500/20' : 'border-slate-200 hover:bg-slate-50'}`}>
           <span className="inline-flex items-center gap-1 text-xs font-bold text-slate-900"><Search className="w-3.5 h-3.5 text-teal-700" />No sé exactamente qué necesito</span>
-          <span className="block mt-1 text-[11px] text-slate-600">Visita de diagnóstico. La seña vigente es {formatArs(visitDepositAmount)} y se descuenta si aceptás el presupuesto.</span>
+          <span className="block mt-1 text-[11px] text-slate-600">Visita de presupuesto: {formatArs(visitDepositAmount)}. Este monto corresponde a la visita y se cobra de forma independiente del valor del trabajo.</span>
         </button>
         <button type="button" onClick={() => chooseMode('direct')} className={`text-left rounded-xl border p-3 transition ${mode === 'direct' ? 'border-teal-500 bg-teal-50/60 ring-1 ring-teal-500/20' : 'border-slate-200 hover:bg-slate-50'}`}>
           <span className="inline-flex items-center gap-1 text-xs font-bold text-slate-900"><Wrench className="w-3.5 h-3.5 text-teal-700" />Sé qué trabajo necesito</span>

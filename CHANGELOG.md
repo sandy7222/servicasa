@@ -4,6 +4,46 @@ Registro de cambios funcionales relevantes de TecniUrbano. No reemplaza `git log
 (los detalles de implementación están en los commits y las migraciones) — es un
 resumen de qué cambió para el negocio y qué evidencia lo respalda.
 
+## 2026-08-30 (noche, cont.) — Auditoría de "la seña ya no se descuenta": copy pendiente + un presupuesto congelado con el cálculo viejo
+
+Sandy pidió, en estos términos, "eliminar la lógica de `visit_deposit_credit`"
+como si todavía existiera. Antes de tocar nada, verifiqué contra la base y
+el código real — ver `docs/adr-liquidacion-visita.md`, sección "Seguimiento".
+
+- **Ya estaba hecho:** `sync_quote_totals_from_items()` (migración de esta
+  misma sesión, `20260830013220`) ya calcula
+  `remaining_amount = total_amount` sin restar `visit_deposit_credit`.
+  Confirmado leyendo la función en vivo — no había nada que eliminar de
+  nuevo.
+- **Gap real, corregido:** `ServiceRequestForm.tsx` y
+  `GuestServiceRequestForm.tsx` todavía decían "La seña vigente es
+  {monto} y se descuenta si aceptás el presupuesto" en el selector de modo
+  — quedó sin tocar en la Fase 2 del rediseño de dirección (ese cambio
+  solo tocó el bloque de domicilio). Reemplazado por: "Visita de
+  presupuesto: {monto}. Este monto corresponde a la visita y se cobra de
+  forma independiente del valor del trabajo."
+- **Dato real congelado, corregido puntualmente:** el presupuesto de la
+  orden `00e57e92-e889-421c-b658-55b18542faed` (German Gauna) se creó y
+  envió **antes** de la corrección del trigger (2026-08-30 00:06 UTC vs.
+  01:32 UTC) — al estar `sent`, quedó congelado para siempre con
+  `remaining_amount = 14300` (64300 − 50000). Corregido a `remaining_amount
+  = 64300`, `visit_deposit_credit = 0` en una migración puntual que
+  deshabilita/rehabilita el trigger de inmutabilidad solo para esa fila.
+  `api/payments/create.ts` lee `quote.remaining_amount` directo al cobrar
+  el saldo, así que el cliente ahora paga el monto correcto sin más
+  cambios de código.
+- **Auditoría completa:** de 18 archivos con la palabra "seña" (varios
+  falsos positivos de "contraseña"), solo esos dos textos afirmaban un
+  descuento. El resto son labels de estado neutros
+  (`VisitFeeSettings.tsx` ya decía correctamente "sin descuento entre
+  ambos"; los títulos de ítem de Mercado Pago solo nombran el cobro). No
+  se encontró ningún otro lugar asumiendo el descuento viejo.
+- **Orden de Marcos Abate** (`c9d9d945-...`): confirmada
+  `completed`/`paid_in_full` — sin tocar, como pidió Sandy.
+
+**Verificación:** `tsc --noEmit`, `vitest run` (84/84), `npm run build`
+sin errores. `get_advisors` (security) sin hallazgos nuevos.
+
 ## 2026-08-30 (noche, cont.) — Rediseño de dirección, Fase 3: guardar y reutilizar direcciones del cliente
 
 Alcance definido por el propio documento de Fase 3 de Sandy —

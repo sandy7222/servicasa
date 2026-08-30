@@ -268,3 +268,55 @@ Verificación (todo con transacciones `begin; ... rollback;`, sin residuo):
 - Validación de rango 0–1 en claves `%_commission_rate`: rechaza `5.0`,
   acepta `0.2`.
 - `get_advisors` (security): sin hallazgos nuevos tras el fix del punto 7.
+
+## Seguimiento (2026-08-30, tarde/noche) — Sandy pidió "eliminar la lógica de seña", auditado antes de tocar nada
+
+Sandy volvió a plantear el pedido como si la resta de `visit_deposit_credit`
+todavía existiera ("corrección de política de negocio: la seña ya no
+existe como concepto"). Antes de escribir código, verifiqué el estado real
+contra la base y el código:
+
+1. **`sync_quote_totals_from_items()` ya estaba corregida** (migración
+   `20260830013220`, arriba) — `remaining_amount = total_amount`, sin
+   resta de `visit_deposit_credit`, confirmado leyendo la función en vivo.
+   Nada que eliminar de nuevo.
+2. **Copy pendiente, real:** dos pantallas todavía decían "La seña vigente
+   es {monto} y se descuenta si aceptás el presupuesto" —
+   `ServiceRequestForm.tsx` y `GuestServiceRequestForm.tsx`, en el
+   selector de modo "No sé exactamente qué necesito". Quedaron sin tocar
+   en la Fase 2 del rediseño de dirección (ese cambio solo tocó el bloque
+   de domicilio, no esta descripción). Corregido a: "Visita de
+   presupuesto: {monto}. Este monto corresponde a la visita y se cobra de
+   forma independiente del valor del trabajo." — texto de Sandy,
+   interpolando el monto real en vez de hardcodear $50.000.
+3. **Presupuesto congelado con el cálculo viejo, real:** el presupuesto
+   de la orden `00e57e92-e889-421c-b658-55b18542faed` (cliente German
+   Gauna) se creó y envió el 2026-08-30 00:06-00:08 UTC — **antes** de la
+   migración `20260830013220` (01:32 UTC). Al estar `status = 'sent'`, el
+   trigger `order_quotes_prevent_content_change` lo dejó congelado para
+   siempre con `remaining_amount = 64300 - 50000 = 14300`, porque ese
+   trigger solo recalcula presupuestos en `draft`. Corregido puntualmente
+   (`remaining_amount = 64300`, `visit_deposit_credit = 0`) en
+   `supabase/migrations/20260830183951_fix_stale_quote_remaining_amount_german_gauna_order.sql`,
+   deshabilitando el trigger de inmutabilidad solo para esa fila y
+   reactivándolo en la misma transacción. Verificado antes en rollback,
+   y después contra la base real: `remaining_amount = 64300`, sin tocar
+   ninguna otra fila. `api/payments/create.ts` lee
+   `quote.remaining_amount` directo al cobrar el saldo, así que el
+   cliente ahora paga el monto correcto sin más cambios.
+4. **Auditoría completa de "seña"/"descuento" en `src/` y `api/`:** de 18
+   archivos con la palabra "seña" (o "contraseña", falso positivo), todos
+   los demás usos son labels de estado neutros (ej. "Seña pendiente",
+   "Esperando pago de la seña") que no afirman ningún descuento — no se
+   tocaron. `VisitFeeSettings.tsx` ya decía correctamente "se cobra aparte
+   del presupuesto final, sin descuento entre ambos" desde la
+   implementación original. Los títulos de ítem de Mercado Pago ("Seña de
+   visita — {título}" en `create.ts`, `retry-draft.ts`, `guest-checkout.ts`,
+   `request-service.ts`) nombran el cobro sin afirmar descuento — no se
+   tocaron. No se encontró ningún otro lugar asumiendo el descuento viejo.
+5. **Orden de Marcos Abate (`c9d9d945-c86e-4aec-a432-28866836cfa7`)**:
+   confirmada `completed`/`paid_in_full`, `total_paid_amount = 165000` —
+   sin tocar, como pidió Sandy.
+
+**Verificación:** `tsc --noEmit`, `vitest run` (84/84), `npm run build`
+sin errores. `get_advisors` (security) sin hallazgos nuevos.
