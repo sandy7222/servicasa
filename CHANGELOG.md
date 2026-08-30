@@ -43,6 +43,8 @@ nueva (sin residuo de las pruebas), la única orden real existente quedó con
 `vitest run` (84/84) sin cambios de frontend en esta fase. `get_advisors`
 (security) sin hallazgos nuevos.
 
+Commit: `9c0d46f`.
+
 ## 2026-08-30 (tarde) — Bug real: clientes autorregistrados no podían pedir servicio, aunque la ficha de admin ya los mostrara con cuenta
 
 **Reportado por Sandy**: Marcos Abate (cliente ya cargado en la planilla,

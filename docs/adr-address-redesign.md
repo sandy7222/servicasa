@@ -49,7 +49,7 @@ hacer con ese campo al construir la cobertura estructurada.
    confirman una por una antes de implementarse — mismo criterio que el
    resto de cambios grandes en este proyecto.
 
-## Fase 1 — Implementada (commit pendiente de referenciar en CHANGELOG.md)
+## Fase 1 — Implementada (commit `9c0d46f`)
 
 Migración `20260830153351_address_redesign_phase1_service_orders_and_coverage_areas.sql`:
 
