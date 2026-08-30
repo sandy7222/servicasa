@@ -4,6 +4,48 @@ Registro de cambios funcionales relevantes de TecniUrbano. No reemplaza `git log
 (los detalles de implementación están en los commits y las migraciones) — es un
 resumen de qué cambió para el negocio y qué evidencia lo respalda.
 
+## 2026-08-30 (tarde) — Bug real: clientes autorregistrados no podían pedir servicio, aunque la ficha de admin ya los mostrara con cuenta
+
+**Reportado por Sandy**: Marcos Abate (cliente ya cargado en la planilla,
+`CLI-0018`) llenaba el formulario de diagnóstico logueado y, al enviarlo,
+recibía "Tu cuenta todavía no tiene un perfil de cliente vinculado" — pese a
+que la ficha de admin ya lo mostraba con "Ya tiene cuenta".
+
+**Causa real:** hay dos columnas que deberían mantenerse sincronizadas —
+`customers.profile_id` (usada por la ficha de admin y por el gate de
+asignación de técnico) y `profiles.customer_id` (usada por
+`currentUser.customerId`, lo que efectivamente gatea `ServiceRequestForm.tsx`
+y cualquier pantalla de cliente logueado). `redeem_account_invite()`
+(alta vía invitación del admin) las actualiza a las dos en la misma
+transacción. Pero `persistCreateCustomerSelf()` (alta por **autorregistro**,
+sin invitación — `registerCustomer()` en `AppContext.tsx:811`) solo
+escribía `customers.profile_id` — nunca `profiles.customer_id` — y no hay
+ningún trigger en la base que las mantenga sincronizadas solo. El resultado:
+cualquier cliente que se haya dado de alta por su cuenta (no por invitación)
+queda con `profiles.customer_id` en `NULL` para siempre, invisible desde la
+ficha de admin (que solo mira el otro lado del vínculo).
+
+**Alcance real, no solo Marcos:** de los 7 clientes con cuenta vinculada en
+la base, **3 estaban rotos** por este mismo motivo — Marcos Abate, Juan
+Carlos Muccela, Rebeca Ardiles. Los otros 4 (incluida una cuenta de prueba)
+entraron por invitación del admin y estaban bien.
+
+**Corregido:**
+1. `persistCreateCustomerSelf()` ahora también actualiza
+   `profiles.customer_id` después de crear el cliente, en la misma llamada
+   — probado el `UPDATE` bajo RLS impersonando el perfil real de Marcos en
+   una transacción de rollback, confirmando que el policy
+   `profiles_update_own_or_admin` lo permite tal cual lo ejecutaría el
+   cliente real.
+2. Backfill de una sola vez para los 3 perfiles ya rotos
+   (`profiles.customer_id = customers.id` donde `customers.profile_id`
+   apunta a ese perfil y `profiles.customer_id` estaba en `NULL`) —
+   verificado después: los 7 clientes con cuenta quedan con las dos
+   columnas correctamente cruzadas.
+
+**Verificación:** `tsc --noEmit`, `vitest run` (84/84), `npm run build` sin
+errores. `get_advisors` (security) sin hallazgos nuevos.
+
 ## 2026-08-30 (noche, cont.) — "Generar enlace de cuenta" también donde ya se está mirando a la persona
 
 Pedido de Sandy: duplicar la acción de invitación (mismo backend

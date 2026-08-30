@@ -313,7 +313,13 @@ export async function persistCreateCustomer(input: Omit<Customer, 'id' | 'profil
 }
 
 /** Self-registration: the newly authenticated user creates their OWN linked
- * customer record (customers_insert_self RLS: profile_id = auth.uid()). */
+ * customer record (customers_insert_self RLS: profile_id = auth.uid()).
+ * Unlike redeem_account_invite() (which links customers.profile_id AND
+ * profiles.customer_id in the same transaction), this path used to only set
+ * customers.profile_id — leaving profiles.customer_id null forever, since
+ * nothing else syncs it. That silently broke every screen gated on
+ * currentUser.customerId (e.g. ServiceRequestForm) for anyone who
+ * self-registered instead of using an admin invite link. */
 export async function persistCreateCustomerSelf(
   profileId: string,
   input: CustomerRegistrationInput
@@ -331,7 +337,15 @@ export async function persistCreateCustomerSelf(
     .select('*')
     .single();
   throwIfError(error);
-  return mapCustomer(data as DbCustomer);
+  const customer = mapCustomer(data as DbCustomer);
+
+  const { error: profileError } = await supabase
+    .from('profiles')
+    .update({ customer_id: customer.id })
+    .eq('id', profileId);
+  throwIfError(profileError);
+
+  return customer;
 }
 
 export async function persistUpdateCustomer(
