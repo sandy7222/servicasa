@@ -16,6 +16,7 @@ import {
   fetchPublicServices,
   fetchTechnicianApplications,
   fetchVisitDepositAmount,
+  fetchVisitSettlementCommissionRate,
   profileToCurrentUser,
   requestPasswordReset,
   signInWithPassword,
@@ -80,6 +81,7 @@ import {
   persistUpdateService,
   persistUpdateTechnician,
   persistUpdateVisitDepositAmount,
+  persistUpdateVisitSettlementCommissionRate,
 } from '../lib/supabaseMutations';
 import { friendlyErrorMessage } from '../components/common/AppStatus';
 import { isOrderPaymentSettled, orderRequiresPaymentGate } from '../lib/workTimer';
@@ -123,6 +125,8 @@ interface AppContextType {
   catalogSubcategories: CatalogSubcategory[];
   visitDepositAmount: number;
   updateVisitDepositAmount: (amount: number) => Promise<void>;
+  visitSettlementCommissionRate: number;
+  updateVisitSettlementCommissionRate: (rate: number) => Promise<void>;
   currentUser: CurrentUserData | null;
   authReady: boolean;
   authLoading: boolean;
@@ -343,6 +347,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // 30000 here is only the pre-fetch default, matching the previous hardcoded
   // behavior until the real value loads.
   const [visitDepositAmount, setVisitDepositAmount] = useState(30000);
+  // Own commission rate for the visit settlement — separate from
+  // platform_commission_rate (17%, only for completed_work). 0.15 here is
+  // only the pre-fetch default, matching the real system_settings default.
+  const [visitSettlementCommissionRate, setVisitSettlementCommissionRate] = useState(0.15);
   const [technicianApplications, setTechnicianApplications] = useState<TechnicianApplication[]>([]);
 
   // Real Supabase-backed categories/subcategories (plan-categorias-subcategorias.md
@@ -427,6 +435,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setUsingRemoteData(true);
       setCurrentUserState(profileToCurrentUser(profile));
       fetchVisitDepositAmount().then(setVisitDepositAmount).catch(() => {});
+      fetchVisitSettlementCommissionRate().then(setVisitSettlementCommissionRate).catch(() => {});
       if (profile.role === 'admin') {
         fetchTechnicianApplications().then(setTechnicianApplications).catch(() => {});
       }
@@ -487,6 +496,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       showToast('Seña de diagnóstico actualizada', 'success', 'Configuración guardada');
     } catch (err) {
       showToast(friendlyErrorMessage(err, 'No se pudo actualizar la seña'), 'error');
+      throw err;
+    }
+  };
+
+  const updateVisitSettlementCommissionRate = async (rate: number): Promise<void> => {
+    if (!usingRemoteData) {
+      setVisitSettlementCommissionRate(rate);
+      showToast('Comisión actualizada (modo demo, no persiste en Supabase)', 'info');
+      return;
+    }
+    try {
+      await persistUpdateVisitSettlementCommissionRate(rate);
+      setVisitSettlementCommissionRate(rate);
+      showToast('Comisión de la liquidación de visita actualizada', 'success', 'Configuración guardada');
+    } catch (err) {
+      // El servidor (trigger de system_settings) rechaza cualquier valor
+      // fuera de 0–1 aunque el frontend lo hubiera dejado pasar.
+      showToast(friendlyErrorMessage(err, 'No se pudo actualizar la comisión'), 'error');
       throw err;
     }
   };
@@ -2673,6 +2700,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         catalogSubcategories,
         visitDepositAmount,
         updateVisitDepositAmount,
+        visitSettlementCommissionRate,
+        updateVisitSettlementCommissionRate,
         currentUser,
         authReady,
         authLoading,

@@ -517,6 +517,17 @@ export async function persistUpdateVisitDepositAmount(amount: number): Promise<v
   throwIfError(error);
 }
 
+/** Server-side validation (RLS admin-only + el trigger genérico de
+ * system_settings que rechaza un value que no matchea value_type) —
+ * cualquier valor fuera de rango lo rechaza el trigger, no solo el frontend. */
+export async function persistUpdateVisitSettlementCommissionRate(rate: number): Promise<void> {
+  const { error } = await supabase
+    .from('system_settings')
+    .update({ value: rate, updated_at: new Date().toISOString() })
+    .eq('key', 'visit_settlement_commission_rate');
+  throwIfError(error);
+}
+
 export async function persistCreateService(input: ServiceItemInput): Promise<ServiceItem> {
   const { data, error } = await supabase
     .from('services')

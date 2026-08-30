@@ -4,6 +4,78 @@ Registro de cambios funcionales relevantes de TecniUrbano. No reemplaza `git log
 (los detalles de implementación están en los commits y las migraciones) — es un
 resumen de qué cambió para el negocio y qué evidencia lo respalda.
 
+## 2026-08-30 — La seña de visita deja de descontarse del presupuesto; se liquida al técnico aparte
+
+**Cambio de negocio aprobado por Sandy tras ADR** (`docs/adr-liquidacion-visita.md`):
+la seña de $50.000 deja de restarse del presupuesto final — el cliente paga
+ambos montos completos y por separado — y el técnico cobra la seña como una
+liquidación propia (`technician_settlements.settlement_type = 'visita'`),
+neta de una comisión propia del 15% y del fee de Mercado Pago, apenas la
+orden pasa a `in_progress` (no cuando se envía o acepta el presupuesto —
+cubre el caso de una visita hecha y una orden cancelada después, admin
+emergency override incluido).
+
+**Comisión propia, no reutilizada:** nueva clave
+`system_settings.visit_settlement_commission_rate` (default 0.15),
+completamente separada de `platform_commission_rate` (17%, sigue exclusiva
+de `completed_work`). Mismo panel de admin (`VisitFeeSettings.tsx`), mismo
+criterio de validación server-side y auditoría de quién/cuándo/valor
+anterior que el resto de Fase 7 — la validación de rango (0 a 1) del
+trigger genérico `system_settings_audit()` ahora aplica a cualquier clave
+`%_commission_rate`, protegiendo retroactivamente también a
+`platform_commission_rate`, que no tenía ese chequeo antes.
+
+**Corregido para que no se duplique el pago:** `total_paid_amount` ahora
+incluye la seña completa (ya no está descontada del saldo), así que
+`create_settlement_on_order_completed_and_paid()` restaba de más si no se
+tocaba — se corrigió para restar lo ya liquidado como `'visita'` (monto y
+fee de MP) antes de calcular la comisión y el neto de `completed_work`.
+Caso de prueba permanente:
+`supabase/sql/test_visit_and_completed_work_settlements.sql` — dispara
+ambas liquidaciones sobre la misma orden y confirma que la suma coincide
+exactamente con lo pagado por el cliente, en bruto y reconstruida
+(neto + comisión + fee), sin faltantes ni duplicados.
+
+**También corregido (encontrado auditando el pedido, no parte de lo
+pedido inicialmente pero necesario para que el cambio sea consistente):**
+el trigger `sync_quote_totals_from_items` seguía calculando
+`remaining_amount = total_amount - visit_deposit_credit` — sin este fix,
+"Total a pagar" en las pantallas de cliente/técnico hubiera seguido
+mostrando el presupuesto con la seña ya descontada. Ahora
+`remaining_amount = total_amount`, sin resta. Solo afecta presupuestos en
+`draft` — uno ya `sent`/`accepted` está protegido por
+`prevent_sent_quote_content_change` y nunca se recalcula, así que no toca
+presupuestos ya cerrados. `ensureDraft` en `QuoteBuilder.tsx` deja de
+escribir `visit_deposit_credit: order.visitDepositAmount` en presupuestos
+nuevos (queda en 0 — la columna no se borra, solo deja de usarse).
+
+**Pantallas corregidas:** `QuoteViewer.tsx` y `QuoteBuilder.tsx` sacan la
+línea de "Seña acreditada: -$X" y muestran el total del presupuesto sin
+descuento, con una nota aclaratoria de que la visita ya pagada es aparte.
+`RejectedVisitReceipt.tsx` renombra el label "Seña de visita registrada" a
+"Visita de presupuesto registrada" (misma lógica, sin cambios). `ClientFicha.tsx`
+sin cambios de código — ya leía `remaining_amount` directo, ahora correcto
+por el fix del trigger.
+
+**Sin retroactividad, confirmado:** la única orden `in_progress` real de la
+base (Carlos Méndez, Soldadura) quedó sin tocar — el trigger nuevo es
+`AFTER UPDATE` y no se dispara solo. `technician_settlements` tiene 0 filas
+reales tras el deploy.
+
+**Hallazgo de seguridad post-deploy, corregido en el momento:** la nueva
+función de trigger `create_visit_settlement_on_started()` quedó exponible
+vía `/rest/v1/rpc/create_visit_settlement_on_started` para `anon` y
+`authenticated` (`get_advisors` WARN) — a diferencia de
+`create_settlement_on_order_completed_and_paid()`, que ya tenía `PUBLIC`
+revocado. Se revocó `EXECUTE` para igualar el criterio existente; el
+advisor de seguridad quedó limpio de hallazgos nuevos.
+
+**Verificado con transacciones de rollback contra la base real:** doble
+liquidación exacta, cancelación posterior a `in_progress` conserva el pago
+de la seña, sin backfill sobre la orden real en curso, validación de rango
+0–1 rechaza `5.0` y acepta `0.2`. `tsc --noEmit`, `vitest run` (84/84),
+`npm run build` sin errores.
+
 ## 2026-08-30 (madrugada) — Bug de prioridad alta: seña de $30.000 en el camino del asistente de diagnóstico
 
 **Diagnóstico real, no el sospechado.** No era un valor hardcodeado en

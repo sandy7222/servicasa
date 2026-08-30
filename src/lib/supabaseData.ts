@@ -281,6 +281,22 @@ export async function fetchVisitDepositAmount(): Promise<number> {
   return Number.isFinite(value) && value >= 0 ? value : VISIT_DEPOSIT_FALLBACK;
 }
 
+const VISIT_SETTLEMENT_COMMISSION_FALLBACK = 0.15;
+
+/** Comisión propia de la liquidación de visita — separada de
+ * platform_commission_rate (17%, solo para completed_work). Ver
+ * create_visit_settlement_on_started() y el ADR en docs/adr-liquidacion-visita.md. */
+export async function fetchVisitSettlementCommissionRate(): Promise<number> {
+  const { data, error } = await supabase
+    .from('system_settings')
+    .select('value')
+    .eq('key', 'visit_settlement_commission_rate')
+    .maybeSingle();
+  if (error || !data) return VISIT_SETTLEMENT_COMMISSION_FALLBACK;
+  const value = Number(data.value);
+  return Number.isFinite(value) && value >= 0 && value <= 1 ? value : VISIT_SETTLEMENT_COMMISSION_FALLBACK;
+}
+
 /** Admin-only: pending/reviewed "quiero ser técnico" applications. */
 export async function fetchTechnicianApplications(): Promise<TechnicianApplication[]> {
   const { data, error } = await supabase

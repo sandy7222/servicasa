@@ -1,7 +1,29 @@
 # ADR — La seña de visita deja de descontarse del presupuesto; se liquida al técnico aparte
 
-Estado: **propuesta, esperando aprobación de Sandy antes de implementar.**
-Fecha: 2026-08-29.
+Estado: **implementado y verificado en producción (Supabase).**
+Fecha: 2026-08-29 (propuesta) / 2026-08-30 (implementación).
+
+## Decisiones cerradas por Sandy (aprobación del 2026-08-30)
+
+1. Comisión de la liquidación de visita: **15%**, en una clave propia
+   `system_settings.visit_settlement_commission_rate` — NO comparte
+   `platform_commission_rate` (17%, sigue exclusiva de `completed_work`).
+   Editable desde el mismo panel de admin que ya existía para el monto
+   de la seña, con el mismo criterio de validación server-side y
+   auditoría de quién/cuándo/valor anterior.
+2. `create_settlement_on_order_completed_and_paid()` corregida: resta lo
+   ya liquidado como `'visita'` (monto y fee de MP) antes de calcular
+   `completed_work`. Caso de prueba permanente en
+   `supabase/sql/test_visit_and_completed_work_settlements.sql`.
+3. Disparador de la liquidación de visita: `service_orders.status` pasa
+   a `'in_progress'` (propuesta de Claude, confirmada por Sandy por
+   mejor cobertura que "quote sent").
+4. Una orden cancelada después de `in_progress` (incluido admin
+   emergency override) igual paga la seña al técnico — verificado con
+   una orden de prueba en rollback.
+5. Sin retroactividad: la única orden `in_progress` real (Carlos
+   Méndez, Soldadura) queda sin tocar — confirmado, `technician_settlements`
+   tiene 0 filas reales tras el deploy.
 
 ## Decisión de negocio (ya confirmada por Sebastián — no se reabre)
 
@@ -190,16 +212,59 @@ directo de la base; al corregir el trigger, se corrigen solos.
    sin descuento; `RejectedVisitReceipt.tsx` renombra el label de
    "seña" a "visita de presupuesto"; `ClientFicha.tsx` sin cambios.
 
-## Preguntas abiertas antes de implementar
+## Preguntas abiertas — resueltas (ver decisiones cerradas arriba)
 
-1. ¿17% compartido con `completed_work`, o 15% específico para
-   `'visita'`?
-2. ¿Una visita que termina en orden **cancelada** (no solo presupuesto
-   rechazado) también paga la seña al técnico?
-3. Los pedidos que **ya están** `in_progress` ahora mismo (con el
-   trigger viejo todavía activo) — al pasar este cambio, no van a
-   generar una liquidación `'visita'` retroactiva porque el trigger es
-   `AFTER UPDATE` y no vuelve a dispararse solo. ¿Eso es lo que querés
-   ("solo pedidos nuevos" = solo transiciones a `in_progress` que
-   ocurran después del deploy), o hay algún pedido en curso ahora mismo
-   al que también le tendría que aplicar?
+1. 15% específico para `'visita'`, no compartido con `platform_commission_rate`.
+2. Sí — una visita que termina en orden cancelada también paga la seña.
+3. Sin retroactividad — el trigger `AFTER UPDATE` no toca la orden
+   `in_progress` existente por diseño, confirmado sin backfill.
+
+## Implementación (2026-08-30)
+
+Migraciones aplicadas en orden (`supabase/migrations/`):
+
+1. `20260830011955_create_visit_settlement_commission_rate_setting.sql`
+2. `20260830012057_fix_completed_work_settlement_excludes_visit_settlement.sql`
+3. `20260830012118_create_visit_settlement_on_started.sql`
+4. `20260830012228_allow_visita_settlement_type.sql`
+5. `20260830012436_system_settings_validate_commission_rate_range.sql`
+6. `20260830013220_fix_quote_remaining_amount_no_deposit_discount.sql`
+7. `20260830013951_revoke_public_execute_create_visit_settlement_on_started.sql`
+   (hallazgo del advisor de seguridad tras el deploy: la nueva función de
+   trigger quedó exponible vía `/rest/v1/rpc/...` para `anon`/`authenticated`,
+   a diferencia de `create_settlement_on_order_completed_and_paid` que ya
+   tenía `PUBLIC` revocado — corregido para igualar el criterio existente).
+
+Frontend:
+
+- `src/lib/supabaseData.ts` / `supabaseMutations.ts` / `context/AppContext.tsx`:
+  wiring de `visitSettlementCommissionRate` (fetch + update), mismo patrón
+  que `visitDepositAmount`.
+- `src/components/admin/VisitFeeSettings.tsx`: nuevo editor de comisión (%),
+  junto al editor de monto ya existente.
+- `src/components/client/QuoteViewer.tsx` y
+  `src/components/technician/QuoteBuilder.tsx`: sacada la línea de resta de
+  seña; muestran el total del presupuesto sin descuento, con nota
+  aclaratoria de que la visita ya pagada es aparte.
+- `src/components/technician/QuoteBuilder.tsx` (`ensureDraft`): nuevos
+  presupuestos escriben `visit_deposit_credit: 0` en vez de
+  `order.visitDepositAmount`.
+- `src/components/client/RejectedVisitReceipt.tsx`: renombrado el label de
+  "Seña de visita registrada" a "Visita de presupuesto registrada".
+- `src/components/admin/ClientFicha.tsx`: sin cambios (confirmado — ya leía
+  `remaining_amount` directo, que ahora es correcto por la corrección del
+  trigger `sync_quote_totals_from_items`).
+
+Verificación (todo con transacciones `begin; ... rollback;`, sin residuo):
+
+- Doble liquidación sobre la misma orden: `visita` + `completed_work`
+  suman exactamente `total_paid_amount`, en bruto y reconstruido
+  (neto + comisión + fee) — persistido como
+  `supabase/sql/test_visit_and_completed_work_settlements.sql`.
+- Cancelación después de `in_progress`: la liquidación `'visita'` sobrevive
+  sin cambios.
+- Sin backfill: única orden `in_progress` real intacta, 0 liquidaciones
+  reales en la base tras el deploy.
+- Validación de rango 0–1 en claves `%_commission_rate`: rechaza `5.0`,
+  acepta `0.2`.
+- `get_advisors` (security): sin hallazgos nuevos tras el fix del punto 7.
