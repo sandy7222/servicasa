@@ -1,6 +1,6 @@
 # ADR — Rediseño del dato "dirección"
 
-Estado: **Fase 1 implementada y verificada. Fases 2-6 pendientes, a confirmar antes de cada una.**
+Estado: **Fases 1 y 2 implementadas y verificadas. Fases 3-6 pendientes, a confirmar antes de cada una.**
 Fecha: 2026-08-30.
 Origen: documento de Sandy ("Rediseño del dato 'dirección' — TecniUrbano"),
 a partir de un reporte real de Marcos Abate (no pudo completar el campo de
@@ -74,15 +74,59 @@ Migración `20260830153351_address_redesign_phase1_service_orders_and_coverage_a
   nada la escribe todavía).
 - `get_advisors` (security): sin hallazgos nuevos.
 
+## Fase 2 — Implementada
+
+Componente de dirección compartido `src/components/common/AddressFields.tsx`
++ utilidades en `src/lib/address.ts` (`capitalizeWords`, `validateAddressDraft`).
+
+Antes de esta fase, `ServiceRequestForm.tsx` (cliente logueado) y
+`GuestServiceRequestForm.tsx` (invitado) tenían el bloque de dirección
+duplicado byte a byte — exactamente el patrón de bug que ya había aparecido
+con `profiles.customer_id`. Ahora los dos usan el mismo componente:
+
+- **Calle** y **Número** como inputs separados (opción principal del
+  documento original, en vez de un input único con regex).
+- **Localidad** (antes mezclada con "barrio") con la validación pedida:
+  rechaza vacío o puramente numérico — reproduce y bloquea exactamente el
+  caso de Marcos ("547" en el campo de localidad).
+- **Barrio** ahora explícitamente opcional, separado de localidad.
+- Auto-capitalización en calle/localidad/barrio mientras se escribe
+  (pedido explícito de Sandy), simple (cada palabra, sin excepciones de
+  preposiciones en español).
+- La validación del cliente se reproduce tal cual en el servidor
+  (`api/orders/request-service.ts`, `api/orders/guest-checkout.ts`) — nunca
+  se confía en que el chequeo del formulario haya corrido.
+
+**`city` conectado de punta a punta**, no solo en el formulario: se agregó
+al tipo `CustomerServiceRequestInput`/`GuestServiceRequestInput`, viaja en
+el `payload` de `customer_order_drafts`/`guest_checkout_drafts`, y
+`api/payments/webhook.ts` lo escribe en `service_orders.client_city` al
+crear la orden real (una vez confirmado el pago) — la columna que la Fase 1
+dejó lista pero que nadie escribía todavía.
+
+**Hallazgo no pedido pero necesario, corregido en la misma pasada:** separar
+`neighborhood` de `city` significaba que dos pantallas del técnico
+(`TechnicianView.tsx`: el link de "Cómo llegar" a Google Maps y el resumen
+de la orden activa; `WorkHistoryView.tsx`: el historial de trabajos)
+armaban la dirección combinando `clientAddress` + `clientNeighborhood`
+únicamente — con `neighborhood` ahora opcional y vacío en pedidos nuevos,
+esas pantallas iban a mostrar la dirección incompleta o con paréntesis
+vacíos. Se agregó `clientCity` al tipo `ServiceOrder` y al mapeo de
+Supabase, y se sumó a esos 3 lugares puntuales — sin adelantar la
+centralización completa de `formatAddress()`, que sigue siendo Fase 4.
+
+**Verificación:** probado en el navegador contra el formulario de invitado
+real (dev server local, conectado a la base de producción): tipear
+"suipacha" se ve "Suipacha" al instante; tipear "547" en Localidad y enviar
+el formulario dispara el toast exacto y **no genera ningún request de red**
+(confirmado con `read_network_requests` — cero llamadas a
+`/api/orders/guest-checkout`). No se completó un envío válido real para no
+crear un draft de verdad ni tocar la API de Mercado Pago en vivo sin
+necesidad — la ruta ya quedó revisada de punta a punta por código. `tsc
+--noEmit`, `vitest run` (84/84), `npm run build` sin errores.
+
 ## Fases pendientes (orden sugerido por el documento original, sin confirmar todavía)
 
-2. Componente de dirección único (`AddressForm` o similar) con validación
-   (rechazar localidad vacía o puramente numérica, exigir altura numérica
-   en el domicilio) + auto-capitalización de calle/localidad mientras se
-   escribe. Usarlo tanto en el formulario del cliente como en la carga
-   manual del admin — nunca dos implementaciones separadas (mismo tipo de
-   bug que ya se encontró con `profiles.customer_id`: dos caminos que
-   debían escribir el mismo dato y solo uno lo hacía).
 3. Conectar `customer_addresses`: guardar/reutilizar direcciones desde el
    formulario de pedido y el perfil del cliente.
 4. Centralizar `formatAddress()` y reemplazar el armado manual de

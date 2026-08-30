@@ -205,6 +205,7 @@ export function mapOrder(
     clientPhone: row.client_phone,
     clientAddress: row.client_address,
     clientNeighborhood: row.client_neighborhood,
+    clientCity: row.client_city ?? undefined,
     clientProvince: row.client_province ?? undefined,
     assignedTechnicianId: row.assigned_technician_id,
     assignedTechnicianName: row.assigned_technician_name,

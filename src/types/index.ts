@@ -220,6 +220,9 @@ export interface ServiceOrder {
   clientPhone: string;
   clientAddress: string;
   clientNeighborhood: string;
+  /** Localidad/ciudad real — ver docs/adr-address-redesign.md. Órdenes
+   * creadas antes de esa fase no la tienen (undefined). */
+  clientCity?: string;
   clientProvince?: string;
   assignedTechnicianId: string | null;
   assignedTechnicianName: string | null;
@@ -241,6 +244,10 @@ export type CustomerServiceRequestInput = {
   appointmentWindow: string;
   address: string;
   neighborhood: string;
+  /** Localidad/ciudad real (ej. "Burzaco", "San Isidro", "CABA") — separada
+   * de `neighborhood`, que pasa a ser el barrio opcional dentro de esa
+   * ciudad. Ver docs/adr-address-redesign.md. */
+  city: string;
   province: string;
   workMode: WorkMode;
   /** Informative catalog price, only used for optimistic UI before the insert

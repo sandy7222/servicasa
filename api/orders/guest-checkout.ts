@@ -11,6 +11,7 @@ type GuestCheckoutBody = {
   phone?: string;
   address?: string;
   neighborhood?: string;
+  city?: string;
   province?: string;
   title?: string;
   description?: string;
@@ -53,6 +54,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const phone = trimmed(body.phone, 40);
   const address = trimmed(body.address, 200);
   const neighborhood = trimmed(body.neighborhood, 100);
+  const city = trimmed(body.city, 100);
   const province = trimmed(body.province, 60);
   const title = trimmed(body.title, 150);
   const description = trimmed(body.description, MAX_TEXT);
@@ -66,8 +68,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const fixedPriceServiceId = trimmed(body.fixedPriceServiceId, 100) || null;
   const quantity = Math.max(1, Math.min(20, Math.floor(Number(body.quantity) || 1)));
 
-  if (!fullName || !EMAIL_RE.test(email) || !phone || !address || !province || !title || !description) {
+  if (!fullName || !EMAIL_RE.test(email) || !phone || !address || !city || !province || !title || !description) {
     return res.status(400).json({ error: 'Completá todos los campos obligatorios con datos válidos.' });
+  }
+  // Nunca confiar en la validación del cliente: mismo chequeo que
+  // validateAddressDraft() en src/lib/address.ts, para el caso real de un
+  // cliente que escribe la altura en el campo de localidad por error.
+  if (/^\d+$/.test(city)) {
+    return res.status(400).json({ error: 'La localidad no puede ser un número.' });
   }
   if (workMode === 'direct' && !fixedPriceServiceId) {
     return res.status(400).json({ error: 'Elegí un servicio de precio fijo válido.' });
@@ -129,6 +137,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     phone,
     address,
     neighborhood,
+    city,
     province,
     title,
     description: requestedDescription,

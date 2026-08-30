@@ -4,6 +4,44 @@ Registro de cambios funcionales relevantes de TecniUrbano. No reemplaza `git log
 (los detalles de implementación están en los commits y las migraciones) — es un
 resumen de qué cambió para el negocio y qué evidencia lo respalda.
 
+## 2026-08-30 (noche) — Rediseño de dirección, Fase 2: componente de dirección compartido, sin más resta de localidad/altura
+
+Corrige el bug real de Marcos Abate (escribió la altura "547" en el campo
+de localidad). `docs/adr-address-redesign.md` tiene el detalle completo;
+resumen:
+
+- Componente compartido `AddressFields.tsx` + `src/lib/address.ts`
+  (`capitalizeWords`, `validateAddressDraft`), usado en
+  `ServiceRequestForm.tsx` y `GuestServiceRequestForm.tsx` — antes tenían
+  el bloque de dirección duplicado byte a byte (mismo patrón de bug que
+  `profiles.customer_id`).
+- Calle y Número como inputs separados; Localidad separada de Barrio
+  (ahora explícitamente opcional); Localidad rechaza vacío o puramente
+  numérico — reproduce y bloquea el caso exacto de Marcos.
+- Auto-capitalización de calle/localidad/barrio mientras se escribe
+  (pedido explícito de Sandy): "suipacha" → "Suipacha" al instante.
+- Validación replicada en el servidor (`api/orders/request-service.ts`,
+  `api/orders/guest-checkout.ts`) — nunca se confía solo en el formulario.
+- `city` conectado de punta a punta: viaja en el payload del draft y
+  `api/payments/webhook.ts` lo escribe en `service_orders.client_city` al
+  confirmarse el pago — la columna que dejó lista la Fase 1.
+
+**Hallazgo no pedido pero necesario, corregido en la misma pasada:**
+separar `neighborhood` de `city` iba a dejar sin localidad el link de "Cómo
+llegar" del técnico y dos pantallas más (`TechnicianView.tsx`,
+`WorkHistoryView.tsx`) que armaban la dirección combinando solo
+`clientAddress` + `clientNeighborhood`. Se sumó `clientCity` al tipo
+`ServiceOrder` y a esos 3 lugares puntuales, sin adelantar la
+centralización completa de `formatAddress()` (sigue siendo Fase 4).
+
+**Verificación:** probado en vivo contra el formulario de invitado real
+(dev server conectado a producción) — capitalización confirmada al
+tipear, y el intento con "547" en Localidad quedó bloqueado sin generar
+ningún request de red (`read_network_requests` en cero). No se completó un
+envío válido real para no crear un draft ni tocar Mercado Pago en vivo sin
+necesidad. `tsc --noEmit`, `vitest run` (84/84), `npm run build` sin
+errores.
+
 ## 2026-08-30 (tarde, cont.) — Rediseño de dirección, Fase 1: columnas de localidad en órdenes + cobertura de técnicos por zona
 
 **Origen:** documento de Sandy a partir del reporte de Marcos Abate (escribió

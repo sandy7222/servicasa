@@ -46,7 +46,7 @@ import { TechnicianStatisticsView } from '../components/technician/TechnicianSta
 // Google Maps URLs are cross-platform and require no Maps API key.
 // The browser/Maps app obtains the technician's location; TecniUrbano never stores it.
 const directionsUrl = (order: ServiceOrder) => {
-  const destination = [order.clientAddress, order.clientNeighborhood, 'Argentina']
+  const destination = [order.clientAddress, order.clientNeighborhood, order.clientCity, 'Argentina']
     .filter(Boolean)
     .join(', ');
   return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}&travelmode=driving`;
@@ -478,7 +478,9 @@ export const TechnicianView: React.FC = () => {
                     <div>
                       <span className="text-slate-400 block text-[10px] font-medium uppercase tracking-wider">Dirección:</span>
                       <span className="text-slate-700 text-xs truncate block">
-                        {activeOrder.clientAddress} ({activeOrder.clientNeighborhood})
+                        {activeOrder.clientAddress}
+                        {(activeOrder.clientNeighborhood || activeOrder.clientCity) &&
+                          ` (${[activeOrder.clientNeighborhood, activeOrder.clientCity].filter(Boolean).join(', ')})`}
                       </span>
                     </div>
                     <div>

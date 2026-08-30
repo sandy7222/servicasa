@@ -147,6 +147,7 @@ export type DbServiceOrder = {
   client_phone: string;
   client_address: string;
   client_neighborhood: string;
+  client_city?: string | null;
   client_province?: string | null;
   assigned_technician_id: string | null;
   assigned_technician_name: string | null;

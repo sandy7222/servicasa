@@ -5,7 +5,8 @@ import { formatArs } from '../../lib/pricing';
 import { groupItemsBySubcategory } from '../../lib/catalogOrder';
 import { SubcategorySectionHeader } from '../common/SubcategorySectionHeader';
 import { redirectToGuestPayment } from '../../lib/paymentClient';
-import { ARGENTINA_PROVINCES } from '../../lib/argentina';
+import { validateAddressDraft } from '../../lib/address';
+import { AddressFields, type AddressFieldsValue } from '../common/AddressFields';
 import { ASSISTANT_DRAFT_EVENT, readAssistantDraft, clearAssistantDraft } from '../../lib/diagnosisDraft';
 import type { AssistantDraft } from '../../lib/diagnosisAssistant';
 import type { OrderPriority, ServiceItem, ServiceType, WorkMode } from '../../types';
@@ -27,9 +28,13 @@ export const GuestServiceRequestForm: React.FC = () => {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [address, setAddress] = useState('');
-  const [neighborhood, setNeighborhood] = useState('');
-  const [province, setProvince] = useState('');
+  const [addressDraft, setAddressDraft] = useState<AddressFieldsValue>({
+    street: '',
+    streetNumber: '',
+    neighborhood: '',
+    city: '',
+    province: '',
+  });
   const [scheduledDate, setScheduledDate] = useState(DATE_TODAY);
   const [appointmentWindow, setAppointmentWindow] = useState('A coordinar');
   const [priority, setPriority] = useState<OrderPriority>('media');
@@ -107,12 +112,13 @@ export const GuestServiceRequestForm: React.FC = () => {
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!fullName.trim() || !EMAIL_RE.test(email.trim()) || !phone.trim() || !address.trim()) {
-      showToast('Completá nombre, un email válido, teléfono y domicilio.', 'warning');
+    if (!fullName.trim() || !EMAIL_RE.test(email.trim()) || !phone.trim()) {
+      showToast('Completá nombre, un email válido y teléfono.', 'warning');
       return;
     }
-    if (!province) {
-      showToast('Elegí la provincia de esta visita.', 'warning');
+    const addressError = validateAddressDraft(addressDraft);
+    if (addressError) {
+      showToast(addressError, 'warning');
       return;
     }
     if (mode === 'direct' && !selectedService) {
@@ -137,9 +143,10 @@ export const GuestServiceRequestForm: React.FC = () => {
         priority,
         scheduledDate,
         appointmentWindow,
-        address: address.trim(),
-        neighborhood: neighborhood.trim(),
-        province,
+        address: `${addressDraft.street.trim()} ${addressDraft.streetNumber.trim()}`.trim(),
+        neighborhood: addressDraft.neighborhood.trim(),
+        city: addressDraft.city.trim(),
+        province: addressDraft.province,
         workMode: mode,
         requestedTotal: mode === 'direct' ? directTotal : undefined,
         fixedPriceServiceId: mode === 'direct' ? selectedService!.id : undefined,
@@ -240,11 +247,7 @@ export const GuestServiceRequestForm: React.FC = () => {
 
         <div className="rounded-xl border border-slate-200 p-3 space-y-2">
           <p className="text-xs font-bold text-slate-800"><MapPin className="inline w-3.5 h-3.5 mr-1 text-teal-700" />Datos de esta visita</p>
-          <label className="block text-xs font-semibold text-slate-700">Domicilio de atención<input value={address} onChange={(event) => setAddress(event.target.value)} placeholder="Calle y número" className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label>
-          <div className="grid sm:grid-cols-2 gap-2">
-            <label className="text-xs font-semibold text-slate-700">Localidad<input value={neighborhood} onChange={(event) => setNeighborhood(event.target.value)} placeholder="Barrio o localidad" className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label>
-            <label className="text-xs font-semibold text-slate-700">Provincia<select value={province} onChange={(event) => setProvince(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"><option value="" disabled>Elegí tu provincia</option>{ARGENTINA_PROVINCES.map((p) => <option key={p} value={p}>{p}</option>)}</select></label>
-          </div>
+          <AddressFields value={addressDraft} onChange={setAddressDraft} />
           <div className="grid sm:grid-cols-2 gap-2"><label className="text-xs text-slate-600"><CalendarDays className="inline w-3.5 h-3.5 mr-1" />Fecha<input type="date" min={DATE_TODAY} value={scheduledDate} onChange={(event) => setScheduledDate(event.target.value)} className="mt-1 block w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label><label className="text-xs text-slate-600">Franja para este pedido<select value={appointmentWindow} onChange={(event) => setAppointmentWindow(event.target.value)} className="mt-1 block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"><option>A coordinar</option><option>Mañana (08–12 h)</option><option>Mediodía (12–15 h)</option><option>Tarde (15–19 h)</option></select></label></div>
         </div>
 

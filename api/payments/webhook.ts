@@ -89,6 +89,7 @@ type GuestDraftPayload = {
   phone: string;
   address: string;
   neighborhood: string;
+  city: string;
   province: string;
   title: string;
   description: string;
@@ -111,6 +112,7 @@ type CustomerDraftPayload = {
   workMode: 'diagnosis' | 'direct';
   address: string;
   neighborhood: string;
+  city: string;
   province: string;
   visitDepositAmount: number;
   totalQuotedAmount: number;
@@ -199,7 +201,12 @@ async function createOrderFromApprovedGuestDraft(
       client_name: payload.fullName,
       client_phone: payload.phone,
       client_address: payload.address,
-      client_neighborhood: payload.neighborhood || 'A confirmar',
+      // client_neighborhood es NOT NULL en la base y ahora es explícitamente
+      // opcional (barrio dentro de la ciudad) — '' en vez del viejo
+      // "A confirmar", que ya no aplica ahora que la localidad real vive en
+      // client_city.
+      client_neighborhood: payload.neighborhood || '',
+      client_city: payload.city,
       client_province: payload.province,
       assigned_technician_id: null,
       assigned_technician_name: null,
@@ -282,7 +289,8 @@ async function createOrderFromApprovedCustomerDraft(
       client_name: customer.name,
       client_phone: customer.phone,
       client_address: payload.address,
-      client_neighborhood: payload.neighborhood || 'A confirmar',
+      client_neighborhood: payload.neighborhood || '',
+      client_city: payload.city,
       client_province: payload.province,
       assigned_technician_id: null,
       assigned_technician_name: null,
