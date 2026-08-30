@@ -46,6 +46,8 @@ entraron por invitación del admin y estaban bien.
 **Verificación:** `tsc --noEmit`, `vitest run` (84/84), `npm run build` sin
 errores. `get_advisors` (security) sin hallazgos nuevos.
 
+Commit: `9e4cf48`.
+
 ## 2026-08-30 (noche, cont.) — "Generar enlace de cuenta" también donde ya se está mirando a la persona
 
 Pedido de Sandy: duplicar la acción de invitación (mismo backend
