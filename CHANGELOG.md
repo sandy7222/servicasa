@@ -4,6 +4,45 @@ Registro de cambios funcionales relevantes de TecniUrbano. No reemplaza `git log
 (los detalles de implementación están en los commits y las migraciones) — es un
 resumen de qué cambió para el negocio y qué evidencia lo respalda.
 
+## 2026-08-30 (tarde, cont.) — Rediseño de dirección, Fase 1: columnas de localidad en órdenes + cobertura de técnicos por zona
+
+**Origen:** documento de Sandy a partir del reporte de Marcos Abate (escribió
+la altura "547" en el campo de localidad, dejando la localidad real vacía) +
+revisión directa de la base. Diagnóstico completo en
+`docs/adr-address-redesign.md`. Verificado contra la base y el código antes
+de escribir una sola línea de SQL — todo lo que describía el documento
+resultó exacto, con un detalle adicional encontrado en la auditoría:
+`technicians.zone` (texto libre) ya existe pero es puramente decorativo, no
+filtra nada.
+
+**Decisiones confirmadas por Sandy:** geocoding diferido (inputs de texto
+validados, sin lat/lng todavía); `technicians.zone` se mantiene como label,
+sin tocar; alcance de esta sesión limitado a Fase 1 (solo la migración de
+base) — las fases siguientes (componente de dirección compartido,
+direcciones guardadas, `formatAddress` centralizado, cobertura de técnicos
+en la UI, geocoding opcional) se confirman una por una antes de
+implementarse.
+
+**Implementado (Fase 1, solo base — sin cambios de UI todavía):**
+- `service_orders`: nuevas columnas `client_city`, `client_postal_code`,
+  `client_lat`, `client_lng`, `client_address_id` (FK a
+  `customer_addresses.id`, `ON DELETE SET NULL`). `client_neighborhood`
+  queda igual, ahora explícitamente opcional (barrio dentro de la ciudad,
+  ya no hace de localidad).
+- `technician_coverage_areas`: tabla nueva para reemplazar el filtrado
+  100% manual por zona al asignar técnico. RLS con el mismo patrón que
+  `technician_requirements`: admin control total, el técnico solo ve sus
+  propias filas.
+
+**Verificado con transacciones de rollback contra la base real:** `ALTER
+TABLE`/`CREATE TABLE` corren limpio; un técnico impersonado solo ve su
+propia fila de cobertura; un admin impersonado ve todas y puede
+insertar/editar/borrar. Después de aplicar en real: 0 filas en la tabla
+nueva (sin residuo de las pruebas), la única orden real existente quedó con
+`client_city` en `NULL` — sin backfill, como corresponde. `tsc --noEmit`,
+`vitest run` (84/84) sin cambios de frontend en esta fase. `get_advisors`
+(security) sin hallazgos nuevos.
+
 ## 2026-08-30 (tarde) — Bug real: clientes autorregistrados no podían pedir servicio, aunque la ficha de admin ya los mostrara con cuenta
 
 **Reportado por Sandy**: Marcos Abate (cliente ya cargado en la planilla,
