@@ -1,0 +1,11 @@
+-- Segundo hallazgo real en el camino del bug de la seña: la política RLS
+-- system_settings_select_public ya incluía 'anon' en sus roles desde antes,
+-- pero el rol anon nunca tuvo el GRANT de tabla base (SELECT) sobre
+-- system_settings -- sin ese grant, RLS ni siquiera llega a evaluarse
+-- ("permission denied for table system_settings", confirmado probando
+-- con set local role anon). Esto significa que la visibilidad 'public' de
+-- system_settings nunca funcionó de verdad para ningún visitante anónimo,
+-- para ningún setting, desde que se creó -- no es un problema nuevo de
+-- este cambio. Corregido con el GRANT que faltaba; RLS sigue siendo la
+-- única que decide QUÉ filas ve anon (solo visibility='public').
+grant select on public.system_settings to anon;

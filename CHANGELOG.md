@@ -4,6 +4,68 @@ Registro de cambios funcionales relevantes de TecniUrbano. No reemplaza `git log
 (los detalles de implementación están en los commits y las migraciones) — es un
 resumen de qué cambió para el negocio y qué evidencia lo respalda.
 
+## 2026-08-30 (madrugada) — Bug de prioridad alta: seña de $30.000 en el camino del asistente de diagnóstico
+
+**Diagnóstico real, no el sospechado.** No era un valor hardcodeado en
+`diagnosisAssistant.ts`/`diagnosisDraft.ts` (esos archivos no tocan montos en
+absoluto) ni un monto mal calculado server-side. Eran dos problemas de
+permisos encadenados, ambos en `system_settings`:
+
+1. `visit_deposit_amount` tenía `visibility='authenticated'`. Para un
+   visitante SIN cuenta (el único que realmente pasa por
+   `GuestServiceRequestForm.tsx` — un cliente logueado usa `ServiceRequestForm.tsx`,
+   ya autenticado), `fetchVisitDepositAmount()` (cliente, sujeto a RLS)
+   no podía leer la fila real y caía al fallback hardcodeado de
+   `src/lib/supabaseData.ts` (`VISIT_DEPOSIT_FALLBACK = 30000`) — un
+   valor de una tanda de precios vieja que nunca se actualizó porque nada
+   dependía de él hasta que existió el checkout de invitado.
+2. Incluso corrigiendo la visibilidad, el rol `anon` **nunca tuvo el GRANT
+   de tabla base** sobre `system_settings` (`permission denied`, no un
+   simple 0 filas) — la política `system_settings_select_public` que ya
+   incluía `anon` en sus roles nunca pudo aplicarse en la práctica, para
+   ningún setting `public`, desde que se creó. No es un problema nuevo de
+   este bug, es un hallazgo aparte que salió al verificar el fix.
+
+**El monto realmente cobrado ya era correcto** —
+`api/orders/guest-checkout.ts`/`api/orders/request-service.ts` usan
+`supabaseAdmin` (service role, sin RLS) y ya recalculaban $50.000 desde
+`system_settings` antes de armar la preferencia de Mercado Pago, ignorando
+cualquier monto que mandara el cliente (que para modo diagnóstico ni
+siquiera envía uno). Era un bug de visualización pre-pago para el
+visitante, no un cobro incorrecto — confirmado leyendo el código completo
+de ambos endpoints, no solo el síntoma.
+
+**Corregido:** `visit_deposit_amount` pasa a `visibility='public'` (no es
+sensible — ya se muestra como texto público en el propio formulario) +
+`GRANT SELECT ON system_settings TO anon`, verificado que RLS sigue
+acotando a `anon` solo a las filas `public` (`enabled_provinces` y
+`visit_deposit_amount` — nada de comisión ni nada admin).
+
+**Defensa en profundidad agregada, como pidió Sandy:** `customer_order_drafts`
+(la tabla que arma el borrador y dispara el cobro de MP antes de que exista
+la orden) no tenía ningún trigger que revalidara `amount` — a diferencia de
+`service_orders`, protegido por `enforce_service_order_pricing`. Hoy la
+tabla tiene RLS con **cero políticas** (default-deny total, ya señalado
+como INFO en los advisors), así que solo el service role puede escribir
+ahí y ninguno de los dos endpoints confía en un monto del cliente para la
+seña — pero se agregó `enforce_customer_order_draft_pricing()`
+(`BEFORE INSERT`, mismo patrón que el trigger de `service_orders`) para
+que ningún camino futuro (una policy nueva, un dashboard, un bug de
+migración) pueda saltarse el recálculo. Alcance: solo `payment_type='visit_deposit'`,
+tal como se pidió — `full_advance` (precio fijo) sigue igual, ya se
+recalcula server-side contra el catálogo real.
+
+**Verificado con transacciones de rollback contra la base real**
+(`supabase/sql/test_customer_order_draft_pricing_trigger.sql`, mismo
+criterio que `test_pricing_trigger.sql`): un borrador `visit_deposit` con
+`amount=1` manipulado se corrige a $50.000; un borrador `full_advance` con
+`amount=8000` queda sin tocar. Cero residuo en la base (`customer_order_drafts`
+en 0 filas antes y después, tal como confirmó Sandy).
+
+**Verificación:** `tsc --noEmit`, `vitest run` (84/84), `npm run build`.
+
+Commits: [pendiente al hacer el commit].
+
 ## 2026-08-29 (madrugada) — Problema 6 (mobile) investigado, no reproducido; Fase 10 tercera pasada
 
 **Problema 6 — panel de admin desbordado en mobile.** Los tres elementos que
