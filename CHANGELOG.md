@@ -44,6 +44,8 @@ el código real — ver `docs/adr-liquidacion-visita.md`, sección "Seguimiento"
 **Verificación:** `tsc --noEmit`, `vitest run` (84/84), `npm run build`
 sin errores. `get_advisors` (security) sin hallazgos nuevos.
 
+Commit: `767492d`.
+
 ## 2026-08-30 (noche, cont.) — Rediseño de dirección, Fase 3: guardar y reutilizar direcciones del cliente
 
 Alcance definido por el propio documento de Fase 3 de Sandy —
