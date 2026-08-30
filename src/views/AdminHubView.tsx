@@ -3014,7 +3014,31 @@ export const AdminHubView: React.FC = () => {
             {/* Quick Info Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs">
               <div>
-                <span className="text-slate-400 block font-medium">Cliente & Contacto:</span>
+                <div className="flex items-start justify-between gap-1.5">
+                  <span className="text-slate-400 block font-medium">Cliente & Contacto:</span>
+                  {(() => {
+                    const orderClient = customers.find((c) => c.id === selectedOrder.clientId);
+                    if (!orderClient) return null;
+                    return (
+                      <EntityActionsMenu
+                        items={[
+                          {
+                            id: 'invite',
+                            label: orderClient.profileId ? 'Ya tiene cuenta' : 'Generar enlace de cuenta',
+                            icon: 'invite',
+                            disabled: Boolean(orderClient.profileId) || !orderClient.email,
+                            hint: !orderClient.email
+                              ? 'Completá el email primero'
+                              : orderClient.profileId
+                                ? 'Esta ficha ya está vinculada'
+                                : undefined,
+                            onSelect: () => handleGenerateInvite('customer', orderClient.id, orderClient.name),
+                          },
+                        ]}
+                      />
+                    );
+                  })()}
+                </div>
                 <span className="font-bold text-slate-800">{selectedOrder.clientName}</span>
                 <div className="text-slate-500">{selectedOrder.clientAddress}</div>
                 <div className="text-slate-500">{selectedOrder.clientPhone}</div>

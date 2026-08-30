@@ -4,6 +4,38 @@ Registro de cambios funcionales relevantes de TecniUrbano. No reemplaza `git log
 (los detalles de implementación están en los commits y las migraciones) — es un
 resumen de qué cambió para el negocio y qué evidencia lo respalda.
 
+## 2026-08-30 (noche, cont.) — "Generar enlace de cuenta" también donde ya se está mirando a la persona
+
+Pedido de Sandy: duplicar la acción de invitación (mismo backend
+`account_invites`/`createAccountInviteLink`, sin tocar nada de eso) a los
+lugares donde un admin ya está viendo a un técnico o cliente puntual, en
+vez de obligarlo a ir a la planilla de Clientes.
+
+**Auditado primero:** en la pestaña Técnicos, la "Cuadrilla de Técnicos"
+ya es una grilla de tarjetas (no una planilla) y cada tarjeta ya tenía el
+menú de tres puntos con "Generar enlace de cuenta" desde una sesión
+anterior — nada que agregar ahí.
+
+**Agregado:**
+- `ClientFicha.tsx` (la ficha completa del cliente, `#/admin/clientes/<id>`):
+  antes no tenía ninguna acción de cuenta. Se agregó el mismo menú de tres
+  puntos junto a las métricas del encabezado, mismo criterio de
+  habilitación (`disabled` si ya tiene `profileId` o falta el email) y el
+  mismo modal de copiar enlace, implementado localmente en el componente
+  (no se tocó el modal ni el estado que ya usa `AdminHubView.tsx`).
+- Modal de **Detalle de una orden** (`selectedOrder`, bloque "Cliente &
+  Contacto"): es el otro lugar real donde un admin mira a un cliente
+  puntual sin pasar por la planilla — y es justo el flujo donde más
+  importa, porque es ahí donde se topa con el gate duro de asignación de
+  técnico si el cliente no tiene cuenta. Reusa el `handleGenerateInvite` y
+  el `inviteLinkModal` que ya existían en `AdminHubView.tsx`, sin
+  duplicar ese estado.
+
+**Verificación:** `tsc --noEmit`, `vitest run` (84/84), `npm run build`
+sin errores. No hubo click-through en navegador — mismo motivo que el
+cambio anterior (sin credenciales reales de admin para autenticar contra
+el Supabase conectado).
+
 ## 2026-08-30 (noche) — Gate duro: sin cuenta vinculada no hay técnico asignado; invitación automática al crear la orden
 
 **Pedido de Sandy, prioridad alta, cerrado en la misma sesión.** Dos cambios
