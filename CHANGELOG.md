@@ -65,6 +65,8 @@ tus credenciales reales de admin. El gate en sí está probado exhaustivamente
 contra la base real (arriba); lo que falta es la comprobación visual del
 modal, que dejo para que la hagas vos con las instrucciones del reporte.
 
+Commit: `846429f`.
+
 ## 2026-08-30 — La seña de visita deja de descontarse del presupuesto; se liquida al técnico aparte
 
 **Cambio de negocio aprobado por Sandy tras ADR** (`docs/adr-liquidacion-visita.md`):
