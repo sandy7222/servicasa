@@ -76,6 +76,8 @@ de la seña, sin backfill sobre la orden real en curso, validación de rango
 0–1 rechaza `5.0` y acepta `0.2`. `tsc --noEmit`, `vitest run` (84/84),
 `npm run build` sin errores.
 
+Commit: `fdaccc8`.
+
 ## 2026-08-30 (madrugada) — Bug de prioridad alta: seña de $30.000 en el camino del asistente de diagnóstico
 
 **Diagnóstico real, no el sospechado.** No era un valor hardcodeado en
