@@ -4,6 +4,67 @@ Registro de cambios funcionales relevantes de TecniUrbano. No reemplaza `git log
 (los detalles de implementación están en los commits y las migraciones) — es un
 resumen de qué cambió para el negocio y qué evidencia lo respalda.
 
+## 2026-08-30 (noche) — Gate duro: sin cuenta vinculada no hay técnico asignado; invitación automática al crear la orden
+
+**Pedido de Sandy, prioridad alta, cerrado en la misma sesión.** Dos cambios
+en el mismo espíritu de las invitaciones existentes (`account_invites`,
+`redeem_account_invite()`, `get_account_invite()`).
+
+**1. Cuarta condición en `require_eligible_technician_assignment()`**
+(mismo trigger que ya valida técnico habilitado, requisitos pendientes y
+superposición de horario): si `customers.profile_id` del cliente de la
+orden es `NULL`, no se puede asignar ningún técnico —
+`raise exception 'El cliente todavía no tiene una cuenta vinculada. Generá
+y enviale el enlace de invitación antes de asignar un técnico.'`. El pago
+de la seña y la creación de la orden siguen sin cambios — un cliente sin
+cuenta puede pagar y pedir el servicio sin problema.
+
+**Hallazgo de la auditoría, no opcional:** el trigger era
+`BEFORE UPDATE OF assigned_technician_id` — no cubría el `INSERT`. El modal
+"Crear Nueva Orden de Servicio" del admin permite elegir técnico en el
+mismo paso en que se crea la orden (`assigned_technician_id` va poblado
+directo en el INSERT), así que ese camino se salteaba las 4 condiciones
+por completo. Se extendió el trigger a
+`BEFORE INSERT OR UPDATE OF assigned_technician_id`, manejando `tg_op`
+para no referenciar `OLD` en el caso INSERT.
+
+**Sin retroactividad, confirmado:** la orden de Carlos Méndez/German Gauna
+sigue con su técnico ya asignado desde antes — el trigger solo evalúa
+asignaciones *nuevas* (`INSERT` con técnico, o `UPDATE` que cambia el
+valor), nunca datos ya existentes. Verificado con un intento real contra
+esa misma orden (`3ef1ee15-...`, cliente German Gauna, sin canjear su
+invitación): crear una segunda orden para él con técnico asignado en el
+mismo INSERT fue bloqueado con el mensaje esperado, en una transacción de
+rollback sin residuo. Caso de prueba permanente:
+`supabase/sql/test_require_customer_account_for_technician_assignment.sql`
+(5 casos: INSERT bloqueado, INSERT sin técnico permitido, UPDATE
+bloqueado, cliente con cuenta sin problema, regresión de técnico no
+habilitado).
+
+**2. Invitación automática al crear la orden desde el admin** (el camino
+real de "atiendo un llamado y cargo la orden a mano" — confirmado
+auditando `AdminHubView.tsx`: el checkout de invitado online ya le
+entrega el link al propio cliente después de pagar, ese camino no
+necesitaba nada nuevo). En el modal "Crear Nueva Orden de Servicio":
+si el cliente elegido no tiene cuenta (`profileId` null), el selector de
+"Asignar Técnico" se deshabilita con una nota explicando por qué, y al
+crear la orden se genera automáticamente la invitación — mismo backend
+que ya usa el botón "Generar enlace de cuenta" de la planilla de Clientes
+(`createAccountInviteLink` / `persistCreateAccountInvite`, sin tocar
+`account_invites` ni las funciones de canje) — y se muestra de entrada el
+mismo modal de "copiar enlace" que ya existía, sin que el admin tenga que
+navegar a otro lado.
+
+**Verificación:** `tsc --noEmit`, `vitest run` (84/84), `npm run build`
+sin errores. `get_advisors` (security) sin hallazgos nuevos. No pude
+completar un click-through en el navegador del modal de creación de
+orden — el login de demo (`admin@tecniurbano.com.ar` /
+`TecniUrbano2026!`) que muestra la propia UI no es una cuenta real contra
+la base de Supabase conectada, así que no hay forma de autenticarse sin
+tus credenciales reales de admin. El gate en sí está probado exhaustivamente
+contra la base real (arriba); lo que falta es la comprobación visual del
+modal, que dejo para que la hagas vos con las instrucciones del reporte.
+
 ## 2026-08-30 — La seña de visita deja de descontarse del presupuesto; se liquida al técnico aparte
 
 **Cambio de negocio aprobado por Sandy tras ADR** (`docs/adr-liquidacion-visita.md`):

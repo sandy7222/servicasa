@@ -319,6 +319,16 @@ export const AdminHubView: React.FC = () => {
   const [newOrderTechId, setNewOrderTechId] = useState('');
   const [newOrderDate, setNewOrderDate] = useState(() => new Date().toISOString().slice(0, 10));
 
+  const newOrderClient = useMemo(
+    () => customers.find((c) => c.id === newOrderClientId),
+    [customers, newOrderClientId]
+  );
+  const newOrderClientHasNoAccount = Boolean(newOrderClient && !newOrderClient.profileId);
+
+  useEffect(() => {
+    if (newOrderClientHasNoAccount && newOrderTechId) setNewOrderTechId('');
+  }, [newOrderClientHasNoAccount, newOrderTechId]);
+
   // Edit Order Form state
   const [editOrderTitle, setEditOrderTitle] = useState('');
   const [editOrderDesc, setEditOrderDesc] = useState('');
@@ -1009,12 +1019,17 @@ export const AdminHubView: React.FC = () => {
     e.preventDefault();
     if (!newOrderTitle.trim() || !newOrderClientId) return;
 
+    const client = newOrderClient;
+
     createOrder({
       title: newOrderTitle.trim(),
       description: newOrderDesc.trim() || 'Servicio técnico a domicilio',
       serviceType: newOrderService,
       priority: newOrderPriority,
       clientId: newOrderClientId,
+      // El cliente sin cuenta no puede recibir un técnico asignado en el
+      // mismo paso (gate duro en require_eligible_technician_assignment),
+      // así que el selector ya viene deshabilitado/vaciado en ese caso.
       assignedTechnicianId: newOrderTechId || undefined,
       scheduledDate: newOrderDate,
     });
@@ -1024,6 +1039,13 @@ export const AdminHubView: React.FC = () => {
     setNewOrderDesc('');
     setNewOrderClientId('');
     setNewOrderDate(new Date().toISOString().slice(0, 10));
+
+    // Cliente sin cuenta: generamos la invitación de una y la dejamos
+    // lista para copiar en el momento, en vez de depender de que el admin
+    // se acuerde de ir a la planilla de Clientes después.
+    if (client && !client.profileId) {
+      void handleGenerateInvite('customer', client.id, client.name);
+    }
   };
 
   const handleEditOrderSubmit = (e: React.FormEvent) => {
@@ -3305,7 +3327,8 @@ export const AdminHubView: React.FC = () => {
                   <select
                     value={newOrderTechId}
                     onChange={(e) => setNewOrderTechId(e.target.value)}
-                    className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white font-medium"
+                    disabled={newOrderClientHasNoAccount}
+                    className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <option value="">Dejar sin asignar</option>
                     {technicians.map((t) => (
@@ -3314,6 +3337,11 @@ export const AdminHubView: React.FC = () => {
                       </option>
                     ))}
                   </select>
+                  {newOrderClientHasNoAccount && (
+                    <p className="mt-1 text-[10px] text-amber-700">
+                      Este cliente todavía no tiene cuenta vinculada — se genera la invitación al crear la orden. Asigná el técnico después de que la use.
+                    </p>
+                  )}
                 </div>
               </div>
 
