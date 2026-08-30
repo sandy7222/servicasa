@@ -36,6 +36,8 @@ sin errores. No hubo click-through en navegador — mismo motivo que el
 cambio anterior (sin credenciales reales de admin para autenticar contra
 el Supabase conectado).
 
+Commit: `9d3e6db`.
+
 ## 2026-08-30 (noche) — Gate duro: sin cuenta vinculada no hay técnico asignado; invitación automática al crear la orden
 
 **Pedido de Sandy, prioridad alta, cerrado en la misma sesión.** Dos cambios
