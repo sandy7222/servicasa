@@ -64,7 +64,7 @@ en 0 filas antes y después, tal como confirmó Sandy).
 
 **Verificación:** `tsc --noEmit`, `vitest run` (84/84), `npm run build`.
 
-Commits: [pendiente al hacer el commit].
+Commit: `5686ddc`.
 
 ## 2026-08-29 (madrugada) — Problema 6 (mobile) investigado, no reproducido; Fase 10 tercera pasada
 
