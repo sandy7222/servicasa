@@ -54,6 +54,8 @@ después. `tsc --noEmit`, `vitest run` (84/84), `npm run build` sin
 errores. No hubo click-through en navegador de las pantallas nuevas
 (requieren sesión de cliente real autenticada).
 
+Commit: `4ee2ffd`.
+
 ## 2026-08-30 (noche) — Rediseño de dirección, Fase 2: componente de dirección compartido, sin más resta de localidad/altura
 
 Corrige el bug real de Marcos Abate (escribió la altura "547" en el campo
