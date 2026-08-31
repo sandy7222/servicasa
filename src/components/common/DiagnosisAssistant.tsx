@@ -137,9 +137,9 @@ export const DiagnosisAssistant: React.FC = () => {
                   placeholder="Contanos qué ves o qué dejó de andar…"
                   className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs"
                 />
-                <label className="inline-flex items-center gap-1.5 text-[11px] font-bold text-teal-700 cursor-pointer">
-                  <Camera className="w-3.5 h-3.5" />
-                  {photoName ? photoName : 'Adjuntar foto'}
+                <label className="flex w-full min-h-12 items-center justify-center gap-2 rounded-xl border-2 border-teal-600 bg-teal-50 px-3 py-3 text-sm font-bold text-teal-800 cursor-pointer active:bg-teal-100 touch-manipulation">
+                  <Camera className="w-6 h-6 shrink-0" />
+                  <span className="truncate">{photoName ? photoName : 'Adjuntar foto'}</span>
                   <input
                     type="file"
                     accept="image/*"
