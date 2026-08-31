@@ -430,7 +430,6 @@ export const AdminHubView: React.FC = () => {
   const [serviceSearchQuery, setServiceSearchQuery] = useState('');
   const [serviceCategoryFilter, setServiceCategoryFilter] = useState('all');
   const [serviceSortBy, setServiceSortBy] = useState<'name' | 'price-asc' | 'price-desc' | 'duration'>('price-asc');
-  const [collapsedCatalogCategoryIds, setCollapsedCatalogCategoryIds] = useState<Set<string>>(new Set());
   const [collapsedCatalogSubgroupIds, setCollapsedCatalogSubgroupIds] = useState<Set<string>>(new Set());
   const [isNewServiceModalOpen, setIsNewServiceModalOpen] = useState(false);
   const [isEditServiceModalOpen, setIsEditServiceModalOpen] = useState(false);
@@ -619,14 +618,33 @@ export const AdminHubView: React.FC = () => {
     );
   }, [filteredServices, catalogCategories, catalogSubcategories]);
 
-  const toggleCatalogCategoryCollapsed = (key: string) => {
-    setCollapsedCatalogCategoryIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
-  };
+  const catalogIndexItems = useMemo(() => {
+    const knownNames = new Set(catalogCategories.map((c) => c.name));
+    const fromCatalog = sortByDisplayOrder<CatalogCategory>(catalogCategories).map((cat) => ({
+      key: cat.id,
+      name: cat.name,
+      icon: cat.icon,
+      count: services.filter((s) => s.categoryId === cat.id || (!s.categoryId && s.category === cat.name)).length,
+      active: cat.active !== false,
+    }));
+    const leftoverNames = Array.from(
+      new Set(
+        services
+          .map((s) => s.category)
+          .filter((name): name is string => typeof name === 'string' && name.length > 0 && !knownNames.has(name))
+      )
+    ) as string[];
+    const leftovers = leftoverNames
+      .sort((a, b) => a.localeCompare(b, 'es'))
+      .map((name) => ({
+        key: `text:${name}`,
+        name,
+        icon: null as string | null,
+        count: services.filter((s) => s.category === name).length,
+        active: true,
+      }));
+    return [...fromCatalog, ...leftovers];
+  }, [catalogCategories, services]);
 
   const toggleCatalogSubgroupCollapsed = (key: string) => {
     setCollapsedCatalogSubgroupIds((prev) => {
@@ -1285,6 +1303,23 @@ export const AdminHubView: React.FC = () => {
 
   // Service CRUD handlers
   const subcategoryNameFor = (id: string | null) => catalogSubcategories.find((s) => s.id === id)?.name ?? null;
+
+  const openNewServiceModal = () => {
+    const presetName =
+      serviceCategoryFilter !== 'all' ? serviceCategoryFilter : availableServiceCategories[0] || 'General';
+    const match = catalogCategories.find((c) => c.name === presetName);
+    setNewServiceName('');
+    setNewServiceDesc('');
+    setNewServicePrice(18500);
+    setNewServiceCategory(presetName);
+    setNewServiceCategoryId(match?.id ?? null);
+    setNewServiceSubcategoryId(null);
+    setNewServiceDuration(60);
+    setNewServiceFeatures(
+      'Diagnóstico y evaluación en sitio\nGarantía escrita de mano de obra\nRepuestos de primera calidad'
+    );
+    setIsNewServiceModalOpen(true);
+  };
 
   const handleCreateServiceSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -2372,32 +2407,41 @@ export const AdminHubView: React.FC = () => {
             {/* Header & Quick Action */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
               <div>
+                {serviceCategoryFilter !== 'all' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setServiceCategoryFilter('all');
+                      setServiceSearchQuery('');
+                    }}
+                    className="inline-flex items-center gap-1.5 text-slate-600 hover:text-slate-900 mb-2"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                    <span className="text-xs font-bold">Volver a categorías</span>
+                  </button>
+                )}
                 <div className="flex items-center gap-2">
                   <span className="p-1.5 rounded-lg bg-teal-50 text-teal-700 border border-teal-200">
                     <Sparkles className="w-4 h-4 text-teal-600" />
                   </span>
                   <h2 className="text-sm sm:text-base font-bold text-slate-900">
-                    Catálogo de Servicios Tarifados
+                    {serviceCategoryFilter === 'all'
+                      ? 'Catálogo de Servicios Tarifados'
+                      : serviceCategoryFilter}
                   </h2>
                   <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-900 text-teal-300">
                     ADMIN EXCLUSIVE
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 mt-1">
-                  Configuración de tarifas comerciales, precios base de mano de obra, tiempos estimados y beneficios visibles en la app y el portal público.
+                  {serviceCategoryFilter === 'all'
+                    ? 'Elegí un rubro para ver y editar sus tarifas. Las fichas de cada servicio no cambian.'
+                    : `${filteredServices.length} servicio${filteredServices.length !== 1 ? 's' : ''} en este rubro.`}
                 </p>
               </div>
 
               <button
-                onClick={() => {
-                  setNewServiceName('');
-                  setNewServiceDesc('');
-                  setNewServicePrice(18500);
-                  setNewServiceCategory(availableServiceCategories[0] || 'General');
-                  setNewServiceDuration(60);
-                  setNewServiceFeatures('Diagnóstico y evaluación en sitio\nGarantía escrita de mano de obra\nRepuestos de primera calidad');
-                  setIsNewServiceModalOpen(true);
-                }}
+                onClick={openNewServiceModal}
                 className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#0F172A] hover:bg-slate-800 text-teal-300 text-xs font-bold rounded-lg transition-colors border border-slate-700 shadow-xs shrink-0"
                 id="btn-create-service-open"
               >
@@ -2407,6 +2451,7 @@ export const AdminHubView: React.FC = () => {
             </div>
 
             {/* Service Summary Stats */}
+            {serviceCategoryFilter === 'all' && (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
               <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-2xs">
                 <div className="text-[10px] font-mono font-bold uppercase text-slate-400">Total Servicios</div>
@@ -2431,37 +2476,81 @@ export const AdminHubView: React.FC = () => {
                 <div className="text-[10px] text-slate-500 mt-0.5">Tiempo en sitio estimado</div>
               </div>
             </div>
+            )}
 
-            {/* Search & Filters */}
+            {serviceCategoryFilter === 'all' ? (
+              catalogIndexItems.length === 0 ? (
+                <div className="bg-white rounded-2xl p-10 border border-slate-200 text-center">
+                  <div className="w-12 h-12 rounded-2xl bg-teal-50 text-teal-600 flex items-center justify-center mx-auto mb-3">
+                    <Sparkles className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-sm font-bold text-slate-800">Sin rubros en el catálogo</h3>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Creá una categoría en el módulo Categorías o un servicio para empezar.
+                  </p>
+                </div>
+              ) : (
+                <div
+                  className={
+                    catalogIndexItems.length <= 1
+                      ? 'grid grid-cols-1 gap-3'
+                      : catalogIndexItems.length === 2
+                        ? 'grid grid-cols-2 gap-3'
+                        : 'grid grid-cols-2 lg:grid-cols-3 gap-3'
+                  }
+                >
+                  {catalogIndexItems.map((item) => {
+                    const visual = getCategoryVisual(item.icon ?? undefined);
+                    return (
+                      <button
+                        key={item.key}
+                        type="button"
+                        onClick={() => {
+                          setServiceCategoryFilter(item.name);
+                          setServiceSearchQuery('');
+                        }}
+                        className={`text-left bg-white rounded-xl p-4 border shadow-xs hover:shadow-md hover:border-teal-300 transition-all flex items-center gap-3 ${
+                          item.active ? 'border-slate-200' : 'border-slate-200 opacity-70'
+                        }`}
+                      >
+                        <span className={`p-2 rounded-lg ${visual.bg} ${visual.border} border ${visual.text} shrink-0`}>
+                          <CategoryIcon name={item.icon ?? undefined} className="w-4 h-4" />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <h3 className="font-extrabold text-sm text-slate-900 truncate">{item.name}</h3>
+                            {!item.active && (
+                              <span className="shrink-0 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200">
+                                Inactiva
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-slate-500 mt-0.5">
+                            {item.count} servicio{item.count !== 1 ? 's' : ''}
+                          </p>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
+                      </button>
+                    );
+                  })}
+                </div>
+              )
+            ) : (
+              <>
             <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
               <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
-                <div className="relative sm:col-span-6">
+                <div className="relative sm:col-span-8">
                   <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
                     value={serviceSearchQuery}
                     onChange={(e) => setServiceSearchQuery(e.target.value)}
-                    placeholder="Buscar por nombre de servicio, categoría o descripción..."
+                    placeholder="Buscar por nombre de servicio o descripción..."
                     className="w-full text-xs pl-8 pr-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-500 font-medium"
                   />
                 </div>
 
-                <div className="sm:col-span-3">
-                  <select
-                    value={serviceCategoryFilter}
-                    onChange={(e) => setServiceCategoryFilter(e.target.value)}
-                    className="w-full text-xs px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-500 font-medium text-slate-700"
-                  >
-                    <option value="all">Todas las Categorías</option>
-                    {availableServiceCategories.map((cat) => (
-                      <option key={cat} value={cat}>
-                        {cat}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="sm:col-span-3">
+                <div className="sm:col-span-4">
                   <select
                     value={serviceSortBy}
                     onChange={(e) => setServiceSortBy(e.target.value as any)}
@@ -2487,10 +2576,7 @@ export const AdminHubView: React.FC = () => {
                   Ajustá los filtros de búsqueda o creá un nuevo servicio para el catálogo.
                 </p>
                 <button
-                  onClick={() => {
-                    setServiceSearchQuery('');
-                    setServiceCategoryFilter('all');
-                  }}
+                  onClick={() => setServiceSearchQuery('')}
                   className="mt-3 text-xs font-bold text-teal-600 hover:text-teal-700"
                 >
                   Restablecer filtros
@@ -2500,29 +2586,9 @@ export const AdminHubView: React.FC = () => {
               <div className="space-y-4">
                 {groupedFilteredServices.map((group) => {
                   const groupKey = group.categoryId ?? group.categoryName;
-                  const isCollapsed = collapsedCatalogCategoryIds.has(groupKey);
                   const visual = getCategoryVisual(group.icon ?? undefined);
                   return (
-                    <div key={groupKey} className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
-                      <button
-                        type="button"
-                        onClick={() => toggleCatalogCategoryCollapsed(groupKey)}
-                        className="w-full flex items-center justify-between gap-2 px-4 py-3 hover:bg-slate-50 transition-colors"
-                      >
-                        <div className="flex items-center gap-2">
-                          <span className={`p-1.5 rounded-lg ${visual.bg} ${visual.border} border ${visual.text}`}>
-                            <CategoryIcon name={group.icon ?? undefined} className="w-4 h-4" />
-                          </span>
-                          <span className="text-sm font-bold text-slate-900">{group.categoryName}</span>
-                          <span className="text-[11px] font-mono font-bold text-slate-400">({group.totalCount})</span>
-                        </div>
-                        <ChevronDown
-                          className={`w-4 h-4 text-slate-400 transition-transform shrink-0 ${isCollapsed ? '' : 'rotate-180'}`}
-                        />
-                      </button>
-
-                      {!isCollapsed && (
-                        <div className="px-4 pb-4 pt-1 border-t border-slate-100 space-y-5">
+                    <div key={groupKey} className="space-y-5">
                           {group.subgroups.map((subgroup) => {
                             const subKey = `${groupKey}::${subgroup.subcategoryId ?? 'sin-subcategoria'}`;
                             const subCollapsed = collapsedCatalogSubgroupIds.has(subKey);
@@ -2647,12 +2713,12 @@ export const AdminHubView: React.FC = () => {
                             </div>
                             );
                           })}
-                        </div>
-                      )}
                     </div>
                   );
                 })}
               </div>
+            )}
+              </>
             )}
           </div>
         )}
