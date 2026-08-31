@@ -62,8 +62,7 @@ import { PayoutScheduler } from '../components/admin/PayoutScheduler';
 import { PayoutBatchesPanel } from '../components/admin/PayoutBatchesPanel';
 import { SettlementReconciliation } from '../components/admin/SettlementReconciliation';
 import { canTechnicianReceiveOrders } from '../lib/technicianEligibility';
-import { compareByDisplayOrder, sortByDisplayOrder, UNGROUPED_DISPLAY_ORDER, UNGROUPED_SUBCATEGORY_LABEL } from '../lib/catalogOrder';
-import { SubcategorySectionHeader } from '../components/common/SubcategorySectionHeader';
+import { sortByDisplayOrder, UNGROUPED_SUBCATEGORY_LABEL } from '../lib/catalogOrder';
 import {
   OrderPriority,
   ServiceItem,
@@ -429,8 +428,8 @@ export const AdminHubView: React.FC = () => {
   // Services state & modals
   const [serviceSearchQuery, setServiceSearchQuery] = useState('');
   const [serviceCategoryFilter, setServiceCategoryFilter] = useState('all');
+  const [serviceSubcategoryFilter, setServiceSubcategoryFilter] = useState<string | null>(null);
   const [serviceSortBy, setServiceSortBy] = useState<'name' | 'price-asc' | 'price-desc' | 'duration'>('price-asc');
-  const [collapsedCatalogSubgroupIds, setCollapsedCatalogSubgroupIds] = useState<Set<string>>(new Set());
   const [isNewServiceModalOpen, setIsNewServiceModalOpen] = useState(false);
   const [isEditServiceModalOpen, setIsEditServiceModalOpen] = useState(false);
   const [serviceToEdit, setServiceToEdit] = useState<ServiceItem | null>(null);
@@ -541,7 +540,13 @@ export const AdminHubView: React.FC = () => {
         const matchesCategory =
           serviceCategoryFilter === 'all' || srv.category === serviceCategoryFilter;
 
-        return matchesSearch && matchesCategory;
+        const matchesSubcategory =
+          serviceSubcategoryFilter === null ||
+          (serviceSubcategoryFilter === 'sin-subcategoria'
+            ? !srv.subcategoryId
+            : srv.subcategoryId === serviceSubcategoryFilter);
+
+        return matchesSearch && matchesCategory && matchesSubcategory;
       })
       .sort((a, b) => {
         if (serviceSortBy === 'price-asc') return a.price - b.price;
@@ -550,73 +555,7 @@ export const AdminHubView: React.FC = () => {
           return (a.estimatedDurationMinutes || 60) - (b.estimatedDurationMinutes || 60);
         return a.name.localeCompare(b.name);
       });
-  }, [services, serviceSearchQuery, serviceCategoryFilter, serviceSortBy]);
-
-  // Agrupa filteredServices (ya filtrado/ordenado) por categoría real →
-  // subcategoría real (plan-categorias-subcategorias.md Fase 3 paso 2).
-  // El orden dentro de cada subgrupo queda igual al de filteredServices
-  // (partición estable de un arreglo ya ordenado), así el selector de orden
-  // sigue aplicando dentro de cada grupo sin reordenar los grupos entre sí.
-  const groupedFilteredServices = useMemo(() => {
-    type Subgroup = { subcategoryId: string | null; subcategoryName: string | null; services: typeof filteredServices };
-    type Group = {
-      categoryId: string | null;
-      categoryName: string;
-      icon?: string | null;
-      displayOrder: number;
-      subgroups: Subgroup[];
-      totalCount: number;
-    };
-
-    const categoryOrderIndex = new Map<string, number>(catalogCategories.map((c) => [c.id, c.displayOrder]));
-    const groupsByKey = new Map<string, Group>();
-
-    filteredServices.forEach((srv) => {
-      const cat = srv.categoryId ? catalogCategories.find((c) => c.id === srv.categoryId) : undefined;
-      const key = cat?.id ?? `text:${srv.category}`;
-      let group = groupsByKey.get(key);
-      if (!group) {
-        group = {
-          categoryId: cat?.id ?? null,
-          categoryName: cat?.name ?? srv.category,
-          icon: cat?.icon ?? null,
-          displayOrder: cat ? categoryOrderIndex.get(cat.id) ?? 999 : 999,
-          subgroups: [],
-          totalCount: 0,
-        };
-        groupsByKey.set(key, group);
-      }
-      group.totalCount += 1;
-
-      const subcat = srv.subcategoryId ? catalogSubcategories.find((s) => s.id === srv.subcategoryId) : undefined;
-      const subKey = subcat?.id ?? 'sin-subcategoria';
-      let subgroup = group.subgroups.find((s) => (s.subcategoryId ?? 'sin-subcategoria') === subKey);
-      if (!subgroup) {
-        subgroup = { subcategoryId: subcat?.id ?? null, subcategoryName: subcat?.name ?? UNGROUPED_SUBCATEGORY_LABEL, services: [] };
-        group.subgroups.push(subgroup);
-      }
-      subgroup.services.push(srv);
-    });
-
-    groupsByKey.forEach((group) => {
-      group.subgroups.sort((a, b) =>
-        compareByDisplayOrder(
-          {
-            displayOrder: catalogSubcategories.find((s) => s.id === a.subcategoryId)?.displayOrder ?? UNGROUPED_DISPLAY_ORDER,
-            name: a.subcategoryName,
-          },
-          {
-            displayOrder: catalogSubcategories.find((s) => s.id === b.subcategoryId)?.displayOrder ?? UNGROUPED_DISPLAY_ORDER,
-            name: b.subcategoryName,
-          }
-        )
-      );
-    });
-
-    return Array.from(groupsByKey.values()).sort((a, b) =>
-      compareByDisplayOrder({ displayOrder: a.displayOrder, name: a.categoryName }, { displayOrder: b.displayOrder, name: b.categoryName })
-    );
-  }, [filteredServices, catalogCategories, catalogSubcategories]);
+  }, [services, serviceSearchQuery, serviceCategoryFilter, serviceSubcategoryFilter, serviceSortBy]);
 
   const catalogIndexItems = useMemo(() => {
     const knownNames = new Set(catalogCategories.map((c) => c.name));
@@ -646,14 +585,43 @@ export const AdminHubView: React.FC = () => {
     return [...fromCatalog, ...leftovers];
   }, [catalogCategories, services]);
 
-  const toggleCatalogSubgroupCollapsed = (key: string) => {
-    setCollapsedCatalogSubgroupIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
-  };
+  const catalogSubcategoryIndexItems = useMemo(() => {
+    if (serviceCategoryFilter === 'all') return [];
+    const cat = catalogCategories.find((c) => c.name === serviceCategoryFilter);
+    const subs = cat
+      ? sortByDisplayOrder<CatalogSubcategory>(catalogSubcategories.filter((s) => s.categoryId === cat.id))
+      : [];
+    const items = subs.map((sub) => ({
+      key: sub.id,
+      filterId: sub.id,
+      name: sub.name,
+      count: services.filter((s) => s.subcategoryId === sub.id).length,
+      active: sub.active !== false,
+      ungrouped: false,
+    }));
+    const ungroupedCount = services.filter(
+      (s) => s.category === serviceCategoryFilter && !s.subcategoryId
+    ).length;
+    if (ungroupedCount > 0) {
+      items.push({
+        key: 'sin-subcategoria',
+        filterId: 'sin-subcategoria',
+        name: UNGROUPED_SUBCATEGORY_LABEL,
+        count: ungroupedCount,
+        active: true,
+        ungrouped: true,
+      });
+    }
+    return items;
+  }, [serviceCategoryFilter, catalogCategories, catalogSubcategories, services]);
+
+  const selectedSubcategoryLabel =
+    serviceSubcategoryFilter === 'sin-subcategoria'
+      ? UNGROUPED_SUBCATEGORY_LABEL
+      : catalogSubcategories.find((s) => s.id === serviceSubcategoryFilter)?.name ?? '';
+
+  const browseGridClass = (count: number) =>
+    count <= 1 ? 'grid grid-cols-1 gap-3' : count === 2 ? 'grid grid-cols-2 gap-3' : 'grid grid-cols-2 lg:grid-cols-3 gap-3';
 
   // Cancelled/completed orders are closed for a reason unrelated to payment —
   // they never belonged in "Pendientes de pago" (nothing left to unblock) and
@@ -1313,7 +1281,11 @@ export const AdminHubView: React.FC = () => {
     setNewServicePrice(18500);
     setNewServiceCategory(presetName);
     setNewServiceCategoryId(match?.id ?? null);
-    setNewServiceSubcategoryId(null);
+    setNewServiceSubcategoryId(
+      serviceSubcategoryFilter && serviceSubcategoryFilter !== 'sin-subcategoria'
+        ? serviceSubcategoryFilter
+        : null
+    );
     setNewServiceDuration(60);
     setNewServiceFeatures(
       'Diagnóstico y evaluación en sitio\nGarantía escrita de mano de obra\nRepuestos de primera calidad'
@@ -2411,13 +2383,21 @@ export const AdminHubView: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => {
-                      setServiceCategoryFilter('all');
-                      setServiceSearchQuery('');
+                      if (serviceSubcategoryFilter !== null) {
+                        setServiceSubcategoryFilter(null);
+                        setServiceSearchQuery('');
+                      } else {
+                        setServiceCategoryFilter('all');
+                        setServiceSubcategoryFilter(null);
+                        setServiceSearchQuery('');
+                      }
                     }}
                     className="inline-flex items-center gap-1.5 text-slate-600 hover:text-slate-900 mb-2"
                   >
                     <ChevronLeft className="w-3.5 h-3.5" />
-                    <span className="text-xs font-bold">Volver a categorías</span>
+                    <span className="text-xs font-bold">
+                      {serviceSubcategoryFilter !== null ? 'Volver a subcategorías' : 'Volver a categorías'}
+                    </span>
                   </button>
                 )}
                 <div className="flex items-center gap-2">
@@ -2427,7 +2407,9 @@ export const AdminHubView: React.FC = () => {
                   <h2 className="text-sm sm:text-base font-bold text-slate-900">
                     {serviceCategoryFilter === 'all'
                       ? 'Catálogo de Servicios Tarifados'
-                      : serviceCategoryFilter}
+                      : serviceSubcategoryFilter === null
+                        ? serviceCategoryFilter
+                        : selectedSubcategoryLabel || serviceCategoryFilter}
                   </h2>
                   <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-900 text-teal-300">
                     ADMIN EXCLUSIVE
@@ -2436,7 +2418,9 @@ export const AdminHubView: React.FC = () => {
                 <p className="text-xs text-slate-500 mt-1">
                   {serviceCategoryFilter === 'all'
                     ? 'Elegí un rubro para ver y editar sus tarifas. Las fichas de cada servicio no cambian.'
-                    : `${filteredServices.length} servicio${filteredServices.length !== 1 ? 's' : ''} en este rubro.`}
+                    : serviceSubcategoryFilter === null
+                      ? `Elegí una subcategoría. ${catalogSubcategoryIndexItems.reduce((n, item) => n + item.count, 0)} servicio${catalogSubcategoryIndexItems.reduce((n, item) => n + item.count, 0) !== 1 ? 's' : ''} en este rubro.`
+                      : `${filteredServices.length} servicio${filteredServices.length !== 1 ? 's' : ''} en esta subcategoría.`}
                 </p>
               </div>
 
@@ -2490,15 +2474,7 @@ export const AdminHubView: React.FC = () => {
                   </p>
                 </div>
               ) : (
-                <div
-                  className={
-                    catalogIndexItems.length <= 1
-                      ? 'grid grid-cols-1 gap-3'
-                      : catalogIndexItems.length === 2
-                        ? 'grid grid-cols-2 gap-3'
-                        : 'grid grid-cols-2 lg:grid-cols-3 gap-3'
-                  }
-                >
+                <div className={browseGridClass(catalogIndexItems.length)}>
                   {catalogIndexItems.map((item) => {
                     const visual = getCategoryVisual(item.icon ?? undefined);
                     return (
@@ -2507,6 +2483,7 @@ export const AdminHubView: React.FC = () => {
                         type="button"
                         onClick={() => {
                           setServiceCategoryFilter(item.name);
+                          setServiceSubcategoryFilter(null);
                           setServiceSearchQuery('');
                         }}
                         className={`text-left bg-white rounded-xl p-4 border shadow-xs hover:shadow-md hover:border-teal-300 transition-all flex items-center gap-3 ${
@@ -2529,6 +2506,64 @@ export const AdminHubView: React.FC = () => {
                             {item.count} servicio{item.count !== 1 ? 's' : ''}
                           </p>
                         </div>
+                        <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
+                      </button>
+                    );
+                  })}
+                </div>
+              )
+            ) : serviceSubcategoryFilter === null ? (
+              catalogSubcategoryIndexItems.length === 0 ? (
+                <div className="bg-white rounded-2xl p-10 border border-slate-200 text-center">
+                  <div className="w-12 h-12 rounded-2xl bg-teal-50 text-teal-600 flex items-center justify-center mx-auto mb-3">
+                    <Sparkles className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-sm font-bold text-slate-800">Sin subcategorías en este rubro</h3>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Creá una subcategoría en el módulo Categorías o un servicio para este rubro.
+                  </p>
+                </div>
+              ) : (
+                <div className={browseGridClass(catalogSubcategoryIndexItems.length)}>
+                  {catalogSubcategoryIndexItems.map((item) => {
+                    const cat = catalogCategories.find((c) => c.name === serviceCategoryFilter);
+                    const visual = getCategoryVisual(cat?.icon ?? undefined);
+                    return (
+                      <button
+                        key={item.key}
+                        type="button"
+                        onClick={() => {
+                          setServiceSubcategoryFilter(item.filterId);
+                          setServiceSearchQuery('');
+                        }}
+                        className={`text-left bg-white rounded-xl p-4 border shadow-xs hover:shadow-md hover:border-teal-300 transition-all flex items-center gap-3 ${
+                          item.active ? 'border-slate-200' : 'border-slate-200 opacity-70'
+                        }`}
+                      >
+                        <span
+                          className={`w-1 self-stretch rounded-full shrink-0 ${item.ungrouped ? 'bg-slate-300' : visual.accent}`}
+                          aria-hidden
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <h3
+                              className={`font-extrabold text-sm truncate ${item.ungrouped ? 'italic text-slate-500' : 'text-slate-900'}`}
+                            >
+                              {item.name}
+                            </h3>
+                            {!item.active && (
+                              <span className="shrink-0 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200">
+                                Inactiva
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-slate-500 mt-0.5">
+                            {item.count} servicio{item.count !== 1 ? 's' : ''}
+                          </p>
+                        </div>
+                        <span className="shrink-0 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border bg-slate-50 text-slate-600 border-slate-200">
+                          {item.count}
+                        </span>
                         <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
                       </button>
                     );
@@ -2583,30 +2618,8 @@ export const AdminHubView: React.FC = () => {
                 </button>
               </div>
             ) : (
-              <div className="space-y-4">
-                {groupedFilteredServices.map((group) => {
-                  const groupKey = group.categoryId ?? group.categoryName;
-                  const visual = getCategoryVisual(group.icon ?? undefined);
-                  return (
-                    <div key={groupKey} className="space-y-5">
-                          {group.subgroups.map((subgroup) => {
-                            const subKey = `${groupKey}::${subgroup.subcategoryId ?? 'sin-subcategoria'}`;
-                            const subCollapsed = collapsedCatalogSubgroupIds.has(subKey);
-                            const ungrouped = !subgroup.subcategoryId;
-                            return (
-                            <div key={subKey}>
-                              <SubcategorySectionHeader
-                                name={subgroup.subcategoryName ?? UNGROUPED_SUBCATEGORY_LABEL}
-                                count={subgroup.services.length}
-                                ungrouped={ungrouped}
-                                compact
-                                collapsed={subCollapsed}
-                                accentBarClass={ungrouped ? 'bg-slate-300' : visual.accent}
-                                onToggle={() => toggleCatalogSubgroupCollapsed(subKey)}
-                              />
-                              {!subCollapsed && (
-                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
-                                {subgroup.services.map((srv) => (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                {filteredServices.map((srv) => (
                     <div
                       key={srv.id}
                       className="bg-white rounded-xl p-4 border border-slate-200/90 shadow-xs hover:shadow-md transition-all flex flex-col justify-between group relative"
@@ -2707,15 +2720,7 @@ export const AdminHubView: React.FC = () => {
                         </div>
                       </div>
                     </div>
-                                ))}
-                              </div>
-                              )}
-                            </div>
-                            );
-                          })}
-                    </div>
-                  );
-                })}
+                ))}
               </div>
             )}
               </>
