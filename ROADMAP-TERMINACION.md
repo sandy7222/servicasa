@@ -599,15 +599,15 @@ La recomendación inicial es el sistema general, con conversaciones asociadas a 
 **Duración:** 3 a 4 sesiones.
 **Meta:** impedir que una mejora rompa órdenes, permisos o dinero.
 
-> **Actualización de cierre por capas (31/8):** se instaló cobertura V8 y se separaron comandos para unitarios, API, componentes y E2E. La batería Vitest creció a **15 archivos / 106 pruebas** y pasa completa. La capa API agrega autorización por rol, montos calculados en servidor, propiedad de presupuesto/dirección, cancelación ante error de proveedor e idempotencia del webhook. Los **10 scripts SQL rollback-safe** pasan contra Supabase live sin persistir datos. E2E registra **4 specs / 9 escenarios**: 2 pasan sin credenciales privadas y 7 autenticados se omiten de forma explícita hasta cargar los secretos del entorno de CI. Informe reproducible: `docs/audits/2026-08-31-phase8.md`.
+> **Actualización de cierre por capas (31/8-1/9):** se instaló cobertura V8 y se separaron comandos para unitarios, API, componentes y E2E. La batería Vitest creció a **15 archivos / 106 pruebas** y pasa completa. La capa API agrega autorización por rol, montos calculados en servidor, propiedad de presupuesto/dirección, cancelación ante error de proveedor e idempotencia del webhook. Los **10 scripts SQL rollback-safe** pasan contra Supabase live sin persistir datos. E2E registra **4 specs / 9 escenarios**: 2 pasan sin credenciales privadas y 7 autenticados se omiten de forma explícita hasta cargar los secretos del entorno de CI. El CI reproducible pasó completo el 1/9 (incluidas migraciones desde cero). Informe reproducible: `docs/audits/2026-08-31-phase8.md`.
 
 ### Pirámide de pruebas
 
-- [x] **Unitarias (25/8):** 8 archivos, 67 pruebas — dinero/gating de pago (`workTimer.test.ts`), elegibilidad consolidada (`technicianEligibility.test.ts`), configuración tipada (`settings.test.ts`), avance de metas (`technicianGoals.test.ts`), permisos cruzados de rol (`securityValidations.test.ts`, reescrito desde un runner muerto que nunca corrió — encontró y corrigió 2 aserciones viejas que no coincidían con el código real), y columnas seguras de `technicians` (`supabaseData.columns.test.ts`). Categorías/subcategorías todavía sin cobertura unitaria directa.
+- [x] **Unitarias (1/9):** 8 archivos / 71 pruebas — dinero/gating de pago (`workTimer.test.ts`), elegibilidad consolidada (`technicianEligibility.test.ts`), configuración tipada (`settings.test.ts`), avance de metas (`technicianGoals.test.ts`), permisos cruzados de rol (`securityValidations.test.ts`) y columnas seguras de `technicians` (`supabaseData.columns.test.ts`). Categorías/subcategorías todavía sin cobertura unitaria directa.
 - [ ] **Componentes (31/8, parcial):** 3 archivos / 17 pruebas (`NotificationBell`, `SystemSettingsPanel`, `QuoteViewer`). Ya cubre estados de presupuesto, vencimiento, aceptación/rechazo y entrega correcta al pago; todavía falta ampliar formularios/estados de carga y error del resto del producto.
 - [x] **Supabase (31/8):** se mantiene la decisión de usar los 10 scripts rollback-safe de `supabase/tests/*.sql` como capa de integración en vez de pgTAP. Los 10 fueron ejecutados contra Supabase live y pasaron con `ROLLBACK`; se actualizaron únicamente fixtures/aserciones obsoletas, no políticas ni reglas.
 - [x] **API (31/8, endpoints monetarios críticos):** 4 archivos / 18 pruebas para `payments/create`, webhook, checkout invitado y solicitud de servicio. Cubren método/autenticación/rol, monto calculado en servidor, pertenencia de entidades, repetición del webhook y cancelación ante error del proveedor.
-- [ ] **E2E (31/8, parcial):** 4 specs / 9 escenarios registrados. Sin secretos privados pasan credenciales inválidas y el handoff de checkout invitado; 7 escenarios autenticados se omiten explícitamente. Para cerrarlos hay que configurar credenciales E2E aisladas y completar los flujos transaccionales restantes.
+- [ ] **E2E (1/9, parcial):** 4 specs / 9 escenarios registrados. Sin secretos privados pasan credenciales inválidas y el handoff de checkout invitado; 7 escenarios autenticados se omiten explícitamente. Incluye el spec de intentos cruzados, pero no se marca como flujo cerrado hasta ejecutarlo con cuentas E2E aisladas. Para cerrar la capa faltan esos secretos y los flujos transaccionales restantes.
 
 ### Flujos E2E obligatorios
 
@@ -626,13 +626,13 @@ Creado `.github/workflows/ci.yml` (25/8), 4 jobs:
 - [x] instalación reproducible;
 - [x] lint TypeScript;
 - [x] build;
-- [x] tests unitarios;
-- [x] tests de base local cuando sea viable — solo `supabase db start` (reconstruye el esquema desde las migraciones), no la suite de `supabase/tests/*.sql`: esos scripts asumen las cuentas reales del proyecto remoto, correrlos contra una base local recién creada sin seed daría falsos negativos. Job informativo (`continue-on-error`), no bloqueante.
+- [x] pruebas unitarias, API y componentes con cobertura;
+- [x] pruebas de base local cuando sea viable — `supabase db start` reconstruye el esquema desde las migraciones. No corre la suite de `supabase/tests/*.sql`: esos scripts asumen cuentas reales del proyecto remoto, por lo que correrlos contra una base local recién creada sin seed daría falsos negativos. Es bloqueante y pasó en CI el 1/9.
 - [x] chequeo de secretos y dependencias — `npm audit` + `gitleaks`, informativo.
 
 El chequeo de dependencias/secretos continúa informativo; instalación, lint, build, pruebas Vitest y reconstrucción de migraciones bloquean el merge. E2E bloquea cuando el repositorio tiene la configuración pública necesaria.
 
-**Actualización CI (31/8):** el job principal ahora ejecuta unitarios + API + componentes con cobertura y publica el reporte. La reconstrucción local de Supabase dejó de ser informativa y pasa a bloquear. E2E también bloquea cuando existen las variables públicas; cada spec autenticado se omite de forma visible si falta su credencial privada. Se excluyeron pruebas y reportes del despliegue Vercel mediante `.vercelignore`.
+**Actualización CI (1/9):** el job principal ejecuta unitarios + API + componentes con cobertura y publica el reporte. La reconstrucción local de Supabase es bloqueante y quedó verificada en [la ejecución aprobada de GitHub Actions](https://github.com/sandy7222/servicasa/actions/runs/33501110668). E2E también bloquea cuando existen las variables públicas; cada spec autenticado se omite de forma visible si falta su credencial privada. Se excluyeron pruebas y reportes del despliegue Vercel mediante `.vercelignore`.
 
 ### Endurecimiento adicional
 
@@ -645,7 +645,7 @@ El chequeo de dependencias/secretos continúa informativo; instalación, lint, b
 
 ### Criterio de aceptación
 
-- [x] CI bloquea una rama que rompe lint, build o pruebas (el job `install-lint-build-unit` no tiene `continue-on-error`).
+- [x] CI bloquea una rama que rompe lint, build, Vitest o reconstrucción de migraciones (`install-lint-build-unit` y `supabase-migrations-reproducible` no tienen `continue-on-error`; ver ejecución aprobada del 1/9).
 - [ ] Los flujos críticos tienen pruebas repetibles — cubierto: dinero/permisos/elegibilidad a nivel unitario, 1 de 7 flujos E2E. Falta el resto.
 - [ ] No hay advertencias de seguridad Supabase de prioridad alta sin decisión documentada — cerrado hoy lo de `technicians`/`is_admin`/tokens de invitación/`technician_public_view` (el único ERROR del advisor); siguen las 66 advertencias de rendimiento de RLS (`auth_rls_initplan`/`multiple_permissive_policies`), que son cosméticas, no fugas.
 
