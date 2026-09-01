@@ -178,6 +178,11 @@ grant execute on function public.respond_to_technician_assignment(uuid, text) to
 
 -- Decision 1: vencimiento automatico de ofertas sin respuesta - mismo
 -- patron que run_scheduled_settlement_release (cron cada 15 min).
+-- El proyecto live ya tenía pg_cron habilitado, pero una reconstrucción
+-- local parte de una base vacía. Declararlo hace que la migración sea
+-- autocontenida también en CI; no altera el cron existente en producción.
+create extension if not exists pg_cron;
+
 create or replace function public.expire_stale_technician_offers()
 returns void
 language plpgsql
