@@ -22,7 +22,9 @@ SET row_security = off;
 -- Name: public; Type: SCHEMA; Schema: -; Owner: -
 --
 
-CREATE SCHEMA public;
+-- La imagen local de Supabase ya crea este schema. El dump de producción
+-- debe poder reconstruirse tanto allí como en una base verdaderamente vacía.
+CREATE SCHEMA IF NOT EXISTS public;
 
 
 --
@@ -5801,5 +5803,4 @@ CREATE POLICY technicians_write_admin ON public.technicians TO authenticated USI
 --
 -- PostgreSQL database dump complete
 --
-
 

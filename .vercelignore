@@ -1,0 +1,8 @@
+# Tests and their generated artifacts must never become serverless routes
+# or production bundle inputs.
+api/**/*.test.ts
+test/
+e2e/
+coverage/
+playwright-report/
+test-results/

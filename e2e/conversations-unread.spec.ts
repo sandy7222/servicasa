@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { expect, test } from '@playwright/test';
-import { ACCOUNTS, login } from './helpers';
+import { ACCOUNTS, hasCredentials, login } from './helpers';
 
 /**
  * Flujo E2E obligatorio del roadmap: "Conversación → no leído → lectura".
@@ -20,12 +20,17 @@ import { ACCOUNTS, login } from './helpers';
 const supabaseUrl = process.env.VITE_SUPABASE_URL;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const hasServiceRole = Boolean(supabaseUrl && serviceRoleKey);
+const hasConversationCredentials =
+  hasServiceRole && hasCredentials(ACCOUNTS.customer) && hasCredentials(ACCOUNTS.technician);
 
 const JULIAN_PROFILE_ID = '39921296-0657-4aca-868d-45d7c63c46a7';
 const MARIA_PROFILE_ID = '3ef7d581-b040-4669-88bf-d572ab4b4ac4';
 
 test.describe('Conversación → no leído → lectura', () => {
-  test.skip(!hasServiceRole, 'Requiere SUPABASE_SERVICE_ROLE_KEY para el setup de la conversación de prueba.');
+  test.skip(
+    !hasConversationCredentials,
+    'Requiere service role y credenciales E2E protegidas para cliente y técnico.',
+  );
 
   let conversationId: string;
 

@@ -16,8 +16,10 @@ export default defineConfig({
     css: false,
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'html'],
-      include: ['src/lib/**', 'src/components/**'],
+      reporter: ['text', 'html', 'json-summary'],
+      reportsDirectory: './coverage',
+      include: ['src/lib/**', 'src/components/**', 'api/**'],
+      exclude: ['**/*.test.*', '**/*.spec.*', 'test/**/*'],
     },
     exclude: ['node_modules', 'dist', '**/e2e/**', '.claude/**'],
   },

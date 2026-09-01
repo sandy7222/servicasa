@@ -19,12 +19,13 @@ create temp table test_results (n int, name text, ok boolean, detail text);
 insert into service_orders (
   id, title, description, service_type, priority, status, scheduled_date,
   customer_id, client_name, assigned_technician_id, assigned_technician_name,
+  technician_response_status,
   work_mode, service_status, payment_status, total_quoted_amount, total_paid_amount,
   fixed_price_service_id, fixed_price_quantity
 ) values (
   '00000000-0000-4000-8000-000000000901', 'TEST idempotencia liquidacion', 'desc', 'Mantenimiento general', 'media', 'assigned',
   current_date, '98f00edc-f715-4db8-86ac-9b11df7e1363', 'Julian Albarracin',
-  'a1df8a0c-fa2b-45da-9d96-d6756c8074c0', 'Maria Rodriguez', 'direct', 'pending', 'pending', 25000, 0,
+  'a1df8a0c-fa2b-45da-9d96-d6756c8074c0', 'Maria Rodriguez', 'accepted', 'direct', 'pending', 'pending', 25000, 0,
   '3796594a-a421-43fc-bcf3-7f513dff8c76', 1
 );
 
@@ -83,12 +84,13 @@ create temp table test_results (n int, name text, ok boolean, detail text);
 insert into service_orders (
   id, title, description, service_type, priority, status, scheduled_date,
   customer_id, client_name, assigned_technician_id, assigned_technician_name,
+  technician_response_status,
   work_mode, service_status, payment_status, total_quoted_amount, total_paid_amount,
   fixed_price_service_id, fixed_price_quantity
 ) values (
   '00000000-0000-4000-8000-000000000902', 'TEST cierre excepcional sin pago', 'desc', 'Mantenimiento general', 'media', 'assigned',
   current_date, '98f00edc-f715-4db8-86ac-9b11df7e1363', 'Julian Albarracin',
-  'a1df8a0c-fa2b-45da-9d96-d6756c8074c0', 'Maria Rodriguez', 'direct', 'pending', 'pending', 25000, 0,
+  'a1df8a0c-fa2b-45da-9d96-d6756c8074c0', 'Maria Rodriguez', 'accepted', 'direct', 'pending', 'pending', 25000, 0,
   '3796594a-a421-43fc-bcf3-7f513dff8c76', 1
 );
 

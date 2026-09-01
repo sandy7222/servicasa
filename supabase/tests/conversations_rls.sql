@@ -25,12 +25,13 @@ grant insert, select on test_results to authenticated;
 insert into public.service_orders (
   id, title, description, service_type, priority, status, service_status,
   work_mode, quote_status, payment_status, scheduled_date, customer_id,
-  assigned_technician_id, client_name, client_phone, client_address, client_neighborhood
+  assigned_technician_id, client_name, client_phone, client_address, client_neighborhood,
+  work_started_at
 ) values (
   '00000000-0000-0000-0000-00000000b001', 'Test conversaciones', 'desc', 'Plomería', 'media',
   'assigned', 'pending', 'diagnosis', 'none', 'pending', current_date,
   '98f00edc-f715-4db8-86ac-9b11df7e1363', 'ea81fb7e-f758-49df-81a7-8060d9a5966b', -- Julián / Carlos
-  'Julian Test', '111', 'calle 1', 'barrio'
+  'Julian Test', '111', 'calle 1', 'barrio', now()
 );
 
 set local role authenticated;

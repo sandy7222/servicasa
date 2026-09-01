@@ -14,6 +14,11 @@ create temp table test_config (admin_profile_id uuid);
 grant select on test_config to authenticated;
 insert into test_config select id from profiles where role = 'admin' limit 1;
 
+create temp table test_setting_before (value jsonb, version integer);
+grant select on test_setting_before to authenticated;
+insert into test_setting_before
+select value, version from system_settings where key = 'visit_deposit_amount';
+
 -- ============================================================
 -- TEST 1: el trigger de tipo rechaza un value que no coincide con
 -- value_type (server-side, no solo documentación).
@@ -35,11 +40,18 @@ end $$;
 update system_settings set value = '35000' where key = 'visit_deposit_amount';
 
 insert into test_results select 2, 'la fila queda con el valor nuevo y version incrementada',
-  (select value::text = '35000' and version = 3 from system_settings where key = 'visit_deposit_amount'),
+  (select value::text = '35000'
+     and version = (select version + 1 from test_setting_before)
+   from system_settings where key = 'visit_deposit_amount'),
   (select 'value=' || value::text || ' version=' || version from system_settings where key = 'visit_deposit_amount');
 
-insert into test_results select 3, 'quedó un registro de historial con el valor anterior (30000) y el nuevo (35000)',
-  exists (select 1 from system_settings_history where key = 'visit_deposit_amount' and old_value::text = '30000' and new_value::text = '35000'),
+insert into test_results select 3, 'quedó un registro de historial con el valor anterior y el nuevo (35000)',
+  exists (
+    select 1 from system_settings_history
+    where key = 'visit_deposit_amount'
+      and old_value = (select value from test_setting_before)
+      and new_value::text = '35000'
+  ),
   'ok';
 
 -- ============================================================
