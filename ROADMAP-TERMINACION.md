@@ -272,11 +272,13 @@ Los comandos exactos de Supabase deben confirmarse con `supabase --help`, porque
 **Duración:** 2 sesiones.
 **Meta:** saber exactamente qué hay en producción antes de cambiarlo.
 
+> **Reauditoría 30/8/2026 (Codex, solo lectura):** el inventario del 23/8 quedó históricamente conservado, pero ya no describe producción. El baseline actual está en `docs/audits/2026-08-30-phase0-baseline.md`. Supabase pasó a 51 tablas públicas (todas con RLS), 5 vistas (todas `security_invoker`), 60 funciones, 5 buckets, `pg_cron` con 2 jobs activos y 40 migraciones locales/remotas alineadas. Vercel sirve producción desde el mismo HEAD de `main`, producción responde 200 y los previews redirigen al SSO. La fase queda **reabierta** porque el repo público contiene una contraseña de pruebas utilizable, hay funciones `SECURITY DEFINER` modificadoras ejecutables por `anon`, el CI agregado queda verde aunque dos jobs fallen y un archivo `api/**/*.test.ts` fue empaquetado como función productiva. No se corrigió nada en esta ejecución.
+
 ### Trabajo
 
 - [x] Rotar los tokens personales de Supabase usados por MCP. Hecho 23/8 — token viejo ("claude code", ya figuraba como `Expired`) borrado, uno nuevo (30 días, es el máximo que permite el plan Free) generado y actualizado en `.mcp.json` y `.cursor/mcp.json`.
 - [x] Conectar Claude Code al proyecto correcto mediante el flujo OAuth oficial de Supabase MCP. **Resuelto 23/8** — reconectaste el conector de cuenta con `sandy722sandy@hotmail.com`; confirmado por `list_projects` viendo `ayszrtieplmqscqtabsu` directo.
-- [x] Confirmar que ningún secreto aparece en Git, ramas remotas, logs o artefactos. Auditado 23/8 — limpio, ver `docs/audits/2026-08-23-baseline.md`.
+- [ ] Confirmar que ningún secreto aparece en Git, ramas remotas, logs o artefactos. **Reabierto 30/8:** no aparecieron tokens productivos o claves privadas con los patrones auditados, pero una contraseña de pruebas actualmente utilizable está publicada en 8 archivos versionados de un repositorio público. Valor omitido; ver `docs/audits/2026-08-30-phase0-baseline.md`.
 - [x] Inventariar en Supabase live — primero a mano (vos corriendo SQL), completado con la conexión MCP directa una vez reconectada:
    - [x] tablas, columnas, claves e índices — 38 tablas, todas con RLS activado;
    - [x] vistas y si usan `security_invoker` — hallazgo real: `technician_public_view` es `SECURITY DEFINER` (único ERROR del Security Advisor), revisar en Fase 1;
@@ -292,14 +294,14 @@ Los comandos exactos de Supabase deben confirmarse con `supabase --help`, porque
    - [x] rama de producción;
    - [x] versión de Node — **24.x** (ni 18 ni 22);
    - [x] variables por ambiente, sin mostrar valores — 8 vars, iguales en Preview y Production;
-   - [ ] dominio, protección, logs y webhook de Mercado Pago — dominio confirmado; protección y webhook de MP requieren chequeo manual en los dashboards respectivos.
-- [x] Crear `docs/audits/2026-08-23-baseline.md` sin datos secretos.
+   - [x] dominio, protección, logs y webhook de Mercado Pago — reauditoría 30/8: dominio y health responden 200, Preview redirige al SSO de Vercel, Git Fork Protection está activa y los logs productivos consultados no mostraron errores/5xx. El webhook está desplegado; la verificación de dashboard y simulador `200 OK` del 28/8 consta en `docs/fase10-checklist.md` y no se repitió contra el dashboard de Mercado Pago en esta sesión.
+- [x] Crear baseline sin datos secretos: histórico en `docs/audits/2026-08-23-baseline.md` y reauditoría actual en `docs/audits/2026-08-30-phase0-baseline.md`.
 
 ### Criterio de aceptación
 
 - [x] Las credenciales anteriores están revocadas. Token "claude code" borrado, reemplazado 23/8.
 - [x] Claude se conecta a `ayszrtieplmqscqtabsu` sin un token guardado en el repositorio. Resuelto 23/8 vía conector de cuenta reconectado.
-- [x] Existe una lista comprobable de diferencias entre Supabase live y `supabase/migrations/` — ver `docs/audits/2026-08-23-baseline.md`, sección 8. Incluye un hallazgo nuevo: las tablas de Reclamos y Garantías no existen en producción, contra lo que decía el "Estado de Obra" anterior.
+- [x] Existe una lista comprobable de diferencias entre Supabase live, `supabase/migrations/`, Git y Vercel — ver `docs/audits/2026-08-30-phase0-baseline.md`, secciones 5 y 6. Las 40 versiones de migración coinciden; los bloqueos actuales son de credenciales, privilegios, CI y empaquetado productivo.
 - [x] No se hizo ninguna modificación funcional.
 
 ### Pedido para Claude Code
@@ -313,15 +315,17 @@ Los comandos exactos de Supabase deben confirmarse con `supabase --help`, porque
 **Duración:** 4 a 6 sesiones.
 **Meta:** poder crear una base nueva y obtener el mismo esquema que producción.
 
+> **Reauditoría 30/8/2026 (Codex, contra repositorio y Supabase live):** esta fase estaba desactualizada y mezclaba tareas ya demostradas con pendientes reales. La CLI oficial (`supabase` 2.101.0) confirmó **40 migraciones locales y las mismas 40 remotas, versión por versión**, mediante `npx supabase migration list --linked`. Los Advisors ejecutados contra live con nivel `error` devolvieron `No issues found` tanto en seguridad como en rendimiento. También se reprodujo dentro de `BEGIN`/`ROLLBACK` el antiguo caso de recursión RLS: un cliente autenticado que intenta insertar directamente en `service_orders` recibe el bloqueo esperado `42501`, no `42P17`. En cambio, la suite RLS del repo **no puede darse por cerrada hoy**: 3/10 archivos terminan, 7/10 tienen fixtures desactualizados frente a los gates nuevos de elegibilidad/asignación, y `system_settings_rls.sql` devuelve 2 comprobaciones internas en `false` por expectativas de versión/valor viejas. No se tilda ningún punto basándose solo en evidencia anterior.
+
 ### Trabajo
 
 - [x] Comparar producción, migraciones y scripts auxiliares. Hecho 23/8: de las **17 migraciones que Supabase registraba como aplicadas, solo 7 tenían archivo en el repo** — las otras 10 (`harden_security_definer_grants`, `handle_new_user_link_operational_rows`, `technicians_zone_and_province`, `account_invites_and_redeem`, `seed_initial_services`, `services_anon_read`, `cleanup_orphaned_test_order` ×3, `cleanup_test_technician_application`) no existían en ningún lado del código — rastreadas por fecha, corresponden a sesiones de trabajo reales de mediados de agosto, nada sospechoso.
 - [x] **Prueba concreta de que el repo no reconstruía la base**: al reproducir los 7 archivos locales desde cero (`supabase db pull`), falló en el segundo con `function is_admin() does not exist` — `servicasa_foundation_schema.sql` era un placeholder vacío de una sesión anterior, nunca tuvo el esquema real.
 - [x] Generar una migración baseline o pull limpio desde live. Hecho 23/8 con `supabase db pull` (necesitó Docker Desktop, instalado esta sesión): **2 migraciones nuevas** (`20260823000000_baseline_live_schema.sql` — 38 tablas, 80 políticas RLS, todas las funciones incl. `is_admin()`; `20260823185803_remote_schema.sql` — lo que un dump solo de `public` se perdía: el trigger `on_auth_user_created` en `auth.users` que dispara `handle_new_user()`, todas las políticas de Storage, y varios GRANT excesivos a `anon`/`authenticated` en 6 tablas que quedaron revocados). Los 7 archivos viejos se archivaron en `supabase/migrations_legacy/` con una nota explicando por qué. **Verificado de punta a punta**: `supabase migration list` muestra local y remoto coincidiendo exactamente (2/2), y el propio proceso de `db pull` reconstruyó una base desde cero sin errores usando solo estos 2 archivos — no es una afirmación, se probó.
-- [ ] Incorporar al historial reproducible el resto de lo aplicado como scripts sueltos (categorías/subcategorías, pago directo, borradores de invitado, numeración, provincia, etc.) — el baseline de arriba ya los incluye porque refleja el estado *actual* de la base, pero conviene revisar si alguno merece quedar documentado como migración incremental aparte en vez de sepultado dentro del baseline.
-- [ ] Separar datos semilla de estructura. Los tarifarios deben poder cargarse de manera idempotente.
-- [ ] Regenerar tipos TypeScript de Supabase y reemplazar gradualmente tipos manuales inseguros.
-- [ ] Crear pruebas pgTAP para:
+- [x] Incorporar al historial reproducible el resto de lo aplicado como scripts sueltos (categorías/subcategorías, pago directo, borradores de invitado, numeración, provincia, etc.). **Verificado nuevamente 30/8:** la baseline reconciliada más las migraciones incrementales actuales forman un historial 40/40 entre repo y live, sin versiones faltantes ni sobrantes en `npx supabase migration list --linked`. Esto demuestra historial coincidente; la reconstrucción desde una base vacía sigue siendo un criterio separado y permanece abierta más abajo.
+- [ ] Separar datos semilla de estructura. **Pendiente confirmado 30/8:** existen seis `supabase/sql/seed_*_services.sql`, pero no hay `supabase/seed.sql` ni un mecanismo único documentado para cargar todo el tarifario de manera idempotente.
+- [ ] Regenerar tipos TypeScript de Supabase y reemplazar gradualmente tipos manuales inseguros. **Pendiente confirmado 30/8:** no existe ningún archivo generado `database.types.ts`/equivalente versionado en el repositorio.
+- [ ] Crear pruebas pgTAP para — **reformulado 30/8:** no se adoptó pgTAP; existen 10 suites SQL rollback-safe como alternativa, pero la ejecución actual contra live no está verde (3/10 archivos terminan; 7 fixtures quedaron desactualizados y una de las suites que termina contiene 2 resultados `ok=false`). Antes de cerrar esta casilla hay que actualizar los fixtures y hacer que cada suite falle su proceso cuando una aserción interna sea falsa:
    - separación entre clientes;
    - separación entre técnicos;
    - acceso administrativo;
@@ -329,20 +333,20 @@ Los comandos exactos de Supabase deben confirmarse con `supabase --help`, porque
    - bloqueo de escrituras anónimas;
    - protección de pagos, invitaciones y datos personales;
    - **rechazo de precio manipulado en ambos triggers de precio (presupuesto y pago directo).**
-- [ ] Ejecutar los advisors de seguridad y rendimiento y resolver los errores de prioridad alta.
+- [x] Ejecutar los advisors de seguridad y rendimiento y resolver los errores de prioridad alta. **Reverificado 30/8 contra live:** `npx supabase db advisors --linked --type security --level error --fail-on none` y su equivalente `performance` devolvieron `No issues found`.
 - [ ] Confirmar los GRANT de tablas nuevas frente al cambio actual de Data API; RLS y GRANT son controles distintos.
 - [x] **Fase 0, cerrado 25/8:** `current_user_role`/`is_admin` invocables directo por API — no revocar, ver nota en la sección 0 (no hay fuga real, y romperían RLS). El pendiente real que quedó abierto es revisar `get_account_invite`/`redeem_account_invite` por enumeración de tokens.
 - [x] **Fase 0, cerrado 25/8 en la Fase 8:** `technician_public_view` era `SECURITY DEFINER` — corría con los privilegios del dueño, saltando el RLS real de `technicians`/`technician_matriculas` y replicando el scoping a mano en su propio `WHERE`. Como `technicians` ya tiene el RLS correcto (hallazgo de arriba) y `technician_matriculas` ya tenía las policies correctas desde antes, se cambió a `security_invoker=true` (`supabase/migrations/20260825140000_technician_public_view_security_invoker.sql`) para que dependa del RLS real en vez de duplicarlo. 5/5 pruebas en vivo con rollback: admin y el propio técnico ven la fila con la matrícula aprobada, el cliente con orden asignada también (prueba que la subquery contra `technician_matriculas` funciona con RLS real, no bypass), un técnico sin relación no ve nada, y `anon` no tiene ningún acceso (`permission denied`, ni siquiera 0 filas silenciosas — no tiene GRANT sobre la vista).
-- [ ] **Nuevo (hallazgo lateral, 25/8, sin confirmar):** al armar el fixture de la prueba de arriba, insertar una fila en `service_orders` ya impersonando `authenticated` (en vez de como superusuario) disparó `ERROR 42P17: infinite recursion detected in policy for relation "service_orders"`. No se reprodujo nunca a través de la app real (el admin crea órdenes constantemente en esta sesión sin este error), así que probablemente sea un artefacto de este arnés de pruebas SQL (JWT simulado con `request.jwt.claim.sub`/`.role` en vez del JSON completo que arma Supabase Auth de verdad) y no un bug real de producción — pero no se investigó a fondo. Si vuelve a aparecer, revisar las policies de `service_orders` por una referencia circular.
-- [ ] Decidir a qué versión de Node normalizar (18 viejo en docs / 22 en este roadmap / 24.x real en Vercel confirmado en Fase 0) y aplicar esa decisión en documentación, desarrollo y Vercel.
+- [x] **Hallazgo lateral del 25/8 — recursión RLS de `service_orders`, cerrado con prueba específica 30/8.** La migración `20260828164032_fix_customers_service_orders_rls_recursion.sql` rompe el ciclo entre `service_orders` y `customers`. Reproducción live rollback-safe impersonando al cliente Julián: el INSERT directo queda bloqueado por RLS con SQLSTATE `42501`, que es el resultado de seguridad esperado; no reaparece `42P17`.
+- [ ] Decidir a qué versión de Node normalizar. **Pendiente confirmado 30/8:** los tres jobs de `.github/workflows/ci.yml` usan Node 22, Vercel está fijado en Node 24 y `package.json` no declara `engines`; funciona, pero todavía no existe una única versión documentada y aplicada en todos los ambientes.
 
 ### Criterio de aceptación
 
-- [ ] Una base local o de staging vacía se reconstruye solo con migraciones y seeds documentados.
-- [ ] `supabase migration list --local` coincide con la estrategia adoptada.
-- [ ] Los tests RLS positivos y negativos pasan.
-- [ ] Los tipos generados están versionados.
-- [ ] Ya no existen objetos de producción importantes que vivan únicamente en `supabase/sql/`.
+- [ ] Una base local o de staging vacía se reconstruye solo con migraciones y seeds documentados. **Sigue pendiente:** la reconstrucción anterior cubría el estado previo; desde entonces el historial creció a 40 migraciones. El 40/40 demuestra coincidencia de historial, no que las 40 se apliquen limpiamente desde cero. Hace falta ejecutar la reconstrucción actual y resolver primero los seeds.
+- [x] `supabase migration list` coincide con la estrategia adoptada. **Reverificado 30/8:** 40 locales = 40 remotas, todas las versiones alineadas y sin huecos.
+- [ ] Los tests RLS positivos y negativos pasan. **Pendiente con evidencia 30/8:** 3/10 archivos ejecutan hasta el final; 7/10 fallan por fixtures incompatibles con los gates agregados después (principalmente requisitos obligatorios del técnico; mensajería también encuentra un fixture/autorización viejo). Además, `system_settings_rls.sql` termina con código 0 aunque reporta 2 resultados `ok=false`, por lo que hay que endurecer el runner.
+- [ ] Los tipos generados están versionados. **Pendiente confirmado:** es el mismo hueco de tipos indicado arriba; se conserva aquí por ser criterio de aceptación.
+- [ ] Ya no existen objetos de producción importantes que vivan únicamente en `supabase/sql/`. **No demostrable todavía solo con el 40/40:** la baseline absorbió el esquema live y las migraciones nuevas están versionadas, pero queda clasificar los archivos de `supabase/sql/` como legacy, seed, test o fuente activa y confirmar con una reconstrucción/diff desde cero.
 
 ### Pedido para Claude Code
 
@@ -800,7 +804,7 @@ Actualizar esta tabla al cerrar cada fase.
 | 1.1-extra. Bug de orden de invitado creada antes del pago | ✅ Hecho | 23/8/2026 | 23/8/2026 | commits `21d1ff3`, `d185b2b` | Probado en vivo con tarjeta, wallet y abandono de checkout; 19 órdenes huérfanas viejas limpiadas |
 | 1.1-extra. Fase 4 categorías (editor admin) | ✅ Hecho | 22/8/2026 | 22/8/2026 | commit `9361e6d` | Verificado en vivo: 8 categorías, conteos reales de subcategorías |
 | 0. Seguridad y foto real | 🟡 Casi cerrada — solo falta el chequeo manual de Deployment Protection/webhook MP en los dashboards | 23/8/2026 | 23/8/2026 | `feature/mercadopago-payments-backend` | `docs/audits/2026-08-23-baseline.md` — inventario completo de Supabase/Vercel + Advisors; MCP reconectado al proyecto real; halló que Reclamos y Garantías no tiene tablas en producción y que `technician_public_view` es `SECURITY DEFINER` |
-| 1. Supabase reproducible | 🟡 En curso — baseline reconstruible ya probado, faltan tipos TS y pruebas pgTAP | 23/8/2026 |  | `feature/mercadopago-payments-backend` | `supabase/migrations/20260823000000_baseline_live_schema.sql` + `20260823185803_remote_schema.sql`, verificados con `supabase migration list` (2/2) y una reconstrucción real desde cero |
+| 1. Supabase reproducible | 🟡 En curso — historial 40/40 y Advisors sin errores; faltan seeds, tipos, reconstrucción actual y reparar la suite RLS | 23/8/2026 |  | `main` | Reauditoría 30/8: `migration list --linked` 40 local = 40 remoto; Advisors security/performance nivel error: 0; recursión 42P17 cerrada con prueba rollback-safe; suite RLS actual: 3/10 archivos terminan, 7 fixtures desactualizados y 2 aserciones internas falsas en settings |
 | 2. Reclamos y garantías | 🟡 Casi — falta atomicidad en resolución, ventana de garantía y evidencia técnica | 23/8/2026 |  | `feature/mercadopago-payments-backend` | Migración `connect_support_cases_module`; `ClaimDetail.tsx`, `MyClaimsPanel.tsx`; `supabase/tests/support_cases_rls.sql` (7/7 OK); probado en vivo con 3 cuentas reales (admin, Julián, Carlos) |
 | 3. Comunicación | 🟡 Casi — falta límites de contenido/frecuencia, y no se probó reconexión de Realtime | 23/8/2026 |  | `feature/mercadopago-payments-backend` | ADR aprobada; migraciones `create_conversations_messaging_system` + 3 fixes; `supabase/tests/conversations_rls.sql` (11/11 OK); probado en vivo con Realtime bidireccional real entre Julián y Carlos |
 | 4. Notificaciones | 🟡 Casi — falta deep-link exacto de orden para admin/técnico y paginación de la bandeja | 23/8/2026 | 23/8/2026 | `feature/mercadopago-payments-backend` | Migraciones `notifications_center` + `notifications_center_lock_internal_functions`; `NotificationBell.tsx`; `supabase/tests/notifications_rls.sql` (14/14 OK); probado en vivo con admin y Julián |
