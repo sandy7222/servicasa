@@ -4,6 +4,32 @@ Registro de cambios funcionales relevantes de TecniUrbano. No reemplaza `git log
 (los detalles de implementación están en los commits y las migraciones) — es un
 resumen de qué cambió para el negocio y qué evidencia lo respalda.
 
+## 2026-09-02 — Fase 10: prueba de restauración de punta a punta y rotación de la contraseña de prueba
+
+Sandy autorizó explícitamente dos de los tres pendientes de la pasada de
+release manager del mismo día (ver `docs/fase10-checklist.md`, Actualización
+2/9, quinta pasada; `ROADMAP-TERMINACION.md`, Cuarta actualización de la
+Fase 10).
+
+- **Restauración del backup, probada de punta a punta.** Instalé un servidor
+  Postgres 17 local, desechable, vía la distribución portable de EDB (sin
+  instalador, sin servicio de Windows, sin elevación). Restauré
+  `backups/pg_dump_2026_09_02.sql` contra él: **51/51 tablas**, con filas
+  reales confirmadas (`customers`, y las dos `service_orders` de prueba ya
+  conocidas de esta sesión). Los únicos errores del restore fueron
+  esperables — roles y esquema `auth` propios de Supabase, ausentes en un
+  Postgres vanilla — y no afectan una restauración real contra un proyecto
+  Supabase, donde ya existen de fábrica. Todo el footprint (binarios, datos)
+  se borró al terminar.
+- **Contraseña de prueba `TecniUrbano2026!` rotada.** Generé una nueva
+  contraseña y la apliqué a las 4 cuentas reales de Supabase Auth que la
+  compartían, vía la API admin de Supabase; verifiqué que autentica de
+  verdad contra Supabase real antes de tocar el repo. Actualizada en los 5
+  lugares donde es referencia viva (`agent.md`, `README.md`,
+  `playwright.config.ts`, `src/lib/supabaseData.ts`, `src/views/AuthView.tsx`);
+  las menciones históricas fechadas de este changelog y del roadmap
+  quedaron intactas a propósito, para no falsear el registro.
+
 ## 2026-08-30 (noche, cont.) — Auditoría de "la seña ya no se descuenta": copy pendiente + un presupuesto congelado con el cálculo viejo
 
 Sandy pidió, en estos términos, "eliminar la lógica de `visit_deposit_credit`"

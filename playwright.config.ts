@@ -7,7 +7,7 @@ loadEnv({ path: '.env.local' });
  * E2E contra un dev server real (Vite) y el proyecto real de Supabase, con
  * las cuentas de prueba sembradas (VITE_DEMO_MODE=true). No levanta un
  * Supabase local — usa el mismo backend que la verificación manual de esta
- * sesión. Contraseña de las cuentas de prueba: TecniUrbano2026!
+ * sesión. Contraseña de las cuentas de prueba: TecnilFV2ly3Z!21
  */
 export default defineConfig({
   testDir: './e2e',

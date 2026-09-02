@@ -570,8 +570,8 @@ export async function updatePasswordForRecoverySession(newPassword: string) {
 }
 
 export const DEMO_CREDENTIALS: { role: UserRole; label: string; email: string; password: string }[] = [
-  { role: 'admin', label: 'Admin', email: 'admin@tecniurbano.com.ar', password: 'TecniUrbano2026!' },
-  { role: 'technician', label: 'Carlos (técnico)', email: 'carlos.mendez@tecniurbano.com.ar', password: 'TecniUrbano2026!' },
-  { role: 'technician', label: 'María (técnica)', email: 'maria.rodriguez@tecniurbano.com.ar', password: 'TecniUrbano2026!' },
-  { role: 'customer', label: 'Julián (cliente)', email: 'julian.albarracin@gmail.com', password: 'TecniUrbano2026!' },
+  { role: 'admin', label: 'Admin', email: 'admin@tecniurbano.com.ar', password: 'TecnilFV2ly3Z!21' },
+  { role: 'technician', label: 'Carlos (técnico)', email: 'carlos.mendez@tecniurbano.com.ar', password: 'TecnilFV2ly3Z!21' },
+  { role: 'technician', label: 'María (técnica)', email: 'maria.rodriguez@tecniurbano.com.ar', password: 'TecnilFV2ly3Z!21' },
+  { role: 'customer', label: 'Julián (cliente)', email: 'julian.albarracin@gmail.com', password: 'TecnilFV2ly3Z!21' },
 ];

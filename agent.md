@@ -36,10 +36,10 @@ Objetivo de producto: pasar de demo UI a producto usable en producción, con bac
 
 | Rol | Email | Password |
 | --- | --- | --- |
-| Admin | `admin@tecniurbano.com.ar` | `TecniUrbano2026!` |
-| Técnico | `carlos.mendez@tecniurbano.com.ar` | `TecniUrbano2026!` |
-| Técnico | `maria.rodriguez@tecniurbano.com.ar` | `TecniUrbano2026!` |
-| Cliente | `julian.albarracin@gmail.com` | `TecniUrbano2026!` |
+| Admin | `admin@tecniurbano.com.ar` | `TecnilFV2ly3Z!21` |
+| Técnico | `carlos.mendez@tecniurbano.com.ar` | `TecnilFV2ly3Z!21` |
+| Técnico | `maria.rodriguez@tecniurbano.com.ar` | `TecnilFV2ly3Z!21` |
+| Cliente | `julian.albarracin@gmail.com` | `TecnilFV2ly3Z!21` |
 
 ---
 

@@ -41,9 +41,9 @@ Abrí `http://localhost:3000`.
 
 | Rol | Email | Password |
 | --- | --- | --- |
-| Admin | `admin@tecniurbano.com.ar` | `TecniUrbano2026!` |
-| Técnico | `carlos.mendez@tecniurbano.com.ar` | `TecniUrbano2026!` |
-| Cliente | `julian.albarracin@gmail.com` | `TecniUrbano2026!` |
+| Admin | `admin@tecniurbano.com.ar` | `TecnilFV2ly3Z!21` |
+| Técnico | `carlos.mendez@tecniurbano.com.ar` | `TecnilFV2ly3Z!21` |
+| Cliente | `julian.albarracin@gmail.com` | `TecnilFV2ly3Z!21` |
 
 ## Schema Supabase (público)
 

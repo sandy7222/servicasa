@@ -68,7 +68,7 @@ export const AuthView: React.FC = () => {
 
   // Login
   const [email, setEmail] = useState(DEMO_MODE ? 'admin@tecniurbano.com.ar' : '');
-  const [password, setPassword] = useState(DEMO_MODE ? 'TecniUrbano2026!' : '');
+  const [password, setPassword] = useState(DEMO_MODE ? 'TecnilFV2ly3Z!21' : '');
   const [showPassword, setShowPassword] = useState(false);
 
   // Invite (existing account activation)
@@ -871,7 +871,7 @@ export const AuthView: React.FC = () => {
             <span>
               {inviteMode
                 ? 'El enlace vence a los 14 días y solo sirve para este email.'
-                : 'Contraseña de prueba: TecniUrbano2026!'}
+                : 'Contraseña de prueba: TecnilFV2ly3Z!21'}
             </span>
           </div>
         )}
