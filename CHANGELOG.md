@@ -6,6 +6,8 @@ resumen de qué cambió para el negocio y qué evidencia lo respalda.
 
 ## 2026-09-02 — Fase 10: prueba de restauración de punta a punta y rotación de la contraseña de prueba
 
+Commit: `0e728e9`.
+
 Sandy autorizó explícitamente dos de los tres pendientes de la pasada de
 release manager del mismo día (ver `docs/fase10-checklist.md`, Actualización
 2/9, quinta pasada; `ROADMAP-TERMINACION.md`, Cuarta actualización de la
