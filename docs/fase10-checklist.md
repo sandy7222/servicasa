@@ -63,6 +63,19 @@ original de este reporte.
   real (restaurar el dump a una base nueva y confirmar que arranca) —
   documentado como hueco, no como resuelto, en la pasada anterior también.
 
+**Actualización 2/9 (cuarta pasada, release manager, pedido explícito de Sandy "corré la matriz completa"):** avance real, no completo — un hallazgo importante y un freno explícito de seguridad que respeté en vez de esquivar.
+
+- **Automatizado, 100% verificado hoy:** `tsc --noEmit` limpio; `npx vitest run` **106/106**; `npm run build` limpio; Advisors de seguridad **0 ERROR** (mismos WARN ya revisados y aceptados); Advisors de rendimiento **0 ERROR**, 68 WARN + 52 INFO (creció de 66 a 120 por las tablas/políticas nuevas de la sesión de dirección — mismo tipo de hallazgo cosmético ya aceptado, no una fuga). Migraciones: **40 aplicadas = 40 archivos locales, 1:1** (ver auditoría de reproducibilidad de hoy en `ROADMAP-TERMINACION.md`).
+- **Backup — nuevo, real, hoy:** `pg_dump` completo (esquema + datos) contra producción vía el mismo pooler documentado el 28/8, sin Docker: `backups/pg_dump_2026_09_02.sql` (502KB, creció de 343KB). Verificado estructuralmente: 51 `CREATE TABLE` = 51 tablas reales en `information_schema.tables` hoy, 51 bloques `COPY ... FROM stdin` con filas reales (confirmado con `customers` de ejemplo) — no es un dump vacío ni truncado.
+- **Restauración — sigue sin poder probarse, causa raíz confirmada hoy, no solo repetida:** intenté cerrar este hueco instalando un servidor Postgres local desechable (sin Docker) para restaurar el dump ahí. El PowerShell/winget de la sesión del 28/8 instaló **solo las herramientas de cliente** (`pg_dump`/`psql`), a propósito — confirmado hoy: `initdb.exe` está presente pero falla porque falta `share/postgres.bki` y el resto de los archivos de datos que necesita un servidor real, que nunca se instalaron. No avancé más por mi cuenta: instalar el paquete completo de servidor es una pieza de software nueva y más pesada que la que se decidió instalar la vez pasada, y no es una decisión mía tomarla sola bajo el pedido de hoy de "no pasos irreversibles sin confirmación". **Pendiente de que decidas:** instalar el servidor completo (reversible, pero es infraestructura nueva), conseguir Docker, o aceptar el hueco de "restauración probada" como está — igual que las tres pasadas anteriores, no empeoró ni mejoró hoy.
+- **Hallazgo sobre el hallazgo de contraseña de pruebas (30/8):** la reauditoría de Codex marcó `TecniUrbano2026!` como "una contraseña de pruebas actualmente utilizable" en 8 archivos (hoy son 7: `CHANGELOG.md`, `README.md`, `ROADMAP-TERMINACION.md`, `agent.md`, `playwright.config.ts`, `src/lib/supabaseData.ts`, `src/views/AuthView.tsx`). **No re-verifiqué esto probando login de nuevo a propósito** (para no arriesgar un bloqueo de la cuenta admin real insistiendo), pero tengo evidencia de esta misma sesión, de antes: un intento de login con exactamente `admin@tecniurbano.com.ar` / `TecniUrbano2026!` contra Supabase real falló con "Email o contraseña incorrectos". Puede que ya no sea utilizable — o puede que ese intento particular haya fallado por otro motivo puntual. No lo doy por cerrado ni por confirmado; queda para que decidas si rotarla (acción sobre una cuenta real, no la hago sin tu confirmación) o si la confirmás vos mismo antes.
+- **Smoke test — avance real con un login de producción legítimo, frenado a propósito antes de tocar el panel de admin:** usé la misma técnica ya validada en la Fase 9 (`auth.admin.generate_link` con el service role, sin tocar ninguna contraseña real) para generar un magic link del admin real y entrar a `tecniurbano.online` con una sesión autenticada de verdad — **no localhost, el sitio desplegado**. Confirmé: login funciona de punta a punta contra producción (mecanismo de auth completo, no solo el formulario); landing y catálogo público con datos reales (227 servicios en 6 rubros visibles). Al intentar navegar al Admin Hub (`#/hub`) para seguir con notificaciones/exportación/liquidaciones/reclamos, **el clasificador de seguridad de Auto Mode bloqueó la navegación** — inesperado, pero es exactamente el tipo de freno que Sandy pidió respetar hoy ("detenete antes de cualquier paso irreversible... que requiera confirmación"). No busqué una forma de esquivarlo. Cerré la sesión del navegador ahí.
+  - **Con esto, del listado de 10 flujos: 2 confirmados hoy de punta a punta contra producción real** (landing/catálogo; alta-login, ahora incluido el mecanismo de auth completo, no solo la UI). **Los 8 restantes siguen sin re-correrse hoy** (pedido registrado e invitado, pago de prueba, asignación y trabajo técnico, presupuesto y firma, reclamo y mensaje, notificación, liquidación visible, exportación administrativa) — bloqueados por el mismo freno de seguridad, no por falta de tiempo.
+  - **Pedido concreto para vos:** si querés que seguros con el resto del smoke test hoy, una opción es que hagas vos el click-through real en `tecniurbano.online` (podés loguearte con tus credenciales reales de admin/técnico/cliente) siguiendo la matriz de la sección 3 más abajo, o me confirmás explícitamente que continúe yo dentro del panel de admin y reintento la navegación.
+- **Rollback:** revisé `docs/rollback.md` completo — sigue preciso, sin cambios necesarios.
+
+---
+
 **Actualización 28/8 (segunda pasada):** los cuatro bloqueantes originales quedaron cerrados: migraciones y backup con evidencia técnica real; Auth y Mercado Pago confirmados por Sandy en los dashboards (Site URL/Redirect URLs, webhook de MP probado con el simulador, `200 OK`). "Leaked Password Protection" se descarta por ahora — requiere plan Pro, decisión explícita de quedarse en Free. Lo que sigue abierto para Fase 10 no son bloqueantes de seguridad/infraestructura sino cobertura de pruebas: 8 de los 10 flujos del smoke test del roadmap no se re-corrieron en esta pasada (ver sección 3).
 
 ---
@@ -141,6 +154,8 @@ Estado real, sin inflar:
 
 **Honestidad sobre esto:** la mayoría de estos flujos ya tienen evidencia real de sesiones anteriores (documentada en las actualizaciones de Fase 5 a 8 de `ROADMAP-TERMINACION.md`), pero no se re-corrieron HOY como parte de esta pasada de Fase 10 — hacerlo completo es varias horas más de trabajo de browser automation que no entran en esta respuesta. No marco estos como "hechos" solo porque se probaron en otro momento del proyecto; quedan como pendientes de esta pasada específica.
 
+**Actualización 2/9:** "Landing y catálogo público" y "Alta/login/logout/recuperación" quedan reconfirmados de punta a punta contra `tecniurbano.online` real (mecanismo de login completo, no solo la UI — ver Actualización 2/9 en el resumen ejecutivo arriba). Los 8 restantes de esta tabla **siguen exactamente igual que el 29/8** — no se re-corrieron hoy, frenados por el clasificador de seguridad al intentar entrar al panel de admin autenticado, no por decisión de saltarlos.
+
 ---
 
 ## 4. Rollback
@@ -217,6 +232,15 @@ tiempo real, no algo que Claude Code pueda ejecutar de antemano:
 reciente sin cambios desde entonces. `[~]` parcialmente cierto — hecho en
 parte, con un hueco concreto nombrado al lado, no un "casi" vago.
 
+**Actualización 2/9 sobre esta sección:** el conteo de migraciones de arriba
+(25/25) quedó desactualizado por el volumen de trabajo de sesiones
+posteriores — hoy son **40 aplicadas = 40 archivos locales, 1:1**, reconfirmado
+independientemente (ver Actualización 2/9 en el resumen ejecutivo y la
+auditoría de reproducibilidad en `ROADMAP-TERMINACION.md`). Los dos ítems
+`[~]` de los cuatro recorridos y de reclamos/mensajes/avisos/pagos
+encadenados **siguen en el mismo estado parcial** — ninguno de los dos se
+cerró hoy, por el mismo freno de seguridad al entrar al panel de admin.
+
 ---
 
 ## 7. Pendientes explícitos para que Sandy decida, antes de dar luz verde
@@ -225,5 +249,11 @@ parte, con un hueco concreto nombrado al lado, no un "casi" vago.
 2. ~~**Backup**~~ — resuelto 28/8: `pg_dump` real contra producción, guardado en `backups/pg_dump_2026_08_28.sql`.
 3. ~~**Auth/MP**~~ — confirmado por Sandy 28/8: Site URL + 2 Redirect URLs en Supabase, webhook de MP (test y producción) probado con el simulador, `200 OK` sin desafío de auth.
 4. ~~**Leaked Password Protection**~~ — descartado (no pendiente): requiere plan Pro ($25/mes), no es gratis como se pensaba. Decisión de Sandy: seguir en Free por ahora.
+
+**Nuevos, del 2/9:**
+
+5. **Prueba de restauración del backup** — sigue sin poder hacerse en este entorno (sin Docker, sin servidor Postgres local instalado — solo el cliente). Decidir: instalar el servidor completo (footprint nuevo, reversible), conseguir Docker, o aceptar el hueco como está.
+6. **Contraseña de prueba `TecniUrbano2026!`** (hallazgo del 30/8, en 7 archivos del repo) — un intento de login con esas credenciales contra el admin real falló esta sesión ("Email o contraseña incorrectos"), así que puede que ya no sea utilizable. No lo confirmé a propósito para no arriesgar un bloqueo de la cuenta insistiendo. Decidir: confirmarlo vos mismo, o autorizar que la rote (cambia una cuenta real).
+7. **Continuar el smoke test dentro del panel de admin** — el clasificador de seguridad frenó la navegación a `#/hub` con una sesión de admin autenticada de verdad (magic link, mismo mecanismo de la Fase 9). Decidir: hacés vos el click-through de los 8 flujos restantes contra `tecniurbano.online`, o confirmás explícitamente que reintente yo.
 
 No toqué nada irreversible ni ningún pago real en esta pasada — todo lo de arriba es lectura, o cambios ya mostrados/aprobados en mensajes anteriores.
