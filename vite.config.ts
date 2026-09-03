@@ -30,6 +30,7 @@ export default defineConfig(() => {
         },
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff2}'],
+          maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
           // Android verifies this exact JSON endpoint. It must bypass the SPA
           // fallback when a previously installed PWA service worker is active.
           navigateFallbackDenylist: [/^\/(?:supabase)\//, /^\/\.well-known\//],
