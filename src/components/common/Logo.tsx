@@ -1,5 +1,5 @@
 import React from 'react';
-import logoTecniUrbano from '../../assets/logo-tecniurbano.png';
+import logoTecniUrbano from '../../assets/landing/logo-icono.png';
 
 interface LogoProps {
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
@@ -28,7 +28,7 @@ const TAGLINE_SIZES = {
   '2xl': 'text-lg',
 } as const;
 
-/** Marca oficial (PNG). El archivo ya incluye el wordmark TecniUrbano. */
+/** Marca oficial (PNG, solo ícono). El wordmark lo agrega `Logo` como texto aparte. */
 export const LogoEmblem: React.FC<{
   className?: string;
   size?: number;

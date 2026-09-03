@@ -17,7 +17,7 @@ import {
 } from '../../lib/diagnosisAssistant';
 import { saveAssistantDraft } from '../../lib/diagnosisDraft';
 import type { CatalogSubcategory, ServiceItem } from '../../types';
-import assistantPortrait from '../../assets/assistant-handyman.jpg';
+import assistantPortrait from '../../assets/landing/asistente-avatar.png';
 
 function slugMap(subcategories: readonly CatalogSubcategory[]) {
   return new Map(subcategories.map((sub) => [sub.id, sub.slug]));

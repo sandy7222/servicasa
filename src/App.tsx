@@ -85,9 +85,14 @@ const Protected: React.FC<{ children: React.ReactNode; roles?: UserRole[] }> = (
 };
 
 const AppContent: React.FC = () => {
-  const { currentPath, currentUser, remoteBusy, authReady, passwordRecoveryMode } = useApp();
+  const { currentPath, currentUser, remoteBusy, authReady, passwordRecoveryMode, isAuthenticated } = useApp();
 
   const pathOnly = currentPath.split('?')[0];
+  // La landing pública sin sesión arma su propio header de marketing
+  // (LandingHeader, dentro de LandingView) — se omite el header compartido
+  // de las vistas autenticadas para no duplicarlo. Cualquier otra ruta
+  // sigue mostrando el header compartido como siempre.
+  const showSharedHeader = !(pathOnly === '/' && !isAuthenticated);
 
   const renderView = () => {
     switch (pathOnly) {
@@ -237,7 +242,7 @@ const AppContent: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-800 antialiased selection:bg-teal-500 selection:text-white">
-      <Header />
+      {showSharedHeader && <Header />}
       <InlineBusyBar active={remoteBusy} />
       {!authReady ? (
         <FullPageLoader message="Iniciando TecniUrbano…" />

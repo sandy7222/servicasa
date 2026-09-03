@@ -4,6 +4,61 @@ Registro de cambios funcionales relevantes de TecniUrbano. No reemplaza `git log
 (los detalles de implementación están en los commits y las migraciones) — es un
 resumen de qué cambió para el negocio y qué evidencia lo respalda.
 
+## 2026-09-03 — Rediseño visual de la landing pública
+
+Rediseño de apariencia de `tecniurbano.online` pedido por Sandy con una spec
+completa (recursos gráficos reales del técnico, la familia, el logo y el
+asistente, más un boceto de referencia). Alcance explícito: **cambiar la
+apariencia sin romper el comportamiento** — cero reconstrucción funcional.
+
+- **Nuevo header de marketing solo para la landing pública.** El `<Header/>`
+  compartido de las vistas autenticadas (admin/técnico/cliente) no se tocó
+  — sigue exactamente igual. `LandingView` ahora arma su propio header
+  (logo, nav a Servicios/Cómo funciona/Garantía/Contacto, "Ingresar al
+  sistema") y `App.tsx` omite el header compartido solo cuando la ruta es
+  `/` y no hay sesión iniciada (una condición de una línea, sin tocar
+  `Header.tsx`). Verificado en vivo: el header compartido con nav por rol
+  sigue intacto al loguear como admin.
+- **"Ingresar al sistema" se movió del hero al header** (mismo
+  `navigate('/auth')`, es una relocación de layout, no un cambio de
+  comportamiento — confirmado con Sandy antes de tocarlo).
+- **Secciones nuevas construidas desde cero** (no existían antes, nada que
+  preservar ahí): modal "Cómo funciona" accesible (Escape, foco atrapado,
+  restaura el foco al cerrar — verificado en vivo), resumen de 4 pasos en
+  página, banda de garantía/reclamos/pagos, sección de descarga de app con
+  QR (desktop) / botones grandes (mobile), bloque de empresas B2B con
+  formulario y modal de confirmación.
+- **Grilla de servicios**: se mantiene 100% dinámica desde Supabase
+  (`catalogCategories`/`services`, mismo `navigate` a
+  `/services-category/:name`) — solo cambió el estilo de tarjeta.
+- **Testimonios marcados explícitamente como ejemplo ilustrativo** (antes
+  usaban nombres reales de clientes de prueba del proyecto sin ningún
+  aviso — corregido de paso, era justo lo que pedía la spec).
+- **Asistente flotante**: cero cambios de lógica, solo la imagen nueva
+  (`asistente-avatar.png`) en sus 3 usos.
+- **Descarga de app sin fingir que funciona**: la URL real depende de otro
+  encargo (empaquetado TWA/PWA). Mientras `src/lib/appLinks.ts` no tenga
+  valores reales, el QR y los botones muestran "Muy pronto" en vez de
+  apuntar a cualquier lado.
+- **Formulario de empresas sin backend todavía**: valida y muestra la
+  confirmación que pide la spec, pero no manda nada a ningún lado — queda
+  un comentario marcando dónde conectar la API real.
+- **Imágenes optimizadas**: las fotos provistas (hasta 2,6MB) se
+  redimensionaron y convirtieron a WebP (con fallback PNG/JPG vía
+  `<picture>`) con `sharp` en un script de uso único, ya removido del
+  proyecto — quedaron reducidas a 40-90KB cada una. Los originales sin
+  procesar quedan en `src/assets/landing/source/` (gitignored, no se
+  suben).
+- **Retirado del services grid**: la tarjeta "Operación Real / Crear orden
+  en Admin Hub" que mezclaba contenido de demo/QA con la landing pública
+  — contradice el objetivo explícito de la spec de no leerse como una
+  herramienta interna. Es la única eliminación de contenido de esta
+  sesión; el resto es agregado o restyling.
+- `tsc`/`vitest` (106/106)/`build` limpios. Verificado en vivo en el
+  navegador: modal con foco/Escape, formulario de empresas de punta a
+  punta, menú mobile, header compartido intacto para admin, sin errores
+  de consola.
+
 ## 2026-09-02 (noche) — Problema 9: "Nueva Orden" del Admin Hub no podía crear órdenes
 
 Commit: `de0909d`.

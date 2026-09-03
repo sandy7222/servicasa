@@ -1,374 +1,51 @@
-import React from 'react';
-import {
-  Wrench,
-  Zap,
-  Hammer,
-  Settings,
-  ShieldCheck,
-  CheckCircle2,
-  ArrowRight,
-  UserCheck,
-  Clock,
-  FileSignature,
-  Star,
-  Sparkles,
-  PhoneCall,
-  MapPin,
-  ChevronRight,
-  Plus,
-  Droplets,
-  Flame,
-  Lightbulb,
-} from 'lucide-react';
-import { Logo } from '../components/common/Logo';
-import { useApp } from '../context/AppContext';
-import { sortByDisplayOrder } from '../lib/catalogOrder';
-import type { CatalogCategory } from '../types';
-import logoTecniUrbano from '../assets/logo-tecniurbano.png';
-
-const CATEGORY_ICON_MAP: Record<string, { icon: React.ReactNode; bg: string; border: string }> = {
-  Wrench: { icon: <Wrench className="w-6 h-6 text-sky-600" />, bg: 'bg-sky-50', border: 'border-sky-200' },
-  Zap: { icon: <Zap className="w-6 h-6 text-amber-500" />, bg: 'bg-amber-50', border: 'border-amber-200' },
-  Hammer: { icon: <Hammer className="w-6 h-6 text-rose-500" />, bg: 'bg-rose-50', border: 'border-rose-200' },
-  Settings: { icon: <Settings className="w-6 h-6 text-emerald-600" />, bg: 'bg-emerald-50', border: 'border-emerald-200' },
-  ShieldCheck: { icon: <ShieldCheck className="w-6 h-6 text-teal-600" />, bg: 'bg-teal-50', border: 'border-teal-200' },
-  Droplets: { icon: <Droplets className="w-6 h-6 text-blue-600" />, bg: 'bg-blue-50', border: 'border-blue-200' },
-  Flame: { icon: <Flame className="w-6 h-6 text-rose-600" />, bg: 'bg-rose-50', border: 'border-rose-200' },
-  Lightbulb: { icon: <Lightbulb className="w-6 h-6 text-yellow-600" />, bg: 'bg-yellow-50', border: 'border-yellow-200' },
-  Sparkles: { icon: <Sparkles className="w-6 h-6 text-teal-600" />, bg: 'bg-teal-50', border: 'border-teal-200' },
-};
+import React, { useState } from 'react';
+import { LandingHeader } from '../components/landing/LandingHeader';
+import { HeroSection } from '../components/landing/HeroSection';
+import { HowItWorksModal } from '../components/landing/HowItWorksModal';
+import { ServicesSection } from '../components/landing/ServicesSection';
+import { HowItWorksSection } from '../components/landing/HowItWorksSection';
+import { TrustBand } from '../components/landing/TrustBand';
+import { DownloadAppSection } from '../components/landing/DownloadAppSection';
+import { TestimonialsSection } from '../components/landing/TestimonialsSection';
+import { BusinessSection } from '../components/landing/BusinessSection';
+import { LandingFooter } from '../components/landing/LandingFooter';
 
 export const LandingView: React.FC = () => {
-  const { navigate, catalogCategories, services } = useApp();
+  const [howItWorksOpen, setHowItWorksOpen] = useState(false);
 
-  const getServiceVisuals = (category: { name: string; icon?: string }) => {
-    if (category.icon && CATEGORY_ICON_MAP[category.icon]) {
-      return CATEGORY_ICON_MAP[category.icon];
-    }
-    const cat = (category.name || '').toLowerCase();
-    if (cat.includes('plom') || cat.includes('agua') || cat.includes('cañ')) {
-      return {
-        icon: <Wrench className="w-6 h-6 text-sky-600" />,
-        bg: 'bg-sky-50',
-        border: 'border-sky-200',
-      };
-    }
-    if (cat.includes('elect') || cat.includes('luz') || cat.includes('tensión')) {
-      return {
-        icon: <Zap className="w-6 h-6 text-amber-500" />,
-        bg: 'bg-amber-50',
-        border: 'border-amber-200',
-      };
-    }
-    if (cat.includes('repar') || cat.includes('hogar') || cat.includes('cerraj')) {
-      return {
-        icon: <Hammer className="w-6 h-6 text-rose-500" />,
-        bg: 'bg-rose-50',
-        border: 'border-rose-200',
-      };
-    }
-    if (cat.includes('manten') || cat.includes('prevent') || cat.includes('general')) {
-      return {
-        icon: <Settings className="w-6 h-6 text-emerald-600" />,
-        bg: 'bg-emerald-50',
-        border: 'border-emerald-200',
-      };
-    }
-    return {
-      icon: <ShieldCheck className="w-6 h-6 text-teal-600" />,
-      bg: 'bg-teal-50',
-      border: 'border-teal-200',
-    };
+  const scrollToDownload = () => {
+    document.getElementById('descarga-app')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
-
-  const steps = [
-    {
-      step: '01',
-      title: 'Solicitás el servicio',
-      desc: 'Detallás el problema, urgencia, franja horaria y dirección del domicilio.',
-      icon: <PhoneCall className="w-5 h-5 text-[#003875]" />,
-    },
-    {
-      step: '02',
-      title: 'Asignamos técnico',
-      desc: 'El sistema selecciona al especialista disponible más cercano con el instrumental adecuado.',
-      icon: <UserCheck className="w-5 h-5 text-teal-600" />,
-    },
-    {
-      step: '03',
-      title: 'Se realiza el trabajo',
-      desc: 'El técnico registra tiempos, checklist de tareas y materiales de inventario en tiempo real.',
-      icon: <Wrench className="w-5 h-5 text-[#003875]" />,
-    },
-    {
-      step: '04',
-      title: 'Confirmás y firmás',
-      desc: 'Revisás el detalle del trabajo y otorgás conformidad con tu firma digital en pantalla.',
-      icon: <FileSignature className="w-5 h-5 text-emerald-600" />,
-    },
-  ];
-
-  const testimonials = [
-    {
-      name: 'Florencia Soria',
-      neighborhood: 'Palermo Soho',
-      comment: 'Tenía una fuga en el lavadero que nadie lograba solucionar. Carlos vino puntual, cambió la válvula y firmé todo desde mi celular. Excelente servicio.',
-      rating: 5,
-      service: 'Plomería',
-    },
-    {
-      name: 'Gonzalo Benítez',
-      neighborhood: 'Vicente López',
-      comment: 'Instalaron el soporte de TV de 65 pulgadas con nivel láser y prolijidad absoluta. Muy claro el detalle de materiales y tiempos empleados.',
-      rating: 5,
-      service: 'Instalación de equipos',
-    },
-    {
-      name: 'Julián Albarracín',
-      neighborhood: 'Almagro',
-      comment: 'La transparencia de ver el checklist técnico y los repuestos utilizados antes de firmar la conformidad da muchísima tranquilidad.',
-      rating: 5,
-      service: 'Mantenimiento',
-    },
-  ];
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800" id="tecniurbano-landing-view">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-blue-950 via-[#003875] to-[#00264d] text-white pt-12 pb-20 sm:pt-16 sm:pb-28">
-        {/* Subtle background glow circles */}
-        <div className="absolute top-0 right-1/4 w-96 h-96 bg-teal-500/15 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-10 w-80 h-80 bg-sky-400/10 rounded-full blur-3xl pointer-events-none" />
+      <LandingHeader />
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="flex justify-center">
-            <div className="max-w-3xl space-y-6 text-center">
-              {/* Headline with Official Brand Identity */}
-              <div className="flex flex-col items-center gap-3">
-                <div className="shrink-0 overflow-hidden rounded-2xl shadow-xl border border-white/20">
-                  <img
-                    src={logoTecniUrbano}
-                    alt="Logo de TecniUrbano"
-                    className="w-48 h-48 sm:w-56 sm:h-56 object-contain"
-                    draggable={false}
-                  />
-                </div>
-                <div>
-                  {/* El logo ya incluye el wordmark; este h1 queda solo para accesibilidad/SEO. */}
-                  <h1 className="sr-only">
-                    <span className="text-white">Tecni</span>
-                    <span className="text-teal-400">Urbano</span>
-                  </h1>
-                  <span className="block text-base sm:text-lg font-bold text-teal-300 tracking-wide">
-                    Servicios a domicilio
-                  </span>
-                </div>
-              </div>
+      <HeroSection
+        onDownloadClick={scrollToDownload}
+        onHowItWorksClick={() => setHowItWorksOpen(true)}
+      />
 
-              <p className="text-sm sm:text-base text-blue-100/90 max-w-2xl leading-relaxed mx-auto">
-                Servicios técnicos a domicilio con seguimiento en tiempo real, de principio a fin.
-              </p>
+      <ServicesSection />
+      <HowItWorksSection />
+      <TrustBand />
 
-              {/* Único CTA principal */}
-              <div className="pt-2 flex justify-center">
-                <button
-                  onClick={() => navigate('/auth')}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-8 py-4 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-base shadow-lg shadow-teal-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all"
-                >
-                  <span>Ingresar al sistema</span>
-                  <ArrowRight className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <div id="descarga-app">
+        <DownloadAppSection />
+      </div>
 
-      {/* Services Section */}
-      <section className="py-16 sm:py-20 bg-white" id="servicios-ofrecidos">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-12">
-            <h2 className="text-xs font-bold uppercase tracking-widest text-[#003875] mb-2">
-              Nuestra Cobertura Especializada
-            </h2>
-            <p className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-              Servicios de TecniUrbano
-            </p>
-            <p className="text-sm text-slate-600 mt-2">
-              Soluciones técnicas integrales para hogares y consorcios con mano de obra calificada.
-            </p>
-          </div>
+      <TestimonialsSection />
+      <BusinessSection />
+      <LandingFooter />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {sortByDisplayOrder<CatalogCategory>(catalogCategories.filter((cat) => cat.active !== false)).map((category) => {
-              const serviciosEnCategoria = services.filter(
-                (s) => s.category === category.name && s.active !== false
-              ).length;
-
-              const visuals = getServiceVisuals(category);
-
-              return (
-                <div
-                  key={category.id}
-                  onClick={() => navigate(`/services-category/${encodeURIComponent(category.name)}`)}
-                  className="bg-slate-50/70 rounded-2xl p-6 border border-slate-200 hover:border-teal-400 hover:shadow-md transition-all flex flex-col justify-between cursor-pointer group"
-                >
-                  <div>
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className={`p-3 rounded-xl ${visuals.bg} ${visuals.border} border group-hover:scale-110 transition-transform`}>
-                        {visuals.icon}
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-lg text-slate-900">{category.name}</h3>
-                        <p className="text-xs text-slate-500 mt-0.5">
-                          {serviciosEnCategoria} servicio{serviciosEnCategoria !== 1 ? 's' : ''}
-                        </p>
-                      </div>
-                    </div>
-
-                    <p className="text-sm text-slate-600 mb-4 leading-relaxed">
-                      {category.description}
-                    </p>
-                  </div>
-
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigate(`/services-category/${encodeURIComponent(category.name)}`);
-                    }}
-                    className="w-full px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-colors shadow-xs"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                    Ver Servicios
-                  </button>
-                </div>
-              );
-            })}
-
-            {/* CTA Box in grid */}
-            <div className="bg-gradient-to-br from-[#003875] to-[#00234b] text-white rounded-2xl p-6 flex flex-col justify-between shadow-md">
-              <div>
-                <span className="text-xs font-bold uppercase tracking-wider text-teal-300">
-                  Operación Real
-                </span>
-                <h3 className="font-bold text-lg text-white mt-1 mb-2">
-                  ¿Tenés una urgencia en tu hogar?
-                </h3>
-                <p className="text-xs text-blue-100 leading-relaxed">
-                  Podés crear una orden de prueba en el Admin Hub o simular la atención técnica en
-                  pocos minutos.
-                </p>
-              </div>
-
-              <div className="pt-4">
-                <button
-                  onClick={() => navigate('/auth')}
-                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs rounded-xl shadow-xs transition-colors"
-                >
-                  <Wrench className="w-3.5 h-3.5" />
-                  <span>Crear orden en Admin Hub</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 4-Step Process Section */}
-      <section className="py-16 sm:py-20 bg-slate-100/70 border-y border-slate-200" id="como-funciona">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto mb-12">
-            <h2 className="text-xs font-bold uppercase tracking-widest text-teal-700 mb-2">
-              Flujo Operativo Paso a Paso
-            </h2>
-            <p className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-              ¿Cómo gestionamos cada servicio?
-            </p>
-            <p className="text-xs sm:text-sm text-slate-600 mt-2">
-              Un ciclo transparente y seguro desde la solicitud inicial hasta la firma de
-              conformidad.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {steps.map((st) => (
-              <div
-                key={st.step}
-                className="bg-white rounded-2xl p-6 border border-slate-200/90 shadow-2xs relative"
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center">
-                    {st.icon}
-                  </div>
-                  <span className="font-mono text-xl font-black text-slate-300">{st.step}</span>
-                </div>
-                <h3 className="font-bold text-sm text-slate-900 mb-2">{st.title}</h3>
-                <p className="text-xs text-slate-600 leading-relaxed">{st.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials / Experience Section */}
-      <section className="py-16 sm:py-20 bg-white" id="testimonios">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto mb-12">
-            <h2 className="text-xs font-bold uppercase tracking-widest text-[#003875] mb-2">
-              Confianza Comprobada
-            </h2>
-            <p className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-              Experiencias de nuestros clientes
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {testimonials.map((t, idx) => (
-              <div
-                key={idx}
-                className="bg-slate-50 rounded-2xl p-6 border border-slate-200 flex flex-col justify-between"
-              >
-                <div>
-                  <div className="flex items-center gap-1 text-amber-400 mb-3">
-                    {[...Array(t.rating)].map((_, i) => (
-                      <Star key={i} className="w-4 h-4 fill-amber-400" />
-                    ))}
-                  </div>
-                  <p className="text-xs sm:text-sm text-slate-700 italic leading-relaxed mb-4">
-                    "{t.comment}"
-                  </p>
-                </div>
-
-                <div className="pt-3 border-t border-slate-200 flex items-center justify-between text-xs">
-                  <div>
-                    <span className="font-bold text-slate-900 block">{t.name}</span>
-                    <span className="text-slate-500 flex items-center gap-1">
-                      <MapPin className="w-3 h-3 text-slate-400" />
-                      {t.neighborhood}
-                    </span>
-                  </div>
-                  <span className="font-semibold text-teal-700 bg-teal-50 px-2 py-0.5 rounded border border-teal-200">
-                    {t.service}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Footer Banner */}
-      <footer className="bg-slate-900 text-white py-12 border-t border-slate-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex flex-col items-center md:items-start text-center md:text-left">
-            <Logo size="md" variant="white" showTagline={true} />
-            <p className="text-xs text-slate-400 mt-2">
-              Plataforma interna para la gestión integral de servicios técnicos a domicilio.
-            </p>
-          </div>
-
-        </div>
-      </footer>
+      <HowItWorksModal
+        isOpen={howItWorksOpen}
+        onClose={() => setHowItWorksOpen(false)}
+        onDownloadClick={() => {
+          setHowItWorksOpen(false);
+          scrollToDownload();
+        }}
+      />
     </div>
   );
 };

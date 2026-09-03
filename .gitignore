@@ -20,3 +20,4 @@ claude code/
 .vercel
 .env*
 backups/
+src/assets/landing/source/
