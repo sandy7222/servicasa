@@ -6,7 +6,7 @@ resumen de qué cambió para el negocio y qué evidencia lo respalda.
 
 ## 2026-09-03 (cont. 6) — Foto real del asistente de diagnóstico
 
-Commit: (pendiente).
+Commit: `9b0a901`.
 
 Sandy pidió cerrar el flujo de la foto que el cliente puede adjuntar en el
 asistente de diagnóstico (`DiagnosisAssistant.tsx`): hasta ahora solo se
