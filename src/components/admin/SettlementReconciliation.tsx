@@ -64,36 +64,36 @@ export const SettlementReconciliation: React.FC = () => {
   const total = filtered.reduce((sum, r) => sum + Number(r.net_amount), 0);
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
+    <section className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 space-y-3">
       <div className="flex items-start gap-2">
         <Scale className="w-4 text-teal-600 mt-0.5" />
         <div>
           <h3 className="text-sm font-bold">Conciliación de liquidaciones</h3>
-          <p className="text-[11px] text-slate-500">Por estado, técnico, fecha e importe. {filtered.length} de {rows.length} filas · {ars(total)}.</p>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400">Por estado, técnico, fecha e importe. {filtered.length} de {rows.length} filas · {ars(total)}.</p>
         </div>
       </div>
       <div className="grid sm:grid-cols-5 gap-2">
-        <select value={status} onChange={(e) => setStatus(e.target.value)} className="rounded-lg border border-slate-200 p-2 text-xs">
+        <select value={status} onChange={(e) => setStatus(e.target.value)} className="rounded-lg border border-slate-200 dark:border-slate-700 p-2 text-xs">
           <option value="">Todos los estados</option>
           {Object.entries(STATUS_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </select>
-        <select value={technicianId} onChange={(e) => setTechnicianId(e.target.value)} className="rounded-lg border border-slate-200 p-2 text-xs">
+        <select value={technicianId} onChange={(e) => setTechnicianId(e.target.value)} className="rounded-lg border border-slate-200 dark:border-slate-700 p-2 text-xs">
           <option value="">Todos los técnicos</option>
           {technicians.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
         </select>
-        <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="rounded-lg border border-slate-200 p-2 text-xs" />
-        <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="rounded-lg border border-slate-200 p-2 text-xs" />
-        <input type="number" value={minAmount} onChange={(e) => setMinAmount(e.target.value)} placeholder="Importe mínimo" className="rounded-lg border border-slate-200 p-2 text-xs" />
+        <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="rounded-lg border border-slate-200 dark:border-slate-700 p-2 text-xs" />
+        <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="rounded-lg border border-slate-200 dark:border-slate-700 p-2 text-xs" />
+        <input type="number" value={minAmount} onChange={(e) => setMinAmount(e.target.value)} placeholder="Importe mínimo" className="rounded-lg border border-slate-200 dark:border-slate-700 p-2 text-xs" />
       </div>
       {loading ? (
-        <p className="text-xs text-slate-500 py-4 text-center">Cargando…</p>
+        <p className="text-xs text-slate-500 dark:text-slate-400 py-4 text-center">Cargando…</p>
       ) : filtered.length === 0 ? (
-        <p className="flex items-center gap-1.5 text-xs text-slate-500 py-4 justify-center"><ListFilter className="w-3.5" />Sin resultados para estos filtros.</p>
+        <p className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 py-4 justify-center"><ListFilter className="w-3.5" />Sin resultados para estos filtros.</p>
       ) : (
         <div className="overflow-x-auto -mx-1">
           <table className="w-full text-[11px] min-w-[640px]">
             <thead>
-              <tr className="text-left text-slate-500 border-b border-slate-100">
+              <tr className="text-left text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">
                 <th className="py-1.5 px-1">Técnico</th>
                 <th className="py-1.5 px-1">Estado</th>
                 <th className="py-1.5 px-1">Neto</th>
@@ -110,7 +110,7 @@ export const SettlementReconciliation: React.FC = () => {
                   <td className="py-1.5 px-1 font-mono">{ars(r.net_amount)}</td>
                   <td className="py-1.5 px-1">{date(r.created_at)}</td>
                   <td className="py-1.5 px-1">{date(r.paid_at)}</td>
-                  <td className="py-1.5 px-1 text-slate-500">{r.batch_transfer_reference ?? '—'}</td>
+                  <td className="py-1.5 px-1 text-slate-500 dark:text-slate-400">{r.batch_transfer_reference ?? '—'}</td>
                 </tr>
               ))}
             </tbody>

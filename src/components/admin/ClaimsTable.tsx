@@ -70,24 +70,24 @@ export function ClaimsTable({ onOpen }: { onOpen: (claimId: string) => void }) {
         <Stat label="Liquidaciones pausadas" value={String(claims.filter((c) => c.settlementPaused).length)} tone="rose" />
       </section>
 
-      <section className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-        <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row gap-3 sm:items-center">
+      <section className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm overflow-hidden">
+        <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row gap-3 sm:items-center">
           <label className="relative block max-w-xl flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Buscar por número, asunto, cliente o técnico…"
-              className="w-full rounded-lg border border-slate-200 pl-9 pr-3 py-2 text-sm outline-none focus:ring-2 focus:ring-teal-500"
+              className="w-full rounded-lg border border-slate-200 dark:border-slate-700 pl-9 pr-3 py-2 text-sm outline-none focus:ring-2 focus:ring-teal-500"
             />
           </label>
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as 'all' | ClaimStatus)} className="rounded-lg border border-slate-200 px-3 py-2 text-sm">
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as 'all' | ClaimStatus)} className="rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm">
             <option value="all">Todos los estados</option>
             {(['open', 'in_progress', 'waiting_client', 'waiting_technician', 'resolved', 'closed', 'escalated'] as ClaimStatus[]).map((s) => (
               <option key={s} value={s}>Estado: {s === 'open' ? 'Abierto' : s === 'in_progress' ? 'En progreso' : s === 'waiting_client' ? 'Esperando cliente' : s === 'waiting_technician' ? 'Esperando técnico' : s === 'resolved' ? 'Resuelto' : s === 'closed' ? 'Cerrado' : 'Escalado'}</option>
             ))}
           </select>
-          <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as 'all' | ClaimType)} className="rounded-lg border border-slate-200 px-3 py-2 text-sm">
+          <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as 'all' | ClaimType)} className="rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm">
             <option value="all">Todos los tipos</option>
             {(Object.keys(CLAIM_TYPE_LABELS) as ClaimType[]).map((t) => (
               <option key={t} value={t}>{CLAIM_TYPE_LABELS[t]}</option>
@@ -97,7 +97,7 @@ export function ClaimsTable({ onOpen }: { onOpen: (claimId: string) => void }) {
 
         <div className="overflow-x-auto">
           <table className="min-w-[880px] w-full text-left text-sm">
-            <thead className="sticky top-0 bg-slate-50 text-slate-600 text-xs uppercase tracking-wide">
+            <thead className="sticky top-0 bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 text-xs uppercase tracking-wide">
               <tr>
                 <th className="px-4 py-3">Número</th>
                 <th className="px-4 py-3">Asunto</th>
@@ -111,15 +111,15 @@ export function ClaimsTable({ onOpen }: { onOpen: (claimId: string) => void }) {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={8} className="p-10 text-center text-slate-500">Cargando reclamos…</td></tr>
+                <tr><td colSpan={8} className="p-10 text-center text-slate-500 dark:text-slate-400">Cargando reclamos…</td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={8} className="p-10 text-center text-slate-500">No encontramos reclamos con esos filtros.</td></tr>
+                <tr><td colSpan={8} className="p-10 text-center text-slate-500 dark:text-slate-400">No encontramos reclamos con esos filtros.</td></tr>
               ) : (
                 filtered.map((claim) => (
-                  <tr key={claim.id} onClick={() => onOpen(claim.id)} className="border-t border-slate-100 cursor-pointer hover:bg-teal-50/60 transition">
-                    <td className="px-4 py-3 font-mono font-bold text-slate-900">{claim.caseNumber}</td>
+                  <tr key={claim.id} onClick={() => onOpen(claim.id)} className="border-t border-slate-100 dark:border-slate-800 cursor-pointer hover:bg-teal-50/60 transition">
+                    <td className="px-4 py-3 font-mono font-bold text-slate-900 dark:text-slate-100">{claim.caseNumber}</td>
                     <td className="px-4 py-3">
-                      <div className="font-semibold text-slate-800">{claim.subject}</div>
+                      <div className="font-semibold text-slate-800 dark:text-slate-200">{claim.subject}</div>
                       {claim.settlementPaused && <span className="text-[11px] font-bold text-rose-600">⏸ Liquidación pausada</span>}
                     </td>
                     <td className="px-4 py-3">{claim.customerName || '—'}</td>
@@ -134,7 +134,7 @@ export function ClaimsTable({ onOpen }: { onOpen: (claimId: string) => void }) {
             </tbody>
           </table>
         </div>
-        <footer className="p-3 border-t border-slate-100 text-sm text-slate-500">
+        <footer className="p-3 border-t border-slate-100 dark:border-slate-800 text-sm text-slate-500 dark:text-slate-400">
           {filtered.length} caso{filtered.length === 1 ? '' : 's'}
         </footer>
       </section>
@@ -153,15 +153,15 @@ export function ClaimsTable({ onOpen }: { onOpen: (claimId: string) => void }) {
 
 function Stat({ label, value, tone = 'slate' }: { label: string; value: string; tone?: 'slate' | 'amber' | 'emerald' | 'rose' }) {
   const tones: Record<string, string> = {
-    slate: 'text-slate-900',
+    slate: 'text-slate-900 dark:text-slate-100',
     amber: 'text-amber-700',
     emerald: 'text-emerald-700',
     rose: 'text-rose-700',
   };
   return (
-    <div className="rounded-2xl bg-white border border-slate-200 p-4">
+    <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-4">
       <div className={`font-mono font-black text-2xl ${tones[tone]}`}>{value}</div>
-      <div className="text-[11px] uppercase tracking-wide text-slate-500 mt-1">{label}</div>
+      <div className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400 mt-1">{label}</div>
     </div>
   );
 }

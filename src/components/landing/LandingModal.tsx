@@ -73,20 +73,20 @@ export const LandingModal: React.FC<LandingModalProps> = ({
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className={`bg-white rounded-2xl w-full ${maxWidthClassName} max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-200 relative animate-in zoom-in-95 duration-150 outline-none`}
+        className={`bg-white dark:bg-slate-900 rounded-2xl w-full ${maxWidthClassName} max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-200 dark:border-slate-700 relative animate-in zoom-in-95 duration-150 outline-none`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="sticky top-0 bg-white flex items-start justify-between gap-4 px-6 pt-6 pb-4 border-b border-slate-100">
+        <div className="sticky top-0 bg-white dark:bg-slate-900 flex items-start justify-between gap-4 px-6 pt-6 pb-4 border-b border-slate-100 dark:border-slate-800">
           <div>
-            <h2 id={titleId} className="text-xl font-black text-slate-900">
+            <h2 id={titleId} className="text-xl font-black text-slate-900 dark:text-slate-100">
               {title}
             </h2>
-            {subtitle && <p className="text-sm text-slate-600 mt-1">{subtitle}</p>}
+            {subtitle && <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">{subtitle}</p>}
           </div>
           <button
             onClick={onClose}
             aria-label="Cerrar"
-            className="shrink-0 text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+            className="shrink-0 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>

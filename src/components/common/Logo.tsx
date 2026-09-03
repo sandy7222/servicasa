@@ -58,7 +58,7 @@ export const Logo: React.FC<LogoProps> = ({
   const current = SIZE_MAP[size];
 
   const taglineColor =
-    variant === 'white' ? 'text-slate-300' : 'text-slate-500';
+    variant === 'white' ? 'text-slate-300' : 'text-slate-500 dark:text-slate-400';
 
   const tagline = showTagline ? (
     <span className={`font-semibold tracking-wide ${TAGLINE_SIZES[size]} ${taglineColor}`}>

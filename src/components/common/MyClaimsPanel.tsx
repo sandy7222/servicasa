@@ -37,9 +37,9 @@ export function MyClaimsPanel({ onOpen }: { onOpen: (claimId: string) => void })
   if (claims.length === 0 && !isCustomer) return null;
 
   return (
-    <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-xs space-y-3">
+    <div className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-700 shadow-xs space-y-3">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5 text-sm font-bold text-slate-900">
+        <div className="flex items-center gap-1.5 text-sm font-bold text-slate-900 dark:text-slate-100">
           <ShieldAlert className="w-4 h-4 text-rose-600" />
           Reclamos y garantías
         </div>
@@ -53,18 +53,18 @@ export function MyClaimsPanel({ onOpen }: { onOpen: (claimId: string) => void })
         )}
       </div>
       {claims.length === 0 ? (
-        <p className="text-xs text-slate-500">No tenés reclamos abiertos.</p>
+        <p className="text-xs text-slate-500 dark:text-slate-400">No tenés reclamos abiertos.</p>
       ) : (
         <div className="divide-y divide-slate-100">
           {claims.map((c) => (
             <button
               key={c.id}
               onClick={() => onOpen(c.id)}
-              className="w-full text-left py-2.5 flex items-center justify-between gap-2 hover:bg-slate-50 -mx-1 px-1 rounded"
+              className="w-full text-left py-2.5 flex items-center justify-between gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 -mx-1 px-1 rounded"
             >
               <div>
-                <div className="text-xs font-bold text-slate-900">{c.subject}</div>
-                <div className="text-[11px] text-slate-500">{c.caseNumber} · {CLAIM_TYPE_LABELS[c.type]} · {formatDate(c.openedAt)}</div>
+                <div className="text-xs font-bold text-slate-900 dark:text-slate-100">{c.subject}</div>
+                <div className="text-[11px] text-slate-500 dark:text-slate-400">{c.caseNumber} · {CLAIM_TYPE_LABELS[c.type]} · {formatDate(c.openedAt)}</div>
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
                 <ClaimPriorityBadge priority={c.priority} />

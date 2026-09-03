@@ -15,6 +15,7 @@ import { Logo } from './Logo';
 import { useApp } from '../../context/AppContext';
 import { RoleSwitcherModal } from './RoleSwitcherModal';
 import { NotificationBell } from './NotificationBell';
+import { ThemeToggle } from './ThemeToggle';
 import { DEMO_MODE } from '../../lib/featureFlags';
 import { fetchTotalUnreadCount } from '../../lib/conversations';
 import type { UserRole } from '../../types';
@@ -151,6 +152,7 @@ export const Header: React.FC = () => {
 
             {/* Right: Active Role, Demo Switcher & Quick Access */}
             <div className="hidden sm:flex items-center gap-2">
+              <ThemeToggle variant="bar" />
               {!authReady ? null : isAuthenticated && currentUser ? (
                 <>
                   <NotificationBell />
@@ -213,6 +215,7 @@ export const Header: React.FC = () => {
 
             {/* Mobile menu trigger */}
             <div className="flex md:hidden items-center gap-1.5">
+              <ThemeToggle variant="bar" />
               {authReady && isAuthenticated && currentUser && <NotificationBell />}
               {authReady && (DEMO_MODE ? (
                 <button

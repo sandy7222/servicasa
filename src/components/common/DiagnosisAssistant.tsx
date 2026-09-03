@@ -76,11 +76,11 @@ export const DiagnosisAssistant: React.FC = () => {
     <div className="fixed bottom-4 right-4 z-[70] flex flex-col items-end gap-3 pointer-events-none">
       {open && (
         <section
-          className="pointer-events-auto w-[min(100vw-2rem,26rem)] max-h-[min(40rem,calc(100vh-6.5rem))] flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/20"
+          className="pointer-events-auto w-[min(100vw-2rem,26rem)] max-h-[min(40rem,calc(100vh-6.5rem))] flex flex-col overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xl shadow-slate-900/20"
           aria-label="Asistente de diagnóstico guiado"
         >
           <header className="flex items-center gap-2.5 px-3 py-2.5 bg-[#0F172A] text-white">
-            <img src={assistantPortrait} alt="" className="w-9 h-9 rounded-full object-cover object-top bg-white" />
+            <img src={assistantPortrait} alt="" className="w-9 h-9 rounded-full object-cover object-top bg-white dark:bg-slate-900" />
             <div className="min-w-0 flex-1">
               <p className="text-xs font-bold leading-tight">Asistente de diagnóstico</p>
               <p className="text-[10px] text-slate-400">Preguntas con botones · Electricidad piloto</p>
@@ -93,16 +93,16 @@ export const DiagnosisAssistant: React.FC = () => {
             </button>
           </header>
 
-          <div ref={scroller} className="flex-1 overflow-y-auto px-3 py-3 space-y-2 bg-slate-50">
+          <div ref={scroller} className="flex-1 overflow-y-auto px-3 py-3 space-y-2 bg-slate-50 dark:bg-slate-950">
             {session.messages.map((message) => (
               <div key={message.id} className={`flex gap-2 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 {message.role === 'assistant' && (
-                  <img src={assistantPortrait} alt="" className="w-7 h-7 rounded-full object-cover object-top bg-white border border-slate-200 shrink-0 mt-0.5" />
+                  <img src={assistantPortrait} alt="" className="w-7 h-7 rounded-full object-cover object-top bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shrink-0 mt-0.5" />
                 )}
                 <p
                   className={`max-w-[85%] rounded-2xl px-3 py-2 text-xs leading-relaxed whitespace-pre-line ${
                     message.role === 'assistant'
-                      ? 'bg-white border border-slate-200 text-slate-800 rounded-tl-md'
+                      ? 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-tl-md'
                       : 'bg-teal-600 text-white rounded-tr-md'
                   }`}
                 >
@@ -112,7 +112,7 @@ export const DiagnosisAssistant: React.FC = () => {
             ))}
           </div>
 
-          <div className="border-t border-slate-200 bg-white p-3 space-y-2">
+          <div className="border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 space-y-2">
             {prompt.kind === 'buttons' && (
               <div className="grid gap-1.5">
                 {prompt.options.map((option) => (
@@ -120,7 +120,7 @@ export const DiagnosisAssistant: React.FC = () => {
                     key={option.id}
                     type="button"
                     onClick={() => choose(option.id, optionLabel(prompt.options, option.id))}
-                    className="w-full text-left rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-800 hover:border-teal-400 hover:bg-teal-50"
+                    className="w-full text-left rounded-xl border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs font-semibold text-slate-800 dark:text-slate-200 hover:border-teal-400 hover:bg-teal-50"
                   >
                     {option.label}
                   </button>
@@ -135,9 +135,9 @@ export const DiagnosisAssistant: React.FC = () => {
                   onChange={(event) => setFreeText(event.target.value)}
                   rows={3}
                   placeholder="Contanos qué ves o qué dejó de andar…"
-                  className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs"
+                  className="w-full rounded-xl border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs"
                 />
-                <label className="flex w-full min-h-12 items-center justify-center gap-2 rounded-xl border-2 border-teal-600 bg-teal-50 px-3 py-3 text-sm font-bold text-teal-800 cursor-pointer active:bg-teal-100 touch-manipulation">
+                <label className="flex w-full min-h-12 items-center justify-center gap-2 rounded-xl border-2 border-teal-600 bg-teal-50 dark:bg-teal-950/40 px-3 py-3 text-sm font-bold text-teal-800 cursor-pointer active:bg-teal-100 touch-manipulation">
                   <Camera className="w-6 h-6 shrink-0" />
                   <span className="truncate">{photoName ? photoName : 'Adjuntar foto'}</span>
                   <input
@@ -168,9 +168,9 @@ export const DiagnosisAssistant: React.FC = () => {
                     key={service.id}
                     type="button"
                     onClick={() => setSession((current) => pickCatalogItem(current, service))}
-                    className="w-full text-left rounded-xl border border-slate-200 px-3 py-2 hover:border-teal-400 hover:bg-teal-50"
+                    className="w-full text-left rounded-xl border border-slate-200 dark:border-slate-700 px-3 py-2 hover:border-teal-400 hover:bg-teal-50"
                   >
-                    <span className="block text-xs font-semibold text-slate-900">{service.name}</span>
+                    <span className="block text-xs font-semibold text-slate-900 dark:text-slate-100">{service.name}</span>
                     <span className="block text-[11px] font-mono font-bold text-teal-800 mt-0.5">{formatArs(service.price)}</span>
                   </button>
                 ))}
@@ -178,13 +178,13 @@ export const DiagnosisAssistant: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setSession((current) => skipItemPick(current))}
-                    className="w-full text-left rounded-xl border border-dashed border-slate-300 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                    className="w-full text-left rounded-xl border border-dashed border-slate-300 px-3 py-2 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
                   >
                     Que lo vea el técnico / no estoy seguro
                   </button>
                 )}
                 {pickable.length === 0 && prompt.allowUnsure && (
-                  <p className="text-[11px] text-slate-500">No hay un ítem exacto para filtrar. Podés dejarlo en diagnóstico.</p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">No hay un ítem exacto para filtrar. Podés dejarlo en diagnóstico.</p>
                 )}
               </div>
             )}
@@ -218,7 +218,7 @@ export const DiagnosisAssistant: React.FC = () => {
         <img
           src={assistantPortrait}
           alt="Asistente de diagnóstico"
-          className="w-full h-full object-cover bg-white"
+          className="w-full h-full object-cover bg-white dark:bg-slate-900"
           style={{ transform: 'scale(1.9)', transformOrigin: 'center 32%' }}
         />
       </button>
@@ -239,24 +239,24 @@ const SummaryPane: React.FC<{
     : undefined;
   return (
     <div className="space-y-2">
-      <p className="text-[11px] font-bold text-slate-800">{draft.title}</p>
+      <p className="text-[11px] font-bold text-slate-800 dark:text-slate-200">{draft.title}</p>
       {priced && (
         <p className="text-xs font-black text-teal-800">
           {formatArs(priced.price * draft.quantity)}
           {draft.quantity > 1 ? ` · ${draft.quantity} u.` : ''}
         </p>
       )}
-      <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
+      <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
         Descripción (editable)
         <textarea
           value={draft.description}
           onChange={(event) => onDescription(event.target.value)}
           rows={3}
-          className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-xs font-normal normal-case tracking-normal text-slate-800"
+          className="mt-1 w-full rounded-xl border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs font-normal normal-case tracking-normal text-slate-800 dark:text-slate-200"
         />
       </label>
       {priced && (
-        <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+        <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
           Cantidad
           <input
             type="number"
@@ -264,11 +264,11 @@ const SummaryPane: React.FC<{
             max={20}
             value={draft.quantity}
             onChange={(event) => onQuantity(Number(event.target.value) || 1)}
-            className="mt-1 block w-20 rounded-lg border border-slate-200 px-2 py-1.5 text-xs font-normal normal-case"
+            className="mt-1 block w-20 rounded-lg border border-slate-200 dark:border-slate-700 px-2 py-1.5 text-xs font-normal normal-case"
           />
         </label>
       )}
-      <p className="text-[10px] text-slate-500">El asistente no envía el pedido: lo revisás y confirmás en el formulario.</p>
+      <p className="text-[10px] text-slate-500 dark:text-slate-400">El asistente no envía el pedido: lo revisás y confirmás en el formulario.</p>
       <button type="button" onClick={onConfirm} className="w-full rounded-xl bg-teal-600 px-3 py-2 text-xs font-bold text-white hover:bg-teal-700">
         Revisar y pedir
       </button>

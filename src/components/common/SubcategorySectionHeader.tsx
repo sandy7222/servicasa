@@ -42,8 +42,8 @@ export const SubcategorySectionHeader: React.FC<Props> = ({
         <span
           className={
             ungrouped
-              ? `${compact ? 'text-xs' : 'text-sm'} font-semibold italic text-slate-500`
-              : `${compact ? 'text-xs font-bold text-slate-800' : 'text-sm font-bold text-slate-900'}`
+              ? `${compact ? 'text-xs' : 'text-sm'} font-semibold italic text-slate-500 dark:text-slate-400`
+              : `${compact ? 'text-xs font-bold text-slate-800 dark:text-slate-200' : 'text-sm font-bold text-slate-900 dark:text-slate-100'}`
           }
         >
           {name}
@@ -52,8 +52,8 @@ export const SubcategorySectionHeader: React.FC<Props> = ({
           title={countLabel}
           className={`shrink-0 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border ${
             ungrouped
-              ? 'bg-slate-50 text-slate-500 border-slate-200'
-              : 'bg-slate-50 text-slate-600 border-slate-200'
+              ? 'bg-slate-50 dark:bg-slate-950 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700'
+              : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700'
           }`}
         >
           {count}

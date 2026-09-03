@@ -35,14 +35,14 @@ export const EntityActionsMenu: React.FC<{ items: EntityActionItem[] }> = ({ ite
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-500 hover:text-slate-800 hover:bg-slate-50 shadow-xs"
+        className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-xs"
         aria-label="Más acciones"
         aria-expanded={open}
       >
         <MoreVertical className="w-4 h-4" />
       </button>
       {open && (
-        <div className="absolute right-0 bottom-full mb-1 z-30 w-52 rounded-xl border border-slate-200 bg-white shadow-lg py-1">
+        <div className="absolute right-0 bottom-full mb-1 z-30 w-52 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg py-1">
           {items.map((item) => {
             const Icon = item.icon === 'edit' ? Pencil : item.icon === 'delete' ? Trash2 : Link2;
             return (
@@ -61,7 +61,7 @@ export const EntityActionsMenu: React.FC<{ items: EntityActionItem[] }> = ({ ite
                     ? 'text-slate-400 cursor-not-allowed'
                     : item.icon === 'delete'
                       ? 'text-rose-700 hover:bg-rose-50'
-                      : 'text-slate-700 hover:bg-slate-50'
+                      : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
                 }`}
               >
                 <Icon className="w-3.5 h-3.5 shrink-0" />

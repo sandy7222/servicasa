@@ -241,7 +241,7 @@ const AppContent: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-800 antialiased selection:bg-teal-500 selection:text-white">
+    <div className="min-h-screen bg-tu-bg flex flex-col font-sans text-tu-fg-muted antialiased selection:bg-teal-500 selection:text-white">
       {showSharedHeader && <Header />}
       <InlineBusyBar active={remoteBusy} />
       {!authReady ? (

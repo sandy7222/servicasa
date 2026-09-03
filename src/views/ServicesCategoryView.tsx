@@ -41,7 +41,7 @@ const SubcategoryCardHeader: React.FC<{
       aria-expanded={!collapsed}
       className={[
         'flex w-full items-center gap-2 text-left min-h-11 px-3 py-2.5 transition-colors hover:bg-slate-50/80',
-        expanded ? 'sticky top-0 z-10 bg-white/95 backdrop-blur-sm border-b border-slate-100' : '',
+        expanded ? 'sticky top-0 z-10 bg-white/95 backdrop-blur-sm border-b border-slate-100 dark:border-slate-800' : '',
       ]
         .filter(Boolean)
         .join(' ')}
@@ -53,8 +53,8 @@ const SubcategoryCardHeader: React.FC<{
       <span
         className={
           ungrouped
-            ? 'min-w-0 flex-1 line-clamp-2 text-xs font-semibold italic text-slate-500'
-            : 'min-w-0 flex-1 line-clamp-2 text-xs sm:text-sm font-bold text-slate-900'
+            ? 'min-w-0 flex-1 line-clamp-2 text-xs font-semibold italic text-slate-500 dark:text-slate-400'
+            : 'min-w-0 flex-1 line-clamp-2 text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100'
         }
       >
         {name}
@@ -62,7 +62,7 @@ const SubcategoryCardHeader: React.FC<{
       <span
         title={countLabel}
         className={`shrink-0 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border ${
-          ungrouped ? 'bg-slate-50 text-slate-500 border-slate-200' : 'bg-slate-50 text-slate-600 border-slate-200'
+          ungrouped ? 'bg-slate-50 dark:bg-slate-950 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700' : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700'
         }`}
       >
         {count}
@@ -147,18 +147,18 @@ export const ServicesCategoryView: React.FC = () => {
       return { icon: <Wrench className="w-6 h-6 text-sky-600" />, bg: 'bg-sky-50', border: 'border-sky-200', textColor: 'text-sky-700', accent: 'bg-sky-500' };
     }
     if (cat.includes('elec')) {
-      return { icon: <Zap className="w-6 h-6 text-amber-600" />, bg: 'bg-amber-50', border: 'border-amber-200', textColor: 'text-amber-700', accent: 'bg-amber-500' };
+      return { icon: <Zap className="w-6 h-6 text-amber-600" />, bg: 'bg-amber-50 dark:bg-amber-950/40', border: 'border-amber-200 dark:border-amber-800', textColor: 'text-amber-700', accent: 'bg-amber-500' };
     }
     if (cat.includes('repara') || cat.includes('hogar')) {
       return { icon: <Hammer className="w-6 h-6 text-orange-600" />, bg: 'bg-orange-50', border: 'border-orange-200', textColor: 'text-orange-700', accent: 'bg-orange-500' };
     }
     if (cat.includes('mante')) {
-      return { icon: <Settings className="w-6 h-6 text-slate-600" />, bg: 'bg-slate-50', border: 'border-slate-200', textColor: 'text-slate-700', accent: 'bg-slate-500' };
+      return { icon: <Settings className="w-6 h-6 text-slate-600 dark:text-slate-400" />, bg: 'bg-slate-50 dark:bg-slate-950', border: 'border-slate-200 dark:border-slate-700', textColor: 'text-slate-700 dark:text-slate-300', accent: 'bg-slate-500' };
     }
     if (cat.includes('instala')) {
       return { icon: <ShieldCheck className="w-6 h-6 text-emerald-600" />, bg: 'bg-emerald-50', border: 'border-emerald-200', textColor: 'text-emerald-700', accent: 'bg-emerald-500' };
     }
-    return { icon: <Wrench className="w-6 h-6 text-teal-600" />, bg: 'bg-teal-50', border: 'border-teal-200', textColor: 'text-teal-700', accent: 'bg-teal-500' };
+    return { icon: <Wrench className="w-6 h-6 text-teal-600" />, bg: 'bg-teal-50 dark:bg-teal-950/40', border: 'border-teal-200 dark:border-teal-800', textColor: 'text-teal-700', accent: 'bg-teal-500' };
   };
 
   const handleCreateOrder = (serviceId: string) => {
@@ -188,9 +188,9 @@ export const ServicesCategoryView: React.FC = () => {
 
   if (!selectedCategory) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-4">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-slate-900 mb-2">Categoría no encontrada</h2>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">Categoría no encontrada</h2>
           <button onClick={() => navigate('/')} className="text-teal-600 hover:text-teal-700 font-medium">
             Volver al inicio
           </button>
@@ -222,13 +222,13 @@ export const ServicesCategoryView: React.FC = () => {
         : 'grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4';
 
   return (
-    <div className="h-screen flex flex-col bg-white">
+    <div className="h-screen flex flex-col bg-white dark:bg-slate-900">
       {/* Header */}
-      <div className="bg-white border-b border-slate-200 shrink-0">
+      <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 shrink-0">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <button
             onClick={() => navigate('/')}
-            className="inline-flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-4"
+            className="inline-flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
             <span className="text-sm font-medium">Volver a Servicios</span>
@@ -237,8 +237,8 @@ export const ServicesCategoryView: React.FC = () => {
           <div className="flex items-center gap-4 mb-4">
             <div className={`p-3 rounded-xl ${visuals.bg} ${visuals.border} border`}>{visuals.icon}</div>
             <div>
-              <h1 className="text-3xl font-black text-slate-900">{selectedCategory}</h1>
-              <p className="text-sm text-slate-500 mt-1">
+              <h1 className="text-3xl font-black text-slate-900 dark:text-slate-100">{selectedCategory}</h1>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
                 {totalInCategory} servicio{totalInCategory !== 1 ? 's' : ''} disponible{totalInCategory !== 1 ? 's' : ''}
               </p>
             </div>
@@ -251,7 +251,7 @@ export const ServicesCategoryView: React.FC = () => {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Buscar dentro de este rubro..."
-                className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/40 focus:border-teal-500"
+                className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/40 focus:border-teal-500"
               />
             </div>
           )}
@@ -262,14 +262,14 @@ export const ServicesCategoryView: React.FC = () => {
       <main className="flex-1 min-h-0 overflow-y-auto">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {categoryServices.length === 0 ? (
-          <div className="bg-slate-50 rounded-2xl p-12 border border-slate-200 text-center">
-            <div className="w-12 h-12 rounded-xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-4">
+          <div className="bg-slate-50 dark:bg-slate-950 rounded-2xl p-12 border border-slate-200 dark:border-slate-700 text-center">
+            <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto mb-4">
               <Wrench className="w-6 h-6" />
             </div>
-            <h3 className="text-lg font-bold text-slate-900">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
               {search ? 'Sin resultados para tu búsqueda' : 'Sin servicios en esta categoría'}
             </h3>
-            <p className="text-sm text-slate-500 mt-2">
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
               {search
                 ? 'Probá con otra palabra o revisá la ortografía.'
                 : `Actualmente no hay servicios disponibles en ${selectedCategory}`}
@@ -285,7 +285,7 @@ export const ServicesCategoryView: React.FC = () => {
               return (
               <section key={groupId} className={expanded ? 'col-span-full' : undefined}>
                 <article
-                  className={`h-full rounded-2xl border border-slate-200 bg-white overflow-hidden ${
+                  className={`h-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden ${
                     expanded ? 'shadow-sm' : 'hover:border-slate-300 hover:shadow-sm transition-shadow'
                   }`}
                 >
@@ -304,23 +304,23 @@ export const ServicesCategoryView: React.FC = () => {
                       const isOpen = openId === srv.id;
                       const duration = formatDuration(srv.estimatedDurationMinutes);
                       return (
-                        <div key={srv.id} className="bg-white">
+                        <div key={srv.id} className="bg-white dark:bg-slate-900">
                           <button
                             type="button"
                             onClick={() => setOpenId(isOpen ? undefined : srv.id)}
-                            className="w-full flex items-center justify-between gap-3 px-4 sm:px-5 py-3.5 text-left hover:bg-slate-50 transition-colors"
+                            className="w-full flex items-center justify-between gap-3 px-4 sm:px-5 py-3.5 text-left hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                           >
                             <div className="min-w-0 flex-1">
-                              <p className="font-semibold text-sm text-slate-900 truncate">{srv.name}</p>
+                              <p className="font-semibold text-sm text-slate-900 dark:text-slate-100 truncate">{srv.name}</p>
                               {duration && (
-                                <span className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-slate-500">
+                                <span className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400">
                                   <Clock className="w-3 h-3" />
                                   {duration}
                                 </span>
                               )}
                             </div>
                             <div className="flex items-center gap-3 shrink-0">
-                              <span className="font-mono font-bold text-teal-800 bg-teal-50 border border-teal-200 px-2 py-1 rounded-lg text-xs sm:text-sm">
+                              <span className="font-mono font-bold text-teal-800 bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800 px-2 py-1 rounded-lg text-xs sm:text-sm">
                                 ${srv.price.toLocaleString('es-AR')}
                               </span>
                               <ChevronDown
@@ -330,13 +330,13 @@ export const ServicesCategoryView: React.FC = () => {
                           </button>
 
                           {isOpen && (
-                            <div className="px-4 sm:px-5 pb-4 pt-1 border-t border-slate-100 bg-slate-50/60 space-y-3">
-                              <p className="text-sm text-slate-600 leading-relaxed pt-3">{srv.description}</p>
+                            <div className="px-4 sm:px-5 pb-4 pt-1 border-t border-slate-100 dark:border-slate-800 bg-slate-50/60 space-y-3">
+                              <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed pt-3">{srv.description}</p>
 
                               {srv.features && srv.features.length > 0 && (
                                 <div className="space-y-1.5">
                                   {srv.features.map((feat, idx) => (
-                                    <div key={idx} className="flex items-center gap-2 text-xs text-slate-700">
+                                    <div key={idx} className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300">
                                       <CheckCircle2 className="w-3.5 h-3.5 text-teal-600 shrink-0" />
                                       <span>{feat}</span>
                                     </div>

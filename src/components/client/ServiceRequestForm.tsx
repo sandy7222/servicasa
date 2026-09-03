@@ -258,14 +258,14 @@ export const ServiceRequestForm: React.FC = () => {
   };
 
   return (
-    <section id="solicitar-servicio" className="bg-white rounded-xl p-4 border border-slate-200 shadow-xs space-y-4" aria-labelledby="service-request-title">
+    <section id="solicitar-servicio" className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-700 shadow-xs space-y-4" aria-labelledby="service-request-title">
       <div className="flex gap-2.5">
-        <span className="w-9 h-9 shrink-0 rounded-lg bg-teal-50 border border-teal-200 text-teal-700 flex items-center justify-center"><ClipboardPlus className="w-4.5 h-4.5" /></span>
+        <span className="w-9 h-9 shrink-0 rounded-lg bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800 text-teal-700 flex items-center justify-center"><ClipboardPlus className="w-4.5 h-4.5" /></span>
         <div>
-          <h2 id="service-request-title" className="text-sm font-bold text-slate-900">Solicitar un servicio</h2>
-          <p className="text-[11px] text-slate-500">El domicilio y el horario se usan únicamente para este pedido.</p>
+          <h2 id="service-request-title" className="text-sm font-bold text-slate-900 dark:text-slate-100">Solicitar un servicio</h2>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400">El domicilio y el horario se usan únicamente para este pedido.</p>
           {fromAssistant && (
-            <p className="mt-2 text-[11px] text-teal-800 bg-teal-50 border border-teal-200 rounded-lg px-3 py-2">
+            <p className="mt-2 text-[11px] text-teal-800 bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800 rounded-lg px-3 py-2">
               El asistente precargó este pedido. Revisá la descripción antes de confirmar.
             </p>
           )}
@@ -273,7 +273,7 @@ export const ServiceRequestForm: React.FC = () => {
       </div>
 
       {pendingDraft && pendingDraft.status === 'pending' && (
-        <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 flex flex-col sm:flex-row sm:items-center gap-2.5 justify-between">
+        <div className="rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-950/40 p-3 flex flex-col sm:flex-row sm:items-center gap-2.5 justify-between">
           <div className="flex items-start gap-2">
             <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
             <div>
@@ -296,13 +296,13 @@ export const ServiceRequestForm: React.FC = () => {
       )}
 
       <div className="grid sm:grid-cols-2 gap-2">
-        <button type="button" onClick={() => chooseMode('diagnosis')} className={`text-left rounded-xl border p-3 transition ${mode === 'diagnosis' ? 'border-teal-500 bg-teal-50/60 ring-1 ring-teal-500/20' : 'border-slate-200 hover:bg-slate-50'}`}>
-          <span className="inline-flex items-center gap-1 text-xs font-bold text-slate-900"><Search className="w-3.5 h-3.5 text-teal-700" />No sé exactamente qué necesito</span>
-          <span className="block mt-1 text-[11px] text-slate-600">Visita de presupuesto: {formatArs(visitDepositAmount)}. Este monto corresponde a la visita y se cobra de forma independiente del valor del trabajo.</span>
+        <button type="button" onClick={() => chooseMode('diagnosis')} className={`text-left rounded-xl border p-3 transition ${mode === 'diagnosis' ? 'border-teal-500 bg-teal-50/60 ring-1 ring-teal-500/20' : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'}`}>
+          <span className="inline-flex items-center gap-1 text-xs font-bold text-slate-900 dark:text-slate-100"><Search className="w-3.5 h-3.5 text-teal-700" />No sé exactamente qué necesito</span>
+          <span className="block mt-1 text-[11px] text-slate-600 dark:text-slate-400">Visita de presupuesto: {formatArs(visitDepositAmount)}. Este monto corresponde a la visita y se cobra de forma independiente del valor del trabajo.</span>
         </button>
-        <button type="button" onClick={() => chooseMode('direct')} className={`text-left rounded-xl border p-3 transition ${mode === 'direct' ? 'border-teal-500 bg-teal-50/60 ring-1 ring-teal-500/20' : 'border-slate-200 hover:bg-slate-50'}`}>
-          <span className="inline-flex items-center gap-1 text-xs font-bold text-slate-900"><Wrench className="w-3.5 h-3.5 text-teal-700" />Sé qué trabajo necesito</span>
-          <span className="block mt-1 text-[11px] text-slate-600">Solo para tareas de precio fijo. El pago se habilitará antes de asignar un técnico.</span>
+        <button type="button" onClick={() => chooseMode('direct')} className={`text-left rounded-xl border p-3 transition ${mode === 'direct' ? 'border-teal-500 bg-teal-50/60 ring-1 ring-teal-500/20' : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'}`}>
+          <span className="inline-flex items-center gap-1 text-xs font-bold text-slate-900 dark:text-slate-100"><Wrench className="w-3.5 h-3.5 text-teal-700" />Sé qué trabajo necesito</span>
+          <span className="block mt-1 text-[11px] text-slate-600 dark:text-slate-400">Solo para tareas de precio fijo. El pago se habilitará antes de asignar un técnico.</span>
         </button>
       </div>
 
@@ -310,13 +310,13 @@ export const ServiceRequestForm: React.FC = () => {
 
       <form onSubmit={(event) => void submit(event)} className="space-y-3">
         <div className="grid sm:grid-cols-2 gap-2">
-          <label className="text-xs font-semibold text-slate-700">Rubro<select value={serviceType} onChange={(event) => { setServiceType(event.target.value); setSelectedService(null); }} className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"><option value="">Elegí un rubro</option>{categories.map((category) => <option key={category} value={category}>{category}</option>)}</select></label>
-          <label className="text-xs font-semibold text-slate-700">Prioridad<select value={priority} onChange={(event) => setPriority(event.target.value as OrderPriority)} className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"><option value="baja">Baja</option><option value="media">Media</option><option value="alta">Alta</option><option value="urgente">Urgente</option></select></label>
+          <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Rubro<select value={serviceType} onChange={(event) => { setServiceType(event.target.value); setSelectedService(null); }} className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"><option value="">Elegí un rubro</option>{categories.map((category) => <option key={category} value={category}>{category}</option>)}</select></label>
+          <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Prioridad<select value={priority} onChange={(event) => setPriority(event.target.value as OrderPriority)} className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"><option value="baja">Baja</option><option value="media">Media</option><option value="alta">Alta</option><option value="urgente">Urgente</option></select></label>
         </div>
 
         {mode === 'direct' ? (
-          <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50/70 p-3">
-            <p className="text-xs font-bold text-slate-800">Servicio de precio fijo</p>
+          <div className="space-y-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 p-3">
+            <p className="text-xs font-bold text-slate-800 dark:text-slate-200">Servicio de precio fijo</p>
             {directServiceGroups.length === 0 ? (
               <p className="text-xs text-amber-700">Este rubro aún no tiene servicios de precio fijo. Elegí diagnóstico para recibir un presupuesto.</p>
             ) : (
@@ -334,10 +334,10 @@ export const ServiceRequestForm: React.FC = () => {
                             setTitle(service.name);
                             setDescription(service.description);
                           }}
-                          className={`rounded-lg border p-2.5 text-left ${selectedService?.id === service.id ? 'border-teal-500 bg-white' : 'border-slate-200 bg-white hover:border-teal-300'}`}
+                          className={`rounded-lg border p-2.5 text-left ${selectedService?.id === service.id ? 'border-teal-500 bg-white dark:bg-slate-900' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-teal-300'}`}
                         >
-                          <span className="block text-xs font-bold text-slate-900">{service.name}</span>
-                          <span className="block text-[11px] text-slate-500 mt-0.5">{formatArs(service.price)}</span>
+                          <span className="block text-xs font-bold text-slate-900 dark:text-slate-100">{service.name}</span>
+                          <span className="block text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{formatArs(service.price)}</span>
                         </button>
                       ))}
                     </div>
@@ -345,21 +345,21 @@ export const ServiceRequestForm: React.FC = () => {
                 ))}
               </div>
             )}
-            {selectedService && <div className="flex items-end gap-2"><label className="text-xs font-semibold text-slate-700">Cantidad<input type="number" min="1" max="20" value={quantity} onChange={(event) => setQuantity(Math.max(1, Number(event.target.value) || 1))} className="mt-1 block w-24 rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label><p className="pb-2 text-sm font-black text-teal-800">Estimado: {formatArs(directTotal)}</p></div>}
+            {selectedService && <div className="flex items-end gap-2"><label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Cantidad<input type="number" min="1" max="20" value={quantity} onChange={(event) => setQuantity(Math.max(1, Number(event.target.value) || 1))} className="mt-1 block w-24 rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm" /></label><p className="pb-2 text-sm font-black text-teal-800">Estimado: {formatArs(directTotal)}</p></div>}
           </div>
-        ) : <label className="block text-xs font-semibold text-slate-700">Título del problema<input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Ej.: Se corta la luz en la cocina" className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label>}
+        ) : <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">Título del problema<input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Ej.: Se corta la luz en la cocina" className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm" /></label>}
 
-        <label className="block text-xs font-semibold text-slate-700">Descripción<textarea value={description} onChange={(event) => setDescription(event.target.value)} rows={3} placeholder="Contanos qué sucede, desde cuándo y cualquier detalle útil para el técnico." className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label>
+        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">Descripción<textarea value={description} onChange={(event) => setDescription(event.target.value)} rows={3} placeholder="Contanos qué sucede, desde cuándo y cualquier detalle útil para el técnico." className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm" /></label>
 
-        <div className="rounded-xl border border-slate-200 p-3 space-y-2">
-          <p className="text-xs font-bold text-slate-800"><MapPin className="inline w-3.5 h-3.5 mr-1 text-teal-700" />Datos de esta visita</p>
+        <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-3 space-y-2">
+          <p className="text-xs font-bold text-slate-800 dark:text-slate-200"><MapPin className="inline w-3.5 h-3.5 mr-1 text-teal-700" />Datos de esta visita</p>
           {savedAddresses.length > 0 && (
-            <label className="block text-xs font-semibold text-slate-700">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
               Dirección
               <select
                 value={selectedAddressId === '' ? 'new' : selectedAddressId}
                 onChange={(event) => selectSavedAddress(event.target.value)}
-                className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+                className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
               >
                 {savedAddresses.map((a) => (
                   <option key={a.id} value={a.id}>
@@ -372,12 +372,12 @@ export const ServiceRequestForm: React.FC = () => {
           )}
           <AddressFields value={addressDraft} onChange={setAddressDraft} />
           {selectedAddressId === 'new' && (
-            <label className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+            <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
               <input type="checkbox" checked={saveAddressChecked} onChange={(event) => setSaveAddressChecked(event.target.checked)} className="rounded border-slate-300" />
               Guardar esta dirección para próximos pedidos
             </label>
           )}
-          <div className="grid sm:grid-cols-2 gap-2"><label className="text-xs text-slate-600"><CalendarDays className="inline w-3.5 h-3.5 mr-1" />Fecha<input type="date" min={DATE_TODAY} value={scheduledDate} onChange={(event) => setScheduledDate(event.target.value)} className="mt-1 block w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label><label className="text-xs text-slate-600">Franja para este pedido<select value={appointmentWindow} onChange={(event) => setAppointmentWindow(event.target.value)} className="mt-1 block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"><option>A coordinar</option><option>Mañana (08–12 h)</option><option>Mediodía (12–15 h)</option><option>Tarde (15–19 h)</option></select></label></div>
+          <div className="grid sm:grid-cols-2 gap-2"><label className="text-xs text-slate-600 dark:text-slate-400"><CalendarDays className="inline w-3.5 h-3.5 mr-1" />Fecha<input type="date" min={DATE_TODAY} value={scheduledDate} onChange={(event) => setScheduledDate(event.target.value)} className="mt-1 block w-full rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm" /></label><label className="text-xs text-slate-600 dark:text-slate-400">Franja para este pedido<select value={appointmentWindow} onChange={(event) => setAppointmentWindow(event.target.value)} className="mt-1 block w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"><option>A coordinar</option><option>Mañana (08–12 h)</option><option>Mediodía (12–15 h)</option><option>Tarde (15–19 h)</option></select></label></div>
         </div>
 
         <button type="submit" disabled={submitting} className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-lg bg-teal-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-teal-700 disabled:opacity-50"><CreditCard className="w-4 h-4" />{submitting ? 'Enviando solicitud…' : mode === 'diagnosis' ? 'Solicitar diagnóstico' : 'Solicitar trabajo de precio fijo'}</button>

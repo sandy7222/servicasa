@@ -218,7 +218,7 @@ export const TechnicianView: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100/70 pb-12" id="technician-view-container">
+    <div className="min-h-screen bg-slate-100/70 dark:bg-slate-900/80 pb-12" id="technician-view-container">
       {/* Top Banner - High Density Dark */}
       <div className="bg-[#0F172A] border-b border-slate-800 text-white shadow-xs">
         <div className="max-w-7xl mx-auto px-3 sm:px-5 lg:px-6 py-3.5">
@@ -297,12 +297,12 @@ export const TechnicianView: React.FC = () => {
 
       <main className="max-w-7xl mx-auto px-3 sm:px-5 lg:px-6 pt-4">
         {assignedOrders.length === 0 ? (
-          <div className="bg-white rounded-xl p-8 border border-slate-200 text-center max-w-md mx-auto mt-4 shadow-xs">
-            <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center mx-auto mb-2.5">
+          <div className="bg-white dark:bg-slate-900 rounded-xl p-8 border border-slate-200 dark:border-slate-700 text-center max-w-md mx-auto mt-4 shadow-xs">
+            <div className="w-10 h-10 rounded-xl bg-teal-50 dark:bg-teal-950/40 text-teal-600 flex items-center justify-center mx-auto mb-2.5">
               <CheckCircle2 className="w-5 h-5" />
             </div>
-            <h3 className="text-sm font-bold text-slate-900">¡Al día! No tenés órdenes pendientes</h3>
-            <p className="text-xs text-slate-500 mt-1">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">¡Al día! No tenés órdenes pendientes</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
               Podés cambiar de técnico o ingresar al Admin Hub para asignarte una nueva orden.
             </p>
           </div>
@@ -311,7 +311,7 @@ export const TechnicianView: React.FC = () => {
             {/* Left Column: Assigned Orders List (4 cols) */}
             <div className="lg:col-span-4 space-y-2">
               <div className="flex items-center justify-between px-1">
-                <h2 className="text-[11px] font-bold uppercase tracking-wider text-slate-500 font-mono">
+                <h2 className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 font-mono">
                   Órdenes Asignadas ({assignedOrders.length})
                 </h2>
               </div>
@@ -326,30 +326,30 @@ export const TechnicianView: React.FC = () => {
                       onClick={() => setSelectedOrderId(ord.id)}
                       className={`p-3 rounded-xl border cursor-pointer transition-all ${
                         isSelected
-                          ? 'bg-white border-teal-500 shadow-xs ring-1 ring-teal-500/20'
-                          : 'bg-white border-slate-200 hover:bg-slate-50 hover:border-slate-300'
+                          ? 'bg-white dark:bg-slate-900 border-teal-500 shadow-xs ring-1 ring-teal-500/20'
+                          : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300'
                       }`}
                     >
                       <div className="flex items-center justify-between gap-1.5 mb-1">
-                        <span className="font-mono text-[11px] font-bold text-slate-800 bg-slate-100 px-1.5 py-0.2 rounded border border-slate-200">
+                        <span className="font-mono text-[11px] font-bold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.2 rounded border border-slate-200 dark:border-slate-700">
                           {ord.id}
                         </span>
                         <StatusBadge status={ord.status} size="sm" />
                       </div>
 
-                      <h3 className="font-bold text-xs text-slate-900 line-clamp-1">{ord.title}</h3>
+                      <h3 className="font-bold text-xs text-slate-900 dark:text-slate-100 line-clamp-1">{ord.title}</h3>
                       {ord.quoteStatus === 'rejected' && (
                         <span className="mt-1 inline-block rounded border border-rose-200 bg-rose-50 px-1.5 py-0.5 text-[10px] font-bold text-rose-800">
                           Presupuesto rechazado
                         </span>
                       )}
 
-                      <div className="space-y-1 mt-1.5 text-xs text-slate-600">
-                        <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-800">
+                      <div className="space-y-1 mt-1.5 text-xs text-slate-600 dark:text-slate-400">
+                        <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-800 dark:text-slate-200">
                           <MapPin className="w-3 h-3 text-teal-600 shrink-0" />
                           <span className="truncate">{ord.clientAddress}</span>
                         </div>
-                        <div className="flex items-center justify-between text-[10px] text-slate-500 pt-0.5">
+                        <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 pt-0.5">
                           <PriorityBadge priority={ord.priority} />
                           <span className="font-mono">{ord.scheduledDate}</span>
                         </div>
@@ -373,19 +373,19 @@ export const TechnicianView: React.FC = () => {
             {activeOrder && (
               <div className="lg:col-span-8 space-y-3">
                 {/* Order Header Card */}
-                <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-xs space-y-3">
-                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 pb-3 border-b border-slate-100">
+                <div className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-700 shadow-xs space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
                     <div>
                       <div className="flex items-center gap-1.5 mb-1">
-                        <span className="font-mono text-[11px] font-bold text-slate-800 bg-slate-100 px-1.5 py-0.2 rounded border border-slate-200">
+                        <span className="font-mono text-[11px] font-bold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.2 rounded border border-slate-200 dark:border-slate-700">
                           {activeOrder.id}
                         </span>
                         <StatusBadge status={activeOrder.status} size="sm" />
                         <PriorityBadge priority={activeOrder.priority} />
                         <ServiceBadge service={activeOrder.serviceType} size="sm" />
                       </div>
-                      <h2 className="text-sm sm:text-base font-bold text-slate-900 leading-snug">{activeOrder.title}</h2>
-                      <p className="text-xs text-slate-600 mt-0.5">{activeOrder.description}</p>
+                      <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100 leading-snug">{activeOrder.title}</h2>
+                      <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">{activeOrder.description}</p>
                     </div>
 
                     {/* Quick State Action Buttons */}
@@ -394,7 +394,7 @@ export const TechnicianView: React.FC = () => {
                         <div className="flex items-center gap-1.5">
                           <button
                             onClick={() => void respondToAssignment(activeOrder.id, 'rejected')}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-700 text-xs font-bold rounded-lg border border-slate-200 transition-colors"
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-rose-50 text-slate-700 dark:text-slate-300 hover:text-rose-700 text-xs font-bold rounded-lg border border-slate-200 dark:border-slate-700 transition-colors"
                           >
                             <span>Rechazar</span>
                           </button>
@@ -425,7 +425,7 @@ export const TechnicianView: React.FC = () => {
                       )}
 
                       {activeOrder.status === 'assigned' && activeOrder.technicianResponseStatus === 'accepted' && !isOrderPaymentSettled(activeOrder) && activeOrder.quoteStatus !== 'rejected' && (
-                        <span className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-900">
+                        <span className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 px-3 py-1.5 text-xs font-bold text-amber-900 dark:text-amber-200">
                           {activeOrder.workMode === 'diagnosis' ? 'Esperando pago de la seña' : 'Esperando pago confirmado'}
                         </span>
                       )}
@@ -434,7 +434,7 @@ export const TechnicianView: React.FC = () => {
                         <div className="flex items-center gap-1.5">
                           <button
                             onClick={() => setIsPauseModalOpen(true)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-bold rounded-lg border border-amber-300 transition-colors"
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 text-amber-900 dark:text-amber-200 text-xs font-bold rounded-lg border border-amber-300 transition-colors"
                           >
                             <Pause className="w-3 h-3" />
                             <span>Pausar</span>
@@ -470,14 +470,14 @@ export const TechnicianView: React.FC = () => {
                   </div>
 
                   {/* Customer Info Strip */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs bg-slate-50 dark:bg-slate-950 p-2.5 rounded-lg border border-slate-200 dark:border-slate-700">
                     <div>
                       <span className="text-slate-400 block text-[10px] font-medium uppercase tracking-wider">Cliente:</span>
-                      <strong className="text-slate-800 text-xs">{activeOrder.clientName}</strong>
+                      <strong className="text-slate-800 dark:text-slate-200 text-xs">{activeOrder.clientName}</strong>
                     </div>
                     <div>
                       <span className="text-slate-400 block text-[10px] font-medium uppercase tracking-wider">Dirección:</span>
-                      <span className="text-slate-700 text-xs truncate block">
+                      <span className="text-slate-700 dark:text-slate-300 text-xs truncate block">
                         {activeOrder.clientAddress}
                         {(activeOrder.clientNeighborhood || activeOrder.clientCity) &&
                           ` (${[activeOrder.clientNeighborhood, activeOrder.clientCity].filter(Boolean).join(', ')})`}
@@ -485,7 +485,7 @@ export const TechnicianView: React.FC = () => {
                     </div>
                     <div>
                       <span className="text-slate-400 block text-[10px] font-medium uppercase tracking-wider">Teléfono:</span>
-                      <span className="text-slate-700 font-mono text-xs">{activeOrder.clientPhone}</span>
+                      <span className="text-slate-700 dark:text-slate-300 font-mono text-xs">{activeOrder.clientPhone}</span>
                     </div>
                   </div>
 
@@ -498,13 +498,13 @@ export const TechnicianView: React.FC = () => {
                         showToast('No se pudo abrir la conversación.', 'error');
                       }
                     }}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 text-xs font-bold"
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 px-3 py-2 text-xs font-bold"
                   >
                     <MessageCircle className="w-3.5 h-3.5" />Escribir al cliente
                   </button>
 
                   {activeOrder.adminIncidentStatus === 'open' && (
-                    <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950">
+                    <div className="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/40 p-3 text-xs text-amber-950">
                       <div className="font-bold flex items-center gap-1.5"><AlertTriangle className="w-4 h-4" /> Orden en revisión por administración</div>
                       <p className="mt-1">{activeOrder.adminIncidentReason || 'Hay una incidencia registrada. Consultá con administración antes de continuar.'}</p>
                     </div>
@@ -515,7 +515,7 @@ export const TechnicianView: React.FC = () => {
                       href={directionsUrl(activeOrder)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-teal-200 bg-teal-50 px-3 py-2 text-xs font-bold text-teal-800 hover:bg-teal-100"
+                      className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-teal-200 dark:border-teal-800 bg-teal-50 dark:bg-teal-950/40 px-3 py-2 text-xs font-bold text-teal-800 hover:bg-teal-100"
                     >
                       <Navigation className="w-4 h-4" /> Abrir navegación al domicilio
                     </a>
@@ -534,7 +534,7 @@ export const TechnicianView: React.FC = () => {
                             ? 'bg-slate-900 text-teal-300 border-slate-800'
                             : cond.canClose
                             ? 'bg-emerald-50 text-emerald-900 border-emerald-200'
-                            : 'bg-amber-50 text-amber-900 border-amber-200'
+                            : 'bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 border-amber-200 dark:border-amber-800'
                         }`}
                       >
                         <div className="flex items-center justify-between text-xs font-bold mb-1.5">
@@ -561,7 +561,7 @@ export const TechnicianView: React.FC = () => {
                             className={`flex items-center gap-1.5 p-1.5 rounded ${
                               cond.hasTimeLog
                                 ? 'bg-white/80 text-emerald-900 font-medium'
-                                : 'bg-white/50 text-slate-500'
+                                : 'bg-white/50 text-slate-500 dark:text-slate-400'
                             }`}
                           >
                             <Check
@@ -576,7 +576,7 @@ export const TechnicianView: React.FC = () => {
                             className={`flex items-center gap-1.5 p-1.5 rounded ${
                               cond.isChecklistComplete
                                 ? 'bg-white/80 text-emerald-900 font-medium'
-                                : 'bg-white/50 text-slate-500'
+                                : 'bg-white/50 text-slate-500 dark:text-slate-400'
                             }`}
                           >
                             <Check
@@ -594,7 +594,7 @@ export const TechnicianView: React.FC = () => {
                             className={`flex items-center gap-1.5 p-1.5 rounded ${
                               cond.hasSignature
                                 ? 'bg-white/80 text-emerald-900 font-medium'
-                                : 'bg-white/50 text-slate-500'
+                                : 'bg-white/50 text-slate-500 dark:text-slate-400'
                             }`}
                           >
                             <Check
@@ -611,15 +611,15 @@ export const TechnicianView: React.FC = () => {
                 </div>
 
                 {/* Operational Tabs (Checklist, Time, Materials, Notes, Signature) */}
-                <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs overflow-hidden">
                   {/* Tabs header */}
-                  <div className="flex border-b border-slate-200 overflow-x-auto bg-slate-50/70 p-1 gap-1">
+                  <div className="flex border-b border-slate-200 dark:border-slate-700 overflow-x-auto bg-slate-50/70 p-1 gap-1">
                     <button
                       onClick={() => setActiveTab('checklist')}
                       className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-md transition-all whitespace-nowrap ${
                         activeTab === 'checklist'
                           ? 'bg-[#0F172A] text-teal-300 shadow-xs'
-                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 hover:bg-slate-200/60'
                       }`}
                     >
                       <ListTodo className="w-3.5 h-3.5" />
@@ -631,7 +631,7 @@ export const TechnicianView: React.FC = () => {
                       className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-md transition-all whitespace-nowrap ${
                         activeTab === 'time'
                           ? 'bg-[#0F172A] text-teal-300 shadow-xs'
-                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 hover:bg-slate-200/60'
                       }`}
                     >
                       <Clock className="w-3.5 h-3.5" />
@@ -643,7 +643,7 @@ export const TechnicianView: React.FC = () => {
                       className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-md transition-all whitespace-nowrap ${
                         activeTab === 'materials'
                           ? 'bg-[#0F172A] text-teal-300 shadow-xs'
-                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 hover:bg-slate-200/60'
                       }`}
                     >
                       <Package className="w-3.5 h-3.5" />
@@ -655,7 +655,7 @@ export const TechnicianView: React.FC = () => {
                       className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-md transition-all whitespace-nowrap ${
                         activeTab === 'notes'
                           ? 'bg-[#0F172A] text-teal-300 shadow-xs'
-                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 hover:bg-slate-200/60'
                       }`}
                     >
                       <FileText className="w-3.5 h-3.5" />
@@ -668,7 +668,7 @@ export const TechnicianView: React.FC = () => {
                         className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-md transition-all whitespace-nowrap ${
                           activeTab === 'quote'
                             ? 'bg-[#0F172A] text-teal-300 shadow-xs'
-                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 hover:bg-slate-200/60'
                         }`}
                       >
                         <FileText className="w-3.5 h-3.5" />
@@ -681,7 +681,7 @@ export const TechnicianView: React.FC = () => {
                       className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-md transition-all whitespace-nowrap ${
                         activeTab === 'signature'
                           ? 'bg-[#0F172A] text-teal-300 shadow-xs'
-                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 hover:bg-slate-200/60'
                       }`}
                     >
                       <FileSignature className="w-3.5 h-3.5" />
@@ -706,7 +706,7 @@ export const TechnicianView: React.FC = () => {
                               className={`p-2.5 rounded-lg border flex items-center justify-between cursor-pointer transition-all ${
                                 item.completed
                                   ? 'bg-emerald-50/70 border-emerald-200'
-                                  : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+                                  : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-700 hover:bg-slate-100'
                               } ${activeOrder.status === 'completed' ? 'cursor-default' : ''}`}
                             >
                               <div className="flex items-center gap-2.5">
@@ -714,7 +714,7 @@ export const TechnicianView: React.FC = () => {
                                   className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
                                     item.completed
                                       ? 'bg-emerald-600 border-emerald-600 text-white'
-                                      : 'border-slate-300 bg-white'
+                                      : 'border-slate-300 bg-white dark:bg-slate-900'
                                   }`}
                                 >
                                   {item.completed && <Check className="w-3 h-3" />}
@@ -722,8 +722,8 @@ export const TechnicianView: React.FC = () => {
                                 <span
                                   className={`text-xs ${
                                     item.completed
-                                      ? 'text-slate-800 font-medium line-through'
-                                      : 'text-slate-700'
+                                      ? 'text-slate-800 dark:text-slate-200 font-medium line-through'
+                                      : 'text-slate-700 dark:text-slate-300'
                                   }`}
                                 >
                                   {item.label}
@@ -747,7 +747,7 @@ export const TechnicianView: React.FC = () => {
                               value={newChecklistText}
                               onChange={(e) => setNewChecklistText(e.target.value)}
                               placeholder="Añadir nueva tarea técnica al checklist..."
-                              className="flex-1 text-xs px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:ring-1 focus:ring-teal-500"
+                              className="flex-1 text-xs px-2.5 py-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-lg focus:bg-white focus:ring-1 focus:ring-teal-500"
                             />
                             <button
                               type="submit"
@@ -763,24 +763,24 @@ export const TechnicianView: React.FC = () => {
                     {/* 2. TIME REGISTRATION */}
                     {activeTab === 'time' && (
                       <div className="space-y-3">
-                        <div className="flex items-center justify-between gap-3 bg-teal-50 border border-teal-200 rounded-lg px-3 py-2">
+                        <div className="flex items-center justify-between gap-3 bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800 rounded-lg px-3 py-2">
                           <div>
                             <h4 className="text-xs font-bold text-teal-950">Cronómetro del servicio</h4>
                             <p className="text-[10px] text-teal-800">Se guarda automáticamente al iniciar, pausar, reanudar o finalizar.</p>
                           </div>
-                          <span className="font-mono font-bold text-teal-900 text-sm">{formatStopwatch(getElapsedSeconds(activeOrder))}</span>
+                          <span className="font-mono font-bold text-teal-900 dark:text-teal-200 text-sm">{formatStopwatch(getElapsedSeconds(activeOrder))}</span>
                         </div>
                         {activeOrder.status !== 'completed' && (
                           <form
                             onSubmit={handleAddTimeLogSubmit}
-                            className="bg-slate-50 p-3 rounded-lg border border-slate-200 space-y-2"
+                            className="bg-slate-50 dark:bg-slate-950 p-3 rounded-lg border border-slate-200 dark:border-slate-700 space-y-2"
                           >
-                            <h4 className="text-xs font-bold text-slate-800">
+                            <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">
                               Registrar Tiempo de Mano de Obra
                             </h4>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                               <div>
-                                <label className="block text-[10px] font-semibold text-slate-600 mb-0.5">
+                                <label className="block text-[10px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5">
                                   Minutos trabajados
                                 </label>
                                 <input
@@ -789,12 +789,12 @@ export const TechnicianView: React.FC = () => {
                                   onChange={(e) => setTimeMinutes(Number(e.target.value))}
                                   min={5}
                                   step={5}
-                                  className="w-full text-xs px-2.5 py-1.5 bg-white border border-slate-200 rounded-md focus:ring-1 focus:ring-teal-500 font-mono font-bold"
+                                  className="w-full text-xs px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-1 focus:ring-teal-500 font-mono font-bold"
                                   required
                                 />
                               </div>
                               <div className="sm:col-span-2">
-                                <label className="block text-[10px] font-semibold text-slate-600 mb-0.5">
+                                <label className="block text-[10px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5">
                                   Detalle de la labor realizada
                                 </label>
                                 <input
@@ -802,7 +802,7 @@ export const TechnicianView: React.FC = () => {
                                   value={timeNote}
                                   onChange={(e) => setTimeNote(e.target.value)}
                                   placeholder="Ej: Desarme de grifería y limpieza de asiento"
-                                  className="w-full text-xs px-2.5 py-1.5 bg-white border border-slate-200 rounded-md focus:ring-1 focus:ring-teal-500"
+                                  className="w-full text-xs px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-1 focus:ring-teal-500"
                                 />
                               </div>
                             </div>
@@ -818,7 +818,7 @@ export const TechnicianView: React.FC = () => {
                         )}
 
                         <div className="space-y-1.5">
-                          <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-500 font-mono">
+                          <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 font-mono">
                             Historial de Tiempos Registrados ({activeOrder.timeLogs.length})
                           </h4>
                           {activeOrder.timeLogs.length === 0 ? (
@@ -826,19 +826,19 @@ export const TechnicianView: React.FC = () => {
                               No hay registros de tiempo aún.
                             </p>
                           ) : (
-                            <div className="divide-y divide-slate-100 border border-slate-200 rounded-lg overflow-hidden bg-slate-50">
+                            <div className="divide-y divide-slate-100 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden bg-slate-50 dark:bg-slate-950">
                               {activeOrder.timeLogs.map((tl) => (
                                 <div
                                   key={tl.id}
                                   className="p-2.5 flex items-center justify-between text-xs"
                                 >
                                   <div>
-                                    <span className="font-semibold text-slate-800">{tl.note}</span>
-                                    <div className="text-[10px] text-slate-500">
+                                    <span className="font-semibold text-slate-800 dark:text-slate-200">{tl.note}</span>
+                                    <div className="text-[10px] text-slate-500 dark:text-slate-400">
                                       Por {tl.technicianName} a las {tl.timestamp} hs
                                     </div>
                                   </div>
-                                  <span className="font-mono font-bold text-teal-800 bg-teal-50 px-2 py-0.5 rounded border border-teal-200 text-xs">
+                                  <span className="font-mono font-bold text-teal-800 bg-teal-50 dark:bg-teal-950/40 px-2 py-0.5 rounded border border-teal-200 dark:border-teal-800 text-xs">
                                     {tl.minutes} min
                                   </span>
                                 </div>
@@ -855,20 +855,20 @@ export const TechnicianView: React.FC = () => {
                         {activeOrder.status !== 'completed' && (
                           <form
                             onSubmit={handleAddMaterialSubmit}
-                            className="bg-slate-50 p-3 rounded-lg border border-slate-200 space-y-2"
+                            className="bg-slate-50 dark:bg-slate-950 p-3 rounded-lg border border-slate-200 dark:border-slate-700 space-y-2"
                           >
-                            <h4 className="text-xs font-bold text-slate-800">
+                            <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">
                               Cargar Material Utilizado en Campo
                             </h4>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                               <div className="sm:col-span-2">
-                                <label className="block text-[10px] font-semibold text-slate-600 mb-0.5">
+                                <label className="block text-[10px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5">
                                   Seleccionar insumo de inventario
                                 </label>
                                 <select
                                   value={selectedMaterialId}
                                   onChange={(e) => setSelectedMaterialId(e.target.value)}
-                                  className="w-full text-xs px-2.5 py-1.5 bg-white border border-slate-200 rounded-md focus:ring-1 focus:ring-teal-500 font-medium"
+                                  className="w-full text-xs px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-1 focus:ring-teal-500 font-medium"
                                 >
                                   {materials.map((m) => (
                                     <option key={m.id} value={m.id}>
@@ -879,7 +879,7 @@ export const TechnicianView: React.FC = () => {
                               </div>
 
                               <div>
-                                <label className="block text-[10px] font-semibold text-slate-600 mb-0.5">
+                                <label className="block text-[10px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5">
                                   Cantidad utilizada
                                 </label>
                                 <input
@@ -887,14 +887,14 @@ export const TechnicianView: React.FC = () => {
                                   value={materialQty}
                                   onChange={(e) => setMaterialQty(Number(e.target.value))}
                                   min={1}
-                                  className="w-full text-xs px-2.5 py-1.5 bg-white border border-slate-200 rounded-md focus:ring-1 focus:ring-teal-500 font-mono font-bold"
+                                  className="w-full text-xs px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-1 focus:ring-teal-500 font-mono font-bold"
                                   required
                                 />
                               </div>
                             </div>
 
                             <div>
-                              <label className="block text-[10px] font-semibold text-slate-600 mb-0.5">
+                              <label className="block text-[10px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5">
                                 Nota u observación del material (opcional)
                               </label>
                               <input
@@ -902,7 +902,7 @@ export const TechnicianView: React.FC = () => {
                                 value={materialNote}
                                 onChange={(e) => setMaterialNote(e.target.value)}
                                 placeholder="Ej: Tramo de reemplazo en baño principal"
-                                className="w-full text-xs px-2.5 py-1.5 bg-white border border-slate-200 rounded-md focus:ring-1 focus:ring-teal-500"
+                                className="w-full text-xs px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-1 focus:ring-teal-500"
                               />
                             </div>
 
@@ -918,7 +918,7 @@ export const TechnicianView: React.FC = () => {
                         )}
 
                         <div className="space-y-1.5">
-                          <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-500 font-mono">
+                          <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 font-mono">
                             Materiales Cargados a esta Orden ({activeOrder.usedMaterials.length})
                           </h4>
                           {activeOrder.usedMaterials.length === 0 ? (
@@ -926,21 +926,21 @@ export const TechnicianView: React.FC = () => {
                               No se han registrado materiales aún.
                             </p>
                           ) : (
-                            <div className="divide-y divide-slate-100 border border-slate-200 rounded-lg overflow-hidden bg-slate-50">
+                            <div className="divide-y divide-slate-100 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden bg-slate-50 dark:bg-slate-950">
                               {activeOrder.usedMaterials.map((um) => (
                                 <div
                                   key={um.id}
                                   className="p-2.5 flex items-center justify-between text-xs"
                                 >
                                   <div>
-                                    <span className="font-semibold text-slate-800">
+                                    <span className="font-semibold text-slate-800 dark:text-slate-200">
                                       {um.materialName}
                                     </span>
                                     {um.note && (
-                                      <div className="text-[10px] text-slate-500">{um.note}</div>
+                                      <div className="text-[10px] text-slate-500 dark:text-slate-400">{um.note}</div>
                                     )}
                                   </div>
-                                  <span className="font-mono font-bold text-teal-800 bg-teal-50 px-2 py-0.5 rounded border border-teal-200 text-xs">
+                                  <span className="font-mono font-bold text-teal-800 bg-teal-50 dark:bg-teal-950/40 px-2 py-0.5 rounded border border-teal-200 dark:border-teal-800 text-xs">
                                     {um.quantity} {um.unit}
                                   </span>
                                 </div>
@@ -961,7 +961,7 @@ export const TechnicianView: React.FC = () => {
                               onChange={(e) => setTechNoteText(e.target.value)}
                               placeholder="Escribí una nota técnica sobre el diagnóstico o reparación..."
                               rows={3}
-                              className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:ring-1 focus:ring-teal-500"
+                              className="w-full text-xs p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-lg focus:bg-white focus:ring-1 focus:ring-teal-500"
                               required
                             />
                             <div className="flex justify-end">
@@ -976,7 +976,7 @@ export const TechnicianView: React.FC = () => {
                         )}
 
                         <div className="space-y-1.5">
-                          <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-500 font-mono">
+                          <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 font-mono">
                             Notas del Servicio ({activeOrder.technicalNotes.length})
                           </h4>
                           {activeOrder.technicalNotes.length === 0 ? (
@@ -986,13 +986,13 @@ export const TechnicianView: React.FC = () => {
                               {activeOrder.technicalNotes.map((nt) => (
                                 <div
                                   key={nt.id}
-                                  className="p-2.5 bg-slate-50 rounded-lg border border-slate-200 text-xs"
+                                  className="p-2.5 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-700 text-xs"
                                 >
-                                  <div className="flex items-center justify-between text-[10px] text-slate-500 mb-1">
-                                    <span className="font-bold text-slate-700">{nt.author}</span>
+                                  <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 mb-1">
+                                    <span className="font-bold text-slate-700 dark:text-slate-300">{nt.author}</span>
                                     <span className="font-mono">{nt.timestamp} hs</span>
                                   </div>
-                                  <p className="text-slate-800 leading-relaxed">{nt.text}</p>
+                                  <p className="text-slate-800 dark:text-slate-200 leading-relaxed">{nt.text}</p>
                                 </div>
                               ))}
                             </div>
@@ -1013,7 +1013,7 @@ export const TechnicianView: React.FC = () => {
                               <span>Firma de Conformidad Registrada</span>
                             </div>
 
-                            <div className="bg-white p-2.5 rounded-lg border border-emerald-200 inline-block">
+                            <div className="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-emerald-200 inline-block">
                               <img
                                 src={activeOrder.customerSignature.signatureDataUrl}
                                 alt="Firma de conformidad"
@@ -1021,26 +1021,26 @@ export const TechnicianView: React.FC = () => {
                               />
                             </div>
 
-                            <div className="text-xs text-slate-700 space-y-0.5">
+                            <div className="text-xs text-slate-700 dark:text-slate-300 space-y-0.5">
                               <div>
                                 Firmante: <strong>{activeOrder.customerSignature.signerName}</strong>
                               </div>
-                              <div className="text-slate-500 font-mono text-[10px]">
+                              <div className="text-slate-500 dark:text-slate-400 font-mono text-[10px]">
                                 Timestamp: {activeOrder.customerSignature.signedAt}
                               </div>
                               {activeOrder.customerSignature.comments && (
-                                <div className="italic text-slate-600 text-[11px]">
+                                <div className="italic text-slate-600 dark:text-slate-400 text-[11px]">
                                   "{activeOrder.customerSignature.comments}"
                                 </div>
                               )}
                             </div>
                           </div>
                         ) : activeOrder.status === 'completed' ? (
-                          <div className="text-xs text-slate-500 italic p-3 bg-slate-50 rounded-lg">
+                          <div className="text-xs text-slate-500 dark:text-slate-400 italic p-3 bg-slate-50 dark:bg-slate-950 rounded-lg">
                             Esta orden fue completada.
                           </div>
                         ) : (
-                          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                          <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-4">
                             <div className="flex gap-3">
                               <div className="mt-0.5 rounded-lg bg-amber-100 p-2 text-amber-700">
                                 <Lock className="h-4 w-4" />
@@ -1049,7 +1049,7 @@ export const TechnicianView: React.FC = () => {
                                 <h4 className="text-sm font-bold text-amber-950">
                                   Firma pendiente del cliente
                                 </h4>
-                                <p className="text-xs leading-relaxed text-amber-900">
+                                <p className="text-xs leading-relaxed text-amber-900 dark:text-amber-200">
                                   Por seguridad, la conformidad solo puede ser registrada por{' '}
                                   <strong>{activeOrder.clientName}</strong> desde su cuenta de
                                   cliente autenticada. El técnico no puede dibujar ni reemplazar
@@ -1057,7 +1057,7 @@ export const TechnicianView: React.FC = () => {
                                 </p>
                               </div>
                             </div>
-                            <div className="mt-3 rounded-lg border border-amber-200 bg-white/70 px-3 py-2 text-xs text-slate-700">
+                            <div className="mt-3 rounded-lg border border-amber-200 dark:border-amber-800 bg-white/70 px-3 py-2 text-xs text-slate-700 dark:text-slate-300">
                               Avisale al cliente que ingrese a <strong>Mi servicio</strong>, revise
                               el avance y firme cuando esté conforme.
                             </div>
@@ -1080,11 +1080,11 @@ export const TechnicianView: React.FC = () => {
           onClick={() => setIsPauseModalOpen(false)}
         >
           <div
-            className="bg-white rounded-xl max-w-md w-full p-5 shadow-xl border border-slate-200"
+            className="bg-white dark:bg-slate-900 rounded-xl max-w-md w-full p-5 shadow-xl border border-slate-200 dark:border-slate-700"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-sm font-bold text-slate-900 mb-1">Pausar Servicio Técnico</h3>
-            <p className="text-xs text-slate-600 mb-3">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 mb-1">Pausar Servicio Técnico</h3>
+            <p className="text-xs text-slate-600 dark:text-slate-400 mb-3">
               Indicá el motivo por el cual se interrumpe temporalmente el servicio.
             </p>
 
@@ -1093,14 +1093,14 @@ export const TechnicianView: React.FC = () => {
               value={pauseReason}
               onChange={(e) => setPauseReason(e.target.value)}
               placeholder="Ej: En espera de repuesto especial / corte de luz en zona"
-              className="w-full text-xs px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:ring-1 focus:ring-teal-500 mb-3"
+              className="w-full text-xs px-2.5 py-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-lg focus:bg-white focus:ring-1 focus:ring-teal-500 mb-3"
             />
 
             <div className="flex justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setIsPauseModalOpen(false)}
-                className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold rounded-md transition-colors"
+                className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-slate-400 text-xs font-semibold rounded-md transition-colors"
               >
                 Cancelar
               </button>

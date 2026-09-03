@@ -42,8 +42,8 @@ export const StatusBadge: React.FC<{ status: OrderStatus; size?: 'sm' | 'md' }> 
     },
     paused: {
       label: 'Pausada',
-      bg: 'bg-amber-50 text-amber-900 border-amber-300',
-      text: 'text-amber-900',
+      bg: 'bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 border-amber-300',
+      text: 'text-amber-900 dark:text-amber-200',
       border: 'border-amber-300',
       dot: 'bg-amber-500',
       icon: <PauseCircle className={size === 'sm' ? 'w-3 h-3 text-amber-600' : 'w-3.5 h-3.5 text-amber-600'} />,
@@ -89,10 +89,10 @@ export const PriorityBadge: React.FC<{ priority: OrderPriority }> = ({ priority 
   > = {
     baja: {
       label: 'Baja',
-      bg: 'bg-slate-100/90 text-slate-700 border-slate-200',
-      text: 'text-slate-700',
+      bg: 'bg-slate-100/90 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700',
+      text: 'text-slate-700 dark:text-slate-300',
       dot: 'bg-slate-400',
-      border: 'border-slate-200',
+      border: 'border-slate-200 dark:border-slate-700',
     },
     media: {
       label: 'Media',
@@ -103,8 +103,8 @@ export const PriorityBadge: React.FC<{ priority: OrderPriority }> = ({ priority 
     },
     alta: {
       label: 'Alta',
-      bg: 'bg-amber-50 text-amber-900 border-amber-300',
-      text: 'text-amber-900',
+      bg: 'bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 border-amber-300',
+      text: 'text-amber-900 dark:text-amber-200',
       dot: 'bg-amber-500',
       border: 'border-amber-300',
       icon: <AlertTriangle className="w-2.5 h-2.5 text-amber-600" />,
@@ -157,9 +157,9 @@ export const ServiceBadge: React.FC<{ service: ServiceType; size?: 'sm' | 'md' }
     <span
       className={`inline-flex items-center gap-1.5 ${
         size === 'sm' ? 'text-xs' : 'text-xs sm:text-sm font-medium'
-      } text-slate-700`}
+      } text-slate-700 dark:text-slate-300`}
     >
-      <span className="p-1 rounded-md bg-slate-100 text-slate-600 shrink-0">{getIcon()}</span>
+      <span className="p-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 shrink-0">{getIcon()}</span>
       <span>{service}</span>
     </span>
   );
@@ -200,7 +200,7 @@ export const PaymentStatusBadge: React.FC<{
 
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded border font-mono font-bold uppercase tracking-wide ${sizeClasses} bg-amber-50 text-amber-900 border-amber-300 whitespace-nowrap`}
+      className={`inline-flex items-center gap-1 rounded border font-mono font-bold uppercase tracking-wide ${sizeClasses} bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 border-amber-300 whitespace-nowrap`}
     >
       <AlertTriangle className={`${iconClass} text-amber-600`} />
       <span>{label}</span>

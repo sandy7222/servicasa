@@ -15,10 +15,10 @@ export const Toast: React.FC = () => {
   };
 
   const borderColors = {
-    success: 'border-emerald-200 bg-white text-emerald-950',
-    error: 'border-rose-200 bg-white text-rose-950',
-    warning: 'border-amber-200 bg-white text-amber-950',
-    info: 'border-teal-200 bg-white text-slate-900',
+    success: 'border-emerald-200 bg-white dark:bg-slate-900 text-emerald-950',
+    error: 'border-rose-200 bg-white dark:bg-slate-900 text-rose-950',
+    warning: 'border-amber-200 dark:border-amber-800 bg-white dark:bg-slate-900 text-amber-950',
+    info: 'border-teal-200 dark:border-teal-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100',
   };
 
   return (
@@ -34,11 +34,11 @@ export const Toast: React.FC = () => {
         {icons[toast.type] || icons.info}
         <div className="flex-1 pr-2">
           {toast.title && (
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800 mb-0.5">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 mb-0.5">
               {toast.title}
             </h4>
           )}
-          <p className="text-xs sm:text-sm font-medium text-slate-700 whitespace-pre-line leading-snug">
+          <p className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 whitespace-pre-line leading-snug">
             {toast.message}
           </p>
         </div>

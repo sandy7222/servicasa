@@ -80,7 +80,7 @@ export const SystemSettingsPanel: React.FC = () => {
   };
 
   if (loading) {
-    return <section className="rounded-xl border border-slate-200 bg-white p-4 text-xs text-slate-500">Cargando configuración…</section>;
+    return <section className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 text-xs text-slate-500 dark:text-slate-400">Cargando configuración…</section>;
   }
 
   const NumberField: React.FC<{
@@ -91,12 +91,12 @@ export const SystemSettingsPanel: React.FC = () => {
     const draft = draftFor(settingKey, current);
     const changed = draft !== current;
     return (
-      <div className="rounded-lg border border-slate-200 p-3 space-y-2">
+      <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-3 space-y-2">
         <div className="flex items-center justify-between gap-2">
-          <label className="text-xs font-bold text-slate-700">{label}</label>
+          <label className="text-xs font-bold text-slate-700 dark:text-slate-300">{label}</label>
           {sensitive && <span className="flex items-center gap-1 text-[10px] font-bold text-amber-700"><ShieldAlert className="w-3 h-3" />sensible</span>}
         </div>
-        {r?.description && <p className="text-[11px] text-slate-500">{r.description}</p>}
+        {r?.description && <p className="text-[11px] text-slate-500 dark:text-slate-400">{r.description}</p>}
         <div className="flex items-center gap-2">
           <input
             type="number" min="0" step={step}
@@ -104,7 +104,7 @@ export const SystemSettingsPanel: React.FC = () => {
             onChange={(e) => { setDrafts((d) => ({ ...d, [settingKey]: e.target.value })); setConfirming(null); }}
             className="w-32 rounded-lg border border-slate-300 px-2 py-1.5 text-sm font-mono"
           />
-          {suffix && <span className="text-xs text-slate-500">{suffix}</span>}
+          {suffix && <span className="text-xs text-slate-500 dark:text-slate-400">{suffix}</span>}
           {changed && confirming !== settingKey && (
             <button
               onClick={() => void saveNumber(settingKey, Boolean(sensitive))}
@@ -116,7 +116,7 @@ export const SystemSettingsPanel: React.FC = () => {
           )}
         </div>
         {confirming === settingKey && (
-          <div className="flex items-center gap-2 rounded-lg bg-amber-50 border border-amber-200 p-2 text-[11px] text-amber-900">
+          <div className="flex items-center gap-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 p-2 text-[11px] text-amber-900 dark:text-amber-200">
             <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
             <span>Cambiar de <strong>{current}</strong> a <strong>{draft}</strong> afecta cálculos reales. ¿Confirmás?</span>
             <button
@@ -134,12 +134,12 @@ export const SystemSettingsPanel: React.FC = () => {
   };
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-4 space-y-4">
+    <section className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 space-y-4">
       <div className="flex items-start gap-2">
         <Settings2 className="w-4 text-teal-600 mt-0.5" />
         <div>
           <h3 className="text-sm font-bold">Configuración central</h3>
-          <p className="text-[11px] text-slate-500">
+          <p className="text-[11px] text-slate-500 dark:text-slate-400">
             La seña de diagnóstico tiene su propio panel arriba. Estos valores quedan auditados: cada cambio registra quién, cuándo y el valor anterior.
           </p>
         </div>
@@ -153,12 +153,12 @@ export const SystemSettingsPanel: React.FC = () => {
         <NumberField settingKey="message_max_length" label="Largo máximo de mensaje" suffix="caracteres" />
       </div>
 
-      <div className="rounded-lg border border-slate-200 p-3 space-y-2">
-        <label className="text-xs font-bold text-slate-700">Provincias habilitadas</label>
-        <p className="text-[11px] text-slate-500">Hoy se aceptan pedidos de cualquiera de estas — desmarcar todavía no bloquea pedidos en el formulario (reservado para cuando se conecte la validación).</p>
+      <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-3 space-y-2">
+        <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Provincias habilitadas</label>
+        <p className="text-[11px] text-slate-500 dark:text-slate-400">Hoy se aceptan pedidos de cualquiera de estas — desmarcar todavía no bloquea pedidos en el formulario (reservado para cuando se conecte la validación).</p>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
           {ARGENTINA_PROVINCES.map((p) => (
-            <label key={p} className="flex items-center gap-1.5 text-[11px] text-slate-700">
+            <label key={p} className="flex items-center gap-1.5 text-[11px] text-slate-700 dark:text-slate-300">
               <input
                 type="checkbox"
                 checked={enabledProvinces.includes(p)}
@@ -171,8 +171,8 @@ export const SystemSettingsPanel: React.FC = () => {
         </div>
       </div>
 
-      <div className="rounded-lg border border-dashed border-slate-300 p-3 text-[11px] text-slate-500">
-        <strong className="text-slate-700">Banderas de funciones sensibles:</strong> contenedor reservado (<code>feature_flags</code>), vacío por ahora — se activa cuando exista una función concreta que lo necesite.
+      <div className="rounded-lg border border-dashed border-slate-300 p-3 text-[11px] text-slate-500 dark:text-slate-400">
+        <strong className="text-slate-700 dark:text-slate-300">Banderas de funciones sensibles:</strong> contenedor reservado (<code>feature_flags</code>), vacío por ahora — se activa cuando exista una función concreta que lo necesite.
       </div>
     </section>
   );

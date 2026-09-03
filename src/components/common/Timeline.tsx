@@ -31,7 +31,7 @@ export const Timeline: React.FC<{ events: OrderEvent[] }> = ({ events }) => {
       case 'paused':
         return {
           icon: <Pause className="w-4 h-4 text-amber-600" />,
-          bg: 'bg-amber-50 border-amber-200',
+          bg: 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800',
         };
       case 'material_added':
         return {
@@ -41,17 +41,17 @@ export const Timeline: React.FC<{ events: OrderEvent[] }> = ({ events }) => {
       case 'time_logged':
         return {
           icon: <Clock className="w-4 h-4 text-teal-600" />,
-          bg: 'bg-teal-50 border-teal-200',
+          bg: 'bg-teal-50 dark:bg-teal-950/40 border-teal-200 dark:border-teal-800',
         };
       case 'checklist_updated':
         return {
           icon: <ListTodo className="w-4 h-4 text-teal-600" />,
-          bg: 'bg-teal-50 border-teal-200',
+          bg: 'bg-teal-50 dark:bg-teal-950/40 border-teal-200 dark:border-teal-800',
         };
       case 'note_added':
         return {
-          icon: <FileText className="w-4 h-4 text-slate-600" />,
-          bg: 'bg-slate-50 border-slate-200',
+          icon: <FileText className="w-4 h-4 text-slate-600 dark:text-slate-400" />,
+          bg: 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-700',
         };
       case 'signed':
         return {
@@ -70,8 +70,8 @@ export const Timeline: React.FC<{ events: OrderEvent[] }> = ({ events }) => {
         };
       default:
         return {
-          icon: <Clock className="w-4 h-4 text-slate-600" />,
-          bg: 'bg-slate-50 border-slate-200',
+          icon: <Clock className="w-4 h-4 text-slate-600 dark:text-slate-400" />,
+          bg: 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-700',
         };
     }
   };
@@ -98,12 +98,12 @@ export const Timeline: React.FC<{ events: OrderEvent[] }> = ({ events }) => {
             </div>
 
             {/* Event detail */}
-            <div className="bg-white p-3 rounded-lg border border-slate-200/80 shadow-2xs hover:border-slate-300 transition-colors">
+            <div className="bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200/80 shadow-2xs hover:border-slate-300 transition-colors">
               <div className="flex items-center justify-between gap-2 text-xs mb-1">
-                <span className="font-semibold text-slate-800">{ev.author}</span>
+                <span className="font-semibold text-slate-800 dark:text-slate-200">{ev.author}</span>
                 <span className="text-[11px] text-slate-400 font-mono">{ev.timestamp}</span>
               </div>
-              <p className="text-xs text-slate-600 leading-relaxed">{ev.description}</p>
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">{ev.description}</p>
             </div>
           </div>
         );

@@ -79,12 +79,12 @@ export const PayoutBatchesPanel: React.FC = () => {
   if (batches.length === 0) return null;
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
+    <section className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 space-y-3">
       <div className="flex items-start gap-2">
         <ShieldCheck className="w-4 text-teal-600 mt-0.5" />
         <div>
           <h3 className="text-sm font-bold">Cerrar lotes programados</h3>
-          <p className="text-[11px] text-slate-500">
+          <p className="text-[11px] text-slate-500 dark:text-slate-400">
             Marcá como pagado solo después de confirmar la transferencia real. La operación es atómica: no se puede pagar dos veces el mismo lote.
           </p>
         </div>
@@ -93,11 +93,11 @@ export const PayoutBatchesPanel: React.FC = () => {
         {batches.map((batch) => {
           const technician = technicians.find((t) => t.id === batch.technician_id);
           return (
-            <div key={batch.id} className="rounded-lg border border-slate-200 p-3 space-y-2">
+            <div key={batch.id} className="rounded-lg border border-slate-200 dark:border-slate-700 p-3 space-y-2">
               <div className="flex items-center justify-between">
                 <div>
                   <strong className="text-xs">{technician?.name ?? 'Técnico'}</strong>
-                  <p className="text-[11px] text-slate-500">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
                     {batch.settlement_count} liquidación(es) · Programado: {dateTime(batch.scheduled_date)}
                   </p>
                 </div>
@@ -108,15 +108,15 @@ export const PayoutBatchesPanel: React.FC = () => {
                   value={reference[batch.id] ?? ''}
                   onChange={(e) => setReference((r) => ({ ...r, [batch.id]: e.target.value }))}
                   placeholder="Referencia real de la transferencia *"
-                  className="rounded-lg border border-slate-200 p-2 text-xs"
+                  className="rounded-lg border border-slate-200 dark:border-slate-700 p-2 text-xs"
                 />
                 <input
                   value={last4[batch.id] ?? ''}
                   onChange={(e) => setLast4((r) => ({ ...r, [batch.id]: e.target.value.slice(0, 4) }))}
                   placeholder="Últimos 4 dígitos (opcional)"
-                  className="rounded-lg border border-slate-200 p-2 text-xs"
+                  className="rounded-lg border border-slate-200 dark:border-slate-700 p-2 text-xs"
                 />
-                <label className="flex items-center gap-1.5 rounded-lg border border-dashed border-slate-300 px-2 py-2 text-[11px] text-slate-600 cursor-pointer hover:border-teal-400">
+                <label className="flex items-center gap-1.5 rounded-lg border border-dashed border-slate-300 px-2 py-2 text-[11px] text-slate-600 dark:text-slate-400 cursor-pointer hover:border-teal-400">
                   <FileUp className="w-3.5 shrink-0" />
                   <span className="truncate">{files[batch.id]?.name ?? 'Comprobante (opcional)'}</span>
                   <input

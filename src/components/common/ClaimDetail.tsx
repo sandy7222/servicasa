@@ -126,12 +126,12 @@ export function ClaimDetail({ claimId, onBack }: { claimId: string; onBack: () =
   };
 
   if (loading) {
-    return <main className="max-w-4xl mx-auto px-4 py-10 text-center text-slate-500">Cargando caso…</main>;
+    return <main className="max-w-4xl mx-auto px-4 py-10 text-center text-slate-500 dark:text-slate-400">Cargando caso…</main>;
   }
   if (!claim) {
     return (
       <main className="max-w-4xl mx-auto px-4 py-10 text-center">
-        <p className="text-slate-500">No encontramos ese caso, o no tenés acceso a él.</p>
+        <p className="text-slate-500 dark:text-slate-400">No encontramos ese caso, o no tenés acceso a él.</p>
         <button onClick={onBack} className="mt-3 text-teal-700 font-bold hover:underline">← Volver</button>
       </main>
     );
@@ -158,52 +158,52 @@ export function ClaimDetail({ claimId, onBack }: { claimId: string; onBack: () =
           )}
         </div>
         <div className="grid sm:grid-cols-3 gap-3 mt-4 text-xs text-slate-300">
-          <div><span className="text-slate-500 block">Cliente</span>{claim.customerName || '—'}</div>
-          <div><span className="text-slate-500 block">Técnico</span>{claim.technicianName || '—'}</div>
-          <div><span className="text-slate-500 block">Abierto</span>{formatDateTime(claim.openedAt)}</div>
+          <div><span className="text-slate-500 dark:text-slate-400 block">Cliente</span>{claim.customerName || '—'}</div>
+          <div><span className="text-slate-500 dark:text-slate-400 block">Técnico</span>{claim.technicianName || '—'}</div>
+          <div><span className="text-slate-500 dark:text-slate-400 block">Abierto</span>{formatDateTime(claim.openedAt)}</div>
         </div>
         {claim.description && <p className="text-sm text-slate-300 mt-3 border-t border-slate-800 pt-3">{claim.description}</p>}
       </section>
 
       {isAdmin && (
-        <section className="rounded-xl bg-white border border-slate-200 p-4 space-y-3">
-          <h2 className="text-xs font-bold uppercase tracking-wide text-slate-500">Gestión (solo administración)</h2>
+        <section className="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-4 space-y-3">
+          <h2 className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">Gestión (solo administración)</h2>
           <div className="flex flex-wrap items-center gap-2">
-            <label className="text-xs font-semibold text-slate-700">Estado
-              <select value={claim.status} onChange={(e) => void changeStatus(e.target.value as ClaimStatus)} className="ml-2 rounded-lg border border-slate-200 px-2 py-1.5 text-xs">
+            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Estado
+              <select value={claim.status} onChange={(e) => void changeStatus(e.target.value as ClaimStatus)} className="ml-2 rounded-lg border border-slate-200 dark:border-slate-700 px-2 py-1.5 text-xs">
                 {(Object.keys(CLAIM_STATUS_LABELS) as ClaimStatus[]).map((s) => <option key={s} value={s}>{CLAIM_STATUS_LABELS[s]}</option>)}
               </select>
             </label>
             {claim.orderId && (
-              <button onClick={() => void togglePause()} className="inline-flex items-center gap-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-900 px-3 py-1.5 text-xs font-bold">
+              <button onClick={() => void togglePause()} className="inline-flex items-center gap-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 px-3 py-1.5 text-xs font-bold">
                 <Pause className="w-3.5 h-3.5" />{claim.settlementPaused ? 'Liberar liquidación' : 'Pausar liquidación'}
               </button>
             )}
             {claim.status !== 'closed' && (
-              <button onClick={() => { void closeCase(claimId, actor).then(load); }} className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 text-xs font-bold">
+              <button onClick={() => { void closeCase(claimId, actor).then(load); }} className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 px-3 py-1.5 text-xs font-bold">
                 <X className="w-3.5 h-3.5" />Cerrar caso
               </button>
             )}
           </div>
 
           {claim.status !== 'resolved' && claim.status !== 'closed' && (
-            <div className="border-t border-slate-100 pt-3 space-y-2">
-              <p className="text-xs font-bold text-slate-700">Resolver caso</p>
+            <div className="border-t border-slate-100 dark:border-slate-800 pt-3 space-y-2">
+              <p className="text-xs font-bold text-slate-700 dark:text-slate-300">Resolver caso</p>
               <div className="grid sm:grid-cols-3 gap-2">
-                <select value={resolutionType} onChange={(e) => setResolutionType(e.target.value as ClaimResolutionType)} className="rounded-lg border border-slate-200 px-2 py-2 text-xs">
+                <select value={resolutionType} onChange={(e) => setResolutionType(e.target.value as ClaimResolutionType)} className="rounded-lg border border-slate-200 dark:border-slate-700 px-2 py-2 text-xs">
                   {(Object.keys(RESOLUTION_TYPE_LABELS) as ClaimResolutionType[]).map((t) => <option key={t} value={t}>{RESOLUTION_TYPE_LABELS[t]}</option>)}
                 </select>
-                <input value={resolutionAmount} onChange={(e) => setResolutionAmount(e.target.value)} type="number" placeholder="Monto (opcional)" className="rounded-lg border border-slate-200 px-2 py-2 text-xs" />
+                <input value={resolutionAmount} onChange={(e) => setResolutionAmount(e.target.value)} type="number" placeholder="Monto (opcional)" className="rounded-lg border border-slate-200 dark:border-slate-700 px-2 py-2 text-xs" />
                 <button onClick={() => void submitResolution()} disabled={resolving} className="rounded-lg bg-[#003875] hover:bg-[#00265a] disabled:opacity-50 text-white px-3 py-2 text-xs font-bold">
                   {resolving ? 'Resolviendo…' : 'Confirmar resolución'}
                 </button>
               </div>
-              <textarea value={resolutionNotes} onChange={(e) => setResolutionNotes(e.target.value)} rows={2} placeholder="Notas de la resolución (el cliente y el técnico pueden verlas)…" className="w-full rounded-lg border border-slate-200 px-2 py-2 text-xs" />
+              <textarea value={resolutionNotes} onChange={(e) => setResolutionNotes(e.target.value)} rows={2} placeholder="Notas de la resolución (el cliente y el técnico pueden verlas)…" className="w-full rounded-lg border border-slate-200 dark:border-slate-700 px-2 py-2 text-xs" />
               <p className="text-[11px] text-slate-400">Acción sobre la liquidación sugerida: <strong>{suggestedSettlementAction(resolutionType) === 'release' ? 'liberar' : suggestedSettlementAction(resolutionType) === 'cancel' ? 'cancelar' : 'retener para revisión'}</strong>.</p>
             </div>
           )}
           {claim.resolutionType && (
-            <div className="border-t border-slate-100 pt-3 text-xs text-slate-600">
+            <div className="border-t border-slate-100 dark:border-slate-800 pt-3 text-xs text-slate-600 dark:text-slate-400">
               <p><strong>Resolución:</strong> {RESOLUTION_TYPE_LABELS[claim.resolutionType]}{claim.resolutionAmount ? ` — ${money.format(claim.resolutionAmount)}` : ''}</p>
               {claim.resolutionNotes && <p className="mt-1">{claim.resolutionNotes}</p>}
             </div>
@@ -211,28 +211,28 @@ export function ClaimDetail({ claimId, onBack }: { claimId: string; onBack: () =
         </section>
       )}
 
-      <section className="rounded-xl bg-white border border-slate-200 p-4 space-y-3">
-        <h2 className="text-xs font-bold uppercase tracking-wide text-slate-500">Comunicación</h2>
+      <section className="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-4 space-y-3">
+        <h2 className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">Comunicación</h2>
         <div className="space-y-2 max-h-96 overflow-y-auto">
           {claim.messages.length === 0 && <p className="text-sm text-slate-400">Todavía no hay mensajes.</p>}
           {claim.messages.map((m) => (
-            <div key={m.id} className={`rounded-lg p-3 text-sm ${m.isInternal ? 'bg-amber-50 border border-amber-200' : 'bg-slate-50 border border-slate-200'}`}>
-              <div className="flex items-center gap-2 text-[11px] font-bold text-slate-500 mb-1">
+            <div key={m.id} className={`rounded-lg p-3 text-sm ${m.isInternal ? 'bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800' : 'bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700'}`}>
+              <div className="flex items-center gap-2 text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1">
                 {m.isInternal && <Lock className="w-3 h-3 text-amber-600" />}
                 <span>{m.senderType === 'admin' ? 'Administración' : m.senderType === 'client' ? 'Cliente' : m.senderType === 'technician' ? 'Técnico' : 'Sistema'}</span>
                 {m.isInternal && <span className="text-amber-700">· Nota interna</span>}
                 <span>· {formatDateTime(m.createdAt)}</span>
               </div>
-              <p className="text-slate-800 whitespace-pre-wrap">{m.message}</p>
+              <p className="text-slate-800 dark:text-slate-200 whitespace-pre-wrap">{m.message}</p>
             </div>
           ))}
         </div>
         {claim.status !== 'closed' && (
-          <div className="border-t border-slate-100 pt-3 space-y-2">
-            <textarea value={messageText} onChange={(e) => setMessageText(e.target.value)} rows={2} placeholder="Escribir un mensaje…" className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+          <div className="border-t border-slate-100 dark:border-slate-800 pt-3 space-y-2">
+            <textarea value={messageText} onChange={(e) => setMessageText(e.target.value)} rows={2} placeholder="Escribir un mensaje…" className="w-full rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm" />
             <div className="flex items-center justify-between">
               {isAdmin ? (
-                <label className="flex items-center gap-1.5 text-xs text-slate-600">
+                <label className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400">
                   <input type="checkbox" checked={isInternal} onChange={(e) => setIsInternal(e.target.checked)} />
                   Nota interna (no la ve el cliente ni el técnico)
                 </label>
@@ -246,9 +246,9 @@ export function ClaimDetail({ claimId, onBack }: { claimId: string; onBack: () =
       </section>
 
       {claim.history.length > 0 && (
-        <section className="rounded-xl bg-white border border-slate-200 p-4 space-y-2">
-          <h2 className="text-xs font-bold uppercase tracking-wide text-slate-500">Historial</h2>
-          <ol className="space-y-1.5 text-xs text-slate-600">
+        <section className="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-4 space-y-2">
+          <h2 className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">Historial</h2>
+          <ol className="space-y-1.5 text-xs text-slate-600 dark:text-slate-400">
             {claim.history.map((h) => (
               <li key={h.id} className="flex justify-between gap-2 border-b border-slate-50 pb-1.5 last:border-0">
                 <span>{h.notes || h.changeType}{h.newValue ? ` → ${h.newValue}` : ''}</span>

@@ -23,6 +23,7 @@ import { friendlyErrorMessage } from '../components/common/AppStatus';
 import { fetchAccountInvite, type AccountInvitePreview } from '../lib/supabaseMutations';
 import { GuestServiceRequestForm } from '../components/client/GuestServiceRequestForm';
 import { hasAssistantDraft, ASSISTANT_DRAFT_EVENT } from '../lib/diagnosisDraft';
+import { ThemeToggle } from '../components/common/ThemeToggle';
 
 function readInviteToken() {
   const hash = window.location.hash.replace(/^#/, '');
@@ -40,11 +41,11 @@ function readModeParam(): AuthMode | null {
 type AuthMode = 'login' | 'register' | 'apply' | 'guest' | 'recover';
 
 const inputClass =
-  'w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/40 focus:border-teal-500 disabled:bg-slate-50 disabled:opacity-70';
+  'w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500/40 focus:border-teal-500 disabled:bg-slate-50 dark:disabled:bg-slate-800 disabled:opacity-70';
 const inputWithIconClass =
-  'w-full rounded-lg border border-slate-200 pl-9 pr-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/40 focus:border-teal-500 disabled:bg-slate-50 disabled:opacity-70';
+  'w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 pl-9 pr-3 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500/40 focus:border-teal-500 disabled:bg-slate-50 dark:disabled:bg-slate-800 disabled:opacity-70';
 const inputPasswordWithToggleClass = inputWithIconClass.replace('pr-3', 'pr-9');
-const labelClass = 'block text-xs font-bold text-slate-700 font-mono uppercase tracking-wider mb-1.5';
+const labelClass = 'block text-xs font-bold text-slate-700 dark:text-slate-300 font-mono uppercase tracking-wider mb-1.5';
 
 export const AuthView: React.FC = () => {
   const { loginWithPassword, requestPasswordRecovery, registerWithInvite, registerCustomer, registerTechnician, authLoading, showToast, catalogCategories, navigate, isAuthenticated, currentUser } =
@@ -288,11 +289,14 @@ export const AuthView: React.FC = () => {
   if (isAuthenticated && currentUser && !inviteToken && !orderIntent) return null;
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-10 sm:py-16 px-4 sm:px-6 lg:px-8" id="tecniurbano-auth-view">
+    <div className="min-h-screen bg-tu-bg flex flex-col justify-center py-10 sm:py-16 px-4 sm:px-6 lg:px-8" id="tecniurbano-auth-view">
       <div className={`w-full mx-auto ${mode === 'guest' && !inviteMode ? 'max-w-2xl' : 'max-w-md'}`}>
+        <div className="flex justify-end mb-4">
+          <ThemeToggle />
+        </div>
         <div className="text-center mb-6">
-          <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">{headerTitle}</h2>
-          <p className="text-xs text-slate-500 mt-1">{headerSubtitle}</p>
+          <h2 className="text-lg sm:text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight">{headerTitle}</h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{headerSubtitle}</p>
         </div>
 
         {!inviteMode && !inviteLoading && !orderIntent && (
@@ -304,7 +308,7 @@ export const AuthView: React.FC = () => {
                   setMode('register');
                   setError(null);
                 }}
-                className="flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-3 text-sm font-bold text-slate-800 shadow-sm hover:border-teal-500 hover:text-teal-700 transition-all"
+                className="flex items-center justify-center gap-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3 text-sm font-bold text-slate-800 dark:text-slate-100 shadow-sm hover:border-teal-500 hover:text-teal-700 dark:hover:text-teal-300 transition-all"
               >
                 <User className="w-4 h-4" />
                 Soy cliente
@@ -315,7 +319,7 @@ export const AuthView: React.FC = () => {
                   setMode('apply');
                   setError(null);
                 }}
-                className="flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-3 text-sm font-bold text-slate-800 shadow-sm hover:border-teal-500 hover:text-teal-700 transition-all"
+                className="flex items-center justify-center gap-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3 text-sm font-bold text-slate-800 dark:text-slate-100 shadow-sm hover:border-teal-500 hover:text-teal-700 dark:hover:text-teal-300 transition-all"
               >
                 <Wrench className="w-4 h-4" />
                 Soy técnico
@@ -328,7 +332,7 @@ export const AuthView: React.FC = () => {
                 setMode('login');
                 setError(null);
               }}
-              className="mb-4 text-xs font-semibold text-slate-500 hover:text-slate-700"
+              className="mb-4 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
             >
               ‹ Volver
             </button>
@@ -336,7 +340,7 @@ export const AuthView: React.FC = () => {
         )}
 
         {inviteLoading && (
-          <div className="bg-white rounded-xl p-6 border border-slate-200 text-center text-sm text-slate-600">
+          <div className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-700 text-center text-sm text-slate-600">
             <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2 text-teal-600" />
             Validando invitación…
           </div>
@@ -351,7 +355,7 @@ export const AuthView: React.FC = () => {
         {!inviteLoading && inviteMode && (
           <form
             onSubmit={handleRegisterInvite}
-            className="bg-white rounded-xl p-5 sm:p-6 shadow-md border border-slate-200 space-y-4"
+            className="bg-white dark:bg-slate-900 rounded-xl p-5 sm:p-6 shadow-md border border-slate-200 dark:border-slate-700 space-y-4"
           >
             {invite && (
               <div className="rounded-lg bg-teal-50 border border-teal-200 px-3 py-2 text-xs text-teal-900">
@@ -409,7 +413,7 @@ export const AuthView: React.FC = () => {
         {!inviteLoading && !inviteMode && mode === 'login' && (
           <form
             onSubmit={handleLogin}
-            className="bg-white rounded-xl p-5 sm:p-6 shadow-md border border-slate-200 space-y-4"
+            className="bg-white dark:bg-slate-900 rounded-xl p-5 sm:p-6 shadow-md border border-slate-200 dark:border-slate-700 space-y-4"
           >
             <div>
               <label className={labelClass}>Email</label>
@@ -506,7 +510,7 @@ export const AuthView: React.FC = () => {
                           setPassword(cred.password);
                           setError(null);
                         }}
-                        className="flex items-center gap-2 text-left px-3 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-xs"
+                        className="flex items-center gap-2 text-left px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 text-xs"
                       >
                         <Icon className="w-3.5 h-3.5 text-teal-700 shrink-0" />
                         <span className="font-semibold text-slate-800">{cred.label}</span>
@@ -536,9 +540,9 @@ export const AuthView: React.FC = () => {
 
         {!inviteLoading && !inviteMode && mode === 'recover' && (
           recoverSubmitted ? (
-            <div className="bg-white rounded-xl p-6 shadow-md border border-slate-200 text-center space-y-3">
+            <div className="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-md border border-slate-200 dark:border-slate-700 text-center space-y-3">
               <CheckCircle2 className="w-10 h-10 text-teal-600 mx-auto" />
-              <p className="text-sm font-bold text-slate-900">Revisá tu email</p>
+              <p className="text-sm font-bold text-slate-900 dark:text-slate-100">Revisá tu email</p>
               <p className="text-xs text-slate-500">
                 Si existe una cuenta con ese email, te mandamos un enlace para elegir una contraseña nueva.
               </p>
@@ -553,7 +557,7 @@ export const AuthView: React.FC = () => {
           ) : (
             <form
               onSubmit={handleRequestRecovery}
-              className="bg-white rounded-xl p-5 sm:p-6 shadow-md border border-slate-200 space-y-4"
+              className="bg-white dark:bg-slate-900 rounded-xl p-5 sm:p-6 shadow-md border border-slate-200 dark:border-slate-700 space-y-4"
             >
               <div>
                 <label className={labelClass}>Email</label>
@@ -603,9 +607,9 @@ export const AuthView: React.FC = () => {
 
         {!inviteLoading && !inviteMode && mode === 'register' && (
           registerSubmitted ? (
-            <div className="bg-white rounded-xl p-6 shadow-md border border-slate-200 text-center space-y-3">
+            <div className="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-md border border-slate-200 dark:border-slate-700 text-center space-y-3">
               <CheckCircle2 className="w-10 h-10 text-teal-600 mx-auto" />
-              <p className="text-sm font-bold text-slate-900">¡Listo! Revisá tu email</p>
+              <p className="text-sm font-bold text-slate-900 dark:text-slate-100">¡Listo! Revisá tu email</p>
               <p className="text-xs text-slate-500">
                 Te enviamos un correo para confirmar la cuenta. Después ingresá desde la pestaña "Ingresar".
               </p>
@@ -620,7 +624,7 @@ export const AuthView: React.FC = () => {
           ) : (
             <form
               onSubmit={handleRegisterCustomer}
-              className="bg-white rounded-xl p-5 sm:p-6 shadow-md border border-slate-200 space-y-4"
+              className="bg-white dark:bg-slate-900 rounded-xl p-5 sm:p-6 shadow-md border border-slate-200 dark:border-slate-700 space-y-4"
             >
               <div>
                 <label className={labelClass}>Nombre completo</label>
@@ -740,9 +744,9 @@ export const AuthView: React.FC = () => {
 
         {!inviteLoading && !inviteMode && mode === 'apply' && (
           applySubmitted ? (
-            <div className="bg-white rounded-xl p-6 shadow-md border border-slate-200 text-center space-y-3">
+            <div className="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-md border border-slate-200 dark:border-slate-700 text-center space-y-3">
               <CheckCircle2 className="w-10 h-10 text-teal-600 mx-auto" />
-              <p className="text-sm font-bold text-slate-900">¡Listo! Revisá tu email</p>
+              <p className="text-sm font-bold text-slate-900 dark:text-slate-100">¡Listo! Revisá tu email</p>
               <p className="text-xs text-slate-500">
                 Te enviamos un correo para confirmar la cuenta. Después ingresá y completá tu perfil profesional.
               </p>
@@ -757,9 +761,9 @@ export const AuthView: React.FC = () => {
           ) : (
             <form
               onSubmit={handleApplyTechnician}
-              className="bg-white rounded-xl p-5 sm:p-6 shadow-md border border-slate-200 space-y-4"
+              className="bg-white dark:bg-slate-900 rounded-xl p-5 sm:p-6 shadow-md border border-slate-200 dark:border-slate-700 space-y-4"
             >
-              <div className="rounded-lg bg-slate-50 border border-slate-200 px-3 py-2 text-xs text-slate-600 flex items-start gap-2">
+              <div className="rounded-lg bg-slate-50 border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs text-slate-600 flex items-start gap-2">
                 <ClipboardList className="w-3.5 h-3.5 text-teal-700 shrink-0 mt-0.5" />
                 Vas a poder ingresar apenas te registres. El equipo revisa tu ficha antes de asignarte trabajos.
               </div>
@@ -829,7 +833,7 @@ export const AuthView: React.FC = () => {
 
               <div>
                 <label className={labelClass}>Rubros</label>
-                <div className="grid grid-cols-2 gap-1.5 rounded-lg border border-slate-200 p-2">
+                <div className="grid grid-cols-2 gap-1.5 rounded-lg border border-slate-200 dark:border-slate-700 p-2">
                   {catalogCategories.filter((c) => c.active !== false).map((c) => (
                     <label key={c.id} className="flex items-center gap-1.5 text-xs text-slate-700">
                       <input

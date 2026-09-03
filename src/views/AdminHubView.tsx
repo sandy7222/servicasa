@@ -89,11 +89,11 @@ function toDateInputValue(value: string) {
 
 function AccountBadge({ hasAccount }: { hasAccount: boolean }) {
   return hasAccount ? (
-    <span className="px-1.5 py-0.2 rounded bg-teal-50 text-teal-800 border border-teal-200 font-mono font-bold text-[10px]">
+    <span className="px-1.5 py-0.2 rounded bg-teal-50 dark:bg-teal-950/40 text-teal-800 border border-teal-200 dark:border-teal-800 font-mono font-bold text-[10px]">
       Con cuenta
     </span>
   ) : (
-    <span className="px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 border border-slate-200 font-mono font-bold text-[10px]">
+    <span className="px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 font-mono font-bold text-[10px]">
       Sin cuenta
     </span>
   );
@@ -104,14 +104,14 @@ const CATEGORY_VISUALS: Record<
   { bg: string; border: string; text: string; label: string; accent: string }
 > = {
   Wrench: { bg: 'bg-sky-50', border: 'border-sky-200', text: 'text-sky-600', label: 'Plomería / Reparaciones', accent: 'bg-sky-500' },
-  Zap: { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-600', label: 'Electricidad', accent: 'bg-amber-500' },
+  Zap: { bg: 'bg-amber-50 dark:bg-amber-950/40', border: 'border-amber-200 dark:border-amber-800', text: 'text-amber-600', label: 'Electricidad', accent: 'bg-amber-500' },
   Hammer: { bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-600', label: 'Hogar / Albañilería', accent: 'bg-orange-500' },
-  Settings: { bg: 'bg-slate-50', border: 'border-slate-200', text: 'text-slate-600', label: 'Mantenimiento', accent: 'bg-slate-500' },
+  Settings: { bg: 'bg-slate-50 dark:bg-slate-950', border: 'border-slate-200 dark:border-slate-700', text: 'text-slate-600 dark:text-slate-400', label: 'Mantenimiento', accent: 'bg-slate-500' },
   ShieldCheck: { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-600', label: 'Instalación de equipos', accent: 'bg-emerald-500' },
   Droplets: { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-600', label: 'Agua / Saneamiento', accent: 'bg-blue-500' },
   Flame: { bg: 'bg-rose-50', border: 'border-rose-200', text: 'text-rose-600', label: 'Gas / Calefacción', accent: 'bg-rose-500' },
   Lightbulb: { bg: 'bg-yellow-50', border: 'border-yellow-200', text: 'text-yellow-600', label: 'Iluminación', accent: 'bg-yellow-500' },
-  Sparkles: { bg: 'bg-teal-50', border: 'border-teal-200', text: 'text-teal-600', label: 'General', accent: 'bg-teal-500' },
+  Sparkles: { bg: 'bg-teal-50 dark:bg-teal-950/40', border: 'border-teal-200 dark:border-teal-800', text: 'text-teal-600', label: 'General', accent: 'bg-teal-500' },
 };
 
 const CATEGORY_ICON_KEYS = Object.keys(CATEGORY_VISUALS);
@@ -154,8 +154,8 @@ const PageControls: React.FC<{ page: number; totalItems: number; pageSize: numbe
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   if (totalPages <= 1) return null;
   return (
-    <div className="flex items-center justify-between gap-2 border-t border-slate-100 px-3 py-2.5">
-      <p className="text-[11px] text-slate-500">
+    <div className="flex items-center justify-between gap-2 border-t border-slate-100 dark:border-slate-800 px-3 py-2.5">
+      <p className="text-[11px] text-slate-500 dark:text-slate-400">
         Página {page} de {totalPages} · {totalItems} órdenes
       </p>
       <div className="flex items-center gap-1.5">
@@ -163,7 +163,7 @@ const PageControls: React.FC<{ page: number; totalItems: number; pageSize: numbe
           type="button"
           disabled={page <= 1}
           onClick={() => onChange(page - 1)}
-          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-bold text-slate-600 disabled:opacity-40"
+          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 dark:border-slate-700 px-2 py-1 text-[11px] font-bold text-slate-600 dark:text-slate-400 disabled:opacity-40"
         >
           <ChevronLeft className="h-3 w-3" /> Anterior
         </button>
@@ -171,7 +171,7 @@ const PageControls: React.FC<{ page: number; totalItems: number; pageSize: numbe
           type="button"
           disabled={page >= totalPages}
           onClick={() => onChange(page + 1)}
-          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-bold text-slate-600 disabled:opacity-40"
+          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 dark:border-slate-700 px-2 py-1 text-[11px] font-bold text-slate-600 dark:text-slate-400 disabled:opacity-40"
         >
           Siguiente <ChevronRight className="h-3 w-3" />
         </button>
@@ -851,12 +851,12 @@ export const AdminHubView: React.FC = () => {
         {/* Order Core Info */}
         <div className="space-y-1 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="font-mono text-[11px] font-bold text-slate-800 bg-slate-100 px-1.5 py-0.2 rounded border border-slate-200">
+            <span className="font-mono text-[11px] font-bold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.2 rounded border border-slate-200 dark:border-slate-700">
               {order.id}
             </span>
             <StatusBadge status={order.status} size="sm" />
             {quoteRejected && (
-              <span className="rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-800">
+              <span className="rounded border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 text-[10px] font-bold text-amber-800">
                 Presupuesto rechazado · seña en revisión
               </span>
             )}
@@ -866,7 +866,7 @@ export const AdminHubView: React.FC = () => {
               </span>
             )}
             {order.status === 'paused' && order.pauseReason && (
-              <span className="rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-800" title={order.pauseReason}>
+              <span className="rounded border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 text-[10px] font-bold text-amber-800" title={order.pauseReason}>
                 Pausada: {order.pauseReason}
               </span>
             )}
@@ -875,14 +875,14 @@ export const AdminHubView: React.FC = () => {
             <PaymentStatusBadge order={order} size="sm" />
           </div>
 
-          <h3 className="font-bold text-xs sm:text-sm text-slate-900 leading-snug">
+          <h3 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-slate-100 leading-snug">
             {order.title}
           </h3>
 
-          <div className="flex flex-wrap items-center gap-y-1 gap-x-3 text-[11px] text-slate-500">
+          <div className="flex flex-wrap items-center gap-y-1 gap-x-3 text-[11px] text-slate-500 dark:text-slate-400">
             <span className="flex items-center gap-1">
               <Users className="w-3 h-3 text-slate-400" />
-              <strong className="text-slate-700">{order.clientName}</strong>
+              <strong className="text-slate-700 dark:text-slate-300">{order.clientName}</strong>
             </span>
             <span className="flex items-center gap-1">
               <MapPin className="w-3 h-3 text-slate-400" />
@@ -896,26 +896,26 @@ export const AdminHubView: React.FC = () => {
         </div>
 
         {/* Middle status: Technician & Progress summary */}
-        <div className="flex flex-wrap lg:flex-col items-center lg:items-end justify-between lg:justify-center gap-1.5 text-xs border-t lg:border-t-0 pt-2 lg:pt-0 border-slate-100">
+        <div className="flex flex-wrap lg:flex-col items-center lg:items-end justify-between lg:justify-center gap-1.5 text-xs border-t lg:border-t-0 pt-2 lg:pt-0 border-slate-100 dark:border-slate-800">
           {/* Technician badge */}
           <div className="flex items-center gap-1.5">
             <Wrench className="w-3 h-3 text-teal-600" />
             {order.assignedTechnicianName ? (
-              <span className="font-semibold text-slate-800 text-xs">
+              <span className="font-semibold text-slate-800 dark:text-slate-200 text-xs">
                 {order.assignedTechnicianName}
               </span>
             ) : (
-              <span className="text-amber-800 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200 text-[10px] font-bold">
+              <span className="text-amber-800 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.2 rounded border border-amber-200 dark:border-amber-800 text-[10px] font-bold">
                 Sin asignar
               </span>
             )}
             {order.assignedTechnicianName && order.status === 'assigned' && (
               order.technicianResponseStatus === 'pending' ? (
-                <span className="text-amber-700 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200 text-[9px] font-bold uppercase">
+                <span className="text-amber-700 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.2 rounded border border-amber-200 dark:border-amber-800 text-[9px] font-bold uppercase">
                   Sin responder
                 </span>
               ) : order.technicianResponseStatus === 'accepted' ? (
-                <span className="text-teal-700 bg-teal-50 px-1.5 py-0.2 rounded border border-teal-200 text-[9px] font-bold uppercase">
+                <span className="text-teal-700 bg-teal-50 dark:bg-teal-950/40 px-1.5 py-0.2 rounded border border-teal-200 dark:border-teal-800 text-[9px] font-bold uppercase">
                   Aceptó · no salió
                 </span>
               ) : null
@@ -923,12 +923,12 @@ export const AdminHubView: React.FC = () => {
           </div>
 
           {/* Progress pills */}
-          <div className="flex items-center gap-1.5 text-[10px] text-slate-500">
+          <div className="flex items-center gap-1.5 text-[10px] text-slate-500 dark:text-slate-400">
             <span
               className={`px-1.5 py-0.2 rounded font-mono ${
                 completedChecklistCount === totalChecklist && totalChecklist > 0
                   ? 'bg-teal-500/10 text-teal-700 font-bold border border-teal-500/20'
-                  : 'bg-slate-100 text-slate-600 border border-slate-200'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
               }`}
             >
               Checklist: {completedChecklistCount}/{totalChecklist}
@@ -944,14 +944,14 @@ export const AdminHubView: React.FC = () => {
         </div>
 
         {/* Action buttons */}
-        <div className="flex items-center gap-1.5 pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-100">
+        <div className="flex items-center gap-1.5 pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-100 dark:border-slate-800">
           {order.status !== 'cancelled' && !order.archivedAt && (
             <button
               onClick={() => {
                 setOrderToAssign(order);
                 setIsAssignModalOpen(true);
               }}
-              className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-md transition-colors border border-slate-200"
+              className="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 text-xs font-semibold rounded-md transition-colors border border-slate-200 dark:border-slate-700"
               title="Asignar o reasignar técnico"
             >
               Asignar
@@ -960,7 +960,7 @@ export const AdminHubView: React.FC = () => {
 
           <button
             onClick={() => openEditOrder(order)}
-            className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 text-xs font-semibold rounded-md transition-colors border border-slate-200"
+            className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 text-slate-700 dark:text-slate-300 hover:text-blue-700 text-xs font-semibold rounded-md transition-colors border border-slate-200 dark:border-slate-700"
             title="Editar orden"
           >
             <Pencil className="w-3 h-3" />
@@ -970,7 +970,7 @@ export const AdminHubView: React.FC = () => {
           {order.assignedTechnicianId && (
             <button
               onClick={() => void handleMessageTechnician(order)}
-              className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-100 hover:bg-teal-50 text-slate-700 hover:text-teal-700 text-xs font-semibold rounded-md transition-colors border border-slate-200"
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-teal-50 text-slate-700 dark:text-slate-300 hover:text-teal-700 text-xs font-semibold rounded-md transition-colors border border-slate-200 dark:border-slate-700"
               title="Escribirle al técnico asignado"
             >
               <MessageCircle className="w-3 h-3" />
@@ -981,7 +981,7 @@ export const AdminHubView: React.FC = () => {
           {order.status !== 'completed' && order.status !== 'cancelled' && (
             <button
               onClick={() => { setOrderToCancel(order); setCancelReason(''); }}
-              className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-700 text-xs font-semibold rounded-md transition-colors border border-slate-200"
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-rose-50 text-slate-700 dark:text-slate-300 hover:text-rose-700 text-xs font-semibold rounded-md transition-colors border border-slate-200 dark:border-slate-700"
               title="Cancelar orden con motivo"
             >
               <Ban className="w-3 h-3" />
@@ -1474,9 +1474,9 @@ export const AdminHubView: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100/70 pb-16" id="admin-hub-container">
+    <div className="min-h-screen bg-slate-100/70 dark:bg-slate-900/80 pb-16" id="admin-hub-container">
       {/* Top Banner / Header */}
-      <div className="bg-white border-b border-slate-200/90 shadow-2xs">
+      <div className="bg-white dark:bg-slate-900 border-b border-slate-200/90 dark:border-slate-700 shadow-2xs">
         <div className="max-w-7xl mx-auto px-3 sm:px-5 lg:px-6 py-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
@@ -1484,14 +1484,14 @@ export const AdminHubView: React.FC = () => {
                 <span className="p-1.5 rounded-lg bg-[#0F172A] text-teal-400 border border-slate-800 shadow-xs">
                   <LayoutDashboard className="w-4 h-4" />
                 </span>
-                <h1 className="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight">
+                <h1 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
                   Panel Operativo — Admin Hub
                 </h1>
                 <span className="hidden sm:inline-flex px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-teal-500/10 text-teal-700 border border-teal-500/30">
                   LIVE OPERATIONS
                 </span>
               </div>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                 Despacho y monitoreo continuo de órdenes técnicas, inventario y asignación de campo.
               </p>
             </div>
@@ -1540,7 +1540,7 @@ export const AdminHubView: React.FC = () => {
               onClick={() => applyQuickFilter('in_progress')}
               aria-pressed={quickFilter === 'in_progress'}
               title="Filtrar órdenes en curso"
-              className={`bg-white p-3 rounded-lg border shadow-2xs flex flex-col justify-between text-left transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 ${
+              className={`bg-white dark:bg-slate-900 p-3 rounded-lg border shadow-2xs flex flex-col justify-between text-left transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 ${
                 quickFilter === 'in_progress'
                   ? 'border-emerald-500 ring-2 ring-emerald-300'
                   : 'border-emerald-300 hover:border-emerald-500 hover:-translate-y-0.5'
@@ -1563,7 +1563,7 @@ export const AdminHubView: React.FC = () => {
               onClick={() => applyQuickFilter('paused')}
               aria-pressed={quickFilter === 'paused'}
               title="Filtrar órdenes pausadas"
-              className={`bg-white p-3 rounded-lg border shadow-2xs flex flex-col justify-between text-left transition-all focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 ${
+              className={`bg-white dark:bg-slate-900 p-3 rounded-lg border shadow-2xs flex flex-col justify-between text-left transition-all focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 ${
                 quickFilter === 'paused'
                   ? 'border-amber-500 ring-2 ring-amber-300'
                   : 'border-amber-300 hover:border-amber-500 hover:-translate-y-0.5'
@@ -1574,7 +1574,7 @@ export const AdminHubView: React.FC = () => {
                 <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
               </div>
               <div className="flex items-baseline justify-between">
-                <div className="text-2xl font-black font-mono text-amber-900">{metrics.paused}</div>
+                <div className="text-2xl font-black font-mono text-amber-900 dark:text-amber-200">{metrics.paused}</div>
                 <span className="text-[10px] text-amber-700 font-mono font-semibold">Insumos</span>
               </div>
               <div className="text-[10px] text-amber-700 mt-0.5 truncate">En espera</div>
@@ -1586,7 +1586,7 @@ export const AdminHubView: React.FC = () => {
               onClick={() => applyQuickFilter('urgent')}
               aria-pressed={quickFilter === 'urgent'}
               title="Filtrar órdenes urgentes y de alta prioridad"
-              className={`bg-white p-3 rounded-lg border shadow-2xs flex flex-col justify-between text-left transition-all focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-2 ${
+              className={`bg-white dark:bg-slate-900 p-3 rounded-lg border shadow-2xs flex flex-col justify-between text-left transition-all focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-2 ${
                 quickFilter === 'urgent'
                   ? 'border-rose-500 ring-2 ring-rose-300'
                   : 'border-rose-300 hover:border-rose-500 hover:-translate-y-0.5'
@@ -1609,10 +1609,10 @@ export const AdminHubView: React.FC = () => {
               onClick={() => applyQuickFilter('completed')}
               aria-pressed={quickFilter === 'completed'}
               title="Filtrar órdenes finalizadas"
-              className={`bg-white p-3 rounded-lg border shadow-2xs col-span-2 sm:col-span-1 flex flex-col justify-between text-left transition-all focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 ${
+              className={`bg-white dark:bg-slate-900 p-3 rounded-lg border shadow-2xs col-span-2 sm:col-span-1 flex flex-col justify-between text-left transition-all focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 ${
                 quickFilter === 'completed'
                   ? 'border-teal-500 ring-2 ring-teal-200'
-                  : 'border-slate-200 hover:border-teal-500 hover:-translate-y-0.5'
+                  : 'border-slate-200 dark:border-slate-700 hover:border-teal-500 hover:-translate-y-0.5'
               }`}
             >
               <div className="flex items-center justify-between text-[11px] text-[#003875] mb-1">
@@ -1620,21 +1620,21 @@ export const AdminHubView: React.FC = () => {
                 <CheckCircle2 className="w-3.5 h-3.5 text-teal-600" />
               </div>
               <div className="flex items-baseline justify-between">
-                <div className="text-2xl font-black font-mono text-slate-900">{metrics.completed}</div>
+                <div className="text-2xl font-black font-mono text-slate-900 dark:text-slate-100">{metrics.completed}</div>
                 <span className="text-[10px] text-teal-700 font-mono font-semibold">Cerradas</span>
               </div>
-              <div className="text-[10px] text-slate-500 mt-0.5 truncate">Con firma digital</div>
+              <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 truncate">Con firma digital</div>
             </button>
           </div>
 
           {/* Sub Navigation Tabs - High density */}
-          <div className="flex flex-wrap items-center gap-1.5 mt-4 pt-3 border-t border-slate-100">
+          <div className="flex flex-wrap items-center gap-1.5 mt-4 pt-3 border-t border-slate-100 dark:border-slate-800">
             <button
               onClick={() => setActiveTab('orders')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
                 activeTab === 'orders'
                   ? 'bg-[#0F172A] text-teal-300 shadow-xs border border-slate-800'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
               }`}
             >
               <LayoutDashboard className="w-3.5 h-3.5" />
@@ -1647,8 +1647,8 @@ export const AdminHubView: React.FC = () => {
                 activeTab === 'pendingPayment'
                   ? 'bg-[#0F172A] text-teal-300 shadow-xs border border-slate-800'
                   : pendingPaymentOrders.length > 0
-                    ? 'bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-800 hover:bg-amber-100 border border-amber-200 dark:border-amber-800'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
               }`}
               title="Órdenes que requieren pago antes de poder asignar técnico"
             >
@@ -1658,7 +1658,7 @@ export const AdminHubView: React.FC = () => {
 
             <button
               onClick={() => { window.location.hash = '#/admin/clientes'; }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all bg-slate-100 text-slate-600 hover:bg-slate-200"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200"
               title="Abrir planilla completa de clientes"
             >
               <Users className="w-3.5 h-3.5" />
@@ -1667,7 +1667,7 @@ export const AdminHubView: React.FC = () => {
 
             <button
               onClick={() => { window.location.hash = '#/admin/reclamos'; }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all bg-slate-100 text-slate-600 hover:bg-slate-200"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200"
               title="Reclamos y garantías"
             >
               <ShieldAlert className="w-3.5 h-3.5" />
@@ -1676,7 +1676,7 @@ export const AdminHubView: React.FC = () => {
 
             <button
               onClick={() => { window.location.hash = '#/admin/conversaciones'; }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all bg-slate-100 text-slate-600 hover:bg-slate-200"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200"
               title="Conversaciones"
             >
               <MessageCircle className="w-3.5 h-3.5" />
@@ -1688,7 +1688,7 @@ export const AdminHubView: React.FC = () => {
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
                 activeTab === 'technicians'
                   ? 'bg-[#0F172A] text-teal-300 shadow-xs border border-slate-800'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
               }`}
             >
               <Wrench className="w-3.5 h-3.5" />
@@ -1700,7 +1700,7 @@ export const AdminHubView: React.FC = () => {
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
                 activeTab === 'inventory'
                   ? 'bg-[#0F172A] text-teal-300 shadow-xs border border-slate-800'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
               }`}
             >
               <Boxes className="w-3.5 h-3.5" />
@@ -1712,7 +1712,7 @@ export const AdminHubView: React.FC = () => {
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
                 activeTab === 'services'
                   ? 'bg-[#0F172A] text-teal-300 shadow-xs border border-slate-800'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
               }`}
               id="tab-btn-services"
             >
@@ -1725,7 +1725,7 @@ export const AdminHubView: React.FC = () => {
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
                 activeTab === 'categories'
                   ? 'bg-[#0F172A] text-teal-300 shadow-xs border border-slate-800'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
               }`}
               id="tab-btn-categories"
             >
@@ -1742,7 +1742,7 @@ export const AdminHubView: React.FC = () => {
         {activeTab === 'orders' && (
           <div className="space-y-3">
             {/* Filters Bar - High Density */}
-            <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-xs space-y-2">
+            <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs space-y-2">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
                 {/* Search */}
                 <div className="relative lg:col-span-2">
@@ -1752,7 +1752,7 @@ export const AdminHubView: React.FC = () => {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Buscar por ID, cliente, dirección o servicio..."
-                    className="w-full text-xs pl-8 pr-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-500 font-medium"
+                    className="w-full text-xs pl-8 pr-2.5 py-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-lg focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-500 font-medium"
                   />
                 </div>
 
@@ -1761,7 +1761,7 @@ export const AdminHubView: React.FC = () => {
                   <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
-                    className="w-full text-xs px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-500 font-medium text-slate-700"
+                    className="w-full text-xs px-2.5 py-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-lg focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-500 font-medium text-slate-700 dark:text-slate-300"
                   >
                     <option value="all">Todos los Estados</option>
                     <option value="assigned">Asignadas</option>
@@ -1777,7 +1777,7 @@ export const AdminHubView: React.FC = () => {
                   <select
                     value={priorityFilter}
                     onChange={(e) => setPriorityFilter(e.target.value)}
-                    className="w-full text-xs px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-500 font-medium text-slate-700"
+                    className="w-full text-xs px-2.5 py-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-lg focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-500 font-medium text-slate-700 dark:text-slate-300"
                   >
                     <option value="all">Todas las Prioridades</option>
                     <option value="urgente">Urgente</option>
@@ -1792,7 +1792,7 @@ export const AdminHubView: React.FC = () => {
                   <select
                     value={techFilter}
                     onChange={(e) => setTechFilter(e.target.value)}
-                    className="w-full text-xs px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-500 font-medium text-slate-700"
+                    className="w-full text-xs px-2.5 py-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-lg focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-500 font-medium text-slate-700 dark:text-slate-300"
                   >
                     <option value="all">Todos los Técnicos</option>
                     <option value="tech-carlos">Carlos Méndez</option>
@@ -1804,18 +1804,18 @@ export const AdminHubView: React.FC = () => {
             </div>
 
             {/* Activas / Archivadas toggle */}
-            <div className="inline-flex rounded-lg border border-slate-200 bg-white p-0.5 text-xs font-bold">
+            <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-0.5 text-xs font-bold">
               <button
                 type="button"
                 onClick={() => setOrdersView('active')}
-                className={`rounded-md px-3 py-1.5 ${ordersView === 'active' ? 'bg-slate-900 text-teal-300' : 'text-slate-600 hover:bg-slate-50'}`}
+                className={`rounded-md px-3 py-1.5 ${ordersView === 'active' ? 'bg-slate-900 text-teal-300' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
               >
                 Activas ({operationalOrders.length})
               </button>
               <button
                 type="button"
                 onClick={() => setOrdersView('archived')}
-                className={`rounded-md px-3 py-1.5 ${ordersView === 'archived' ? 'bg-slate-900 text-teal-300' : 'text-slate-600 hover:bg-slate-50'}`}
+                className={`rounded-md px-3 py-1.5 ${ordersView === 'archived' ? 'bg-slate-900 text-teal-300' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
               >
                 Archivadas ({archivedOrders.length})
               </button>
@@ -1823,7 +1823,7 @@ export const AdminHubView: React.FC = () => {
 
             {/* Archive prompt — only shows once the live list grows past the cap */}
             {ordersView === 'active' && operationalOrders.length > ARCHIVE_PROMPT_THRESHOLD && (
-              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+              <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-3 text-xs text-amber-900 dark:text-amber-200">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-start gap-2">
                     <Archive className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
@@ -1852,8 +1852,8 @@ export const AdminHubView: React.FC = () => {
                   )}
                 </div>
                 {showArchivePicker && (
-                  <div className="mt-3 space-y-1.5 rounded-lg border border-amber-200 bg-white p-2">
-                    <div className="flex items-center justify-between px-1 text-[11px] font-bold text-slate-600">
+                  <div className="mt-3 space-y-1.5 rounded-lg border border-amber-200 dark:border-amber-800 bg-white dark:bg-slate-900 p-2">
+                    <div className="flex items-center justify-between px-1 text-[11px] font-bold text-slate-600 dark:text-slate-400">
                       <label className="flex items-center gap-1.5">
                         <input
                           type="checkbox"
@@ -1866,7 +1866,7 @@ export const AdminHubView: React.FC = () => {
                     </div>
                     <div className="max-h-56 space-y-1 overflow-y-auto">
                       {archivableOrders.map((order) => (
-                        <label key={order.id} className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-[11px] text-slate-700 hover:bg-slate-50">
+                        <label key={order.id} className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-[11px] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">
                           <input type="checkbox" checked={selectedArchiveIds.has(order.id)} onChange={() => toggleArchiveSelection(order.id)} />
                           <span className="min-w-0 flex-1 truncate">{order.title} · {order.clientName}</span>
                           <span className="shrink-0 text-slate-400">{order.completedAt ?? order.cancelledAt ? new Date((order.completedAt ?? order.cancelledAt) as string).toLocaleDateString('es-AR') : ''}</span>
@@ -1880,8 +1880,8 @@ export const AdminHubView: React.FC = () => {
 
             {/* Bulk download bar — only in the Archivadas view */}
             {ordersView === 'archived' && filteredOrders.length > 0 && (
-              <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white p-3 text-xs">
-                <label className="flex items-center gap-1.5 font-bold text-slate-600">
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 text-xs">
+                <label className="flex items-center gap-1.5 font-bold text-slate-600 dark:text-slate-400">
                   <input
                     type="checkbox"
                     checked={filteredOrders.length > 0 && filteredOrders.every((o) => selectedArchivedViewIds.has(o.id))}
@@ -1902,14 +1902,14 @@ export const AdminHubView: React.FC = () => {
 
             {/* Orders Table / Cards List */}
             {filteredOrders.length === 0 ? (
-              <div className="bg-white rounded-2xl p-12 border border-slate-200 text-center">
-                <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
+              <div className="bg-white dark:bg-slate-900 rounded-2xl p-12 border border-slate-200 dark:border-slate-700 text-center">
+                <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto mb-3">
                   <Search className="w-6 h-6" />
                 </div>
-                <h3 className="text-sm font-bold text-slate-800">
+                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">
                   {ordersView === 'active' ? 'No se encontraron órdenes' : 'No hay órdenes archivadas todavía'}
                 </h3>
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                   {ordersView === 'active'
                     ? 'Probá ajustando los filtros de búsqueda o creá una nueva orden de servicio.'
                     : 'Cuando archivés órdenes cerradas van a aparecer acá para volver a descargarlas cuando quieras.'}
@@ -1929,7 +1929,7 @@ export const AdminHubView: React.FC = () => {
                 )}
               </div>
             ) : (
-              <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+              <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs overflow-hidden">
                 <div className="divide-y divide-slate-100">
                   {filteredOrders.slice((ordersPage - 1) * ORDERS_PAGE_SIZE, ordersPage * ORDERS_PAGE_SIZE).map((order) =>
                     ordersView === 'archived' ? (
@@ -1951,7 +1951,7 @@ export const AdminHubView: React.FC = () => {
         {/* ================= TAB: PENDIENTES DE PAGO ================= */}
         {activeTab === 'pendingPayment' && (
           <div className="space-y-3">
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-2 text-xs text-amber-900">
+            <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl p-3 flex items-start gap-2 text-xs text-amber-900 dark:text-amber-200">
               <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
               <p>
                 Estas órdenes son de precio fijo o requieren seña de visita y todavía no tienen el pago confirmado.
@@ -1961,17 +1961,17 @@ export const AdminHubView: React.FC = () => {
             </div>
 
             {pendingPaymentOrders.length === 0 ? (
-              <div className="bg-white rounded-2xl p-12 border border-slate-200 text-center">
-                <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
+              <div className="bg-white dark:bg-slate-900 rounded-2xl p-12 border border-slate-200 dark:border-slate-700 text-center">
+                <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto mb-3">
                   <DollarSign className="w-6 h-6" />
                 </div>
-                <h3 className="text-sm font-bold text-slate-800">No hay órdenes pendientes de pago</h3>
-                <p className="text-xs text-slate-500 mt-1">
+                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">No hay órdenes pendientes de pago</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                   Todas las órdenes que requieren pago ya lo tienen confirmado.
                 </p>
               </div>
             ) : (
-              <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+              <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs overflow-hidden">
                 <div className="divide-y divide-slate-100">
                   {pendingPaymentOrders.slice((pendingPaymentPage - 1) * ORDERS_PAGE_SIZE, pendingPaymentPage * ORDERS_PAGE_SIZE).map((order) => renderOrderCard(order))}
                 </div>
@@ -1986,8 +1986,8 @@ export const AdminHubView: React.FC = () => {
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-sm font-bold text-slate-900">Directorio de Clientes</h2>
-                <p className="text-[11px] text-slate-500">
+                <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">Directorio de Clientes</h2>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
                   Alta, edición y baja de cuentas para servicios a domicilio.
                 </p>
               </div>
@@ -2001,9 +2001,9 @@ export const AdminHubView: React.FC = () => {
             </div>
 
             {customers.length === 0 ? (
-              <div className="bg-white rounded-2xl p-10 border border-slate-200 text-center">
-                <h3 className="text-sm font-bold text-slate-800">No hay clientes cargados</h3>
-                <p className="text-xs text-slate-500 mt-1">
+              <div className="bg-white dark:bg-slate-900 rounded-2xl p-10 border border-slate-200 dark:border-slate-700 text-center">
+                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">No hay clientes cargados</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                   Creá el primero para poder asignarlo a nuevas órdenes.
                 </p>
               </div>
@@ -2018,7 +2018,7 @@ export const AdminHubView: React.FC = () => {
                   return (
                     <div
                       key={c.id}
-                      className="bg-white rounded-xl p-3.5 border border-slate-200 shadow-xs flex flex-col justify-between"
+                      className="bg-white dark:bg-slate-900 rounded-xl p-3.5 border border-slate-200 dark:border-slate-700 shadow-xs flex flex-col justify-between"
                     >
                       <div>
                         <div className="flex items-center justify-between mb-2">
@@ -2058,9 +2058,9 @@ export const AdminHubView: React.FC = () => {
                           </div>
                         </div>
 
-                        <h3 className="font-bold text-xs sm:text-sm text-slate-900">{c.name}</h3>
+                        <h3 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-slate-100">{c.name}</h3>
 
-                        <div className="space-y-1 mt-2 text-[11px] text-slate-600">
+                        <div className="space-y-1 mt-2 text-[11px] text-slate-600 dark:text-slate-400">
                           <div className="flex items-start gap-1.5">
                             <MapPin className="w-3 h-3 text-slate-400 shrink-0 mt-0.5" />
                             <span>
@@ -2072,22 +2072,22 @@ export const AdminHubView: React.FC = () => {
                             <span>{c.phone}</span>
                           </div>
                           {c.email && (
-                            <div className="text-[10px] text-slate-500 truncate">{c.email}</div>
+                            <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate">{c.email}</div>
                           )}
                         </div>
 
                         {c.notes && (
-                          <div className="mt-2 p-2 bg-slate-50 rounded text-[10px] text-slate-500 border border-slate-100 italic">
+                          <div className="mt-2 p-2 bg-slate-50 dark:bg-slate-950 rounded text-[10px] text-slate-500 dark:text-slate-400 border border-slate-100 dark:border-slate-800 italic">
                             "{c.notes}"
                           </div>
                         )}
                       </div>
 
-                      <div className="mt-3 pt-2 border-t border-slate-100 space-y-2">
+                      <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 space-y-2">
                         <div className="flex items-center justify-between text-[11px]">
-                          <span className="text-slate-500">
+                          <span className="text-slate-500 dark:text-slate-400">
                             Órdenes:{' '}
-                            <strong className="font-mono text-slate-800">{customerOrders.length}</strong>
+                            <strong className="font-mono text-slate-800 dark:text-slate-200">{customerOrders.length}</strong>
                           </span>
                           {activeCount > 0 && (
                             <span className="px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 font-mono font-bold text-[10px]">
@@ -2115,8 +2115,8 @@ export const AdminHubView: React.FC = () => {
             <SettlementReconciliation />
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-sm font-bold text-slate-900">Cuadrilla de Técnicos</h2>
-                <p className="text-[11px] text-slate-500">
+                <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">Cuadrilla de Técnicos</h2>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
                   Fichas operativas. Pueden existir sin cuenta; más adelante se vinculan al registrarse.
                 </p>
               </div>
@@ -2130,9 +2130,9 @@ export const AdminHubView: React.FC = () => {
             </div>
 
             {technicians.length === 0 ? (
-              <div className="bg-white rounded-2xl p-10 border border-slate-200 text-center">
-                <h3 className="text-sm font-bold text-slate-800">No hay técnicos cargados</h3>
-                <p className="text-xs text-slate-500 mt-1">
+              <div className="bg-white dark:bg-slate-900 rounded-2xl p-10 border border-slate-200 dark:border-slate-700 text-center">
+                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">No hay técnicos cargados</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                   Creá el primero para poder asignarlo a las órdenes.
                 </p>
               </div>
@@ -2153,7 +2153,7 @@ export const AdminHubView: React.FC = () => {
                   return (
                     <div
                       key={t.id}
-                      className="bg-white rounded-xl p-3.5 border border-slate-200 shadow-xs flex flex-col justify-between"
+                      className="bg-white dark:bg-slate-900 rounded-xl p-3.5 border border-slate-200 dark:border-slate-700 shadow-xs flex flex-col justify-between"
                     >
                       <div>
                         <div className="flex items-center justify-between mb-2">
@@ -2197,15 +2197,15 @@ export const AdminHubView: React.FC = () => {
 
                         <div className="flex items-center gap-1.5">
                           {formatTechnicianCode(t.technicianNumber) && (
-                            <span className="font-mono text-[10px] font-bold text-teal-700 bg-teal-50 border border-teal-200 rounded px-1 py-0.5">
+                            <span className="font-mono text-[10px] font-bold text-teal-700 bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800 rounded px-1 py-0.5">
                               {formatTechnicianCode(t.technicianNumber)}
                             </span>
                           )}
-                          <h3 className="font-bold text-xs sm:text-sm text-slate-900">{t.name}</h3>
+                          <h3 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-slate-100">{t.name}</h3>
                         </div>
                         <p className="text-[11px] text-teal-700 font-semibold mt-0.5">{t.specialty}</p>
 
-                        <div className="space-y-1 mt-2 text-[11px] text-slate-600">
+                        <div className="space-y-1 mt-2 text-[11px] text-slate-600 dark:text-slate-400">
                           {(t.zone || t.province) && (
                             <div className="flex items-start gap-1.5">
                               <MapPin className="w-3 h-3 text-slate-400 shrink-0 mt-0.5" />
@@ -2219,12 +2219,12 @@ export const AdminHubView: React.FC = () => {
                             <span>{t.phone}</span>
                           </div>
                           {t.email && (
-                            <div className="text-[10px] text-slate-500 truncate">{t.email}</div>
+                            <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate">{t.email}</div>
                           )}
                         </div>
 
                         <div className="mt-2 flex flex-wrap gap-1">
-                          <span className={`px-1.5 py-0.2 rounded border font-mono font-bold text-[10px] ${t.isAvailable ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>
+                          <span className={`px-1.5 py-0.2 rounded border font-mono font-bold text-[10px] ${t.isAvailable ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700'}`}>
                             {t.isAvailable ? 'Disponible' : 'No disponible'}
                           </span>
                           {alsoCustomer && (
@@ -2232,17 +2232,17 @@ export const AdminHubView: React.FC = () => {
                               También cliente
                             </span>
                           )}
-                          <span className="px-1.5 py-0.2 rounded bg-slate-50 text-slate-600 border border-slate-200 font-mono font-bold text-[10px]">
+                          <span className="px-1.5 py-0.2 rounded bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 font-mono font-bold text-[10px]">
                             Rating {t.rating}
                           </span>
                         </div>
                       </div>
 
-                      <div className="mt-3 pt-2 border-t border-slate-100 space-y-2">
+                      <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 space-y-2">
                         <div className="flex items-center justify-between text-[11px]">
-                          <span className="text-slate-500">
+                          <span className="text-slate-500 dark:text-slate-400">
                             Órdenes:{' '}
-                            <strong className="font-mono text-slate-800">{techOrders.length}</strong>
+                            <strong className="font-mono text-slate-800 dark:text-slate-200">{techOrders.length}</strong>
                           </span>
                           {activeCount > 0 && (
                             <span className="px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 font-mono font-bold text-[10px]">
@@ -2264,8 +2264,8 @@ export const AdminHubView: React.FC = () => {
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-sm font-bold text-slate-900">Inventario de materiales</h2>
-                <p className="text-[11px] text-slate-500">
+                <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">Inventario de materiales</h2>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
                   Alta, edición y baja de repuestos e insumos técnicos de campo.
                 </p>
               </div>
@@ -2279,17 +2279,17 @@ export const AdminHubView: React.FC = () => {
             </div>
 
             {materials.length === 0 ? (
-              <div className="bg-white rounded-2xl p-10 border border-slate-200 text-center">
-                <h3 className="text-sm font-bold text-slate-800">No hay materiales cargados</h3>
-                <p className="text-xs text-slate-500 mt-1">
+              <div className="bg-white dark:bg-slate-900 rounded-2xl p-10 border border-slate-200 dark:border-slate-700 text-center">
+                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">No hay materiales cargados</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                   Creá el primero para controlar stock de campo.
                 </p>
               </div>
             ) : (
-            <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 text-[11px] font-bold font-mono uppercase tracking-wider">
+                  <thead className="bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 text-[11px] font-bold font-mono uppercase tracking-wider">
                     <tr>
                       <th className="py-2.5 px-3.5">Material / Insumo</th>
                       <th className="py-2.5 px-3.5">Categoría</th>
@@ -2304,9 +2304,9 @@ export const AdminHubView: React.FC = () => {
                       const isLowStock = mat.stock < 15;
                       return (
                         <tr key={mat.id} className="hover:bg-slate-50/80 transition-colors">
-                          <td className="py-2.5 px-3.5 font-semibold text-slate-900">{mat.name}</td>
+                          <td className="py-2.5 px-3.5 font-semibold text-slate-900 dark:text-slate-100">{mat.name}</td>
                           <td className="py-2.5 px-3.5">
-                            <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                            <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
                               {mat.category}
                             </span>
                           </td>
@@ -2322,22 +2322,22 @@ export const AdminHubView: React.FC = () => {
                               {isLowStock && <AlertTriangle className="w-2.5 h-2.5 text-rose-600" />}
                             </span>
                           </td>
-                          <td className="py-2.5 px-3.5 text-slate-500 font-mono text-[11px]">{mat.unit}</td>
-                          <td className="py-2.5 px-3.5 font-mono text-slate-700 font-semibold">
+                          <td className="py-2.5 px-3.5 text-slate-500 dark:text-slate-400 font-mono text-[11px]">{mat.unit}</td>
+                          <td className="py-2.5 px-3.5 font-mono text-slate-700 dark:text-slate-300 font-semibold">
                             ${mat.costEstimate.toLocaleString('es-AR')}
                           </td>
                           <td className="py-2.5 px-3.5 text-right">
                             <div className="inline-flex items-center gap-1">
                               <button
                                 onClick={() => updateMaterialStock(mat.id, Math.max(0, mat.stock - 5))}
-                                className="px-2 py-1 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-600 rounded text-xs font-bold transition-colors border border-slate-200"
+                                className="px-2 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-rose-50 hover:text-rose-600 text-slate-600 dark:text-slate-400 rounded text-xs font-bold transition-colors border border-slate-200 dark:border-slate-700"
                                 title="Restar 5 unidades"
                               >
                                 -5
                               </button>
                               <button
                                 onClick={() => updateMaterialStock(mat.id, mat.stock + 10)}
-                                className="px-2 py-1 bg-slate-100 hover:bg-teal-50 hover:text-teal-700 text-slate-600 rounded text-xs font-bold transition-colors border border-slate-200"
+                                className="px-2 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-teal-50 hover:text-teal-700 text-slate-600 dark:text-slate-400 rounded text-xs font-bold transition-colors border border-slate-200 dark:border-slate-700"
                                 title="Sumar 10 unidades"
                               >
                                 +10
@@ -2345,7 +2345,7 @@ export const AdminHubView: React.FC = () => {
                               <button
                                 type="button"
                                 onClick={() => openEditMaterial(mat)}
-                                className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 rounded text-xs font-bold transition-colors border border-slate-200"
+                                className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 text-slate-700 dark:text-slate-300 hover:text-blue-700 rounded text-xs font-bold transition-colors border border-slate-200 dark:border-slate-700"
                                 title="Editar material"
                               >
                                 <Pencil className="w-3 h-3" />
@@ -2354,7 +2354,7 @@ export const AdminHubView: React.FC = () => {
                               <button
                                 type="button"
                                 onClick={() => setMaterialPendingDelete(mat)}
-                                className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-700 rounded text-xs font-bold transition-colors border border-slate-200"
+                                className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-rose-50 text-slate-700 dark:text-slate-300 hover:text-rose-700 rounded text-xs font-bold transition-colors border border-slate-200 dark:border-slate-700"
                                 title="Eliminar material"
                               >
                                 <Trash2 className="w-3 h-3" />
@@ -2377,7 +2377,7 @@ export const AdminHubView: React.FC = () => {
         {activeTab === 'services' && (
           <div className="space-y-4" id="admin-services-tab-content">
             {/* Header & Quick Action */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs">
               <div>
                 {serviceCategoryFilter !== 'all' && (
                   <button
@@ -2392,7 +2392,7 @@ export const AdminHubView: React.FC = () => {
                         setServiceSearchQuery('');
                       }
                     }}
-                    className="inline-flex items-center gap-1.5 text-slate-600 hover:text-slate-900 mb-2"
+                    className="inline-flex items-center gap-1.5 text-slate-600 dark:text-slate-400 hover:text-slate-900 mb-2"
                   >
                     <ChevronLeft className="w-3.5 h-3.5" />
                     <span className="text-xs font-bold">
@@ -2401,10 +2401,10 @@ export const AdminHubView: React.FC = () => {
                   </button>
                 )}
                 <div className="flex items-center gap-2">
-                  <span className="p-1.5 rounded-lg bg-teal-50 text-teal-700 border border-teal-200">
+                  <span className="p-1.5 rounded-lg bg-teal-50 dark:bg-teal-950/40 text-teal-700 border border-teal-200 dark:border-teal-800">
                     <Sparkles className="w-4 h-4 text-teal-600" />
                   </span>
-                  <h2 className="text-sm sm:text-base font-bold text-slate-900">
+                  <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100">
                     {serviceCategoryFilter === 'all'
                       ? 'Catálogo de Servicios Tarifados'
                       : serviceSubcategoryFilter === null
@@ -2415,7 +2415,7 @@ export const AdminHubView: React.FC = () => {
                     ADMIN EXCLUSIVE
                   </span>
                 </div>
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                   {serviceCategoryFilter === 'all'
                     ? 'Elegí un rubro para ver y editar sus tarifas. Las fichas de cada servicio no cambian.'
                     : serviceSubcategoryFilter === null
@@ -2437,39 +2437,39 @@ export const AdminHubView: React.FC = () => {
             {/* Service Summary Stats */}
             {serviceCategoryFilter === 'all' && (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-              <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-2xs">
+              <div className="bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-700 shadow-2xs">
                 <div className="text-[10px] font-mono font-bold uppercase text-slate-400">Total Servicios</div>
-                <div className="text-xl font-mono font-black text-slate-900 mt-0.5">{serviceMetrics.total}</div>
+                <div className="text-xl font-mono font-black text-slate-900 dark:text-slate-100 mt-0.5">{serviceMetrics.total}</div>
                 <div className="text-[10px] text-teal-600 font-medium mt-0.5">En catálogo activo</div>
               </div>
-              <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-2xs">
+              <div className="bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-700 shadow-2xs">
                 <div className="text-[10px] font-mono font-bold uppercase text-slate-400">Precio Promedio</div>
                 <div className="text-xl font-mono font-black text-teal-800 mt-0.5">
                   ${serviceMetrics.avgPrice.toLocaleString('es-AR')}
                 </div>
-                <div className="text-[10px] text-slate-500 mt-0.5">Mano de obra base</div>
+                <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Mano de obra base</div>
               </div>
-              <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-2xs">
+              <div className="bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-700 shadow-2xs">
                 <div className="text-[10px] font-mono font-bold uppercase text-slate-400">Categorías</div>
-                <div className="text-xl font-mono font-black text-slate-900 mt-0.5">{serviceMetrics.uniqueCategoriesCount}</div>
-                <div className="text-[10px] text-slate-500 mt-0.5">Especialidades activas</div>
+                <div className="text-xl font-mono font-black text-slate-900 dark:text-slate-100 mt-0.5">{serviceMetrics.uniqueCategoriesCount}</div>
+                <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Especialidades activas</div>
               </div>
-              <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-2xs">
+              <div className="bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-700 shadow-2xs">
                 <div className="text-[10px] font-mono font-bold uppercase text-slate-400">Duración Promedio</div>
-                <div className="text-xl font-mono font-black text-slate-900 mt-0.5">{serviceMetrics.avgDuration} min</div>
-                <div className="text-[10px] text-slate-500 mt-0.5">Tiempo en sitio estimado</div>
+                <div className="text-xl font-mono font-black text-slate-900 dark:text-slate-100 mt-0.5">{serviceMetrics.avgDuration} min</div>
+                <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Tiempo en sitio estimado</div>
               </div>
             </div>
             )}
 
             {serviceCategoryFilter === 'all' ? (
               catalogIndexItems.length === 0 ? (
-                <div className="bg-white rounded-2xl p-10 border border-slate-200 text-center">
-                  <div className="w-12 h-12 rounded-2xl bg-teal-50 text-teal-600 flex items-center justify-center mx-auto mb-3">
+                <div className="bg-white dark:bg-slate-900 rounded-2xl p-10 border border-slate-200 dark:border-slate-700 text-center">
+                  <div className="w-12 h-12 rounded-2xl bg-teal-50 dark:bg-teal-950/40 text-teal-600 flex items-center justify-center mx-auto mb-3">
                     <Sparkles className="w-6 h-6" />
                   </div>
-                  <h3 className="text-sm font-bold text-slate-800">Sin rubros en el catálogo</h3>
-                  <p className="text-xs text-slate-500 mt-1">
+                  <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">Sin rubros en el catálogo</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                     Creá una categoría en el módulo Categorías o un servicio para empezar.
                   </p>
                 </div>
@@ -2486,8 +2486,8 @@ export const AdminHubView: React.FC = () => {
                           setServiceSubcategoryFilter(null);
                           setServiceSearchQuery('');
                         }}
-                        className={`text-left bg-white rounded-xl p-4 border shadow-xs hover:shadow-md hover:border-teal-300 transition-all flex items-center gap-3 ${
-                          item.active ? 'border-slate-200' : 'border-slate-200 opacity-70'
+                        className={`text-left bg-white dark:bg-slate-900 rounded-xl p-4 border shadow-xs hover:shadow-md hover:border-teal-300 transition-all flex items-center gap-3 ${
+                          item.active ? 'border-slate-200 dark:border-slate-700' : 'border-slate-200 dark:border-slate-700 opacity-70'
                         }`}
                       >
                         <span className={`p-2 rounded-lg ${visual.bg} ${visual.border} border ${visual.text} shrink-0`}>
@@ -2495,14 +2495,14 @@ export const AdminHubView: React.FC = () => {
                         </span>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5 min-w-0">
-                            <h3 className="font-extrabold text-sm text-slate-900 truncate">{item.name}</h3>
+                            <h3 className="font-extrabold text-sm text-slate-900 dark:text-slate-100 truncate">{item.name}</h3>
                             {!item.active && (
-                              <span className="shrink-0 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200">
+                              <span className="shrink-0 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
                                 Inactiva
                               </span>
                             )}
                           </div>
-                          <p className="text-[11px] text-slate-500 mt-0.5">
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                             {item.count} servicio{item.count !== 1 ? 's' : ''}
                           </p>
                         </div>
@@ -2514,12 +2514,12 @@ export const AdminHubView: React.FC = () => {
               )
             ) : serviceSubcategoryFilter === null ? (
               catalogSubcategoryIndexItems.length === 0 ? (
-                <div className="bg-white rounded-2xl p-10 border border-slate-200 text-center">
-                  <div className="w-12 h-12 rounded-2xl bg-teal-50 text-teal-600 flex items-center justify-center mx-auto mb-3">
+                <div className="bg-white dark:bg-slate-900 rounded-2xl p-10 border border-slate-200 dark:border-slate-700 text-center">
+                  <div className="w-12 h-12 rounded-2xl bg-teal-50 dark:bg-teal-950/40 text-teal-600 flex items-center justify-center mx-auto mb-3">
                     <Sparkles className="w-6 h-6" />
                   </div>
-                  <h3 className="text-sm font-bold text-slate-800">Sin subcategorías en este rubro</h3>
-                  <p className="text-xs text-slate-500 mt-1">
+                  <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">Sin subcategorías en este rubro</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                     Creá una subcategoría en el módulo Categorías o un servicio para este rubro.
                   </p>
                 </div>
@@ -2536,8 +2536,8 @@ export const AdminHubView: React.FC = () => {
                           setServiceSubcategoryFilter(item.filterId);
                           setServiceSearchQuery('');
                         }}
-                        className={`text-left bg-white rounded-xl p-4 border shadow-xs hover:shadow-md hover:border-teal-300 transition-all flex items-center gap-3 ${
-                          item.active ? 'border-slate-200' : 'border-slate-200 opacity-70'
+                        className={`text-left bg-white dark:bg-slate-900 rounded-xl p-4 border shadow-xs hover:shadow-md hover:border-teal-300 transition-all flex items-center gap-3 ${
+                          item.active ? 'border-slate-200 dark:border-slate-700' : 'border-slate-200 dark:border-slate-700 opacity-70'
                         }`}
                       >
                         <span
@@ -2547,21 +2547,21 @@ export const AdminHubView: React.FC = () => {
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5 min-w-0">
                             <h3
-                              className={`font-extrabold text-sm truncate ${item.ungrouped ? 'italic text-slate-500' : 'text-slate-900'}`}
+                              className={`font-extrabold text-sm truncate ${item.ungrouped ? 'italic text-slate-500 dark:text-slate-400' : 'text-slate-900 dark:text-slate-100'}`}
                             >
                               {item.name}
                             </h3>
                             {!item.active && (
-                              <span className="shrink-0 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200">
+                              <span className="shrink-0 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
                                 Inactiva
                               </span>
                             )}
                           </div>
-                          <p className="text-[11px] text-slate-500 mt-0.5">
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                             {item.count} servicio{item.count !== 1 ? 's' : ''}
                           </p>
                         </div>
-                        <span className="shrink-0 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border bg-slate-50 text-slate-600 border-slate-200">
+                        <span className="shrink-0 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700">
                           {item.count}
                         </span>
                         <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
@@ -2572,7 +2572,7 @@ export const AdminHubView: React.FC = () => {
               )
             ) : (
               <>
-            <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
+            <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs">
               <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
                 <div className="relative sm:col-span-8">
                   <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
@@ -2581,7 +2581,7 @@ export const AdminHubView: React.FC = () => {
                     value={serviceSearchQuery}
                     onChange={(e) => setServiceSearchQuery(e.target.value)}
                     placeholder="Buscar por nombre de servicio o descripción..."
-                    className="w-full text-xs pl-8 pr-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-500 font-medium"
+                    className="w-full text-xs pl-8 pr-2.5 py-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-lg focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-500 font-medium"
                   />
                 </div>
 
@@ -2589,7 +2589,7 @@ export const AdminHubView: React.FC = () => {
                   <select
                     value={serviceSortBy}
                     onChange={(e) => setServiceSortBy(e.target.value as any)}
-                    className="w-full text-xs px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-500 font-medium text-slate-700"
+                    className="w-full text-xs px-2.5 py-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-lg focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-500 font-medium text-slate-700 dark:text-slate-300"
                   >
                     <option value="price-asc">Precio: Menor a Mayor</option>
                     <option value="price-desc">Precio: Mayor a Menor</option>
@@ -2602,12 +2602,12 @@ export const AdminHubView: React.FC = () => {
 
             {/* Services Grid */}
             {filteredServices.length === 0 ? (
-              <div className="bg-white rounded-2xl p-10 border border-slate-200 text-center">
-                <div className="w-12 h-12 rounded-2xl bg-teal-50 text-teal-600 flex items-center justify-center mx-auto mb-3">
+              <div className="bg-white dark:bg-slate-900 rounded-2xl p-10 border border-slate-200 dark:border-slate-700 text-center">
+                <div className="w-12 h-12 rounded-2xl bg-teal-50 dark:bg-teal-950/40 text-teal-600 flex items-center justify-center mx-auto mb-3">
                   <Sparkles className="w-6 h-6" />
                 </div>
-                <h3 className="text-sm font-bold text-slate-800">No se encontraron servicios</h3>
-                <p className="text-xs text-slate-500 mt-1">
+                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">No se encontraron servicios</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                   Ajustá los filtros de búsqueda o creá un nuevo servicio para el catálogo.
                 </p>
                 <button
@@ -2622,22 +2622,22 @@ export const AdminHubView: React.FC = () => {
                 {filteredServices.map((srv) => (
                     <div
                       key={srv.id}
-                      className="bg-white rounded-xl p-4 border border-slate-200/90 shadow-xs hover:shadow-md transition-all flex flex-col justify-between group relative"
+                      className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200/90 dark:border-slate-700 shadow-xs hover:shadow-md transition-all flex flex-col justify-between group relative"
                     >
                       <div className="space-y-3">
                         {/* Card Header: Category + Price Badge */}
-                        <div className="flex items-center justify-between gap-2 pb-2 border-b border-slate-100">
+                        <div className="flex items-center justify-between gap-2 pb-2 border-b border-slate-100 dark:border-slate-800">
                           <div className="flex items-center gap-1.5">
-                            <span className="p-1 rounded-md bg-slate-100 text-slate-700">
+                            <span className="p-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
                               {getServiceCategoryIcon(srv.category)}
                             </span>
-                            <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
+                            <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
                               {srv.category}
                             </span>
                           </div>
 
                           <div className="text-right">
-                            <div className="text-sm sm:text-base font-black font-mono text-teal-900 bg-teal-50 px-2 py-0.5 rounded border border-teal-200">
+                            <div className="text-sm sm:text-base font-black font-mono text-teal-900 dark:text-teal-200 bg-teal-50 dark:bg-teal-950/40 px-2 py-0.5 rounded border border-teal-200 dark:border-teal-800">
                               ${srv.price.toLocaleString('es-AR')}
                             </div>
                           </div>
@@ -2645,7 +2645,7 @@ export const AdminHubView: React.FC = () => {
 
                         {/* Title & Duration */}
                         <div>
-                          <h3 className="font-extrabold text-sm text-slate-900 leading-snug group-hover:text-teal-700 transition-colors">
+                          <h3 className="font-extrabold text-sm text-slate-900 dark:text-slate-100 leading-snug group-hover:text-teal-700 transition-colors">
                             {srv.name}
                           </h3>
                           <div className="flex items-center gap-1 text-[10px] text-slate-400 font-mono mt-0.5">
@@ -2655,7 +2655,7 @@ export const AdminHubView: React.FC = () => {
                         </div>
 
                         {/* Description */}
-                        <p className="text-xs text-slate-600 leading-relaxed line-clamp-3">
+                        <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed line-clamp-3">
                           {srv.description}
                         </p>
 
@@ -2669,7 +2669,7 @@ export const AdminHubView: React.FC = () => {
                               {srv.features.map((f, i) => (
                                 <span
                                   key={i}
-                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-slate-50 text-slate-700 border border-slate-200"
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-slate-50 dark:bg-slate-950 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
                                 >
                                   <CheckCircle2 className="w-2.5 h-2.5 text-teal-600 shrink-0" />
                                   <span>{f}</span>
@@ -2681,7 +2681,7 @@ export const AdminHubView: React.FC = () => {
                       </div>
 
                       {/* Card Footer: Action Buttons */}
-                      <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                      <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
                         <button
                           type="button"
                           onClick={() => handleQuickCreateOrderFromService(srv)}
@@ -2696,7 +2696,7 @@ export const AdminHubView: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => handleDuplicateService(srv)}
-                            className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-md transition-colors"
+                            className="p-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-slate-400 rounded-md transition-colors"
                             title="Duplicar servicio"
                           >
                             <Copy className="w-3.5 h-3.5" />
@@ -2704,7 +2704,7 @@ export const AdminHubView: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => openEditService(srv)}
-                            className="p-1.5 bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-600 rounded-md transition-colors"
+                            className="p-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 hover:text-blue-700 text-slate-600 dark:text-slate-400 rounded-md transition-colors"
                             title="Editar servicio"
                           >
                             <Pencil className="w-3.5 h-3.5" />
@@ -2712,7 +2712,7 @@ export const AdminHubView: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => setServicePendingDelete(srv)}
-                            className="p-1.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-700 text-slate-600 rounded-md transition-colors"
+                            className="p-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-rose-50 hover:text-rose-700 text-slate-600 dark:text-slate-400 rounded-md transition-colors"
                             title="Eliminar servicio"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -2732,20 +2732,20 @@ export const AdminHubView: React.FC = () => {
         {activeTab === 'categories' && (
           <div className="space-y-4" id="admin-categories-tab-content">
             {/* Header & Quick Action */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs">
               <div>
                 <div className="flex items-center gap-2">
                   <span className="p-1.5 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200">
                     <Layers className="w-4 h-4 text-indigo-600" />
                   </span>
-                  <h2 className="text-sm sm:text-base font-bold text-slate-900">
+                  <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100">
                     Categorías de Servicios
                   </h2>
                   <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-900 text-teal-300">
                     ADMIN EXCLUSIVE
                   </span>
                 </div>
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                   Rubros publicados en la landing. Cada categoría agrupa los servicios que el cliente ve al hacer clic.
                 </p>
               </div>
@@ -2767,40 +2767,40 @@ export const AdminHubView: React.FC = () => {
 
             {/* Categories Summary Stats */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-              <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-2xs">
+              <div className="bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-700 shadow-2xs">
                 <div className="text-[10px] font-mono font-bold uppercase text-slate-400">Categorías</div>
-                <div className="text-xl font-mono font-black text-slate-900 mt-0.5">{catalogCategories.length}</div>
-                <div className="text-[10px] text-slate-500 mt-0.5">Rubros publicados</div>
+                <div className="text-xl font-mono font-black text-slate-900 dark:text-slate-100 mt-0.5">{catalogCategories.length}</div>
+                <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Rubros publicados</div>
               </div>
-              <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-2xs">
+              <div className="bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-700 shadow-2xs">
                 <div className="text-[10px] font-mono font-bold uppercase text-slate-400">Activas</div>
                 <div className="text-xl font-mono font-black text-teal-800 mt-0.5">
                   {catalogCategories.filter((c) => c.active !== false).length}
                 </div>
                 <div className="text-[10px] text-teal-600 mt-0.5">Visibles en la landing</div>
               </div>
-              <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-2xs">
+              <div className="bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-700 shadow-2xs">
                 <div className="text-[10px] font-mono font-bold uppercase text-slate-400">Inactivas</div>
-                <div className="text-xl font-mono font-black text-slate-900 mt-0.5">
+                <div className="text-xl font-mono font-black text-slate-900 dark:text-slate-100 mt-0.5">
                   {catalogCategories.filter((c) => c.active === false).length}
                 </div>
-                <div className="text-[10px] text-slate-500 mt-0.5">Ocultas al público</div>
+                <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Ocultas al público</div>
               </div>
-              <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-2xs">
+              <div className="bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-700 shadow-2xs">
                 <div className="text-[10px] font-mono font-bold uppercase text-slate-400">Servicios</div>
-                <div className="text-xl font-mono font-black text-slate-900 mt-0.5">{services.length}</div>
-                <div className="text-[10px] text-slate-500 mt-0.5">Repartidos por rubro</div>
+                <div className="text-xl font-mono font-black text-slate-900 dark:text-slate-100 mt-0.5">{services.length}</div>
+                <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Repartidos por rubro</div>
               </div>
             </div>
 
             {/* Categories List */}
             {catalogCategories.length === 0 ? (
-              <div className="bg-white rounded-2xl p-10 border border-slate-200 text-center">
+              <div className="bg-white dark:bg-slate-900 rounded-2xl p-10 border border-slate-200 dark:border-slate-700 text-center">
                 <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto mb-3">
                   <Layers className="w-6 h-6" />
                 </div>
-                <h3 className="text-sm font-bold text-slate-800">Sin categorías publicadas</h3>
-                <p className="text-xs text-slate-500 mt-1">
+                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">Sin categorías publicadas</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                   Creá tu primer rubro de servicio para que aparezca en la landing page.
                 </p>
                 <button
@@ -2831,8 +2831,8 @@ export const AdminHubView: React.FC = () => {
                     return (
                       <div
                         key={cat.id}
-                        className={`bg-white rounded-xl border shadow-xs overflow-hidden ${
-                          isActive ? 'border-slate-200/90' : 'border-slate-200 opacity-70'
+                        className={`bg-white dark:bg-slate-900 rounded-xl border shadow-xs overflow-hidden ${
+                          isActive ? 'border-slate-200/90 dark:border-slate-700' : 'border-slate-200 dark:border-slate-700 opacity-70'
                         }`}
                       >
                         <div className="flex items-center justify-between gap-2 p-3.5">
@@ -2846,18 +2846,18 @@ export const AdminHubView: React.FC = () => {
                             </span>
                             <div className="min-w-0">
                               <div className="flex items-center gap-1.5">
-                                <h3 className="font-extrabold text-sm text-slate-900 truncate">{cat.name}</h3>
+                                <h3 className="font-extrabold text-sm text-slate-900 dark:text-slate-100 truncate">{cat.name}</h3>
                                 <span
                                   className={`shrink-0 inline-flex items-center text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
                                     isActive
-                                      ? 'bg-teal-50 text-teal-700 border border-teal-200'
-                                      : 'bg-slate-100 text-slate-500 border border-slate-200'
+                                      ? 'bg-teal-50 dark:bg-teal-950/40 text-teal-700 border border-teal-200 dark:border-teal-800'
+                                      : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
                                   }`}
                                 >
                                   {isActive ? 'Activa' : 'Inactiva'}
                                 </span>
                               </div>
-                              <p className="text-[11px] text-slate-500 truncate">
+                              <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
                                 {count} servicio{count !== 1 ? 's' : ''} · {subcats.length} subcategoría
                                 {subcats.length !== 1 ? 's' : ''}
                               </p>
@@ -2872,7 +2872,7 @@ export const AdminHubView: React.FC = () => {
                               type="button"
                               disabled={catIndex === 0}
                               onClick={() => void moveCategory(cat.id, 'up')}
-                              className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                              className="p-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-slate-400 rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                               title="Subir"
                             >
                               <ChevronUp className="w-3.5 h-3.5" />
@@ -2881,7 +2881,7 @@ export const AdminHubView: React.FC = () => {
                               type="button"
                               disabled={catIndex === catArray.length - 1}
                               onClick={() => void moveCategory(cat.id, 'down')}
-                              className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                              className="p-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-slate-400 rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                               title="Bajar"
                             >
                               <ChevronDown className="w-3.5 h-3.5" />
@@ -2891,7 +2891,7 @@ export const AdminHubView: React.FC = () => {
                               onClick={() => void setCategoryActive(cat.id, !isActive)}
                               className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-colors border ${
                                 isActive
-                                  ? 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                                  ? 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-100'
                                   : 'bg-teal-600 text-white border-teal-600 hover:bg-teal-700'
                               }`}
                               title={isActive ? 'Ocultar del portal público' : 'Publicar en el portal público'}
@@ -2909,7 +2909,7 @@ export const AdminHubView: React.FC = () => {
                                   icon: cat.icon ?? 'Sparkles',
                                 })
                               }
-                              className="p-1.5 bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-600 rounded-md transition-colors"
+                              className="p-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 hover:text-blue-700 text-slate-600 dark:text-slate-400 rounded-md transition-colors"
                               title="Editar categoría"
                             >
                               <Pencil className="w-3.5 h-3.5" />
@@ -2917,7 +2917,7 @@ export const AdminHubView: React.FC = () => {
                             <button
                               type="button"
                               onClick={() => openDeleteEntity({ kind: 'category', id: cat.id, name: cat.name })}
-                              className="p-1.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-700 text-slate-600 rounded-md transition-colors"
+                              className="p-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-rose-50 hover:text-rose-700 text-slate-600 dark:text-slate-400 rounded-md transition-colors"
                               title="Eliminar categoría"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -2926,7 +2926,7 @@ export const AdminHubView: React.FC = () => {
                         </div>
 
                         {!isCollapsed && (
-                          <div className="border-t border-slate-100 bg-slate-50/60 px-3.5 py-3 space-y-1.5">
+                          <div className="border-t border-slate-100 dark:border-slate-800 bg-slate-50/60 px-3.5 py-3 space-y-1.5">
                             {subcats.length === 0 && newSubcategoryDraftCategoryId !== cat.id && (
                               <p className="text-[11px] text-slate-400 italic px-1">Sin subcategorías todavía.</p>
                             )}
@@ -2936,13 +2936,13 @@ export const AdminHubView: React.FC = () => {
                               return (
                                 <div
                                   key={sub.id}
-                                  className={`flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 bg-white border ${
-                                    subActive ? 'border-slate-200' : 'border-slate-200 opacity-60'
+                                  className={`flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 bg-white dark:bg-slate-900 border ${
+                                    subActive ? 'border-slate-200 dark:border-slate-700' : 'border-slate-200 dark:border-slate-700 opacity-60'
                                   }`}
                                 >
                                   <div className="min-w-0 flex-1">
-                                    <span className="text-xs font-semibold text-slate-800 truncate block">{sub.name}</span>
-                                    <span className="text-[10px] text-slate-500">
+                                    <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate block">{sub.name}</span>
+                                    <span className="text-[10px] text-slate-500 dark:text-slate-400">
                                       {subCount} servicio{subCount !== 1 ? 's' : ''}
                                       {!subActive && ' · oculta'}
                                     </span>
@@ -2952,7 +2952,7 @@ export const AdminHubView: React.FC = () => {
                                       type="button"
                                       disabled={subIndex === 0}
                                       onClick={() => void moveSubcategory(sub.id, 'up')}
-                                      className="p-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                      className="p-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-slate-400 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                                       title="Subir"
                                     >
                                       <ChevronUp className="w-3 h-3" />
@@ -2961,7 +2961,7 @@ export const AdminHubView: React.FC = () => {
                                       type="button"
                                       disabled={subIndex === subArray.length - 1}
                                       onClick={() => void moveSubcategory(sub.id, 'down')}
-                                      className="p-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                      className="p-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-slate-400 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                                       title="Bajar"
                                     >
                                       <ChevronDown className="w-3 h-3" />
@@ -2969,7 +2969,7 @@ export const AdminHubView: React.FC = () => {
                                     <button
                                       type="button"
                                       onClick={() => void setSubcategoryActive(sub.id, !subActive)}
-                                      className="p-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded transition-colors"
+                                      className="p-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-slate-400 rounded transition-colors"
                                       title={subActive ? 'Ocultar' : 'Publicar'}
                                     >
                                       {subActive ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
@@ -2979,7 +2979,7 @@ export const AdminHubView: React.FC = () => {
                                       onClick={() =>
                                         openEditEntity({ kind: 'subcategory', id: sub.id, name: sub.name, categoryId: sub.categoryId })
                                       }
-                                      className="p-1 bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-600 rounded transition-colors"
+                                      className="p-1 bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 hover:text-blue-700 text-slate-600 dark:text-slate-400 rounded transition-colors"
                                       title="Editar subcategoría"
                                     >
                                       <Pencil className="w-3 h-3" />
@@ -2989,7 +2989,7 @@ export const AdminHubView: React.FC = () => {
                                       onClick={() =>
                                         openDeleteEntity({ kind: 'subcategory', id: sub.id, name: sub.name, categoryId: sub.categoryId })
                                       }
-                                      className="p-1 bg-slate-100 hover:bg-rose-50 hover:text-rose-700 text-slate-600 rounded transition-colors"
+                                      className="p-1 bg-slate-100 dark:bg-slate-800 hover:bg-rose-50 hover:text-rose-700 text-slate-600 dark:text-slate-400 rounded transition-colors"
                                       title="Eliminar subcategoría"
                                     >
                                       <Trash2 className="w-3 h-3" />
@@ -3010,7 +3010,7 @@ export const AdminHubView: React.FC = () => {
                                     if (e.key === 'Escape') setNewSubcategoryDraftCategoryId(null);
                                   }}
                                   placeholder="Nombre de la subcategoría"
-                                  className="flex-1 text-xs px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-teal-500"
+                                  className="flex-1 text-xs px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-teal-500"
                                 />
                                 <button
                                   type="button"
@@ -3022,7 +3022,7 @@ export const AdminHubView: React.FC = () => {
                                 <button
                                   type="button"
                                   onClick={() => setNewSubcategoryDraftCategoryId(null)}
-                                  className="px-2 py-1.5 text-slate-500 text-xs"
+                                  className="px-2 py-1.5 text-slate-500 dark:text-slate-400 text-xs"
                                 >
                                   Cancelar
                                 </button>
@@ -3058,11 +3058,11 @@ export const AdminHubView: React.FC = () => {
           onClick={() => setSelectedOrderId(null)}
         >
           <div
-            className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl border border-slate-200 relative animate-in zoom-in-95 duration-150 space-y-6"
+            className="bg-white dark:bg-slate-900 rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl border border-slate-200 dark:border-slate-700 relative animate-in zoom-in-95 duration-150 space-y-6"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="flex items-start justify-between pb-4 border-b border-slate-100">
+            <div className="flex items-start justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
               <div>
                 <div className="flex items-center gap-2 mb-1.5">
                   <span className="font-mono text-xs font-black text-[#003875] bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
@@ -3071,19 +3071,19 @@ export const AdminHubView: React.FC = () => {
                   <StatusBadge status={selectedOrder.status} />
                   <PriorityBadge priority={selectedOrder.priority} />
                 </div>
-                <h2 className="text-lg font-black text-slate-900">{selectedOrder.title}</h2>
-                <p className="text-xs text-slate-500 mt-0.5">{selectedOrder.description}</p>
+                <h2 className="text-lg font-black text-slate-900 dark:text-slate-100">{selectedOrder.title}</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{selectedOrder.description}</p>
               </div>
               <button
                 onClick={() => setSelectedOrderId(null)}
-                className="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100"
+                className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1.5 rounded-lg hover:bg-slate-100"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Quick Info Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-700 text-xs">
               <div>
                 <div className="flex items-start justify-between gap-1.5">
                   <span className="text-slate-400 block font-medium">Cliente & Contacto:</span>
@@ -3110,9 +3110,9 @@ export const AdminHubView: React.FC = () => {
                     );
                   })()}
                 </div>
-                <span className="font-bold text-slate-800">{selectedOrder.clientName}</span>
-                <div className="text-slate-500">{selectedOrder.clientAddress}</div>
-                <div className="text-slate-500">{selectedOrder.clientPhone}</div>
+                <span className="font-bold text-slate-800 dark:text-slate-200">{selectedOrder.clientName}</span>
+                <div className="text-slate-500 dark:text-slate-400">{selectedOrder.clientAddress}</div>
+                <div className="text-slate-500 dark:text-slate-400">{selectedOrder.clientPhone}</div>
               </div>
 
               <div>
@@ -3120,7 +3120,7 @@ export const AdminHubView: React.FC = () => {
                 <span className="font-bold text-teal-800">
                   {selectedOrder.assignedTechnicianName || 'Sin asignar'}
                 </span>
-                <div className="text-slate-500">Programada: {selectedOrder.scheduledDate}</div>
+                <div className="text-slate-500 dark:text-slate-400">Programada: {selectedOrder.scheduledDate}</div>
               </div>
 
               <div>
@@ -3141,13 +3141,13 @@ export const AdminHubView: React.FC = () => {
             </div>
 
             {selectedOrder.adminIncidentStatus === 'open' && (
-              <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950">
+              <div className="rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-950/40 p-3 text-xs text-amber-950">
                 <div className="font-bold flex items-center gap-1.5"><CircleAlert className="w-4 h-4" /> Incidencia en revisión</div>
                 <p className="mt-1">{selectedOrder.adminIncidentReason}</p>
               </div>
             )}
 
-            <div className="flex items-center justify-between gap-3 rounded-xl border border-teal-200 bg-teal-50 px-4 py-3 text-xs">
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-teal-200 dark:border-teal-800 bg-teal-50 dark:bg-teal-950/40 px-4 py-3 text-xs">
               <div className="flex items-center gap-2 text-teal-950">
                 <Clock className="w-4 h-4 text-teal-700" />
                 <div>
@@ -3157,18 +3157,18 @@ export const AdminHubView: React.FC = () => {
                   </div>
                 </div>
               </div>
-              <span className="font-mono font-black text-teal-900 text-sm">
+              <span className="font-mono font-black text-teal-900 dark:text-teal-200 text-sm">
                 {formatElapsedTime(getOrderElapsedSeconds(selectedOrder, clockNow))}
               </span>
             </div>
 
             {/* Checklist progress */}
             <div className="space-y-2">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
                 Checklist Operativo ({selectedOrder.checklist.filter((c) => c.completed).length}/
                 {selectedOrder.checklist.length})
               </h4>
-              <div className="space-y-1.5 bg-slate-50 p-3 rounded-xl border border-slate-200">
+              <div className="space-y-1.5 bg-slate-50 dark:bg-slate-950 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
                 {selectedOrder.checklist.map((item) => (
                   <div key={item.id} className="flex items-center gap-2 text-xs">
                     <CheckCircle2
@@ -3178,7 +3178,7 @@ export const AdminHubView: React.FC = () => {
                     />
                     <span
                       className={
-                        item.completed ? 'text-slate-800 font-medium' : 'text-slate-500'
+                        item.completed ? 'text-slate-800 dark:text-slate-200 font-medium' : 'text-slate-500 dark:text-slate-400'
                       }
                     >
                       {item.label}
@@ -3196,17 +3196,17 @@ export const AdminHubView: React.FC = () => {
             {/* Used materials */}
             {selectedOrder.usedMaterials.length > 0 && (
               <div className="space-y-2">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
                   Materiales de Inventario Registrados
                 </h4>
-                <div className="divide-y divide-slate-100 bg-slate-50 rounded-xl border border-slate-200 p-3">
+                <div className="divide-y divide-slate-100 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-700 p-3">
                   {selectedOrder.usedMaterials.map((mat) => (
                     <div key={mat.id} className="py-2 flex items-center justify-between text-xs">
                       <div>
-                        <span className="font-semibold text-slate-800">{mat.materialName}</span>
-                        {mat.note && <span className="text-slate-500 text-[11px] block">{mat.note}</span>}
+                        <span className="font-semibold text-slate-800 dark:text-slate-200">{mat.materialName}</span>
+                        {mat.note && <span className="text-slate-500 dark:text-slate-400 text-[11px] block">{mat.note}</span>}
                       </div>
-                      <span className="font-mono font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded">
+                      <span className="font-mono font-bold text-teal-700 bg-teal-50 dark:bg-teal-950/40 px-2 py-0.5 rounded">
                         {mat.quantity} {mat.unit}
                       </span>
                     </div>
@@ -3223,22 +3223,22 @@ export const AdminHubView: React.FC = () => {
                   <span>Firma de Conformidad del Cliente Capturada</span>
                 </div>
                 <div className="flex flex-col sm:flex-row items-center gap-4">
-                  <div className="bg-white p-2 rounded border border-emerald-200 shrink-0">
+                  <div className="bg-white dark:bg-slate-900 p-2 rounded border border-emerald-200 shrink-0">
                     <img
                       src={selectedOrder.customerSignature.signatureDataUrl}
                       alt="Firma"
                       className="h-14 max-w-[180px] object-contain"
                     />
                   </div>
-                  <div className="text-xs text-slate-700 space-y-1">
+                  <div className="text-xs text-slate-700 dark:text-slate-300 space-y-1">
                     <div>
                       Firmante: <strong>{selectedOrder.customerSignature.signerName}</strong>
                     </div>
-                    <div className="text-slate-500 font-mono text-[11px]">
+                    <div className="text-slate-500 dark:text-slate-400 font-mono text-[11px]">
                       Fecha y hora: {selectedOrder.customerSignature.signedAt}
                     </div>
                     {selectedOrder.customerSignature.comments && (
-                      <div className="italic text-slate-600">
+                      <div className="italic text-slate-600 dark:text-slate-400">
                         "{selectedOrder.customerSignature.comments}"
                       </div>
                     )}
@@ -3249,7 +3249,7 @@ export const AdminHubView: React.FC = () => {
 
             {/* Timeline Stream */}
             <div className="space-y-2">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                 <History className="w-4 h-4 text-[#003875]" />
                 <span>Historial de Eventos del Servicio</span>
               </h4>
@@ -3257,18 +3257,18 @@ export const AdminHubView: React.FC = () => {
             </div>
 
             {/* Modal Actions */}
-            <div className="pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
+            <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => openEditOrder(selectedOrder)}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 text-xs font-semibold rounded-lg transition-colors border border-slate-200"
+                  className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 text-slate-700 dark:text-slate-300 hover:text-blue-700 text-xs font-semibold rounded-lg transition-colors border border-slate-200 dark:border-slate-700"
                 >
                   <Pencil className="w-3.5 h-3.5" />
                   Editar
                 </button>
                 {selectedOrder.status !== 'completed' && selectedOrder.status !== 'cancelled' && (
-                  <button type="button" onClick={() => { setOrderToCancel(selectedOrder); setCancelReason(''); }} className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-700 text-xs font-semibold rounded-lg transition-colors border border-slate-200">
+                  <button type="button" onClick={() => { setOrderToCancel(selectedOrder); setCancelReason(''); }} className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-rose-50 text-slate-700 dark:text-slate-300 hover:text-rose-700 text-xs font-semibold rounded-lg transition-colors border border-slate-200 dark:border-slate-700">
                     <Ban className="w-3.5 h-3.5" /> Cancelar
                   </button>
                 )}
@@ -3277,12 +3277,12 @@ export const AdminHubView: React.FC = () => {
                     <CheckCircle2 className="w-3.5 h-3.5" /> Resolver incidencia
                   </button>
                 ) : (
-                  <button type="button" onClick={() => { setOrderForIncident(selectedOrder); setIncidentReason(''); setPauseIncidentSettlement(true); }} className="inline-flex items-center gap-1.5 px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-semibold rounded-lg border border-amber-200">
+                  <button type="button" onClick={() => { setOrderForIncident(selectedOrder); setIncidentReason(''); setPauseIncidentSettlement(true); }} className="inline-flex items-center gap-1.5 px-3 py-2 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 text-amber-800 text-xs font-semibold rounded-lg border border-amber-200 dark:border-amber-800">
                     <CircleAlert className="w-3.5 h-3.5" /> Abrir incidencia
                   </button>
                 )}
                 {selectedOrder.status !== 'completed' && selectedOrder.status !== 'cancelled' && (
-                  <button type="button" onClick={() => { setOrderForExceptionalClose(selectedOrder); setExceptionalCloseReason(''); }} className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg border border-slate-200">
+                  <button type="button" onClick={() => { setOrderForExceptionalClose(selectedOrder); setExceptionalCloseReason(''); }} className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700">
                     <AlertTriangle className="w-3.5 h-3.5" /> Cierre excepcional
                   </button>
                 )}
@@ -3290,7 +3290,7 @@ export const AdminHubView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setSelectedOrderId(null)}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition-colors"
+                className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 text-xs font-semibold rounded-lg transition-colors"
               >
                 Cerrar Detalle
               </button>
@@ -3306,14 +3306,14 @@ export const AdminHubView: React.FC = () => {
           onClick={() => setIsCreateModalOpen(false)}
         >
           <div
-            className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 relative animate-in zoom-in-95 duration-150"
+            className="bg-white dark:bg-slate-900 rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 relative animate-in zoom-in-95 duration-150"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
-              <h3 className="text-base font-bold text-slate-900">Crear Nueva Orden de Servicio</h3>
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 mb-4">
+              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Crear Nueva Orden de Servicio</h3>
               <button
                 onClick={() => setIsCreateModalOpen(false)}
-                className="text-slate-400 hover:text-slate-700 p-1"
+                className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -3321,7 +3321,7 @@ export const AdminHubView: React.FC = () => {
 
             <form onSubmit={handleCreateOrderSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                   Título del problema o servicio *
                 </label>
                 <input
@@ -3329,13 +3329,13 @@ export const AdminHubView: React.FC = () => {
                   value={newOrderTitle}
                   onChange={(e) => setNewOrderTitle(e.target.value)}
                   placeholder="Ej: Cambio de grifería monocomando en cocina"
-                  className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-teal-500 font-medium"
+                  className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-teal-500 font-medium"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                   Descripción técnica inicial
                 </label>
                 <textarea
@@ -3343,19 +3343,19 @@ export const AdminHubView: React.FC = () => {
                   onChange={(e) => setNewOrderDesc(e.target.value)}
                   placeholder="Detalles sobre el desperfecto, ubicación o materiales..."
                   rows={2}
-                  className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-teal-500"
+                  className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-teal-500"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                     Tipo de Servicio
                   </label>
                   <select
                     value={newOrderService}
                     onChange={(e) => setNewOrderService(e.target.value as ServiceType)}
-                    className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                    className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white"
                   >
                     {availableServiceCategories.map((cat) => (
                       <option key={cat} value={cat}>
@@ -3366,11 +3366,11 @@ export const AdminHubView: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Prioridad</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Prioridad</label>
                   <select
                     value={newOrderPriority}
                     onChange={(e) => setNewOrderPriority(e.target.value as OrderPriority)}
-                    className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                    className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white"
                   >
                     <option value="urgente">Urgente</option>
                     <option value="alta">Alta</option>
@@ -3382,14 +3382,14 @@ export const AdminHubView: React.FC = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                     Cliente solicitante *
                   </label>
                   <div className="flex gap-1.5">
                     <select
                       value={newOrderClientId}
                       onChange={(e) => setNewOrderClientId(e.target.value)}
-                      className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white font-medium"
+                      className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white font-medium"
                       required
                     >
                     <option value="" disabled>Seleccioná un cliente…</option>
@@ -3416,14 +3416,14 @@ export const AdminHubView: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                     Asignar Técnico
                   </label>
                   <select
                     value={newOrderTechId}
                     onChange={(e) => setNewOrderTechId(e.target.value)}
                     disabled={newOrderClientHasNoAccount}
-                    className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <option value="">Dejar sin asignar</option>
                     {technicians.map((t) => (
@@ -3441,7 +3441,7 @@ export const AdminHubView: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                   Fecha programada
                 </label>
                 <input
@@ -3449,18 +3449,18 @@ export const AdminHubView: React.FC = () => {
                   value={newOrderDate}
                   onChange={(e) => setNewOrderDate(e.target.value)}
                   required
-                  className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                  className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white"
                 />
-                <p className="mt-1 text-[10px] text-slate-500">
+                <p className="mt-1 text-[10px] text-slate-500 dark:text-slate-400">
                   Formato fecha (Supabase). Ej: 2026-08-17
                 </p>
               </div>
 
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setIsCreateModalOpen(false)}
-                  className="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-semibold"
+                  className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-lg text-xs font-semibold"
                 >
                   Cancelar
                 </button>
@@ -3486,20 +3486,20 @@ export const AdminHubView: React.FC = () => {
           }}
         >
           <div
-            className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl border border-slate-200 relative animate-in zoom-in-95 duration-150"
+            className="bg-white dark:bg-slate-900 rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl border border-slate-200 dark:border-slate-700 relative animate-in zoom-in-95 duration-150"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 mb-4">
               <div>
-                <h3 className="text-base font-bold text-slate-900">Editar Orden de Servicio</h3>
-                <p className="text-[11px] text-slate-500 font-mono mt-0.5">{orderToEdit.id}</p>
+                <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Editar Orden de Servicio</h3>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono mt-0.5">{orderToEdit.id}</p>
               </div>
               <button
                 onClick={() => {
                   setIsEditModalOpen(false);
                   setOrderToEdit(null);
                 }}
-                className="text-slate-400 hover:text-slate-700 p-1"
+                className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -3507,39 +3507,39 @@ export const AdminHubView: React.FC = () => {
 
             <form onSubmit={handleEditOrderSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                   Título del problema o servicio *
                 </label>
                 <input
                   type="text"
                   value={editOrderTitle}
                   onChange={(e) => setEditOrderTitle(e.target.value)}
-                  className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-teal-500 font-medium"
+                  className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-teal-500 font-medium"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                   Descripción técnica
                 </label>
                 <textarea
                   value={editOrderDesc}
                   onChange={(e) => setEditOrderDesc(e.target.value)}
                   rows={2}
-                  className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-teal-500"
+                  className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-teal-500"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                     Tipo de Servicio
                   </label>
                   <select
                     value={editOrderService}
                     onChange={(e) => setEditOrderService(e.target.value as ServiceType)}
-                    className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                    className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white"
                   >
                     {availableServiceCategories.map((cat) => (
                       <option key={cat} value={cat}>
@@ -3550,11 +3550,11 @@ export const AdminHubView: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Prioridad</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Prioridad</label>
                   <select
                     value={editOrderPriority}
                     onChange={(e) => setEditOrderPriority(e.target.value as OrderPriority)}
-                    className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                    className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white"
                   >
                     <option value="urgente">Urgente</option>
                     <option value="alta">Alta</option>
@@ -3564,20 +3564,20 @@ export const AdminHubView: React.FC = () => {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
-                <div className="font-bold text-slate-800 mb-1">Estado operativo protegido</div>
+              <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 p-3 text-xs text-slate-600 dark:text-slate-400">
+                <div className="font-bold text-slate-800 dark:text-slate-200 mb-1">Estado operativo protegido</div>
                 La edición no cambia el estado. Inicio, pausa y finalización se gestionan desde el flujo técnico con tiempo, checklist y firma del cliente. Usá las acciones excepcionales del detalle solo cuando corresponda.
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                     Cliente solicitante *
                   </label>
                   <select
                     value={editOrderClientId}
                     onChange={(e) => setEditOrderClientId(e.target.value)}
-                    className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white font-medium"
+                    className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white font-medium"
                     required
                   >
                     {customers.map((c) => (
@@ -3589,13 +3589,13 @@ export const AdminHubView: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                     Técnico asignado
                   </label>
                   <select
                     value={editOrderTechId}
                     onChange={(e) => setEditOrderTechId(e.target.value)}
-                    className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white font-medium"
+                    className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white font-medium"
                   >
                     <option value="">Sin asignar</option>
                     {technicians.map((t) => (
@@ -3608,7 +3608,7 @@ export const AdminHubView: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                   Fecha programada
                 </label>
                 <input
@@ -3616,18 +3616,18 @@ export const AdminHubView: React.FC = () => {
                   value={editOrderDate}
                   onChange={(e) => setEditOrderDate(e.target.value)}
                   required
-                  className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                  className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white"
                 />
               </div>
 
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => {
                     setIsEditModalOpen(false);
                     setOrderToEdit(null);
                   }}
-                  className="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-semibold"
+                  className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-lg text-xs font-semibold"
                 >
                   Cancelar
                 </button>
@@ -3645,31 +3645,31 @@ export const AdminHubView: React.FC = () => {
 
       {orderToCancel && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60" onClick={() => setOrderToCancel(null)}>
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex gap-3 mb-4"><Ban className="w-6 h-6 text-rose-600 shrink-0" /><div><h3 className="font-bold text-slate-900">Cancelar orden</h3><p className="text-xs text-slate-600 mt-1">Se avisará dentro de la orden al cliente y al técnico. El motivo quedará en el historial y no se podrá reactivar directamente.</p></div></div>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex gap-3 mb-4"><Ban className="w-6 h-6 text-rose-600 shrink-0" /><div><h3 className="font-bold text-slate-900 dark:text-slate-100">Cancelar orden</h3><p className="text-xs text-slate-600 dark:text-slate-400 mt-1">Se avisará dentro de la orden al cliente y al técnico. El motivo quedará en el historial y no se podrá reactivar directamente.</p></div></div>
             <textarea autoFocus value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} rows={3} placeholder="Motivo de la cancelación *" className="w-full rounded-lg border border-slate-300 p-3 text-sm" />
-            <div className="mt-4 flex justify-end gap-2"><button onClick={() => setOrderToCancel(null)} className="px-4 py-2 rounded-lg bg-slate-100 text-xs font-semibold">Volver</button><button disabled={cancelReason.trim().length < 8} onClick={() => { cancelOrderAsAdmin(orderToCancel.id, cancelReason); setOrderToCancel(null); }} className="px-4 py-2 rounded-lg bg-rose-600 disabled:opacity-50 text-white text-xs font-bold">Confirmar cancelación</button></div>
+            <div className="mt-4 flex justify-end gap-2"><button onClick={() => setOrderToCancel(null)} className="px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-semibold">Volver</button><button disabled={cancelReason.trim().length < 8} onClick={() => { cancelOrderAsAdmin(orderToCancel.id, cancelReason); setOrderToCancel(null); }} className="px-4 py-2 rounded-lg bg-rose-600 disabled:opacity-50 text-white text-xs font-bold">Confirmar cancelación</button></div>
           </div>
         </div>
       )}
 
       {orderForIncident && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60" onClick={() => setOrderForIncident(null)}>
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex gap-3 mb-4"><CircleAlert className="w-6 h-6 text-amber-600 shrink-0" /><div><h3 className="font-bold text-slate-900">Abrir incidencia / reclamo</h3><p className="text-xs text-slate-600 mt-1">El aviso quedará visible para las partes dentro de esta orden.</p></div></div>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex gap-3 mb-4"><CircleAlert className="w-6 h-6 text-amber-600 shrink-0" /><div><h3 className="font-bold text-slate-900 dark:text-slate-100">Abrir incidencia / reclamo</h3><p className="text-xs text-slate-600 dark:text-slate-400 mt-1">El aviso quedará visible para las partes dentro de esta orden.</p></div></div>
             <textarea autoFocus value={incidentReason} onChange={(e) => setIncidentReason(e.target.value)} rows={3} placeholder="Explicá el motivo de la incidencia *" className="w-full rounded-lg border border-slate-300 p-3 text-sm" />
-            <label className="mt-3 flex gap-2 rounded-lg bg-amber-50 border border-amber-200 p-3 text-xs text-amber-950"><input type="checkbox" checked={pauseIncidentSettlement} onChange={(e) => setPauseIncidentSettlement(e.target.checked)} className="mt-0.5" /><span><strong>Pausar liquidación al técnico.</strong><br />Las liquidaciones no pagadas pasarán a revisión hasta que administración las revise.</span></label>
-            <div className="mt-4 flex justify-end gap-2"><button onClick={() => setOrderForIncident(null)} className="px-4 py-2 rounded-lg bg-slate-100 text-xs font-semibold">Volver</button><button disabled={incidentReason.trim().length < 8} onClick={() => { reportOrderIncident(orderForIncident.id, incidentReason, pauseIncidentSettlement); setOrderForIncident(null); }} className="px-4 py-2 rounded-lg bg-amber-600 disabled:opacity-50 text-white text-xs font-bold">Registrar incidencia</button></div>
+            <label className="mt-3 flex gap-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 p-3 text-xs text-amber-950"><input type="checkbox" checked={pauseIncidentSettlement} onChange={(e) => setPauseIncidentSettlement(e.target.checked)} className="mt-0.5" /><span><strong>Pausar liquidación al técnico.</strong><br />Las liquidaciones no pagadas pasarán a revisión hasta que administración las revise.</span></label>
+            <div className="mt-4 flex justify-end gap-2"><button onClick={() => setOrderForIncident(null)} className="px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-semibold">Volver</button><button disabled={incidentReason.trim().length < 8} onClick={() => { reportOrderIncident(orderForIncident.id, incidentReason, pauseIncidentSettlement); setOrderForIncident(null); }} className="px-4 py-2 rounded-lg bg-amber-600 disabled:opacity-50 text-white text-xs font-bold">Registrar incidencia</button></div>
           </div>
         </div>
       )}
 
       {orderForExceptionalClose && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60" onClick={() => setOrderForExceptionalClose(null)}>
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex gap-3 mb-4"><AlertTriangle className="w-6 h-6 text-amber-600 shrink-0" /><div><h3 className="font-bold text-slate-900">Cierre excepcional</h3><p className="text-xs text-slate-600 mt-1">Usalo solo ante una intervención administrativa documentada. Saltea el flujo técnico normal y quedará auditado con el motivo.</p></div></div>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex gap-3 mb-4"><AlertTriangle className="w-6 h-6 text-amber-600 shrink-0" /><div><h3 className="font-bold text-slate-900 dark:text-slate-100">Cierre excepcional</h3><p className="text-xs text-slate-600 dark:text-slate-400 mt-1">Usalo solo ante una intervención administrativa documentada. Saltea el flujo técnico normal y quedará auditado con el motivo.</p></div></div>
             <textarea autoFocus value={exceptionalCloseReason} onChange={(e) => setExceptionalCloseReason(e.target.value)} rows={3} placeholder="Motivo excepcional de cierre *" className="w-full rounded-lg border border-slate-300 p-3 text-sm" />
-            <div className="mt-4 flex justify-end gap-2"><button onClick={() => setOrderForExceptionalClose(null)} className="px-4 py-2 rounded-lg bg-slate-100 text-xs font-semibold">Volver</button><button disabled={exceptionalCloseReason.trim().length < 8} onClick={() => { closeOrderExceptionally(orderForExceptionalClose.id, exceptionalCloseReason); setOrderForExceptionalClose(null); }} className="px-4 py-2 rounded-lg bg-slate-900 disabled:opacity-50 text-white text-xs font-bold">Cerrar excepcionalmente</button></div>
+            <div className="mt-4 flex justify-end gap-2"><button onClick={() => setOrderForExceptionalClose(null)} className="px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-semibold">Volver</button><button disabled={exceptionalCloseReason.trim().length < 8} onClick={() => { closeOrderExceptionally(orderForExceptionalClose.id, exceptionalCloseReason); setOrderForExceptionalClose(null); }} className="px-4 py-2 rounded-lg bg-slate-900 disabled:opacity-50 text-white text-xs font-bold">Cerrar excepcionalmente</button></div>
           </div>
         </div>
       )}
@@ -3684,7 +3684,7 @@ export const AdminHubView: React.FC = () => {
           }}
         >
           <div
-            className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-150 max-h-[85vh] overflow-y-auto"
+            className="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 animate-in zoom-in-95 duration-150 max-h-[85vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             {assignModalReviewingTechId ? (
@@ -3695,8 +3695,8 @@ export const AdminHubView: React.FC = () => {
               />
             ) : (
               <>
-                <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
-                  <h3 className="text-base font-bold text-slate-900">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 mb-4">
+                  <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
                     Asignar Técnico para {orderToAssign.id}
                   </h3>
                   <button
@@ -3704,19 +3704,19 @@ export const AdminHubView: React.FC = () => {
                       setIsAssignModalOpen(false);
                       setAssignModalReviewingTechId(null);
                     }}
-                    className="text-slate-400 hover:text-slate-700 p-1"
+                    className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1"
                   >
                     <X className="w-5 h-5" />
                   </button>
                 </div>
 
-                <p className="text-xs text-slate-600 mb-4">
+                <p className="text-xs text-slate-600 dark:text-slate-400 mb-4">
                   Seleccioná el profesional certificado que atenderá el servicio{' '}
                   <strong>"{orderToAssign.title}"</strong>.
                 </p>
 
                 {orderRequiresPaymentGate(orderToAssign) && !isOrderPaymentSettled(orderToAssign) && (
-                  <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950">
+                  <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/40 p-3 text-xs text-amber-950">
                     <strong className="block">
                       {orderToAssign.workMode === 'direct' ? 'Pago pendiente' : 'Seña pendiente'}
                     </strong>
@@ -3753,7 +3753,7 @@ export const AdminHubView: React.FC = () => {
                         className={`p-3 rounded-xl border cursor-pointer flex items-center justify-between transition-all ${
                           isCurrent
                             ? 'border-teal-500 bg-teal-50/60 ring-2 ring-teal-500/20'
-                            : 'border-slate-200 hover:bg-slate-50'
+                            : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
                         }`}
                       >
                         <div className="flex items-center gap-3">
@@ -3761,8 +3761,8 @@ export const AdminHubView: React.FC = () => {
                             {t.name.substring(0, 2).toUpperCase()}
                           </div>
                           <div>
-                            <div className="text-xs font-bold text-slate-900">{t.name}</div>
-                            <div className="text-[11px] text-slate-500">{t.specialty}</div>
+                            <div className="text-xs font-bold text-slate-900 dark:text-slate-100">{t.name}</div>
+                            <div className="text-[11px] text-slate-500 dark:text-slate-400">{t.specialty}</div>
                             {!isEligible && !assignEligibilityLoading && (
                               <div className="text-[10px] font-bold text-amber-700 mt-0.5">
                                 {missingLabel} · no habilitado
@@ -3798,14 +3798,14 @@ export const AdminHubView: React.FC = () => {
           onClick={() => closeNewCustomerModal()}
         >
           <div
-            className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-150"
+            className="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 animate-in zoom-in-95 duration-150"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
-              <h3 className="text-base font-bold text-slate-900">Registrar Nuevo Cliente</h3>
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 mb-4">
+              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Registrar Nuevo Cliente</h3>
               <button
                 onClick={() => closeNewCustomerModal()}
-                className="text-slate-400 hover:text-slate-700 p-1"
+                className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -3813,7 +3813,7 @@ export const AdminHubView: React.FC = () => {
 
             <form onSubmit={handleCreateCustomerSubmit} className="space-y-3">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                   Nombre y apellido *
                 </label>
                 <input
@@ -3821,13 +3821,13 @@ export const AdminHubView: React.FC = () => {
                   value={newCustName}
                   onChange={(e) => setNewCustName(e.target.value)}
                   placeholder="Ej: Lucía Navarro"
-                  className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                  className="w-full text-xs px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                   Dirección del domicilio *
                 </label>
                 <input
@@ -3835,61 +3835,61 @@ export const AdminHubView: React.FC = () => {
                   value={newCustAddress}
                   onChange={(e) => setNewCustAddress(e.target.value)}
                   placeholder="Ej: Av. Santa Fe 2100, 3ro A"
-                  className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                  className="w-full text-xs px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white"
                   required
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Barrio / Zona</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Barrio / Zona</label>
                   <input
                     type="text"
                     value={newCustNeighborhood}
                     onChange={(e) => setNewCustNeighborhood(e.target.value)}
                     placeholder="Ej: Recoleta, CABA"
-                    className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                    className="w-full text-xs px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Teléfono</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Teléfono</label>
                   <input
                     type="text"
                     value={newCustPhone}
                     onChange={(e) => setNewCustPhone(e.target.value)}
                     placeholder="+54 9 11 ..."
-                    className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                    className="w-full text-xs px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Email</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Email</label>
                 <input
                   type="email"
                   value={newCustEmail}
                   onChange={(e) => setNewCustEmail(e.target.value)}
                   placeholder="cliente@ejemplo.com"
-                  className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                  className="w-full text-xs px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Notas</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Notas</label>
                 <textarea
                   value={newCustNotes}
                   onChange={(e) => setNewCustNotes(e.target.value)}
                   rows={2}
                   placeholder="Acceso, referencias, preferencias..."
-                  className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                  className="w-full text-xs px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white"
                 />
               </div>
 
-              <div className="pt-3 border-t border-slate-100 flex justify-end gap-2">
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => closeNewCustomerModal()}
-                  className="px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-xs font-semibold"
+                  className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-lg text-xs font-semibold"
                 >
                   Cancelar
                 </button>
@@ -3915,20 +3915,20 @@ export const AdminHubView: React.FC = () => {
           }}
         >
           <div
-            className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-150"
+            className="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl border border-slate-200 dark:border-slate-700 animate-in zoom-in-95 duration-150"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 mb-4">
               <div>
-                <h3 className="text-base font-bold text-slate-900">Editar Cliente</h3>
-                <p className="text-[11px] text-slate-500 font-mono mt-0.5">{customerToEdit.id}</p>
+                <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Editar Cliente</h3>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono mt-0.5">{customerToEdit.id}</p>
               </div>
               <button
                 onClick={() => {
                   setIsEditCustomerModalOpen(false);
                   setCustomerToEdit(null);
                 }}
-                className="text-slate-400 hover:text-slate-700 p-1"
+                className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -3936,80 +3936,80 @@ export const AdminHubView: React.FC = () => {
 
             <form onSubmit={handleEditCustomerSubmit} className="space-y-3">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                   Nombre y apellido *
                 </label>
                 <input
                   type="text"
                   value={editCustName}
                   onChange={(e) => setEditCustName(e.target.value)}
-                  className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                  className="w-full text-xs px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                   Dirección del domicilio *
                 </label>
                 <input
                   type="text"
                   value={editCustAddress}
                   onChange={(e) => setEditCustAddress(e.target.value)}
-                  className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                  className="w-full text-xs px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white"
                   required
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Barrio / Zona</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Barrio / Zona</label>
                   <input
                     type="text"
                     value={editCustNeighborhood}
                     onChange={(e) => setEditCustNeighborhood(e.target.value)}
-                    className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                    className="w-full text-xs px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Teléfono</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Teléfono</label>
                   <input
                     type="text"
                     value={editCustPhone}
                     onChange={(e) => setEditCustPhone(e.target.value)}
-                    className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                    className="w-full text-xs px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Email</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Email</label>
                 <input
                   type="email"
                   value={editCustEmail}
                   onChange={(e) => setEditCustEmail(e.target.value)}
-                  className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                  className="w-full text-xs px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Notas</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Notas</label>
                 <textarea
                   value={editCustNotes}
                   onChange={(e) => setEditCustNotes(e.target.value)}
                   rows={2}
-                  className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                  className="w-full text-xs px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white"
                 />
               </div>
 
-              <div className="pt-3 border-t border-slate-100 flex justify-end gap-2">
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => {
                     setIsEditCustomerModalOpen(false);
                     setCustomerToEdit(null);
                   }}
-                  className="px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-xs font-semibold"
+                  className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-lg text-xs font-semibold"
                 >
                   Cancelar
                 </button>
@@ -4032,7 +4032,7 @@ export const AdminHubView: React.FC = () => {
           onClick={() => setCustomerPendingDelete(null)}
         >
           <div
-            className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-150"
+            className="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 animate-in zoom-in-95 duration-150"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start gap-3 mb-4">
@@ -4040,8 +4040,8 @@ export const AdminHubView: React.FC = () => {
                 <Trash2 className="w-5 h-5" />
               </span>
               <div>
-                <h3 className="text-base font-bold text-slate-900">Eliminar cliente</h3>
-                <p className="text-xs text-slate-600 mt-1">
+                <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Eliminar cliente</h3>
+                <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
                   Vas a eliminar a <strong>{customerPendingDelete.name}</strong>. Si tiene órdenes
                   asociadas, la eliminación se bloqueará.
                 </p>
@@ -4052,7 +4052,7 @@ export const AdminHubView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setCustomerPendingDelete(null)}
-                className="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-semibold"
+                className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-lg text-xs font-semibold"
               >
                 Cancelar
               </button>
@@ -4075,14 +4075,14 @@ export const AdminHubView: React.FC = () => {
           onClick={() => setIsNewTechnicianModalOpen(false)}
         >
           <div
-            className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-150"
+            className="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl border border-slate-200 dark:border-slate-700 animate-in zoom-in-95 duration-150"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
-              <h3 className="text-base font-bold text-slate-900">Registrar Técnico</h3>
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 mb-4">
+              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Registrar Técnico</h3>
               <button
                 onClick={() => setIsNewTechnicianModalOpen(false)}
-                className="text-slate-400 hover:text-slate-700 p-1"
+                className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -4090,20 +4090,20 @@ export const AdminHubView: React.FC = () => {
 
             <form onSubmit={handleCreateTechnicianSubmit} className="space-y-3">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Nombre y apellido *</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Nombre y apellido *</label>
                 <input
                   type="text"
                   value={newTechName}
                   onChange={(e) => setNewTechName(e.target.value)}
-                  className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                  className="w-full text-xs px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white"
                   required
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Rubros</label>
-                <div className="grid grid-cols-2 gap-1.5 rounded-lg border border-slate-200 p-2">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Rubros</label>
+                <div className="grid grid-cols-2 gap-1.5 rounded-lg border border-slate-200 dark:border-slate-700 p-2">
                   {catalogCategories.filter((c) => c.active !== false).map((c) => (
-                    <label key={c.id} className="flex items-center gap-1.5 text-xs text-slate-700">
+                    <label key={c.id} className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300">
                       <input
                         type="checkbox"
                         checked={newTechSpecialtyIds.includes(c.id)}
@@ -4120,28 +4120,28 @@ export const AdminHubView: React.FC = () => {
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Teléfono</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Teléfono</label>
                   <input
                     type="text"
                     value={newTechPhone}
                     onChange={(e) => setNewTechPhone(e.target.value)}
-                    className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                    className="w-full text-xs px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Email *</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Email *</label>
                   <input
                     type="email"
                     value={newTechEmail}
                     onChange={(e) => setNewTechEmail(e.target.value)}
-                    className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                    className="w-full text-xs px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white"
                     required
                   />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                     Zona donde vive
                   </label>
                   <input
@@ -4149,15 +4149,15 @@ export const AdminHubView: React.FC = () => {
                     value={newTechZone}
                     onChange={(e) => setNewTechZone(e.target.value)}
                     placeholder="Ej: Almagro, Vicente López"
-                    className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                    className="w-full text-xs px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Provincia</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Provincia</label>
                   <select
                     value={newTechProvince}
                     onChange={(e) => setNewTechProvince(e.target.value)}
-                    className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                    className="w-full text-xs px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white"
                   >
                     {ARGENTINA_PROVINCES.map((p) => (
                       <option key={p} value={p}>
@@ -4167,7 +4167,7 @@ export const AdminHubView: React.FC = () => {
                   </select>
                 </div>
               </div>
-              <label className="flex items-start gap-2 text-xs text-slate-700">
+              <label className="flex items-start gap-2 text-xs text-slate-700 dark:text-slate-300">
                 <input
                   type="checkbox"
                   checked={newTechAlsoCustomer}
@@ -4185,22 +4185,22 @@ export const AdminHubView: React.FC = () => {
                     value={newTechAddress}
                     onChange={(e) => setNewTechAddress(e.target.value)}
                     placeholder="Dirección"
-                    className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                    className="w-full text-xs px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white"
                   />
                   <input
                     type="text"
                     value={newTechNeighborhood}
                     onChange={(e) => setNewTechNeighborhood(e.target.value)}
                     placeholder="Barrio / zona"
-                    className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                    className="w-full text-xs px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white"
                   />
                 </div>
               )}
-              <div className="pt-3 border-t border-slate-100 flex justify-end gap-2">
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setIsNewTechnicianModalOpen(false)}
-                  className="px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-xs font-semibold"
+                  className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-lg text-xs font-semibold"
                 >
                   Cancelar
                 </button>
@@ -4226,20 +4226,20 @@ export const AdminHubView: React.FC = () => {
           }}
         >
           <div
-            className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-150"
+            className="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl border border-slate-200 dark:border-slate-700 animate-in zoom-in-95 duration-150"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 mb-4">
               <div>
-                <h3 className="text-base font-bold text-slate-900">Editar Técnico</h3>
-                <p className="text-[11px] text-slate-500 font-mono mt-0.5">{technicianToEdit.id}</p>
+                <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Editar Técnico</h3>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono mt-0.5">{technicianToEdit.id}</p>
               </div>
               <button
                 onClick={() => {
                   setIsEditTechnicianModalOpen(false);
                   setTechnicianToEdit(null);
                 }}
-                className="text-slate-400 hover:text-slate-700 p-1"
+                className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -4247,20 +4247,20 @@ export const AdminHubView: React.FC = () => {
 
             <form onSubmit={handleEditTechnicianSubmit} className="space-y-3">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Nombre y apellido *</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Nombre y apellido *</label>
                 <input
                   type="text"
                   value={editTechName}
                   onChange={(e) => setEditTechName(e.target.value)}
-                  className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                  className="w-full text-xs px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white"
                   required
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Rubros</label>
-                <div className="grid grid-cols-2 gap-1.5 rounded-lg border border-slate-200 p-2">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Rubros</label>
+                <div className="grid grid-cols-2 gap-1.5 rounded-lg border border-slate-200 dark:border-slate-700 p-2">
                   {catalogCategories.filter((c) => c.active !== false).map((c) => (
-                    <label key={c.id} className="flex items-center gap-1.5 text-xs text-slate-700">
+                    <label key={c.id} className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300">
                       <input
                         type="checkbox"
                         checked={editTechSpecialtyIds.includes(c.id)}
@@ -4277,28 +4277,28 @@ export const AdminHubView: React.FC = () => {
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Teléfono</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Teléfono</label>
                   <input
                     type="text"
                     value={editTechPhone}
                     onChange={(e) => setEditTechPhone(e.target.value)}
-                    className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                    className="w-full text-xs px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Email *</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Email *</label>
                   <input
                     type="email"
                     value={editTechEmail}
                     onChange={(e) => setEditTechEmail(e.target.value)}
-                    className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                    className="w-full text-xs px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white"
                     required
                   />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                     Zona donde vive
                   </label>
                   <input
@@ -4306,15 +4306,15 @@ export const AdminHubView: React.FC = () => {
                     value={editTechZone}
                     onChange={(e) => setEditTechZone(e.target.value)}
                     placeholder="Ej: Almagro, Vicente López"
-                    className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                    className="w-full text-xs px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Provincia</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Provincia</label>
                   <select
                     value={editTechProvince}
                     onChange={(e) => setEditTechProvince(e.target.value)}
-                    className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                    className="w-full text-xs px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white"
                   >
                     {ARGENTINA_PROVINCES.map((p) => (
                       <option key={p} value={p}>
@@ -4324,7 +4324,7 @@ export const AdminHubView: React.FC = () => {
                   </select>
                 </div>
               </div>
-              <label className="flex items-start gap-2 text-xs text-slate-700">
+              <label className="flex items-start gap-2 text-xs text-slate-700 dark:text-slate-300">
                 <input
                   type="checkbox"
                   checked={editTechAlsoCustomer}
@@ -4340,34 +4340,34 @@ export const AdminHubView: React.FC = () => {
                     value={editTechAddress}
                     onChange={(e) => setEditTechAddress(e.target.value)}
                     placeholder="Dirección"
-                    className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                    className="w-full text-xs px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white"
                   />
                   <input
                     type="text"
                     value={editTechNeighborhood}
                     onChange={(e) => setEditTechNeighborhood(e.target.value)}
                     placeholder="Barrio / zona"
-                    className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                    className="w-full text-xs px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white"
                   />
                 </div>
               )}
 
-              <div className="pt-3 border-t border-slate-100">
-                <p className="text-[11px] text-slate-500">
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
                   Teléfono laboral, formación, presentación, título, institución, dirección y email
                   de contacto ahora los carga y actualiza el propio técnico desde "Mi perfil
                   profesional" — se revisan desde "Validación de técnicos", no desde acá.
                 </p>
               </div>
 
-              <div className="pt-3 border-t border-slate-100 flex justify-end gap-2">
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => {
                     setIsEditTechnicianModalOpen(false);
                     setTechnicianToEdit(null);
                   }}
-                  className="px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-xs font-semibold"
+                  className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-lg text-xs font-semibold"
                 >
                   Cancelar
                 </button>
@@ -4390,7 +4390,7 @@ export const AdminHubView: React.FC = () => {
           onClick={() => setTechnicianPendingDelete(null)}
         >
           <div
-            className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-150"
+            className="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 animate-in zoom-in-95 duration-150"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start gap-3 mb-4">
@@ -4398,8 +4398,8 @@ export const AdminHubView: React.FC = () => {
                 <Trash2 className="w-5 h-5" />
               </span>
               <div>
-                <h3 className="text-base font-bold text-slate-900">Eliminar técnico</h3>
-                <p className="text-xs text-slate-600 mt-1">
+                <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Eliminar técnico</h3>
+                <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
                   Vas a eliminar a <strong>{technicianPendingDelete.name}</strong>. Si tiene órdenes
                   asignadas, la eliminación se bloqueará.
                 </p>
@@ -4409,7 +4409,7 @@ export const AdminHubView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setTechnicianPendingDelete(null)}
-                className="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-semibold"
+                className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-lg text-xs font-semibold"
               >
                 Cancelar
               </button>
@@ -4432,14 +4432,14 @@ export const AdminHubView: React.FC = () => {
           onClick={() => setIsNewMaterialModalOpen(false)}
         >
           <div
-            className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-150"
+            className="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 animate-in zoom-in-95 duration-150"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
-              <h3 className="text-base font-bold text-slate-900">Añadir Insumo al Inventario</h3>
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 mb-4">
+              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Añadir Insumo al Inventario</h3>
               <button
                 onClick={() => setIsNewMaterialModalOpen(false)}
-                className="text-slate-400 hover:text-slate-700 p-1"
+                className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -4447,7 +4447,7 @@ export const AdminHubView: React.FC = () => {
 
             <form onSubmit={handleCreateMaterialSubmit} className="space-y-3">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                   Nombre del material *
                 </label>
                 <input
@@ -4455,18 +4455,18 @@ export const AdminHubView: React.FC = () => {
                   value={newMatName}
                   onChange={(e) => setNewMatName(e.target.value)}
                   placeholder="Ej: Teipe autofundente 19mm"
-                  className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                  className="w-full text-xs px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white"
                   required
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Categoría</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Categoría</label>
                   <select
                     value={newMatCategory}
                     onChange={(e) => setNewMatCategory(e.target.value as MaterialCategory)}
-                    className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                    className="w-full text-xs px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white"
                   >
                     <option value="Plomería">Plomería</option>
                     <option value="Electricidad">Electricidad</option>
@@ -4476,30 +4476,30 @@ export const AdminHubView: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Stock Inicial</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Stock Inicial</label>
                   <input
                     type="number"
                     value={newMatStock}
                     onChange={(e) => setNewMatStock(Number(e.target.value))}
                     min={0}
-                    className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                    className="w-full text-xs px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Unidad</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Unidad</label>
                   <input
                     type="text"
                     value={newMatUnit}
                     onChange={(e) => setNewMatUnit(e.target.value)}
                     placeholder="unidades, metros, rollos"
-                    className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                    className="w-full text-xs px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                     Costo estimado ($)
                   </label>
                   <input
@@ -4507,16 +4507,16 @@ export const AdminHubView: React.FC = () => {
                     value={newMatCost}
                     onChange={(e) => setNewMatCost(Number(e.target.value))}
                     min={0}
-                    className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                    className="w-full text-xs px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white"
                   />
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-slate-100 flex justify-end gap-2">
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setIsNewMaterialModalOpen(false)}
-                  className="px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-xs font-semibold"
+                  className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-lg text-xs font-semibold"
                 >
                   Cancelar
                 </button>
@@ -4542,20 +4542,20 @@ export const AdminHubView: React.FC = () => {
           }}
         >
           <div
-            className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-150"
+            className="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 animate-in zoom-in-95 duration-150"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 mb-4">
               <div>
-                <h3 className="text-base font-bold text-slate-900">Editar material</h3>
-                <p className="text-[11px] text-slate-500 font-mono mt-0.5">{materialToEdit.id}</p>
+                <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Editar material</h3>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono mt-0.5">{materialToEdit.id}</p>
               </div>
               <button
                 onClick={() => {
                   setIsEditMaterialModalOpen(false);
                   setMaterialToEdit(null);
                 }}
-                className="text-slate-400 hover:text-slate-700 p-1"
+                className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -4563,25 +4563,25 @@ export const AdminHubView: React.FC = () => {
 
             <form onSubmit={handleEditMaterialSubmit} className="space-y-3">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                   Nombre del material *
                 </label>
                 <input
                   type="text"
                   value={editMatName}
                   onChange={(e) => setEditMatName(e.target.value)}
-                  className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                  className="w-full text-xs px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white"
                   required
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Categoría</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Categoría</label>
                   <select
                     value={editMatCategory}
                     onChange={(e) => setEditMatCategory(e.target.value as MaterialCategory)}
-                    className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                    className="w-full text-xs px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white"
                   >
                     <option value="Plomería">Plomería</option>
                     <option value="Electricidad">Electricidad</option>
@@ -4591,29 +4591,29 @@ export const AdminHubView: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Stock</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Stock</label>
                   <input
                     type="number"
                     value={editMatStock}
                     onChange={(e) => setEditMatStock(Number(e.target.value))}
                     min={0}
-                    className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                    className="w-full text-xs px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Unidad</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Unidad</label>
                   <input
                     type="text"
                     value={editMatUnit}
                     onChange={(e) => setEditMatUnit(e.target.value)}
-                    className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                    className="w-full text-xs px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                     Costo estimado ($)
                   </label>
                   <input
@@ -4621,19 +4621,19 @@ export const AdminHubView: React.FC = () => {
                     value={editMatCost}
                     onChange={(e) => setEditMatCost(Number(e.target.value))}
                     min={0}
-                    className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                    className="w-full text-xs px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white"
                   />
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-slate-100 flex justify-end gap-2">
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => {
                     setIsEditMaterialModalOpen(false);
                     setMaterialToEdit(null);
                   }}
-                  className="px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-xs font-semibold"
+                  className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-lg text-xs font-semibold"
                 >
                   Cancelar
                 </button>
@@ -4656,7 +4656,7 @@ export const AdminHubView: React.FC = () => {
           onClick={() => setMaterialPendingDelete(null)}
         >
           <div
-            className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-150"
+            className="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 animate-in zoom-in-95 duration-150"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start gap-3 mb-4">
@@ -4664,8 +4664,8 @@ export const AdminHubView: React.FC = () => {
                 <Trash2 className="w-5 h-5" />
               </span>
               <div>
-                <h3 className="text-base font-bold text-slate-900">Eliminar material</h3>
-                <p className="text-xs text-slate-600 mt-1">
+                <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Eliminar material</h3>
+                <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
                   Vas a eliminar <strong>{materialPendingDelete.name}</strong> del inventario. El
                   historial de órdenes conserva el nombre ya registrado.
                 </p>
@@ -4675,7 +4675,7 @@ export const AdminHubView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setMaterialPendingDelete(null)}
-                className="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-semibold"
+                className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-lg text-xs font-semibold"
               >
                 Cancelar
               </button>
@@ -4697,13 +4697,13 @@ export const AdminHubView: React.FC = () => {
           onClick={() => setInviteLinkModal(null)}
         >
           <div
-            className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200"
+            className="bg-white dark:bg-slate-900 rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between mb-3">
               <div>
-                <h3 className="text-base font-bold text-slate-900">Enlace de alta de cuenta</h3>
-                <p className="text-xs text-slate-600 mt-1">
+                <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Enlace de alta de cuenta</h3>
+                <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
                   Enviá este enlace a <strong>{inviteLinkModal.name}</strong> para que cree su
                   contraseña y entre como{' '}
                   {inviteLinkModal.kind === 'technician' ? 'técnico' : 'cliente'}. Vence en 14 días.
@@ -4712,7 +4712,7 @@ export const AdminHubView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setInviteLinkModal(null)}
-                className="text-slate-400 hover:text-slate-700 p-1"
+                className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -4721,7 +4721,7 @@ export const AdminHubView: React.FC = () => {
               <input
                 readOnly
                 value={inviteLinkModal.url}
-                className="flex-1 text-[11px] font-mono px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg"
+                className="flex-1 text-[11px] font-mono px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg"
               />
               <button
                 type="button"
@@ -4750,17 +4750,17 @@ export const AdminHubView: React.FC = () => {
           onClick={() => setIsNewServiceModalOpen(false)}
         >
           <div
-            className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl border border-slate-200 relative animate-in zoom-in-95 duration-150"
+            className="bg-white dark:bg-slate-900 rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl border border-slate-200 dark:border-slate-700 relative animate-in zoom-in-95 duration-150"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 mb-4">
               <div>
-                <h3 className="text-base font-bold text-slate-900">Crear Nuevo Servicio</h3>
-                <p className="text-xs text-slate-500">Definí el nombre, tarifa base, categoría y características comerciales.</p>
+                <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Crear Nuevo Servicio</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Definí el nombre, tarifa base, categoría y características comerciales.</p>
               </div>
               <button
                 onClick={() => setIsNewServiceModalOpen(false)}
-                className="text-slate-400 hover:text-slate-700 p-1"
+                className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -4768,7 +4768,7 @@ export const AdminHubView: React.FC = () => {
 
             <form onSubmit={handleCreateServiceSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                   Nombre del Servicio *
                 </label>
                 <input
@@ -4776,14 +4776,14 @@ export const AdminHubView: React.FC = () => {
                   value={newServiceName}
                   onChange={(e) => setNewServiceName(e.target.value)}
                   placeholder="Ej: Plomería de Urgencia y Reparación de Pérdidas"
-                  className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-teal-500 font-medium"
+                  className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-teal-500 font-medium"
                   required
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                     Categoría *
                   </label>
                   <select
@@ -4795,7 +4795,7 @@ export const AdminHubView: React.FC = () => {
                       setNewServiceSubcategoryId(null);
                       setIsCreatingServiceSubcategory(false);
                     }}
-                    className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                    className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white"
                     required
                   >
                     {!catalogCategories.some((c) => c.name === newServiceCategory) && (
@@ -4811,7 +4811,7 @@ export const AdminHubView: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                     Precio Base ($ ARS) *
                   </label>
                   <input
@@ -4820,13 +4820,13 @@ export const AdminHubView: React.FC = () => {
                     step="500"
                     value={newServicePrice}
                     onChange={(e) => setNewServicePrice(Number(e.target.value))}
-                    className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white font-mono font-bold text-teal-800"
+                    className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white font-mono font-bold text-teal-800"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                     Duración (min) *
                   </label>
                   <input
@@ -4835,7 +4835,7 @@ export const AdminHubView: React.FC = () => {
                     step="15"
                     value={newServiceDuration}
                     onChange={(e) => setNewServiceDuration(Number(e.target.value))}
-                    className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white font-mono"
+                    className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white font-mono"
                     required
                   />
                 </div>
@@ -4843,7 +4843,7 @@ export const AdminHubView: React.FC = () => {
 
               {newServiceCategoryId && (
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Subcategoría</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Subcategoría</label>
                   {isCreatingServiceSubcategory ? (
                     <div className="flex items-center gap-1.5">
                       <input
@@ -4851,7 +4851,7 @@ export const AdminHubView: React.FC = () => {
                         value={newServiceSubcategoryName}
                         onChange={(e) => setNewServiceSubcategoryName(e.target.value)}
                         placeholder="Nombre de la nueva subcategoría"
-                        className="flex-1 text-xs sm:text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                        className="flex-1 text-xs sm:text-sm px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white"
                       />
                       <button
                         type="button"
@@ -4872,7 +4872,7 @@ export const AdminHubView: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setIsCreatingServiceSubcategory(false)}
-                        className="px-2 py-2 text-slate-500 text-xs shrink-0"
+                        className="px-2 py-2 text-slate-500 dark:text-slate-400 text-xs shrink-0"
                       >
                         Cancelar
                       </button>
@@ -4888,7 +4888,7 @@ export const AdminHubView: React.FC = () => {
                           setNewServiceSubcategoryId(e.target.value || null);
                         }
                       }}
-                      className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                      className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white"
                     >
                       <option value="">Sin subcategoría</option>
                       {sortByDisplayOrder<CatalogSubcategory>(
@@ -4905,7 +4905,7 @@ export const AdminHubView: React.FC = () => {
               )}
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                   Descripción Técnica y Comercial *
                 </label>
                 <textarea
@@ -4913,13 +4913,13 @@ export const AdminHubView: React.FC = () => {
                   onChange={(e) => setNewServiceDesc(e.target.value)}
                   placeholder="Detallá los alcances técnicos del servicio, tareas comprendidas y metodología de trabajo..."
                   rows={3}
-                  className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-teal-500"
+                  className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-teal-500"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                   Beneficios y Características Incluidas (un ítem por línea)
                 </label>
                 <textarea
@@ -4927,18 +4927,18 @@ export const AdminHubView: React.FC = () => {
                   onChange={(e) => setNewServiceFeatures(e.target.value)}
                   placeholder="Diagnóstico en sitio&#10;Garantía escrita de 90 días&#10;Repuestos de primera calidad"
                   rows={3}
-                  className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white font-mono"
+                  className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white font-mono"
                 />
                 <p className="text-[10px] text-slate-400 mt-0.5">
                   Cada línea se mostrará como una etiqueta con tilde de verificación.
                 </p>
               </div>
 
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setIsNewServiceModalOpen(false)}
-                  className="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-semibold"
+                  className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-lg text-xs font-semibold"
                 >
                   Cancelar
                 </button>
@@ -4964,20 +4964,20 @@ export const AdminHubView: React.FC = () => {
           }}
         >
           <div
-            className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl border border-slate-200 relative animate-in zoom-in-95 duration-150"
+            className="bg-white dark:bg-slate-900 rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl border border-slate-200 dark:border-slate-700 relative animate-in zoom-in-95 duration-150"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 mb-4">
               <div>
-                <h3 className="text-base font-bold text-slate-900">Editar Servicio</h3>
-                <p className="text-[11px] text-slate-500 font-mono mt-0.5">{serviceToEdit.id}</p>
+                <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Editar Servicio</h3>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono mt-0.5">{serviceToEdit.id}</p>
               </div>
               <button
                 onClick={() => {
                   setIsEditServiceModalOpen(false);
                   setServiceToEdit(null);
                 }}
-                className="text-slate-400 hover:text-slate-700 p-1"
+                className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -4985,21 +4985,21 @@ export const AdminHubView: React.FC = () => {
 
             <form onSubmit={handleEditServiceSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                   Nombre del Servicio *
                 </label>
                 <input
                   type="text"
                   value={editServiceName}
                   onChange={(e) => setEditServiceName(e.target.value)}
-                  className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-teal-500 font-medium"
+                  className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-teal-500 font-medium"
                   required
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                     Categoría *
                   </label>
                   <select
@@ -5011,7 +5011,7 @@ export const AdminHubView: React.FC = () => {
                       setEditServiceSubcategoryId(null);
                       setIsCreatingServiceSubcategory(false);
                     }}
-                    className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                    className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white"
                     required
                   >
                     {!catalogCategories.some((c) => c.name === editServiceCategory) && (
@@ -5027,7 +5027,7 @@ export const AdminHubView: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                     Precio Base ($ ARS) *
                   </label>
                   <input
@@ -5036,13 +5036,13 @@ export const AdminHubView: React.FC = () => {
                     step="500"
                     value={editServicePrice}
                     onChange={(e) => setEditServicePrice(Number(e.target.value))}
-                    className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white font-mono font-bold text-teal-800"
+                    className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white font-mono font-bold text-teal-800"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                     Duración (min) *
                   </label>
                   <input
@@ -5051,7 +5051,7 @@ export const AdminHubView: React.FC = () => {
                     step="15"
                     value={editServiceDuration}
                     onChange={(e) => setEditServiceDuration(Number(e.target.value))}
-                    className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white font-mono"
+                    className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white font-mono"
                     required
                   />
                 </div>
@@ -5059,7 +5059,7 @@ export const AdminHubView: React.FC = () => {
 
               {editServiceCategoryId && (
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Subcategoría</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Subcategoría</label>
                   {isCreatingServiceSubcategory ? (
                     <div className="flex items-center gap-1.5">
                       <input
@@ -5067,7 +5067,7 @@ export const AdminHubView: React.FC = () => {
                         value={newServiceSubcategoryName}
                         onChange={(e) => setNewServiceSubcategoryName(e.target.value)}
                         placeholder="Nombre de la nueva subcategoría"
-                        className="flex-1 text-xs sm:text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                        className="flex-1 text-xs sm:text-sm px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white"
                       />
                       <button
                         type="button"
@@ -5088,7 +5088,7 @@ export const AdminHubView: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setIsCreatingServiceSubcategory(false)}
-                        className="px-2 py-2 text-slate-500 text-xs shrink-0"
+                        className="px-2 py-2 text-slate-500 dark:text-slate-400 text-xs shrink-0"
                       >
                         Cancelar
                       </button>
@@ -5104,7 +5104,7 @@ export const AdminHubView: React.FC = () => {
                           setEditServiceSubcategoryId(e.target.value || null);
                         }
                       }}
-                      className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white"
+                      className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white"
                     >
                       <option value="">Sin subcategoría</option>
                       {sortByDisplayOrder<CatalogSubcategory>(
@@ -5121,38 +5121,38 @@ export const AdminHubView: React.FC = () => {
               )}
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                   Descripción Técnica y Comercial *
                 </label>
                 <textarea
                   value={editServiceDesc}
                   onChange={(e) => setEditServiceDesc(e.target.value)}
                   rows={3}
-                  className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-teal-500"
+                  className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-teal-500"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                   Beneficios y Características Incluidas (un ítem por línea)
                 </label>
                 <textarea
                   value={editServiceFeatures}
                   onChange={(e) => setEditServiceFeatures(e.target.value)}
                   rows={3}
-                  className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white font-mono"
+                  className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white font-mono"
                 />
               </div>
 
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => {
                     setIsEditServiceModalOpen(false);
                     setServiceToEdit(null);
                   }}
-                  className="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-semibold"
+                  className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-lg text-xs font-semibold"
                 >
                   Cancelar
                 </button>
@@ -5175,7 +5175,7 @@ export const AdminHubView: React.FC = () => {
           onClick={() => setServicePendingDelete(null)}
         >
           <div
-            className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-150"
+            className="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 animate-in zoom-in-95 duration-150"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start gap-3 mb-4">
@@ -5183,8 +5183,8 @@ export const AdminHubView: React.FC = () => {
                 <Trash2 className="w-5 h-5" />
               </span>
               <div>
-                <h3 className="text-base font-bold text-slate-900">Eliminar servicio del catálogo</h3>
-                <p className="text-xs text-slate-600 mt-1">
+                <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Eliminar servicio del catálogo</h3>
+                <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
                   Vas a eliminar <strong>{servicePendingDelete.name}</strong> del catálogo tarifado. Las órdenes existentes mantendrán su información histórica.
                 </p>
               </div>
@@ -5193,7 +5193,7 @@ export const AdminHubView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setServicePendingDelete(null)}
-                className="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-semibold"
+                className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-lg text-xs font-semibold"
               >
                 Cancelar
               </button>
@@ -5216,19 +5216,19 @@ export const AdminHubView: React.FC = () => {
           onClick={() => setIsNewCategoryModalOpen(false)}
         >
           <div
-            className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl border border-slate-200 relative animate-in zoom-in-95 duration-150"
+            className="bg-white dark:bg-slate-900 rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl border border-slate-200 dark:border-slate-700 relative animate-in zoom-in-95 duration-150"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 mb-4">
               <div>
-                <h3 className="text-base font-bold text-slate-900">Nueva Categoría</h3>
-                <p className="text-xs text-slate-500">
+                <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Nueva Categoría</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
                   Definí el rubro que se publicará en la landing y agrupará tus servicios.
                 </p>
               </div>
               <button
                 onClick={() => setIsNewCategoryModalOpen(false)}
-                className="text-slate-400 hover:text-slate-700 p-1"
+                className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -5236,7 +5236,7 @@ export const AdminHubView: React.FC = () => {
 
             <form onSubmit={handleCreateCategorySubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                   Nombre de la categoría *
                 </label>
                 <input
@@ -5244,13 +5244,13 @@ export const AdminHubView: React.FC = () => {
                   value={newCategoryName}
                   onChange={(e) => setNewCategoryName(e.target.value)}
                   placeholder="Ej: Plomería"
-                  className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-teal-500 font-medium"
+                  className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-teal-500 font-medium"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                   Descripción *
                 </label>
                 <textarea
@@ -5258,13 +5258,13 @@ export const AdminHubView: React.FC = () => {
                   onChange={(e) => setNewCategoryDesc(e.target.value)}
                   placeholder="Ej: Reparación y mantenimiento de sistemas de agua y desagüe"
                   rows={3}
-                  className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-teal-500"
+                  className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-teal-500"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                   Ícono del rubro
                 </label>
                 <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
@@ -5278,11 +5278,11 @@ export const AdminHubView: React.FC = () => {
                         className={`flex flex-col items-center gap-1 p-2 rounded-lg border transition-all ${
                           newCategoryIcon === key
                             ? `${visual.bg} ${visual.border} ring-2 ring-teal-500`
-                            : 'border-slate-200 bg-white hover:bg-slate-50'
+                            : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800'
                         }`}
                       >
                         <CategoryIcon name={key} className="w-5 h-5" />
-                        <span className="text-[9px] font-semibold text-slate-600 text-center leading-tight">
+                        <span className="text-[9px] font-semibold text-slate-600 dark:text-slate-400 text-center leading-tight">
                           {visual.label}
                         </span>
                       </button>
@@ -5291,11 +5291,11 @@ export const AdminHubView: React.FC = () => {
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setIsNewCategoryModalOpen(false)}
-                  className="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-semibold"
+                  className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-lg text-xs font-semibold"
                 >
                   Cancelar
                 </button>
@@ -5318,29 +5318,29 @@ export const AdminHubView: React.FC = () => {
           onClick={() => setEditEntity(null)}
         >
           <div
-            className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl border border-slate-200 relative animate-in zoom-in-95 duration-150"
+            className="bg-white dark:bg-slate-900 rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl border border-slate-200 dark:border-slate-700 relative animate-in zoom-in-95 duration-150"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 mb-4">
               <div>
-                <h3 className="text-base font-bold text-slate-900">
+                <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
                   {editEntity.kind === 'category' ? 'Editar Categoría' : 'Editar Subcategoría'}
                 </h3>
-                <p className="text-[11px] text-slate-500 font-mono mt-0.5">{editEntity.id}</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono mt-0.5">{editEntity.id}</p>
               </div>
-              <button onClick={() => setEditEntity(null)} className="text-slate-400 hover:text-slate-700 p-1">
+              <button onClick={() => setEditEntity(null)} className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <form onSubmit={handleEditEntitySubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Nombre *</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Nombre *</label>
                 <input
                   type="text"
                   value={editEntityName}
                   onChange={(e) => setEditEntityName(e.target.value)}
-                  className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-teal-500 font-medium"
+                  className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-teal-500 font-medium"
                   required
                 />
               </div>
@@ -5348,17 +5348,17 @@ export const AdminHubView: React.FC = () => {
               {editEntity.kind === 'category' && (
                 <>
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Descripción</label>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Descripción</label>
                     <textarea
                       value={editEntityDesc}
                       onChange={(e) => setEditEntityDesc(e.target.value)}
                       rows={3}
-                      className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-teal-500"
+                      className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-teal-500"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Ícono del rubro</label>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Ícono del rubro</label>
                     <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                       {CATEGORY_ICON_KEYS.map((key) => {
                         const visual = getCategoryVisual(key);
@@ -5370,11 +5370,11 @@ export const AdminHubView: React.FC = () => {
                             className={`flex flex-col items-center gap-1 p-2 rounded-lg border transition-all ${
                               editEntityIcon === key
                                 ? `${visual.bg} ${visual.border} ring-2 ring-teal-500`
-                                : 'border-slate-200 bg-white hover:bg-slate-50'
+                                : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800'
                             }`}
                           >
                             <CategoryIcon name={key} className="w-5 h-5" />
-                            <span className="text-[9px] font-semibold text-slate-600 text-center leading-tight">
+                            <span className="text-[9px] font-semibold text-slate-600 dark:text-slate-400 text-center leading-tight">
                               {visual.label}
                             </span>
                           </button>
@@ -5385,11 +5385,11 @@ export const AdminHubView: React.FC = () => {
                 </>
               )}
 
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setEditEntity(null)}
-                  className="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-semibold"
+                  className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-lg text-xs font-semibold"
                 >
                   Cancelar
                 </button>
@@ -5420,7 +5420,7 @@ export const AdminHubView: React.FC = () => {
             onClick={() => setDeleteEntity(null)}
           >
             <div
-              className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-150"
+              className="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 animate-in zoom-in-95 duration-150"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-start gap-3 mb-4">
@@ -5428,10 +5428,10 @@ export const AdminHubView: React.FC = () => {
                   <Trash2 className="w-5 h-5" />
                 </span>
                 <div>
-                  <h3 className="text-base font-bold text-slate-900">
+                  <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
                     Eliminar {isCategory ? 'categoría' : 'subcategoría'}
                   </h3>
-                  <p className="text-xs text-slate-600 mt-1">
+                  <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
                     {count === 0 ? (
                       <>
                         <strong>{deleteEntity.name}</strong> no tiene servicios asociados — se puede eliminar
@@ -5449,33 +5449,33 @@ export const AdminHubView: React.FC = () => {
 
               {count > 0 && (
                 <div className="space-y-2 mb-4">
-                  <label className="flex items-start gap-2 p-2.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-50">
+                  <label className="flex items-start gap-2 p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800">
                     <input
                       type="radio"
                       checked={deleteAction === 'hide'}
                       onChange={() => setDeleteAction('hide')}
                       className="mt-0.5"
                     />
-                    <span className="text-xs text-slate-700">
-                      <strong className="block text-slate-900">Ocultar</strong>
+                    <span className="text-xs text-slate-700 dark:text-slate-300">
+                      <strong className="block text-slate-900 dark:text-slate-100">Ocultar</strong>
                       Deja de verse en el portal público, pero los servicios y la categoría siguen existiendo.
                     </span>
                   </label>
-                  <label className="flex items-start gap-2 p-2.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-50">
+                  <label className="flex items-start gap-2 p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800">
                     <input
                       type="radio"
                       checked={deleteAction === 'merge'}
                       onChange={() => setDeleteAction('merge')}
                       className="mt-0.5"
                     />
-                    <span className="text-xs text-slate-700 flex-1">
-                      <strong className="block text-slate-900">Fusionar con otra</strong>
+                    <span className="text-xs text-slate-700 dark:text-slate-300 flex-1">
+                      <strong className="block text-slate-900 dark:text-slate-100">Fusionar con otra</strong>
                       Todos los servicios pasan a la que elijas, y esta se elimina.
                       {deleteAction === 'merge' && (
                         <select
                           value={mergeTargetId}
                           onChange={(e) => setMergeTargetId(e.target.value)}
-                          className="mt-2 w-full text-xs px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg"
+                          className="mt-2 w-full text-xs px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 rounded-lg"
                         >
                           <option value="">Elegí destino…</option>
                           {mergeOptions.map((opt) => (
@@ -5494,7 +5494,7 @@ export const AdminHubView: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setDeleteEntity(null)}
-                  className="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-semibold"
+                  className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-lg text-xs font-semibold"
                 >
                   Cancelar
                 </button>

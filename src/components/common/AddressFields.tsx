@@ -28,43 +28,43 @@ export const AddressFields: React.FC<{
   return (
     <div className="space-y-2">
       <div className="grid grid-cols-[2fr_1fr] gap-2">
-        <label className="text-xs font-semibold text-slate-700">
+        <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
           Calle
           <input
             value={value.street}
             onChange={(event) => setCapitalized('street', event.target.value)}
             placeholder="Ej.: Suipacha"
-            className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+            className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm"
           />
         </label>
-        <label className="text-xs font-semibold text-slate-700">
+        <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
           Número
           <input
             value={value.streetNumber}
             onChange={(event) => set('streetNumber', event.target.value)}
             placeholder="Ej.: 547"
             inputMode="numeric"
-            className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+            className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm"
           />
         </label>
       </div>
       <div className={showProvince ? 'grid sm:grid-cols-2 gap-2' : 'grid gap-2'}>
-        <label className="text-xs font-semibold text-slate-700">
+        <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
           Localidad
           <input
             value={value.city}
             onChange={(event) => setCapitalized('city', event.target.value)}
             placeholder="Ej.: Burzaco"
-            className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+            className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm"
           />
         </label>
         {showProvince && (
-          <label className="text-xs font-semibold text-slate-700">
+          <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
             Provincia
             <select
               value={value.province}
               onChange={(event) => set('province', event.target.value)}
-              className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+              className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
             >
               <option value="" disabled>Elegí tu provincia</option>
               {ARGENTINA_PROVINCES.map((p) => <option key={p} value={p}>{p}</option>)}
@@ -72,13 +72,13 @@ export const AddressFields: React.FC<{
           </label>
         )}
       </div>
-      <label className="block text-xs font-semibold text-slate-700">
+      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
         Barrio <span className="font-normal text-slate-400">(opcional, ej. en CABA)</span>
         <input
           value={value.neighborhood}
           onChange={(event) => setCapitalized('neighborhood', event.target.value)}
           placeholder="Ej.: Palermo"
-          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+          className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm"
         />
       </label>
     </div>

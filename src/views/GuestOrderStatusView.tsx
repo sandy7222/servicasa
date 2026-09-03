@@ -84,26 +84,26 @@ export const GuestOrderStatusView: React.FC<{ token: string }> = ({ token }) => 
   const stillPolling = pollCount < MAX_POLLS;
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-10 px-4" id="tecniurbano-guest-order-status">
-      <div className="max-w-md w-full mx-auto bg-white rounded-xl p-6 shadow-md border border-slate-200 text-center space-y-4">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col justify-center py-10 px-4" id="tecniurbano-guest-order-status">
+      <div className="max-w-md w-full mx-auto bg-white dark:bg-slate-900 rounded-xl p-6 shadow-md border border-slate-200 dark:border-slate-700 text-center space-y-4">
         {error ? (
           <>
             <XCircle className="w-10 h-10 text-rose-500 mx-auto" />
-            <p className="text-sm font-bold text-slate-900">{error}</p>
-            <p className="text-xs text-slate-500">
+            <p className="text-sm font-bold text-slate-900 dark:text-slate-100">{error}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               Si ya pagaste, contactanos con tu email y te ayudamos a confirmarlo manualmente.
             </p>
           </>
         ) : !status ? (
           <>
             <Loader2 className="w-8 h-8 text-teal-600 animate-spin mx-auto" />
-            <p className="text-sm text-slate-600">Buscando tu solicitud…</p>
+            <p className="text-sm text-slate-600 dark:text-slate-400">Buscando tu solicitud…</p>
           </>
         ) : status.failed || (mpAborted && !status.paid) ? (
           <>
             <XCircle className="w-10 h-10 text-rose-500 mx-auto" />
-            <p className="text-sm font-bold text-slate-900">El pago no se pudo completar</p>
-            <p className="text-xs text-slate-500">
+            <p className="text-sm font-bold text-slate-900 dark:text-slate-100">El pago no se pudo completar</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               No se generó ninguna solicitud ni se realizó ningún cargo. Volvé a intentarlo desde el catálogo cuando
               quieras.
             </p>
@@ -111,8 +111,8 @@ export const GuestOrderStatusView: React.FC<{ token: string }> = ({ token }) => 
         ) : status.paid ? (
           <>
             <CheckCircle2 className="w-10 h-10 text-teal-600 mx-auto" />
-            <p className="text-sm font-bold text-slate-900">¡Pago confirmado!</p>
-            <p className="text-xs text-slate-500">
+            <p className="text-sm font-bold text-slate-900 dark:text-slate-100">¡Pago confirmado!</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               Tu solicitud <strong>"{status.title}"</strong> ya está en marcha. Creá tu contraseña para
               hacer seguimiento del pedido:
             </p>
@@ -124,7 +124,7 @@ export const GuestOrderStatusView: React.FC<{ token: string }> = ({ token }) => 
                 Crear mi contraseña
               </a>
             ) : (
-              <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+              <p className="text-xs text-amber-700 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2">
                 Estamos preparando tu enlace de acceso — recargá esta página en unos segundos.
               </p>
             )}
@@ -132,12 +132,12 @@ export const GuestOrderStatusView: React.FC<{ token: string }> = ({ token }) => 
         ) : (
           <>
             <Loader2 className="w-8 h-8 text-teal-600 animate-spin mx-auto" />
-            <p className="text-sm font-bold text-slate-900">Esperando la confirmación del pago…</p>
-            <p className="text-xs text-slate-500">
+            <p className="text-sm font-bold text-slate-900 dark:text-slate-100">Esperando la confirmación del pago…</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               Esto puede tardar unos segundos después de pagar en Mercado Pago. No cierres esta página.
             </p>
             {!stillPolling && (
-              <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+              <p className="text-xs text-amber-700 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2">
                 Está tardando más de lo normal. Si ya pagaste, recargá esta página; si no, contactanos.
               </p>
             )}

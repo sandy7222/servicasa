@@ -203,12 +203,12 @@ export function TechnicianReviewCard({ technicianId, onClose, onChanged }: { tec
   const renderRequirementEvidence = (r: Requirement) => {
     if (r.requirement_type === 'matricula_validated') {
       if (licenses.length > 0) {
-        return <div className="mt-1 space-y-0.5">{licenses.map((l) => <p key={l.id} className="text-[11px] text-slate-700">{l.issuing_entity} · matrícula {l.license_number}{l.specialty ? ` · ${l.specialty}` : ''} · <span className="font-bold uppercase">{l.validation_status}</span></p>)}</div>;
+        return <div className="mt-1 space-y-0.5">{licenses.map((l) => <p key={l.id} className="text-[11px] text-slate-700 dark:text-slate-300">{l.issuing_entity} · matrícula {l.license_number}{l.specialty ? ` · ${l.specialty}` : ''} · <span className="font-bold uppercase">{l.validation_status}</span></p>)}</div>;
       }
       return (
         <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-          <input value={matriculaForm.issuing_entity} onChange={(e) => setMatriculaForm({ ...matriculaForm, issuing_entity: e.target.value })} placeholder="Entidad emisora" className="w-32 rounded border border-slate-200 px-2 py-1 text-[11px]" />
-          <input value={matriculaForm.license_number} onChange={(e) => setMatriculaForm({ ...matriculaForm, license_number: e.target.value })} placeholder="N° de matrícula" className="w-28 rounded border border-slate-200 px-2 py-1 text-[11px]" />
+          <input value={matriculaForm.issuing_entity} onChange={(e) => setMatriculaForm({ ...matriculaForm, issuing_entity: e.target.value })} placeholder="Entidad emisora" className="w-32 rounded border border-slate-200 dark:border-slate-700 px-2 py-1 text-[11px]" />
+          <input value={matriculaForm.license_number} onChange={(e) => setMatriculaForm({ ...matriculaForm, license_number: e.target.value })} placeholder="N° de matrícula" className="w-28 rounded border border-slate-200 dark:border-slate-700 px-2 py-1 text-[11px]" />
           <button type="button" disabled={savingExtra} onClick={() => void saveMatricula()} className="rounded bg-slate-900 px-2 py-1 text-[11px] font-bold text-teal-300 disabled:opacity-50">{savingExtra ? 'Guardando…' : 'Cargar matrícula'}</button>
         </div>
       );
@@ -225,13 +225,13 @@ export function TechnicianReviewCard({ technicianId, onClose, onChanged }: { tec
       );
     }
     if (r.requirement_type === 'bank_account_valid') {
-      if (account) return <p className="mt-1 text-[11px] text-slate-700"><Landmark className="mr-1 inline w-3.5 h-3.5 text-teal-600" />{account.account_holder} · {account.provider} · CBU/CVU {account.cbu_cvu}{account.alias ? ` · alias ${account.alias}` : ''} · <span className="font-bold uppercase">{account.validation_status}</span></p>;
+      if (account) return <p className="mt-1 text-[11px] text-slate-700 dark:text-slate-300"><Landmark className="mr-1 inline w-3.5 h-3.5 text-teal-600" />{account.account_holder} · {account.provider} · CBU/CVU {account.cbu_cvu}{account.alias ? ` · alias ${account.alias}` : ''} · <span className="font-bold uppercase">{account.validation_status}</span></p>;
       return (
         <div className="mt-1.5 grid grid-cols-2 gap-1.5 sm:flex sm:flex-wrap sm:items-center">
-          <input value={accountForm.account_holder} onChange={(e) => setAccountForm({ ...accountForm, account_holder: e.target.value })} placeholder="Titular" className="rounded border border-slate-200 px-2 py-1 text-[11px]" />
-          <input value={accountForm.cbu_cvu} onChange={(e) => setAccountForm({ ...accountForm, cbu_cvu: e.target.value.replace(/\D/g, '').slice(0, 22) })} placeholder="CBU/CVU (22 dígitos)" className="rounded border border-slate-200 px-2 py-1 text-[11px]" />
-          <input value={accountForm.alias} onChange={(e) => setAccountForm({ ...accountForm, alias: e.target.value })} placeholder="Alias (opcional)" className="rounded border border-slate-200 px-2 py-1 text-[11px]" />
-          <select value={accountForm.provider} onChange={(e) => setAccountForm({ ...accountForm, provider: e.target.value })} className="rounded border border-slate-200 px-2 py-1 text-[11px]">
+          <input value={accountForm.account_holder} onChange={(e) => setAccountForm({ ...accountForm, account_holder: e.target.value })} placeholder="Titular" className="rounded border border-slate-200 dark:border-slate-700 px-2 py-1 text-[11px]" />
+          <input value={accountForm.cbu_cvu} onChange={(e) => setAccountForm({ ...accountForm, cbu_cvu: e.target.value.replace(/\D/g, '').slice(0, 22) })} placeholder="CBU/CVU (22 dígitos)" className="rounded border border-slate-200 dark:border-slate-700 px-2 py-1 text-[11px]" />
+          <input value={accountForm.alias} onChange={(e) => setAccountForm({ ...accountForm, alias: e.target.value })} placeholder="Alias (opcional)" className="rounded border border-slate-200 dark:border-slate-700 px-2 py-1 text-[11px]" />
+          <select value={accountForm.provider} onChange={(e) => setAccountForm({ ...accountForm, provider: e.target.value })} className="rounded border border-slate-200 dark:border-slate-700 px-2 py-1 text-[11px]">
             <option value="bank">Banco</option>
             <option value="mercadopago">Mercado Pago</option>
             <option value="other">Otra billetera</option>
@@ -241,54 +241,54 @@ export function TechnicianReviewCard({ technicianId, onClose, onChanged }: { tec
       );
     }
     if (r.requirement_type === 'education_verified') {
-      return <p className="mt-1 text-[11px] text-slate-700">{tech?.degree_title || tech?.education_level || 'Sin cargar'}{tech?.institution_name ? ` · ${tech.institution_name}` : ''}</p>;
+      return <p className="mt-1 text-[11px] text-slate-700 dark:text-slate-300">{tech?.degree_title || tech?.education_level || 'Sin cargar'}{tech?.institution_name ? ` · ${tech.institution_name}` : ''}</p>;
     }
     return null;
   };
 
-  if (loading || !tech) return <div className="p-5 text-sm text-slate-500">Cargando revisión…</div>;
+  if (loading || !tech) return <div className="p-5 text-sm text-slate-500 dark:text-slate-400">Cargando revisión…</div>;
 
   return (
     <div className="space-y-4">
       <div className="flex justify-between gap-3">
         <div>
-          <h2 className="text-lg font-black text-slate-900">Revisión de {tech.name}</h2>
-          <p className="text-xs text-slate-500">{tech.specialty} · {reviewed}/{requirements.length} requisitos resueltos</p>
+          <h2 className="text-lg font-black text-slate-900 dark:text-slate-100">Revisión de {tech.name}</h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400">{tech.specialty} · {reviewed}/{requirements.length} requisitos resueltos</p>
         </div>
-        <button onClick={onClose} className="text-xs font-bold text-slate-500">Cerrar</button>
+        <button onClick={onClose} className="text-xs font-bold text-slate-500 dark:text-slate-400">Cerrar</button>
       </div>
-      <div className="h-2 rounded-full bg-slate-100"><div className="h-full rounded-full bg-teal-500" style={{ width: `${requirements.length ? (reviewed / requirements.length) * 100 : 0}%` }} /></div>
+      <div className="h-2 rounded-full bg-slate-100 dark:bg-slate-800"><div className="h-full rounded-full bg-teal-500" style={{ width: `${requirements.length ? (reviewed / requirements.length) * 100 : 0}%` }} /></div>
 
-      <section className="grid gap-2 rounded-xl border border-slate-200 p-3 text-xs sm:grid-cols-2">
+      <section className="grid gap-2 rounded-xl border border-slate-200 dark:border-slate-700 p-3 text-xs sm:grid-cols-2">
         <p><b>Teléfono:</b> {tech.work_phone || tech.phone || 'Sin cargar'}</p>
         <p><b>Formación:</b> {tech.degree_title || tech.education_level || 'Sin cargar'}</p>
         <p className="sm:col-span-2"><b>Presentación:</b> {tech.bio || 'Sin cargar'}</p>
       </section>
 
-      <section className="space-y-2 rounded-xl border border-slate-200 p-3">
+      <section className="space-y-2 rounded-xl border border-slate-200 dark:border-slate-700 p-3">
         <div className="flex items-center justify-between gap-2">
           <h3 className="text-sm font-bold">Requisitos</h3>
           <div className="flex items-center gap-2 text-[11px]">
             <button type="button" onClick={() => setSelectedReqIds(new Set(requirements.filter((r) => r.status === 'pending').map((r) => r.id)))} className="font-bold text-teal-700 underline">Seleccionar pendientes</button>
-            {selectedReqIds.size > 0 && <button type="button" onClick={() => setSelectedReqIds(new Set())} className="font-bold text-slate-500 underline">Ninguno</button>}
+            {selectedReqIds.size > 0 && <button type="button" onClick={() => setSelectedReqIds(new Set())} className="font-bold text-slate-500 dark:text-slate-400 underline">Ninguno</button>}
           </div>
         </div>
 
         {requirements.length === 0 && (
-          <p className="rounded-lg border border-amber-200 bg-amber-50 p-2 text-xs text-amber-700">
+          <p className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-2 text-xs text-amber-700">
             Este técnico todavía no tiene un checklist de requisitos generado, así que no se lo puede aprobar. Corré de nuevo el backfill de <code>enable_technician_validation_workflow.sql</code> para generarlo.
           </p>
         )}
 
         {selectedReqIds.size > 0 && (
-          <div className="space-y-2 rounded-lg border border-teal-200 bg-teal-50/50 p-2">
-            <p className="text-[11px] font-bold text-slate-600">{selectedReqIds.size} requisito{selectedReqIds.size === 1 ? '' : 's'} seleccionado{selectedReqIds.size === 1 ? '' : 's'}</p>
-            <textarea value={bulkNote} onChange={(e) => setBulkNote(e.target.value)} placeholder="Motivo (obligatorio solo para observar)" rows={2} className="w-full rounded border border-slate-200 p-2 text-xs" />
+          <div className="space-y-2 rounded-lg border border-teal-200 dark:border-teal-800 bg-teal-50/50 p-2">
+            <p className="text-[11px] font-bold text-slate-600 dark:text-slate-400">{selectedReqIds.size} requisito{selectedReqIds.size === 1 ? '' : 's'} seleccionado{selectedReqIds.size === 1 ? '' : 's'}</p>
+            <textarea value={bulkNote} onChange={(e) => setBulkNote(e.target.value)} placeholder="Motivo (obligatorio solo para observar)" rows={2} className="w-full rounded border border-slate-200 dark:border-slate-700 p-2 text-xs" />
             <div className="flex gap-1.5">
               <button type="button" disabled={pending !== null} onClick={() => { playClickSound(); void bulkUpdateSelected('approved'); }} className="rounded bg-emerald-600 px-3 py-1.5 text-[11px] font-bold text-white disabled:cursor-wait disabled:opacity-50">
                 {pending === 'bulk:approved' ? 'Guardando…' : 'Aprobar seleccionados'}
               </button>
-              <button type="button" disabled={pending !== null} onClick={() => { playClickSound(); void bulkUpdateSelected('observed'); }} className="rounded border border-amber-300 bg-amber-50 px-3 py-1.5 text-[11px] font-bold text-amber-800 disabled:cursor-wait disabled:opacity-50">
+              <button type="button" disabled={pending !== null} onClick={() => { playClickSound(); void bulkUpdateSelected('observed'); }} className="rounded border border-amber-300 bg-amber-50 dark:bg-amber-950/40 px-3 py-1.5 text-[11px] font-bold text-amber-800 disabled:cursor-wait disabled:opacity-50">
                 {pending === 'bulk:observed' ? 'Guardando…' : 'Observar seleccionados'}
               </button>
             </div>
@@ -296,7 +296,7 @@ export function TechnicianReviewCard({ technicianId, onClose, onChanged }: { tec
         )}
 
         {requirements.map((r) => (
-          <div key={r.id} className="rounded-lg border border-slate-200 bg-slate-50 p-2.5">
+          <div key={r.id} className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 p-2.5">
             <label className="flex items-start gap-2">
               <input type="checkbox" className="mt-0.5" checked={selectedReqIds.has(r.id)} onChange={() => toggleReqSelection(r.id)} />
               <div className="min-w-0 flex-1">
@@ -306,7 +306,7 @@ export function TechnicianReviewCard({ technicianId, onClose, onChanged }: { tec
                 </div>
                 {renderRequirementEvidence(r)}
                 {!r.is_required && r.status !== 'not_required' && (
-                  <button type="button" onClick={() => void markNotApplicable(r)} className="mt-1 text-[10px] font-bold text-slate-500 underline">Marcar como no aplica</button>
+                  <button type="button" onClick={() => void markNotApplicable(r)} className="mt-1 text-[10px] font-bold text-slate-500 dark:text-slate-400 underline">Marcar como no aplica</button>
                 )}
               </div>
             </label>
@@ -314,23 +314,23 @@ export function TechnicianReviewCard({ technicianId, onClose, onChanged }: { tec
         ))}
       </section>
 
-      <section className="rounded-xl border border-slate-200 p-3 text-xs">
+      <section className="rounded-xl border border-slate-200 dark:border-slate-700 p-3 text-xs">
         <h3 className="mb-2 text-sm font-bold">Documentos privados</h3>
-        {docs.length ? docs.map((d) => <button key={d.id} onClick={() => void openDocument(d.storage_path)} className="block w-full rounded p-2 text-left hover:bg-slate-50"><FileText className="mr-1 inline w-4 text-teal-600" />{d.label} · {d.validation_status}</button>) : <p className="text-slate-500">No adjuntó documentos.</p>}
+        {docs.length ? docs.map((d) => <button key={d.id} onClick={() => void openDocument(d.storage_path)} className="block w-full rounded p-2 text-left hover:bg-slate-50 dark:hover:bg-slate-800"><FileText className="mr-1 inline w-4 text-teal-600" />{d.label} · {d.validation_status}</button>) : <p className="text-slate-500 dark:text-slate-400">No adjuntó documentos.</p>}
         <p className="mt-2"><Landmark className="mr-1 inline w-4 text-teal-600" />Cuenta: {account ? `${account.provider} · ****${account.cbu_cvu.slice(-4)} · ${account.validation_status}` : 'No cargada'}</p>
         <p className="mt-1">Matrículas: {licenses.length ? licenses.map((l) => `${l.issuing_entity} ${l.license_number} (${l.validation_status})`).join(', ') : 'No cargadas'}</p>
       </section>
 
-      <section className="rounded-xl border border-slate-200 p-3">
-        <label className="mb-2 block text-xs font-semibold text-slate-700">
+      <section className="rounded-xl border border-slate-200 dark:border-slate-700 p-3">
+        <label className="mb-2 block text-xs font-semibold text-slate-700 dark:text-slate-300">
           Motivo de la decisión (obligatorio para observar o suspender)
-          <textarea value={decisionNote} onChange={(e) => setDecisionNote(e.target.value)} className="mt-1 w-full rounded border border-slate-200 p-2 text-xs" placeholder="Ej: falta la constancia de monotributo actualizada" rows={2} />
+          <textarea value={decisionNote} onChange={(e) => setDecisionNote(e.target.value)} className="mt-1 w-full rounded border border-slate-200 dark:border-slate-700 p-2 text-xs" placeholder="Ej: falta la constancia de monotributo actualizada" rows={2} />
         </label>
         <div className="flex flex-wrap gap-2">
           <button onClick={() => { playClickSound(); void decide('approved'); }} disabled={pending !== null} className={`inline-flex items-center gap-1 rounded bg-emerald-600 px-3 py-2 text-xs font-bold text-white disabled:cursor-wait ${!canApprove ? 'opacity-50' : 'disabled:opacity-50'}`}>
             <CheckCircle2 className="w-4" />{pending === 'decide:approved' ? 'Guardando…' : 'Aprobar técnico'}
           </button>
-          <button onClick={() => { playClickSound(); void decide('observed'); }} disabled={pending !== null} className="inline-flex items-center gap-1 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800 disabled:cursor-wait disabled:opacity-50">
+          <button onClick={() => { playClickSound(); void decide('observed'); }} disabled={pending !== null} className="inline-flex items-center gap-1 rounded border border-amber-300 bg-amber-50 dark:bg-amber-950/40 px-3 py-2 text-xs font-bold text-amber-800 disabled:cursor-wait disabled:opacity-50">
             <CircleAlert className="w-4" />{pending === 'decide:observed' ? 'Guardando…' : 'Observar perfil'}
           </button>
           <button onClick={() => { playClickSound(); void decide('suspended'); }} disabled={pending !== null} className="inline-flex items-center gap-1 rounded border border-rose-300 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-800 disabled:cursor-wait disabled:opacity-50">

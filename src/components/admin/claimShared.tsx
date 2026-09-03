@@ -49,15 +49,15 @@ export const SETTLEMENT_ACTION_LABELS: Record<ClaimSettlementAction, string> = {
 const STATUS_TONE: Record<ClaimStatus, string> = {
   open: 'bg-rose-50 text-rose-700 border-rose-200',
   in_progress: 'bg-sky-50 text-sky-700 border-sky-200',
-  waiting_client: 'bg-amber-50 text-amber-700 border-amber-200',
+  waiting_client: 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 border-amber-200 dark:border-amber-800',
   waiting_technician: 'bg-violet-50 text-violet-700 border-violet-200',
   resolved: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  closed: 'bg-slate-100 text-slate-600 border-slate-200',
+  closed: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700',
   escalated: 'bg-rose-100 text-rose-800 border-rose-300',
 };
 
 const PRIORITY_TONE: Record<ClaimPriority, string> = {
-  low: 'bg-slate-100 text-slate-600 border-slate-200',
+  low: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700',
   medium: 'bg-sky-50 text-sky-700 border-sky-200',
   high: 'bg-orange-50 text-orange-700 border-orange-200',
   urgent: 'bg-rose-50 text-rose-700 border-rose-200',

@@ -99,9 +99,9 @@ export const NotificationBell: React.FC = () => {
       </button>
 
       {isOpen && (
-        <div className="fixed left-2 right-2 top-14 sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-80 sm:max-w-[90vw] bg-white rounded-xl shadow-xl border border-slate-200 z-50 overflow-hidden">
-          <div className="flex items-center justify-between px-3 py-2.5 border-b border-slate-100">
-            <span className="text-xs font-bold text-slate-700">Notificaciones</span>
+        <div className="fixed left-2 right-2 top-14 sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-80 sm:max-w-[90vw] bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 z-50 overflow-hidden">
+          <div className="flex items-center justify-between px-3 py-2.5 border-b border-slate-100 dark:border-slate-800">
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Notificaciones</span>
             {unreadCount > 0 && (
               <button
                 onClick={handleMarkAllRead}
@@ -121,7 +121,7 @@ export const NotificationBell: React.FC = () => {
                 <button
                   key={n.id}
                   onClick={() => void handleOpenNotification(n)}
-                  className={`w-full text-left px-3 py-2.5 border-b border-slate-50 hover:bg-slate-50 transition-colors flex gap-2 ${
+                  className={`w-full text-left px-3 py-2.5 border-b border-slate-50 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex gap-2 ${
                     !n.readAt ? 'bg-teal-50/50' : ''
                   }`}
                 >
@@ -131,10 +131,10 @@ export const NotificationBell: React.FC = () => {
                     }`}
                   />
                   <div className="min-w-0 flex-1">
-                    <div className={`text-xs ${!n.readAt ? 'font-bold text-slate-800' : 'font-medium text-slate-600'}`}>
+                    <div className={`text-xs ${!n.readAt ? 'font-bold text-slate-800 dark:text-slate-200' : 'font-medium text-slate-600 dark:text-slate-400'}`}>
                       {n.title}
                     </div>
-                    {n.body && <div className="text-[11px] text-slate-500 truncate mt-0.5">{n.body}</div>}
+                    {n.body && <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">{n.body}</div>}
                     <div className="text-[10px] text-slate-400 font-mono mt-0.5">{relativeTime(n.createdAt)}</div>
                   </div>
                 </button>

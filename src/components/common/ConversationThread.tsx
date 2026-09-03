@@ -80,11 +80,11 @@ export function ConversationThread({ conversationId, onBack }: { conversationId:
     }
   };
 
-  if (loading) return <main className="max-w-3xl mx-auto px-4 py-10 text-center text-slate-500">Cargando conversación…</main>;
+  if (loading) return <main className="max-w-3xl mx-auto px-4 py-10 text-center text-slate-500 dark:text-slate-400">Cargando conversación…</main>;
   if (!conversation) {
     return (
       <main className="max-w-3xl mx-auto px-4 py-10 text-center">
-        <p className="text-slate-500">No encontramos esa conversación, o no tenés acceso a ella.</p>
+        <p className="text-slate-500 dark:text-slate-400">No encontramos esa conversación, o no tenés acceso a ella.</p>
         <button onClick={onBack} className="mt-3 text-teal-700 font-bold hover:underline">← Volver</button>
       </main>
     );
@@ -106,14 +106,14 @@ export function ConversationThread({ conversationId, onBack }: { conversationId:
         </p>
       </section>
 
-      <section className="rounded-xl bg-white border border-slate-200 p-4">
+      <section className="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-4">
         <div className="space-y-2 max-h-[28rem] overflow-y-auto">
           {conversation.messages.length === 0 && <p className="text-sm text-slate-400 text-center py-6">Todavía no hay mensajes. Escribí el primero.</p>}
           {conversation.messages.map((m) => {
             const isMine = m.senderId === currentUser?.id;
             return (
               <div key={m.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[80%] rounded-lg p-2.5 text-sm ${isMine ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-800'}`}>
+                <div className={`max-w-[80%] rounded-lg p-2.5 text-sm ${isMine ? 'bg-teal-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200'}`}>
                   <p className="whitespace-pre-wrap">{m.body}</p>
                   <div className={`text-[10px] mt-1 ${isMine ? 'text-teal-100' : 'text-slate-400'}`}>{formatDateTime(m.createdAt)}</div>
                 </div>
@@ -122,14 +122,14 @@ export function ConversationThread({ conversationId, onBack }: { conversationId:
           })}
           <div ref={bottomRef} />
         </div>
-        <div className="border-t border-slate-100 mt-3 pt-3 flex gap-2">
+        <div className="border-t border-slate-100 dark:border-slate-800 mt-3 pt-3 flex gap-2">
           <textarea
             value={body}
             onChange={(e) => setBody(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void submit(); } }}
             rows={1}
             placeholder="Escribir un mensaje…"
-            className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm resize-none"
+            className="flex-1 rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm resize-none"
           />
           <button onClick={() => void submit()} disabled={sending || !body.trim()} className="inline-flex items-center gap-1.5 rounded-lg bg-[#0F172A] hover:bg-slate-800 disabled:opacity-50 text-teal-300 px-4 py-2 text-xs font-bold shrink-0">
             <Send className="w-3.5 h-3.5" />Enviar

@@ -6,7 +6,7 @@ export const FullPageLoader: React.FC<{ message?: string }> = ({
 }) => (
   <div className="min-h-[50vh] flex flex-col items-center justify-center gap-3 px-4 text-center">
     <Loader2 className="w-8 h-8 text-teal-600 animate-spin" />
-    <p className="text-sm font-medium text-slate-600">{message}</p>
+    <p className="text-sm font-medium text-slate-600 dark:text-slate-400">{message}</p>
     <p className="text-[11px] font-mono text-slate-400">TecniUrbano · Supabase</p>
   </div>
 );
@@ -37,7 +37,7 @@ export const DataErrorBanner: React.FC<{
   retrying?: boolean;
 }> = ({ message, onRetry, retrying }) => (
   <div className="mx-auto max-w-7xl px-3 sm:px-5 lg:px-6 pt-3">
-    <div className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-950">
+    <div className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 px-4 py-3 text-amber-950">
       <div className="flex items-start gap-2 flex-1 min-w-0">
         <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
         <div className="min-w-0">
@@ -64,10 +64,10 @@ export const DataErrorBanner: React.FC<{
 
 export const ConfigMissingBanner: React.FC = () => (
   <div className="mx-auto max-w-md px-4">
-    <div className="rounded-xl border border-slate-200 bg-white p-4 text-center space-y-2 shadow-sm">
+    <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 text-center space-y-2 shadow-sm">
       <WifiOff className="w-6 h-6 text-slate-400 mx-auto" />
-      <p className="text-sm font-bold text-slate-800">Supabase no configurado</p>
-      <p className="text-xs text-slate-500">
+      <p className="text-sm font-bold text-slate-800 dark:text-slate-200">Supabase no configurado</p>
+      <p className="text-xs text-slate-500 dark:text-slate-400">
         Faltan <code className="font-mono">VITE_SUPABASE_URL</code> y{' '}
         <code className="font-mono">VITE_SUPABASE_ANON_KEY</code> en{' '}
         <code className="font-mono">.env.local</code>.

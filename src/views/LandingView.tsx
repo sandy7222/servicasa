@@ -19,7 +19,7 @@ export const LandingView: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800" id="tecniurbano-landing-view">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200" id="tecniurbano-landing-view">
       <LandingHeader />
 
       <HeroSection

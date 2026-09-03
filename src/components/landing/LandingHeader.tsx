@@ -3,6 +3,7 @@ import { ArrowRight, Menu, X } from 'lucide-react';
 import { Logo } from '../common/Logo';
 import { useApp } from '../../context/AppContext';
 import { scrollToFramedSection } from '../../lib/landingScrollFraming';
+import { ThemeToggle } from '../common/ThemeToggle';
 
 interface NavAnchor {
   label: string;
@@ -66,7 +67,8 @@ export const LandingHeader: React.FC = () => {
             </button>
           </nav>
 
-          <div className="hidden lg:block">
+          <div className="hidden lg:flex items-center gap-2">
+            <ThemeToggle variant="bar" />
             <button
               onClick={() => navigate('/auth')}
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-teal-400 hover:bg-teal-300 text-[#0B1B33] font-bold text-sm transition-colors duration-200"
@@ -76,14 +78,17 @@ export const LandingHeader: React.FC = () => {
             </button>
           </div>
 
-          <button
-            onClick={() => setMobileOpen((v) => !v)}
-            className="lg:hidden p-2.5 text-slate-300 hover:text-white rounded-md hover:bg-slate-800 min-w-11 min-h-11 flex items-center justify-center"
-            aria-label={mobileOpen ? 'Cerrar menú' : 'Abrir menú'}
-            aria-expanded={mobileOpen}
-          >
-            {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
+          <div className="flex lg:hidden items-center gap-1">
+            <ThemeToggle variant="bar" />
+            <button
+              onClick={() => setMobileOpen((v) => !v)}
+              className="p-2.5 text-slate-300 hover:text-white rounded-md hover:bg-slate-800 min-w-11 min-h-11 flex items-center justify-center"
+              aria-label={mobileOpen ? 'Cerrar menú' : 'Abrir menú'}
+              aria-expanded={mobileOpen}
+            >
+              {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+          </div>
         </div>
       </div>
 

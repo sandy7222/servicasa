@@ -27,12 +27,12 @@ const TESTIMONIALS = [
 
 export const TestimonialsSection: React.FC = () => {
   return (
-    <section className="py-16 sm:py-20 bg-white" id="testimonios">
+    <section className="py-16 sm:py-20 bg-white dark:bg-slate-900" id="testimonios">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.1fr] gap-12 items-center">
           <div>
             <div className="text-center lg:text-left max-w-xl mx-auto lg:mx-0 mb-8">
-              <h2 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
+              <h2 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
                 Experiencias de nuestros clientes
               </h2>
               <p className="text-xs text-slate-400 mt-1.5 italic">
@@ -44,16 +44,16 @@ export const TestimonialsSection: React.FC = () => {
               {TESTIMONIALS.map((t) => (
                 <div
                   key={t.name}
-                  className="bg-white rounded-2xl p-6 border border-slate-200/70 shadow-[0_2px_12px_-6px_rgba(15,23,42,0.08)]"
+                  className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/70 shadow-[0_2px_12px_-6px_rgba(15,23,42,0.08)]"
                 >
                   <div className="flex items-center gap-1 text-amber-400 mb-3">
                     {[...Array(t.rating)].map((_, i) => (
                       <Star key={i} className="w-3.5 h-3.5 fill-amber-400" strokeWidth={0} />
                     ))}
                   </div>
-                  <p className="text-[13px] text-slate-600 italic leading-relaxed mb-4">"{t.comment}"</p>
-                  <span className="text-[13px] font-semibold text-slate-900 block">{t.name}</span>
-                  <span className="text-[12px] text-slate-500">{t.neighborhood}</span>
+                  <p className="text-[13px] text-slate-600 dark:text-slate-400 italic leading-relaxed mb-4">"{t.comment}"</p>
+                  <span className="text-[13px] font-semibold text-slate-900 dark:text-slate-100 block">{t.name}</span>
+                  <span className="text-[12px] text-slate-500 dark:text-slate-400">{t.neighborhood}</span>
                 </div>
               ))}
             </div>
