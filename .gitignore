@@ -21,3 +21,8 @@ claude code/
 .env*
 backups/
 src/assets/landing/source/
+
+# Nunca commitear el keystore de firma de Android — vive como secreto de CI
+# (ANDROID_KEYSTORE_BASE64), nunca en el repo. Ver docs/android-twa-setup.md.
+twa/*.keystore
+twa/*.jks

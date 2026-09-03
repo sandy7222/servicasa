@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 import { CheckCircle2, QrCode } from 'lucide-react';
 import appCelularWebp from '../../assets/landing/app-celular.webp';
 import appCelularPng from '../../assets/landing/app-celular.png';
-import { APP_DOWNLOAD_URL, GOOGLE_PLAY_URL, APP_STORE_URL } from '../../lib/appLinks';
+import { ANDROID_APK_URL, APP_STORE_URL } from '../../lib/appLinks';
 
 const BENEFITS = [
   'Solicitá servicios en segundos',
@@ -38,7 +39,7 @@ export const DownloadAppSection: React.FC = () => {
   const storeButtons = (
     <div className="flex flex-col sm:flex-row gap-3 w-full">
       {[
-        { key: 'android' as const, label: 'Descargar para Android', href: GOOGLE_PLAY_URL },
+        { key: 'android' as const, label: 'Descargar para Android', href: ANDROID_APK_URL },
         { key: 'ios' as const, label: 'Descargar para iPhone', href: APP_STORE_URL },
       ]
         .sort((a) => (a.key === platform ? -1 : 1))
@@ -101,8 +102,8 @@ export const DownloadAppSection: React.FC = () => {
             {/* Desktop: tarjeta QR deliberadamente diseñada + botones de tienda. */}
             <div className="mt-9 hidden lg:flex items-center gap-6">
               <div className="shrink-0 w-36 h-36 rounded-2xl bg-white p-4 flex flex-col items-center justify-center gap-1.5 text-slate-400 shadow-[0_12px_32px_-12px_rgba(0,0,0,0.4)]">
-                {APP_DOWNLOAD_URL ? (
-                  <img src={APP_DOWNLOAD_URL} alt="Código QR para descargar la app" className="w-full h-full object-contain" />
+                {ANDROID_APK_URL ? (
+                  <QRCodeSVG value={ANDROID_APK_URL} className="w-full h-full" />
                 ) : (
                   <>
                     <QrCode className="w-9 h-9" strokeWidth={1.5} />

@@ -1,0 +1,131 @@
+name: Build Android TWA
+
+# Empaqueta la PWA ya publicada como TWA (Trusted Web Activity) usando
+# Bubblewrap y publica el APK firmado como asset de un GitHub Release fijo
+# ("android-latest"), para que la URL de descarga no cambie entre versiones.
+#
+# No genera el keystore acá — un repo público no es un lugar seguro para eso
+# (cualquier artifact quedaría descargable por cualquiera). El keystore se
+# genera una sola vez, a mano, en la máquina de quien lo administre, y se
+# carga como secreto de este repo. Ver docs/android-twa-setup.md.
+#
+# Mientras esos secretos no existan, este workflow corre igual pero se
+# salta el build (informativo, no bloquea el resto del CI).
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verificar que los secretos de firma estén configurados
+        id: check
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [[ -n "$ANDROID_KEYSTORE_BASE64" && -n "$ANDROID_KEYSTORE_PASSWORD" && -n "$ANDROID_KEY_ALIAS" && -n "$ANDROID_KEY_PASSWORD" ]]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Build de Android omitido — faltan los secretos de firma (ANDROID_KEYSTORE_BASE64/ANDROID_KEYSTORE_PASSWORD/ANDROID_KEY_ALIAS/ANDROID_KEY_PASSWORD). Ver docs/android-twa-setup.md."
+          fi
+
+      - if: steps.check.outputs.configured == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - if: steps.check.outputs.configured == 'true'
+        uses: android-actions/setup-android@v4
+
+      - if: steps.check.outputs.configured == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Instalar Bubblewrap CLI
+        if: steps.check.outputs.configured == 'true'
+        run: npm install -g @bubblewrap/cli
+
+      - name: Restaurar el keystore desde el secreto
+        if: steps.check.outputs.configured == 'true'
+        working-directory: twa
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > android.keystore
+
+      - name: Fijar versionCode = número de corrida (autoincremental)
+        if: steps.check.outputs.configured == 'true'
+        working-directory: twa
+        run: |
+          node -e "
+            const fs = require('fs');
+            const p = 'twa-manifest.json';
+            const m = JSON.parse(fs.readFileSync(p, 'utf8'));
+            m.appVersionCode = ${{ github.run_number }};
+            fs.writeFileSync(p, JSON.stringify(m, null, 2) + '\n');
+          "
+
+      - name: Generar el proyecto Android desde twa-manifest.json
+        if: steps.check.outputs.configured == 'true'
+        working-directory: twa
+        run: bubblewrap update --skipVersionUpgrade
+
+      - name: Build del TWA firmado (Bubblewrap)
+        if: steps.check.outputs.configured == 'true'
+        working-directory: twa
+        env:
+          # Bubblewrap lee estas dos variables para no pedir las contraseñas
+          # de forma interactiva — no son flags de línea de comandos.
+          BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          BUBBLEWRAP_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          bubblewrap build \
+            --skipPwaValidation \
+            --signingKeyPath="./android.keystore" \
+            --signingKeyAlias="${{ secrets.ANDROID_KEY_ALIAS }}"
+
+      - name: Ubicar el APK firmado
+        if: steps.check.outputs.configured == 'true'
+        working-directory: twa
+        run: |
+          # Bubblewrap genera "app-release-signed.apk" en este mismo directorio.
+          # El find de respaldo es por si una versión distinta cambia el nombre.
+          APK="app-release-signed.apk"
+          if [[ ! -f "$APK" ]]; then
+            APK=$(find . -maxdepth 2 -iname "*signed*.apk" | head -n1)
+          fi
+          if [[ -z "$APK" || ! -f "$APK" ]]; then
+            echo "::error::No se encontró el APK firmado generado por Bubblewrap."
+            find . -iname "*.apk"
+            exit 1
+          fi
+          cp "$APK" tecniurbano.apk
+
+      - name: Publicar como GitHub Release fijo (URL estable)
+        if: steps.check.outputs.configured == 'true'
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: android-latest
+          name: 'TecniUrbano Android (build más reciente)'
+          body: |
+            APK de TecniUrbano para Android, generado automáticamente desde
+            `main` (build ${{ github.run_number }}, commit ${{ github.sha }}).
+            Este release se sobrescribe en cada build — la URL del asset no
+            cambia entre versiones.
+          make_latest: false
+          prerelease: false
+          files: twa/tecniurbano.apk

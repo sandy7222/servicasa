@@ -4,6 +4,59 @@ Registro de cambios funcionales relevantes de TecniUrbano. No reemplaza `git log
 (los detalles de implementación están en los commits y las migraciones) — es un
 resumen de qué cambió para el negocio y qué evidencia lo respalda.
 
+## 2026-09-03 (cont. 5) — Base para la descarga real de Android (TWA)
+
+Sandy pidió activar la descarga real de Android en la sección "Descargá
+TecniUrbano" (QR + botón), dejando iOS intacto ("Muy pronto"), con un
+pipeline de CI que genere y publique el APK automáticamente.
+
+- **Frontend, ya activo y probado:** `DownloadAppSection.tsx` ahora usa
+  `qrcode.react` para un QR real (antes esperaba, por error, que
+  `APP_DOWNLOAD_URL` fuera la URL de una imagen). `appLinks.ts` quedó con
+  un solo `ANDROID_APK_URL` (reemplaza `GOOGLE_PLAY_URL`/`APP_DOWNLOAD_URL`
+  — no es Play Store, es un APK directo) que alimenta el QR y el botón de
+  Android a la vez. Probado con una URL de prueba: el botón se activa sin
+  el badge "Muy pronto" y el QR renderiza un path SVG real; iPhone
+  (`APP_STORE_URL`) sigue exactamente igual. Con `ANDROID_APK_URL` en
+  `undefined` (su valor real hoy), el comportamiento visible no cambió.
+- **Pipeline de CI, armado pero sin poder probarlo de punta a punta**
+  (`.github/workflows/build-android-twa.yml`): en cada push a `main`, si
+  los 4 secretos de firma están cargados, restaura el keystore, fija
+  `versionCode` = número de corrida (autoincremental sin tocar nada a
+  mano), corre `bubblewrap update` + `build`, y publica el APK como asset
+  de un GitHub Release fijo (`android-latest`) — URL estable entre
+  versiones. Si los secretos no están, el job se salta solo, sin romper
+  el resto del CI.
+- **Decisión de seguridad importante, no pedida explícitamente:** el plan
+  original contemplaba generar el keystore en un workflow de CI y subirlo
+  como *artifact* para que Sandy lo bajara — pero este repo es público, y
+  cualquier artifact de un run público queda descargable por cualquiera.
+  Eso hubiera expuesto la clave de firma de la app. El keystore se genera
+  ahora **a mano, en la máquina de quien lo administre, nunca en CI ni en
+  este chat** — ver `docs/android-twa-setup.md`.
+- **Otro ajuste sobre la marcha, verificado contra la documentación real
+  de Bubblewrap (no solo memoria):** `bubblewrap build` no puede arrancar
+  de cero desde un `twa-manifest.json` escrito a mano — necesita el
+  proyecto Android completo que genera `bubblewrap init`, y `init` es
+  interactivo (genera el keystore en el momento) sin un modo confiable
+  100% no interactivo — es una limitación conocida y todavía abierta del
+  propio proyecto Bubblewrap. Por eso el diseño final es: `init` se corre
+  una sola vez a mano (junto con la generación del keystore), el proyecto
+  resultante (sin el keystore) se commitea, y CI solo hace `update` +
+  `build` sobre ese proyecto ya generado — eso sí está documentado como
+  soportado sin interacción.
+- `public/.well-known/assetlinks.json` agregado con un fingerprint
+  placeholder — se completa con el real recién cuando exista el keystore
+  (paso a paso en la documentación).
+- **Pendiente, a cargo de Sandy, fuera de este chat:** generar el
+  keystore (`docs/android-twa-setup.md` da los comandos exactos), cargarlo
+  como secreto del repo, completar el fingerprint real, y recién ahí
+  poner la URL real en `appLinks.ts`. Nada de esto se hizo desde acá — ni
+  siquiera se disparó el workflow una vez, a propósito.
+- `tsc`/`vitest` (106/106)/`build` limpios. YAML del workflow validado
+  sintácticamente, pero **no ejecutado ni una vez** (no hay Java/Android
+  SDK en este entorno) — la primera corrida real puede necesitar un ajuste.
+
 ## 2026-09-03 (cont. 4) — Dos correcciones puntuales del Hero
 
 Commit: `f2366c1`.
