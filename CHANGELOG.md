@@ -4,6 +4,36 @@ Registro de cambios funcionales relevantes de TecniUrbano. No reemplaza `git log
 (los detalles de implementación están en los commits y las migraciones) — es un
 resumen de qué cambió para el negocio y qué evidencia lo respalda.
 
+## 2026-09-02 (noche) — Problema 9: "Nueva Orden" del Admin Hub no podía crear órdenes
+
+Sandy reportó, haciendo el smoke test manual de la Fase 10 (flujo 3,
+asignación técnica), que "Nueva Orden" en el Admin Hub fallaba siempre con
+`null value in column "service_status" of relation "service_orders" violates
+not-null constraint`, reproducido dos veces. Impacto real: **ningún pedido
+por teléfono/WhatsApp/en persona se podía cargar** — el Admin Hub dependía
+100% de que el cliente pasara por el checkout web (que sí completa ese
+campo).
+
+- **Causa raíz confirmada:** `service_orders.service_status` es `NOT NULL`
+  sin default (a diferencia de `status`, `quote_status` y `payment_status`,
+  que sí tienen). `persistCreateOrder` (`src/lib/supabaseMutations.ts`,
+  el único inserto de `service_orders` que usa el Admin Hub) nunca mandaba
+  ese campo. El flujo de checkout (`api/payments/webhook.ts`) sí lo manda
+  explícitamente (`service_status: 'pending'`) en sus dos ramas — por eso
+  nunca se había visto ahí.
+- **Auditado el resto del código:** de los 6 archivos que referencian
+  `service_orders`, solo esos dos insertan filas nuevas. Ninguna otra ruta
+  (edge functions, otros formularios) tiene el mismo problema.
+- **Corregido en dos capas**, como pidió Sandy: `alter table service_orders
+  alter column service_status set default 'pending'`
+  (`20260903023741_service_orders_service_status_default.sql`) como red de
+  seguridad para cualquier insert futuro que no lo mande, más
+  `persistCreateOrder` ahora manda `service_status: 'pending'` explícito.
+  Verificado con un insert real contra producción dentro de una transacción
+  con `rollback` (sin dejar datos de prueba): la fila queda con
+  `service_status='pending'` sin mandarlo. `tsc`/`vitest` (106/106)/`build`
+  limpios después del cambio.
+
 ## 2026-09-02 — Fase 10: prueba de restauración de punta a punta y rotación de la contraseña de prueba
 
 Commit: `0e728e9`.
