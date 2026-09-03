@@ -17,7 +17,9 @@ import {
 } from '../../lib/diagnosisAssistant';
 import { saveAssistantDraft } from '../../lib/diagnosisDraft';
 import type { CatalogSubcategory, ServiceItem } from '../../types';
-import assistantPortrait from '../../assets/landing/asistente-avatar.png';
+import assistantPortrait from '../../assets/landing/asistente-personaje.jpeg';
+
+const assistantFaceClass = 'object-cover object-[52%_8%] bg-white';
 
 function slugMap(subcategories: readonly CatalogSubcategory[]) {
   return new Map(subcategories.map((sub) => [sub.id, sub.slug]));
@@ -80,7 +82,7 @@ export const DiagnosisAssistant: React.FC = () => {
           aria-label="Asistente de diagnóstico guiado"
         >
           <header className="flex items-center gap-2.5 px-3 py-2.5 bg-[#0F172A] text-white">
-            <img src={assistantPortrait} alt="" className="w-9 h-9 rounded-full object-cover object-top bg-white dark:bg-slate-900" />
+            <img src={assistantPortrait} alt="" className={`w-9 h-9 rounded-full ${assistantFaceClass}`} />
             <div className="min-w-0 flex-1">
               <p className="text-xs font-bold leading-tight">Asistente de diagnóstico</p>
               <p className="text-[10px] text-slate-400">Preguntas con botones · Electricidad piloto</p>
@@ -97,7 +99,7 @@ export const DiagnosisAssistant: React.FC = () => {
             {session.messages.map((message) => (
               <div key={message.id} className={`flex gap-2 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 {message.role === 'assistant' && (
-                  <img src={assistantPortrait} alt="" className="w-7 h-7 rounded-full object-cover object-top bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shrink-0 mt-0.5" />
+                  <img src={assistantPortrait} alt="" className={`w-7 h-7 rounded-full ${assistantFaceClass} border border-slate-200 dark:border-slate-700 shrink-0 mt-0.5`} />
                 )}
                 <p
                   className={`max-w-[85%] rounded-2xl px-3 py-2 text-xs leading-relaxed whitespace-pre-line ${
@@ -218,8 +220,8 @@ export const DiagnosisAssistant: React.FC = () => {
         <img
           src={assistantPortrait}
           alt="Asistente de diagnóstico"
-          className="w-full h-full object-cover bg-white dark:bg-slate-900"
-          style={{ transform: 'scale(1.9)', transformOrigin: 'center 32%' }}
+          className={`w-full h-full ${assistantFaceClass}`}
+          style={{ transform: 'scale(1.22)', transformOrigin: '52% 14%' }}
         />
       </button>
     </div>
