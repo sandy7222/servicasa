@@ -232,7 +232,19 @@ export interface ServiceOrder {
   usedMaterials: UsedMaterial[];
   customerSignature: CustomerSignature | null;
   events: OrderEvent[];
+  diagnosisPhotos: DiagnosisPhoto[];
 }
+
+/** Foto adjuntada por el cliente en el asistente de diagnóstico previo al
+ * pedido — order_diagnosis_photos. Se ve igual para técnico y admin, sin
+ * versión distinta por rol. Se borra sola a los 30 días de completada la
+ * orden (o al cerrarse un reclamo abierto dentro de esa ventana). */
+export type DiagnosisPhoto = {
+  id: string;
+  storagePath: string;
+  caption: string | null;
+  createdAt: string;
+};
 
 /** Payload created from the customer portal before payment or technician assignment. */
 export type CustomerServiceRequestInput = {
@@ -265,6 +277,12 @@ export type CustomerServiceRequestInput = {
    * confiarla — ver api/orders/request-service.ts. Ver
    * docs/adr-address-redesign.md, Fase 3. */
   addressId?: string;
+  /** Ruta temporal (`pending/<draftId>/photo.jpg`) de la foto subida desde el
+   * asistente de diagnóstico, antes de que exista el order_id real. El
+   * webhook de pago la mueve a `<order_id>/photo.jpg` y crea la fila en
+   * order_diagnosis_photos al confirmarse el pago. Ver
+   * src/lib/diagnosisPhotoUpload.ts y api/orders/upload-diagnosis-photo.ts. */
+  photoStoragePath?: string;
 };
 
 /** Dirección guardada de un cliente, reutilizable entre pedidos —

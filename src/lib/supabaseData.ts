@@ -165,6 +165,7 @@ export function mapOrder(
   customerSignature?: ServiceOrder['customerSignature'];
     events?: OrderEvent[];
     quotes?: ServiceOrder['quotes'];
+    diagnosisPhotos?: ServiceOrder['diagnosisPhotos'];
   }
 ): ServiceOrder {
   return {
@@ -216,6 +217,7 @@ export function mapOrder(
     customerSignature: extras?.customerSignature ?? null,
     events: extras?.events ?? [],
     quotes: extras?.quotes ?? [],
+    diagnosisPhotos: extras?.diagnosisPhotos ?? [],
   };
 }
 
@@ -369,11 +371,12 @@ export async function fetchCatalog(isAdmin: boolean) {
     signatures: [] as Array<Record<string, unknown>>,
     quotes: [] as DbOrderQuote[],
     quoteItems: [] as Array<Record<string, unknown>>,
+    diagnosisPhotos: [] as Array<Record<string, unknown>>,
   };
 
   let kids = emptyKids;
   if (orderIds.length > 0) {
-    const [checklist, timeLogs, notes, materials, events, signatures, quotes] = await Promise.all([
+    const [checklist, timeLogs, notes, materials, events, signatures, quotes, diagnosisPhotos] = await Promise.all([
       supabase.from('order_checklist_items').select('*').in('order_id', orderIds).order('sort_order'),
       supabase.from('order_time_logs').select('*').in('order_id', orderIds).order('created_at', { ascending: false }),
       supabase.from('order_notes').select('*').in('order_id', orderIds).order('created_at', { ascending: false }),
@@ -381,6 +384,7 @@ export async function fetchCatalog(isAdmin: boolean) {
       supabase.from('order_events').select('*').in('order_id', orderIds).order('created_at', { ascending: false }),
       supabase.from('order_signatures').select('*').in('order_id', orderIds),
       supabase.from('order_quotes').select('*').in('order_id', orderIds).order('version', { ascending: false }),
+      supabase.from('order_diagnosis_photos').select('*').in('order_id', orderIds).order('created_at', { ascending: false }),
     ]);
     if (checklist.error) throw checklist.error;
     if (timeLogs.error) throw timeLogs.error;
@@ -389,6 +393,7 @@ export async function fetchCatalog(isAdmin: boolean) {
     if (events.error) throw events.error;
     if (signatures.error) throw signatures.error;
     if (quotes.error) throw quotes.error;
+    if (diagnosisPhotos.error) throw diagnosisPhotos.error;
 
     const quoteRows = (quotes.data ?? []) as DbOrderQuote[];
     const quoteIds = quoteRows.map((quote) => quote.id);
@@ -406,6 +411,7 @@ export async function fetchCatalog(isAdmin: boolean) {
       signatures: (signatures.data ?? []) as Array<Record<string, unknown>>,
       quotes: quoteRows,
       quoteItems: (quoteItems ?? []) as Array<Record<string, unknown>>,
+      diagnosisPhotos: (diagnosisPhotos.data ?? []) as Array<Record<string, unknown>>,
     };
   }
 
@@ -417,6 +423,7 @@ export async function fetchCatalog(isAdmin: boolean) {
     const eventRows = kids.events.filter((r) => r.order_id === row.id);
     const sig = kids.signatures.find((s) => s.order_id === row.id);
     const quoteRows = kids.quotes.filter((quote) => quote.order_id === row.id);
+    const photoRows = kids.diagnosisPhotos.filter((r) => r.order_id === row.id);
 
     return mapOrder(row, {
       checklist: checklistRows.map((r) => ({
@@ -486,6 +493,12 @@ export async function fetchCatalog(isAdmin: boolean) {
           subtotal: Number(item.subtotal),
           notes: (item.notes as string | null) ?? undefined,
         })),
+      })),
+      diagnosisPhotos: photoRows.map((r) => ({
+        id: String(r.id),
+        storagePath: String(r.storage_path),
+        caption: (r.caption as string | null) ?? null,
+        createdAt: String(r.created_at),
       })),
     });
   });

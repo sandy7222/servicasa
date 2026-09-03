@@ -72,6 +72,7 @@ function order(currentQuote: OrderQuote): ServiceOrder {
     customerSignature: null,
     events: [],
     quotes: [currentQuote],
+    diagnosisPhotos: [],
   };
 }
 

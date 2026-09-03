@@ -205,6 +205,7 @@ export const INITIAL_ORDERS: ServiceOrder[] = [
       },
     ],
     customerSignature: null,
+    diagnosisPhotos: [],
     events: [
       {
         id: 'ev-1',
@@ -255,6 +256,7 @@ export const INITIAL_ORDERS: ServiceOrder[] = [
     technicalNotes: [],
     usedMaterials: [],
     customerSignature: null,
+    diagnosisPhotos: [],
     events: [
       {
         id: 'ev-201',
@@ -316,6 +318,7 @@ export const INITIAL_ORDERS: ServiceOrder[] = [
       },
     ],
     customerSignature: null,
+    diagnosisPhotos: [],
     events: [
       {
         id: 'ev-301',
@@ -406,6 +409,7 @@ export const INITIAL_ORDERS: ServiceOrder[] = [
       signedAt: '15/08/2026, 17:40',
       comments: 'Excelente servicio, muy prolijo y puntual.',
     },
+    diagnosisPhotos: [],
     events: [
       {
         id: 'ev-401',
@@ -469,6 +473,7 @@ export const INITIAL_ORDERS: ServiceOrder[] = [
     technicalNotes: [],
     usedMaterials: [],
     customerSignature: null,
+    diagnosisPhotos: [],
     events: [
       {
         id: 'ev-501',

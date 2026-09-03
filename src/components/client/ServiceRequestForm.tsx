@@ -47,6 +47,7 @@ export const ServiceRequestForm: React.FC = () => {
   const [fromAssistant, setFromAssistant] = useState(false);
   const [pendingDraft, setPendingDraft] = useState<PendingCustomerDraft | null>(null);
   const [resumingPayment, setResumingPayment] = useState(false);
+  const [photoStoragePath, setPhotoStoragePath] = useState<string | undefined>();
 
   useEffect(() => {
     let cancelled = false;
@@ -100,6 +101,7 @@ export const ServiceRequestForm: React.FC = () => {
       setDescription(draft.description);
       setPriority(draft.priority);
       setQuantity(draft.quantity || 1);
+      setPhotoStoragePath(draft.photoStoragePath);
       if (draft.workMode === 'direct' && draft.fixedPriceServiceId) {
         const catalogItem = services.find((service) => service.id === draft.fixedPriceServiceId);
         if (!catalogItem && services.length === 0) return false;
@@ -242,6 +244,7 @@ export const ServiceRequestForm: React.FC = () => {
         fixedPriceServiceId: mode === 'direct' ? selectedService!.id : undefined,
         quantity: mode === 'direct' ? quantity : undefined,
         addressId,
+        photoStoragePath,
       });
       // redirectToCustomerServiceRequest navega afuera si sale bien — nada más que hacer acá.
       setSent(true);

@@ -70,6 +70,9 @@ export type AssistantDraft = {
   fixedPriceServiceId?: string;
   quantity: number;
   photoName?: string;
+  /** Ruta temporal en el bucket diagnosis-photos (`pending/<draftId>/photo.jpg`)
+   * de la foto ya subida desde el asistente — ver diagnosisPhotoUpload.ts. */
+  photoStoragePath?: string;
 };
 
 type Answers = {
@@ -92,6 +95,7 @@ type Answers = {
     | 'other';
   freeText?: string;
   photoName?: string;
+  photoStoragePath?: string;
   selectedServiceId?: string;
   quantity: number;
 };
@@ -358,6 +362,7 @@ function diagnosisDraft(
     subcategorySlugs: slugs,
     quantity: answers.quantity,
     photoName: answers.photoName,
+    photoStoragePath: answers.photoStoragePath,
   };
 }
 
@@ -377,6 +382,7 @@ function placeholderDraft(answers: Answers): AssistantDraft {
     subcategorySlugs: [],
     quantity: 1,
     photoName: answers.photoName,
+    photoStoragePath: answers.photoStoragePath,
   };
 }
 
@@ -544,13 +550,14 @@ export function answer(session: AssistantSession, optionId: string, optionLabel:
 export function submitPlaceholder(
   session: AssistantSession,
   text: string,
-  photoName?: string
+  photoName?: string,
+  photoStoragePath?: string
 ): AssistantSession {
   if (session.step !== 'placeholder') return session;
   const trimmed = text.trim();
   if (!trimmed) return session;
   let next = push(session, 'user', photoName ? `${trimmed} (foto: ${photoName})` : trimmed);
-  next = { ...next, answers: { ...next.answers, freeText: trimmed, photoName } };
+  next = { ...next, answers: { ...next.answers, freeText: trimmed, photoName, photoStoragePath } };
   const draft = placeholderDraft(next.answers);
   return goSummary(next, draft, 'Armé un pedido de diagnóstico general. Revisá la descripción antes de enviarlo.');
 }

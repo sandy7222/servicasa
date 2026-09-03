@@ -1944,6 +1944,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           author: currentUser?.name ?? 'Sistema',
         },
       ],
+      diagnosisPhotos: [],
     };
 
     setOrders((prev) => [newOrder, ...prev]);

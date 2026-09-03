@@ -101,6 +101,7 @@ type GuestDraftPayload = {
   totalQuotedAmount: number;
   fixedPriceServiceId: string | null;
   fixedPriceQuantity: number | null;
+  photoStoragePath: string | null;
 };
 
 type CustomerDraftPayload = {
@@ -119,7 +120,37 @@ type CustomerDraftPayload = {
   totalQuotedAmount: number;
   fixedPriceServiceId: string | null;
   fixedPriceQuantity: number | null;
+  photoStoragePath: string | null;
 };
+
+/**
+ * Mueve la foto que quedó subida desde el asistente de diagnóstico
+ * (`pending/<draftId>/photo.jpg`, ver api/orders/upload-diagnosis-photo.ts) a
+ * la ruta definitiva de la orden ya creada y crea su fila en
+ * order_diagnosis_photos. No bloqueante: si la foto ya no está (o cualquier
+ * otro error), solo se loguea — la orden ya se creó bien de todos modos y no
+ * hay nada más que el cliente pueda hacer para arreglarlo desde acá.
+ */
+async function linkDiagnosisPhotoToOrder(orderId: string, pendingPath: string | null) {
+  if (!pendingPath) return;
+  const finalPath = `${orderId}/photo.jpg`;
+
+  const { error: moveError } = await supabaseAdmin.storage
+    .from('diagnosis-photos')
+    .move(pendingPath, finalPath);
+  if (moveError) {
+    console.error('[payments/webhook] Error moviendo foto de diagnóstico', orderId, moveError);
+    return;
+  }
+
+  const { error: insertError } = await supabaseAdmin.from('order_diagnosis_photos').insert({
+    order_id: orderId,
+    storage_path: finalPath,
+  });
+  if (insertError) {
+    console.error('[payments/webhook] Error guardando fila de foto de diagnóstico', orderId, insertError);
+  }
+}
 
 /**
  * Guest checkout only reaches this point once Mercado Pago confirms the
@@ -220,6 +251,8 @@ async function createOrderFromApprovedGuestDraft(
     throw orderError ?? new Error('No se pudo crear la orden.');
   }
 
+  await linkDiagnosisPhotoToOrder(order.id, payload.photoStoragePath);
+
   const feeAmount = (payment.fee_details ?? []).reduce((sum, fee) => sum + (fee.amount ?? 0), 0);
   const { error: txError } = await supabaseAdmin.from('payment_transactions').insert({
     order_id: order.id,
@@ -303,6 +336,8 @@ async function createOrderFromApprovedCustomerDraft(
     console.error('[payments/webhook] Error creando orden confirmada (cliente)', orderError);
     throw orderError ?? new Error('No se pudo crear la orden.');
   }
+
+  await linkDiagnosisPhotoToOrder(order.id, payload.photoStoragePath);
 
   const feeAmount = (payment.fee_details ?? []).reduce((sum, fee) => sum + (fee.amount ?? 0), 0);
   const { error: txError } = await supabaseAdmin.from('payment_transactions').insert({

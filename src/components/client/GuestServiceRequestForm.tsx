@@ -40,6 +40,7 @@ export const GuestServiceRequestForm: React.FC = () => {
   const [priority, setPriority] = useState<OrderPriority>('media');
   const [submitting, setSubmitting] = useState(false);
   const [fromAssistant, setFromAssistant] = useState(false);
+  const [photoStoragePath, setPhotoStoragePath] = useState<string | undefined>();
 
   const categories = useMemo(() => {
     const values = new Set<string>(['Electricidad']);
@@ -66,6 +67,7 @@ export const GuestServiceRequestForm: React.FC = () => {
       setDescription(draft.description);
       setPriority(draft.priority);
       setQuantity(draft.quantity || 1);
+      setPhotoStoragePath(draft.photoStoragePath);
       if (draft.workMode === 'direct' && draft.fixedPriceServiceId) {
         const catalogItem = services.find((service) => service.id === draft.fixedPriceServiceId);
         if (!catalogItem && services.length === 0) return false;
@@ -151,6 +153,7 @@ export const GuestServiceRequestForm: React.FC = () => {
         requestedTotal: mode === 'direct' ? directTotal : undefined,
         fixedPriceServiceId: mode === 'direct' ? selectedService!.id : undefined,
         quantity: mode === 'direct' ? quantity : undefined,
+        photoStoragePath,
       });
       // redirectToGuestPayment navigates away on success — nothing else to do here.
     } catch (error) {

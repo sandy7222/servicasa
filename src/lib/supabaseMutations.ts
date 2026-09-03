@@ -658,13 +658,14 @@ export async function fetchOrderById(orderId: string): Promise<ServiceOrder | nu
   throwIfError(error);
   if (!data) return null;
 
-  const [checklist, timeLogs, notes, materials, events, signature] = await Promise.all([
+  const [checklist, timeLogs, notes, materials, events, signature, diagnosisPhotos] = await Promise.all([
     supabase.from('order_checklist_items').select('*').eq('order_id', orderId).order('sort_order'),
     supabase.from('order_time_logs').select('*').eq('order_id', orderId).order('created_at', { ascending: false }),
     supabase.from('order_notes').select('*').eq('order_id', orderId).order('created_at', { ascending: false }),
     supabase.from('order_materials_used').select('*').eq('order_id', orderId).order('added_at', { ascending: false }),
     supabase.from('order_events').select('*').eq('order_id', orderId).order('created_at', { ascending: false }),
     supabase.from('order_signatures').select('*').eq('order_id', orderId).maybeSingle(),
+    supabase.from('order_diagnosis_photos').select('*').eq('order_id', orderId).order('created_at', { ascending: false }),
   ]);
 
   throwIfError(checklist.error);
@@ -673,6 +674,7 @@ export async function fetchOrderById(orderId: string): Promise<ServiceOrder | nu
   throwIfError(materials.error);
   throwIfError(events.error);
   throwIfError(signature.error);
+  throwIfError(diagnosisPhotos.error);
 
   return mapOrder(data as DbServiceOrder, {
     checklist: (checklist.data ?? []).map((row) => ({
@@ -718,6 +720,12 @@ export async function fetchOrderById(orderId: string): Promise<ServiceOrder | nu
           comments: signature.data.comments ?? undefined,
         }
       : null,
+    diagnosisPhotos: (diagnosisPhotos.data ?? []).map((row) => ({
+      id: row.id,
+      storagePath: row.storage_path,
+      caption: row.caption ?? null,
+      createdAt: row.created_at,
+    })),
   });
 }
 

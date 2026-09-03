@@ -48,6 +48,7 @@ import {
 import { useApp } from '../context/AppContext';
 import { startOrderConversation } from '../lib/conversations';
 import { PaymentStatusBadge, PriorityBadge, ServiceBadge, StatusBadge } from '../components/common/Badge';
+import { DiagnosisPhotoCard } from '../components/common/DiagnosisPhotoCard';
 import { Timeline } from '../components/common/Timeline';
 import { EntityActionsMenu } from '../components/common/EntityActionsMenu';
 import { formatElapsedTime, getOrderElapsedSeconds, isOrderPaymentSettled, orderRequiresPaymentGate } from '../lib/workTimer';
@@ -3073,6 +3074,11 @@ export const AdminHubView: React.FC = () => {
                 </div>
                 <h2 className="text-lg font-black text-slate-900 dark:text-slate-100">{selectedOrder.title}</h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{selectedOrder.description}</p>
+                {selectedOrder.diagnosisPhotos.length > 0 && (
+                  <div className="mt-2">
+                    <DiagnosisPhotoCard photos={selectedOrder.diagnosisPhotos} />
+                  </div>
+                )}
               </div>
               <button
                 onClick={() => setSelectedOrderId(null)}

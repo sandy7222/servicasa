@@ -16,10 +16,11 @@ import {
   type AssistantSession,
 } from '../../lib/diagnosisAssistant';
 import { saveAssistantDraft } from '../../lib/diagnosisDraft';
+import { uploadDiagnosisPhoto } from '../../lib/diagnosisPhotoUpload';
 import type { CatalogSubcategory, ServiceItem } from '../../types';
 import assistantBody from '../../assets/landing/asistente-cuerpo.png';
 
-const assistantFaceClass = 'object-cover object-[50%_6%] bg-white';
+const assistantFaceClass = 'object-cover object-[54%_16%] bg-white';
 
 function slugMap(subcategories: readonly CatalogSubcategory[]) {
   return new Map(subcategories.map((sub) => [sub.id, sub.slug]));
@@ -31,6 +32,10 @@ export const DiagnosisAssistant: React.FC = () => {
   const [session, setSession] = useState<AssistantSession>(() => startAssistant());
   const [freeText, setFreeText] = useState('');
   const [photoName, setPhotoName] = useState<string | undefined>();
+  const [photoStoragePath, setPhotoStoragePath] = useState<string | undefined>();
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoError, setPhotoError] = useState<string | undefined>();
+  const draftIdRef = useRef(crypto.randomUUID());
   const scroller = useRef<HTMLDivElement>(null);
   const prompt = visiblePrompt(session);
 
@@ -54,9 +59,28 @@ export const DiagnosisAssistant: React.FC = () => {
     setSession(startAssistant());
     setFreeText('');
     setPhotoName(undefined);
+    setPhotoStoragePath(undefined);
+    setPhotoError(undefined);
+    draftIdRef.current = crypto.randomUUID();
   };
 
   const choose = (id: string, label: string) => setSession((current) => answer(current, id, label));
+
+  const handlePhotoSelected = async (file: File | undefined) => {
+    if (!file) return;
+    setPhotoName(file.name);
+    setPhotoStoragePath(undefined);
+    setPhotoError(undefined);
+    setPhotoUploading(true);
+    try {
+      const storagePath = await uploadDiagnosisPhoto(draftIdRef.current, file);
+      setPhotoStoragePath(storagePath);
+    } catch {
+      setPhotoError('No se pudo subir la foto. Podés continuar sin ella o reintentar.');
+    } finally {
+      setPhotoUploading(false);
+    }
+  };
 
   const handoff = () => {
     const draft = session.draft;
@@ -142,19 +166,22 @@ export const DiagnosisAssistant: React.FC = () => {
                 />
                 <label className="flex w-full min-h-12 items-center justify-center gap-2 rounded-xl border-2 border-teal-600 bg-teal-50 dark:bg-teal-950/40 px-3 py-3 text-sm font-bold text-teal-800 cursor-pointer active:bg-teal-100 touch-manipulation">
                   <Camera className="w-6 h-6 shrink-0" />
-                  <span className="truncate">{photoName ? photoName : 'Adjuntar foto'}</span>
+                  <span className="truncate">
+                    {photoUploading ? 'Subiendo foto…' : photoName ? photoName : 'Adjuntar foto'}
+                  </span>
                   <input
                     type="file"
                     accept="image/*"
                     className="hidden"
-                    onChange={(event) => setPhotoName(event.target.files?.[0]?.name)}
+                    onChange={(event) => void handlePhotoSelected(event.target.files?.[0])}
                   />
                 </label>
+                {photoError && <p className="text-[11px] text-rose-600">{photoError}</p>}
                 <button
                   type="button"
-                  disabled={!freeText.trim()}
+                  disabled={!freeText.trim() || photoUploading}
                   onClick={() => {
-                    setSession((current) => submitPlaceholder(current, freeText, photoName));
+                    setSession((current) => submitPlaceholder(current, freeText, photoName, photoStoragePath));
                     setFreeText('');
                   }}
                   className="w-full inline-flex items-center justify-center gap-1.5 rounded-xl bg-teal-600 px-3 py-2 text-xs font-bold text-white disabled:opacity-40"
@@ -216,7 +243,7 @@ export const DiagnosisAssistant: React.FC = () => {
             src={assistantBody}
             alt=""
             aria-hidden
-            className="absolute z-10 pointer-events-none select-none -bottom-[8%] right-0 h-[33%] w-auto drop-shadow-[0_10px_18px_rgba(15,23,42,0.28)]"
+            className="absolute z-10 pointer-events-none select-none bottom-2 right-0 h-[33%] w-auto drop-shadow-[0_10px_18px_rgba(15,23,42,0.28)]"
           />
         )}
 
@@ -232,7 +259,7 @@ export const DiagnosisAssistant: React.FC = () => {
               src={assistantBody}
               alt="Asistente de diagnóstico"
               className={`w-full h-full ${assistantFaceClass}`}
-              style={{ transform: 'scale(1.18)', transformOrigin: '50% 8%' }}
+              style={{ transform: 'scale(1.18)', transformOrigin: '54% 16%' }}
             />
           </button>
         )}

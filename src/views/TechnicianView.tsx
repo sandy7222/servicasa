@@ -32,6 +32,7 @@ import {
 import confetti from 'canvas-confetti';
 import { useApp } from '../context/AppContext';
 import { PriorityBadge, ServiceBadge, StatusBadge } from '../components/common/Badge';
+import { DiagnosisPhotoCard } from '../components/common/DiagnosisPhotoCard';
 import { ServiceOrder } from '../types';
 import { isOrderPaymentSettled, formatElapsedTime, getOrderElapsedSeconds } from '../lib/workTimer';
 import { QuoteBuilder } from '../components/technician/QuoteBuilder';
@@ -386,6 +387,11 @@ export const TechnicianView: React.FC = () => {
                       </div>
                       <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100 leading-snug">{activeOrder.title}</h2>
                       <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">{activeOrder.description}</p>
+                      {activeOrder.diagnosisPhotos.length > 0 && (
+                        <div className="mt-2">
+                          <DiagnosisPhotoCard photos={activeOrder.diagnosisPhotos} />
+                        </div>
+                      )}
                     </div>
 
                     {/* Quick State Action Buttons */}

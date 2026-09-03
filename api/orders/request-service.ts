@@ -21,10 +21,13 @@ type RequestServiceBody = {
   fixedPriceServiceId?: string;
   quantity?: number;
   addressId?: string;
+  photoStoragePath?: string;
 };
 
 const MAX_TEXT = 500;
 const VISIT_DEPOSIT_FALLBACK = 30000;
+// Ver el mismo comentario en api/orders/guest-checkout.ts.
+const PENDING_PHOTO_PATH_RE = /^pending\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/photo\.jpg$/i;
 
 function trimmed(value: unknown, max = MAX_TEXT): string {
   return String(value ?? '').trim().slice(0, max);
@@ -68,6 +71,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const workMode: WorkMode = body.workMode === 'direct' ? 'direct' : 'diagnosis';
   const fixedPriceServiceId = trimmed(body.fixedPriceServiceId, 100) || null;
   const quantity = Math.max(1, Math.min(20, Math.floor(Number(body.quantity) || 1)));
+  const requestedPhotoPath = trimmed(body.photoStoragePath, 200);
+  const photoStoragePath = PENDING_PHOTO_PATH_RE.test(requestedPhotoPath) ? requestedPhotoPath : null;
 
   if (!address || !city || !province || !title || !description) {
     return res.status(400).json({ error: 'Completá todos los campos obligatorios con datos válidos.' });
@@ -146,6 +151,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     totalQuotedAmount: workMode === 'direct' ? amount : 0,
     fixedPriceServiceId: workMode === 'direct' ? fixedPriceServiceId : null,
     fixedPriceQuantity: workMode === 'direct' ? quantity : null,
+    photoStoragePath,
   };
 
   const { data: draft, error: draftError } = await supabaseAdmin

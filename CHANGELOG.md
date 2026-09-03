@@ -4,6 +4,48 @@ Registro de cambios funcionales relevantes de TecniUrbano. No reemplaza `git log
 (los detalles de implementación están en los commits y las migraciones) — es un
 resumen de qué cambió para el negocio y qué evidencia lo respalda.
 
+## 2026-09-03 (cont. 6) — Foto real del asistente de diagnóstico
+
+Commit: (pendiente).
+
+Sandy pidió cerrar el flujo de la foto que el cliente puede adjuntar en el
+asistente de diagnóstico (`DiagnosisAssistant.tsx`): hasta ahora solo se
+guardaba el nombre del archivo, nunca el contenido, aunque ya existía la
+infraestructura en Supabase (bucket privado `diagnosis-photos` y tabla
+`order_diagnosis_photos`).
+
+- **El problema de fondo:** el asistente corre antes de que exista una
+  cuenta o una orden, pero las policies de RLS de `diagnosis-photos` exigen
+  una orden real ya pagada (`service_orders.id` como carpeta, con técnico
+  asignado o `payment_status = 'deposit_paid'`) — un invitado no autenticado
+  no puede subir nada ahí directamente.
+- **Solución:** la foto se sube de una al elegir el archivo (comprimida en
+  el navegador a ~1600px/JPEG antes de mandarla, para no pegarle al límite
+  de 4.5MB de las funciones de Vercel) a un endpoint público nuevo
+  (`api/orders/upload-diagnosis-photo.ts`, con service role) que la deja en
+  `pending/<draftId>/photo.jpg` — `draftId` es un UUID generado en el
+  navegador al abrir el asistente, sin relación con ninguna cuenta u orden.
+  Esa ruta viaja con el resto del pedido armado por el asistente
+  (`sessionStorage` → formulario → `guest-checkout`/`request-service`,
+  validada con una regex estricta contra cualquier otra ruta) hasta el
+  webhook de Mercado Pago, que al confirmarse el pago mueve el archivo a
+  `<order_id>/photo.jpg` (con la Storage API, no SQL directo) e inserta la
+  fila real en `order_diagnosis_photos`.
+- **Visualización:** un componente único (`DiagnosisPhotoCard.tsx`) muestra
+  la foto igual en el detalle de la orden del técnico y del admin — sin
+  versión distinta por rol, usando siempre una signed URL porque el bucket
+  es privado.
+- **Borrado automático, nuevo Vercel Cron** (`api/cron/cleanup-diagnosis-photos.ts`,
+  corre 06:00 UTC): borra archivo + fila recién a los 30 días de que la
+  orden pasa a `completed`, salvo que tenga un `support_case` vinculado que
+  siga sin `closed` — cubre la ventana de 48hs para reclamar y toda la
+  garantía. Requiere cargar `CRON_SECRET` en las env vars de Vercel (no
+  existía ese patrón en este proyecto; los 2 cron jobs previos eran SQL puro
+  vía `pg_cron`, pero este necesita llamar a la Storage API). Fotos huérfanas
+  (foto sacada en el asistente, pedido nunca confirmado) no se limpian por
+  ahora — quedan sueltas en `pending/`, fue una decisión explícita de Sandy
+  para no meter alcance de más.
+
 ## 2026-09-03 (cont. 5) — Base para la descarga real de Android (TWA)
 
 Commit: `1a878c8`.
