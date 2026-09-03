@@ -4,6 +4,43 @@ Registro de cambios funcionales relevantes de TecniUrbano. No reemplaza `git log
 (los detalles de implementación están en los commits y las migraciones) — es un
 resumen de qué cambió para el negocio y qué evidencia lo respalda.
 
+## 2026-09-03 (cont. 3) — Menú de navegación y encuadre de scroll
+
+Ajuste puntual pedido explícitamente como "no rediseñar la landing" — solo
+el menú superior y el punto exacto donde cae el scroll de cada anchor.
+Contenido, diseño, funcionalidades, backend, asistente y login sin tocar.
+
+- **Menú:** `Servicios | Cómo funciona | La App | Opiniones | Empresas |
+  Trabajá con nosotros | Ingresar al sistema`. Se sacaron "Garantía" y
+  "Contacto" del menú superior — **la sección y el contenido siguen
+  intactos** (la banda de garantía sigue en la página, el email de
+  contacto sigue en el bloque de empresas y en el footer; el footer en sí
+  no se tocó, sigue linkeando a `#garantia`/`#contacto`).
+- **Encuadre por cálculo, no offset fijo** (`src/lib/landingScrollFraming.ts`,
+  nuevo): cada anchor mide su propio título real (no el borde del
+  `<section>`, que ya trae padding propio) y deja ~60px debajo del header.
+  Para "Cómo funciona" hay una prioridad explícita: si el contenido (título
+  + 4 pasos + banda de garantía) no entra completo en el viewport, se
+  sacrifica margen superior antes que dejar asomar "La App" — nunca al
+  revés. Verificado que la banda de garantía queda al ras del viewport sin
+  que el teléfono se asome, en las 7 resoluciones pedidas.
+- **Bug real encontrado y corregido en el camino:** en mobile, el momento
+  de cerrar el menú hamburguesa y calcular el encuadre pasaba en el mismo
+  tick de React — medía la altura del header todavía "alto" por el menú
+  desplegado, dando ~433px de margen en vez de 60px. Corregido diferiendo
+  el cálculo un tick (`setTimeout(…, 0)`) para que se ejecute después de
+  que React cierra el menú.
+- **Caso límite, no un bug:** el anchor "Empresas" es la sección anterior
+  al footer; en viewports altos el navegador no puede scrollear más allá
+  del final real de la página, así que el margen ahí queda mayor a 60px
+  cuando el footer completo ya está a la vista — es el comportamiento
+  correcto de fin de documento, no algo para forzar.
+- Probado en 1440×900, 1366×768, 1280×720, 768×1024, 430×932, 412×915 y
+  390×844 — margen ~60px en Servicios/La App/Opiniones/Empresas, sin
+  asomo de la sección siguiente en "Cómo funciona", menú hamburguesa
+  cierra y hace scroll correcto, "Ingresar al sistema" presente en mobile.
+- `tsc`/`vitest` (106/106)/`build` limpios.
+
 ## 2026-09-03 (cont. 2) — Dirección de arte y refinamiento visual de la landing
 
 Commit: `e44700b`.

@@ -2,17 +2,22 @@ import React, { useState } from 'react';
 import { ArrowRight, Menu, X } from 'lucide-react';
 import { Logo } from '../common/Logo';
 import { useApp } from '../../context/AppContext';
+import { scrollToFramedSection } from '../../lib/landingScrollFraming';
 
 interface NavAnchor {
   label: string;
-  href: string;
+  targetId: string;
+  // La banda de garantía sigue formando parte de la escena "Cómo funciona"
+  // aunque sea otra sección en el DOM — por eso ese anchor encuadra hasta ahí.
+  boundaryId?: string;
 }
 
 const NAV_ANCHORS: NavAnchor[] = [
-  { label: 'Servicios', href: '#servicios-ofrecidos' },
-  { label: 'Cómo funciona', href: '#como-funciona' },
-  { label: 'Garantía', href: '#garantia' },
-  { label: 'Contacto', href: '#contacto' },
+  { label: 'Servicios', targetId: 'servicios-ofrecidos' },
+  { label: 'Cómo funciona', targetId: 'como-funciona', boundaryId: 'garantia' },
+  { label: 'La App', targetId: 'descarga-app' },
+  { label: 'Opiniones', targetId: 'testimonios' },
+  { label: 'Empresas', targetId: 'contacto' },
 ];
 
 /**
@@ -24,10 +29,12 @@ export const LandingHeader: React.FC = () => {
   const { navigate } = useApp();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const scrollToAnchor = (href: string) => {
+  const scrollToAnchor = (a: NavAnchor) => {
     setMobileOpen(false);
-    const el = document.querySelector(href);
-    el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // Esperar a que React aplique el cierre del menú antes de medir: si el
+    // menú mobile estaba abierto, calcular el scroll en el mismo tick
+    // mediría el header todavía "alto" por el menú desplegado.
+    setTimeout(() => scrollToFramedSection(a.targetId, a.boundaryId), 0);
   };
 
   return (
@@ -44,8 +51,8 @@ export const LandingHeader: React.FC = () => {
           <nav className="hidden lg:flex items-center gap-6 xl:gap-8">
             {NAV_ANCHORS.map((a) => (
               <button
-                key={a.href}
-                onClick={() => scrollToAnchor(a.href)}
+                key={a.targetId}
+                onClick={() => scrollToAnchor(a)}
                 className="text-sm font-medium text-slate-300 hover:text-white transition-colors duration-200"
               >
                 {a.label}
@@ -84,8 +91,8 @@ export const LandingHeader: React.FC = () => {
         <div className="lg:hidden border-t border-slate-800 bg-[#0F172A] px-4 py-4 space-y-1">
           {NAV_ANCHORS.map((a) => (
             <button
-              key={a.href}
-              onClick={() => scrollToAnchor(a.href)}
+              key={a.targetId}
+              onClick={() => scrollToAnchor(a)}
               className="block w-full text-left px-3 py-3 rounded-lg text-sm font-semibold text-slate-200 hover:bg-slate-800 min-h-11"
             >
               {a.label}

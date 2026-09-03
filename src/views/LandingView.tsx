@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { scrollToFramedSection } from '../lib/landingScrollFraming';
 import { LandingHeader } from '../components/landing/LandingHeader';
 import { HeroSection } from '../components/landing/HeroSection';
 import { HowItWorksModal } from '../components/landing/HowItWorksModal';
@@ -14,7 +15,7 @@ export const LandingView: React.FC = () => {
   const [howItWorksOpen, setHowItWorksOpen] = useState(false);
 
   const scrollToDownload = () => {
-    document.getElementById('descarga-app')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    scrollToFramedSection('descarga-app');
   };
 
   return (
