@@ -29,28 +29,31 @@ export const TestimonialsSection: React.FC = () => {
   return (
     <section className="py-16 sm:py-20 bg-white" id="testimonios">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.1fr] gap-10 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.1fr] gap-12 items-center">
           <div>
             <div className="text-center lg:text-left max-w-xl mx-auto lg:mx-0 mb-8">
-              <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+              <h2 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
                 Experiencias de nuestros clientes
               </h2>
-              <p className="text-xs text-slate-400 mt-1 italic">
+              <p className="text-xs text-slate-400 mt-1.5 italic">
                 Ejemplo ilustrativo — todavía no contamos con testimonios reales publicados.
               </p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3 gap-4">
               {TESTIMONIALS.map((t) => (
-                <div key={t.name} className="bg-slate-50 rounded-2xl p-5 border border-slate-200">
-                  <div className="flex items-center gap-1 text-amber-400 mb-2">
+                <div
+                  key={t.name}
+                  className="bg-white rounded-2xl p-6 border border-slate-200/70 shadow-[0_2px_12px_-6px_rgba(15,23,42,0.08)]"
+                >
+                  <div className="flex items-center gap-1 text-amber-400 mb-3">
                     {[...Array(t.rating)].map((_, i) => (
-                      <Star key={i} className="w-3.5 h-3.5 fill-amber-400" />
+                      <Star key={i} className="w-3.5 h-3.5 fill-amber-400" strokeWidth={0} />
                     ))}
                   </div>
-                  <p className="text-xs text-slate-700 italic leading-relaxed mb-3">"{t.comment}"</p>
-                  <span className="text-xs font-bold text-slate-900 block">{t.name}</span>
-                  <span className="text-[11px] text-slate-500">{t.neighborhood}</span>
+                  <p className="text-[13px] text-slate-600 italic leading-relaxed mb-4">"{t.comment}"</p>
+                  <span className="text-[13px] font-semibold text-slate-900 block">{t.name}</span>
+                  <span className="text-[12px] text-slate-500">{t.neighborhood}</span>
                 </div>
               ))}
             </div>
@@ -65,7 +68,7 @@ export const TestimonialsSection: React.FC = () => {
                 width={1000}
                 height={667}
                 loading="lazy"
-                className="w-full h-auto rounded-2xl shadow-xl object-cover"
+                className="w-full h-auto rounded-[20px] shadow-[0_16px_40px_-16px_rgba(15,23,42,0.25)] object-cover"
               />
             </picture>
           </div>

@@ -52,20 +52,24 @@ export const ServicesSection: React.FC = () => {
   const activeCategories = sortByDisplayOrder<CatalogCategory>(
     catalogCategories.filter((cat) => cat.active !== false)
   );
+  // 3x2 se ve más equilibrado que 4+2 cuando hay exactamente 6 categorías;
+  // con cualquier otra cantidad, 4 columnas sigue siendo lo más prolijo.
+  const gridColsClass =
+    activeCategories.length === 6 ? 'sm:grid-cols-3' : 'sm:grid-cols-3 lg:grid-cols-4';
 
   return (
-    <section className="py-16 sm:py-20 bg-white" id="servicios-ofrecidos">
+    <section className="py-14 sm:py-16 bg-white" id="servicios-ofrecidos">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-2xl mx-auto mb-10">
-          <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+        <div className="text-center max-w-2xl mx-auto mb-8">
+          <h2 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
             ¿Qué servicio necesitás?
           </h2>
-          <p className="text-sm text-slate-600 mt-2">
+          <p className="text-base text-slate-500 mt-2.5">
             Contamos con técnicos especializados para resolver cualquier problema en tu hogar.
           </p>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
+        <div className={`grid grid-cols-2 ${gridColsClass} gap-4`}>
           {activeCategories.map((category) => {
             const visuals = getServiceVisuals(category);
             const count = services.filter((s) => s.category === category.name && s.active !== false).length;
@@ -74,13 +78,13 @@ export const ServicesSection: React.FC = () => {
               <button
                 key={category.id}
                 onClick={() => navigate(`/services-category/${encodeURIComponent(category.name)}`)}
-                className="text-left bg-slate-50/70 rounded-2xl p-5 border border-slate-200 hover:border-teal-400 hover:shadow-md transition-all group"
+                className="text-left bg-white rounded-2xl p-5 border border-slate-200/80 transition-all duration-200 hover:-translate-y-0.5 hover:border-teal-300 hover:shadow-[0_8px_24px_-12px_rgba(15,23,42,0.15)] focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 focus-visible:ring-offset-2 group"
               >
-                <div className={`w-11 h-11 rounded-xl ${visuals.bg} ${visuals.border} border flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>
+                <div className={`w-11 h-11 rounded-xl ${visuals.bg} ${visuals.border} border flex items-center justify-center mb-3.5`}>
                   {visuals.icon}
                 </div>
-                <h3 className="font-bold text-sm text-slate-900">{category.name}</h3>
-                <p className="text-xs text-slate-500 mt-1 leading-relaxed line-clamp-2">
+                <h3 className="font-bold text-[15px] text-slate-900">{category.name}</h3>
+                <p className="text-[13px] text-slate-500 mt-1 leading-relaxed line-clamp-2">
                   {category.description || `${count} servicio${count !== 1 ? 's' : ''}`}
                 </p>
               </button>
@@ -88,13 +92,13 @@ export const ServicesSection: React.FC = () => {
           })}
         </div>
 
-        <div className="text-center mt-8">
+        <div className="text-center mt-7">
           <button
             onClick={() => navigate('/auth')}
-            className="inline-flex items-center gap-1.5 text-sm font-bold text-teal-700 hover:text-teal-800"
+            className="group inline-flex items-center gap-1.5 text-sm font-bold text-teal-700 hover:text-teal-800"
           >
             Ver todos los servicios
-            <ChevronRight className="w-4 h-4" />
+            <ChevronRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5" />
           </button>
         </div>
       </div>

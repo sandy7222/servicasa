@@ -6,33 +6,34 @@ export const BusinessSection: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
 
   return (
-    <section className="py-8" id="contacto">
+    <section className="py-10" id="contacto">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="rounded-2xl bg-slate-100 border border-slate-200 px-5 py-5 sm:px-6 flex flex-col sm:flex-row items-center gap-4 justify-between">
-          <div className="flex items-center gap-3 text-center sm:text-left">
-            <div className="hidden sm:flex shrink-0 w-11 h-11 rounded-xl bg-white border border-slate-200 items-center justify-center text-[#003875]">
-              <Building2 className="w-5 h-5" />
+        <div className="rounded-2xl bg-[#F1F5FB] px-6 py-6 sm:px-8 sm:py-7 flex flex-col sm:flex-row items-center gap-5 justify-between">
+          <div className="flex items-center gap-4 text-center sm:text-left">
+            <div className="hidden sm:flex shrink-0 w-12 h-12 rounded-xl bg-white border border-slate-200/70 items-center justify-center text-[#003875]">
+              <Building2 className="w-5 h-5" strokeWidth={1.75} />
             </div>
             <div>
-              <h3 className="font-bold text-sm text-slate-900">¿Sos una empresa?</h3>
-              <p className="text-xs text-slate-600">
+              <h3 className="font-bold text-[15px] text-slate-900">¿Sos una empresa?</h3>
+              <p className="text-[13px] text-slate-600 mt-0.5 max-w-md">
                 También conformamos equipos de técnicos especializados para obras, proyectos y
                 mantenimiento empresarial.
               </p>
+              <a
+                href="mailto:hola@tecniurbano.online"
+                className="inline-block text-[12px] text-slate-500 hover:text-teal-700 mt-1.5 transition-colors duration-200"
+              >
+                hola@tecniurbano.online
+              </a>
             </div>
           </div>
           <button
             onClick={() => setModalOpen(true)}
-            className="shrink-0 w-full sm:w-auto px-5 py-2.5 rounded-lg bg-[#003875] hover:bg-[#00264d] text-white font-bold text-sm transition-colors"
+            className="shrink-0 w-full sm:w-auto px-6 py-3 rounded-xl bg-[#003875] hover:bg-[#00264d] text-white font-bold text-sm transition-colors duration-200"
           >
             Solicitar propuesta
           </button>
         </div>
-        <p className="text-center text-xs text-slate-500 mt-3">
-          <a href="mailto:hola@tecniurbano.online" className="hover:text-teal-700 underline underline-offset-2">
-            hola@tecniurbano.online
-          </a>
-        </p>
       </div>
 
       <BusinessModal isOpen={modalOpen} onClose={() => setModalOpen(false)} />

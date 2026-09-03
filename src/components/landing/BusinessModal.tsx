@@ -110,7 +110,7 @@ export const BusinessModal: React.FC<BusinessModalProps> = ({ isOpen, onClose })
           </div>
           <button
             type="submit"
-            className="w-full mt-1 px-5 py-3 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-sm transition-colors"
+            className="w-full mt-1 px-5 py-3 rounded-xl bg-teal-400 hover:bg-teal-300 text-[#00203d] font-bold text-sm transition-colors duration-200"
           >
             Enviar consulta
           </button>

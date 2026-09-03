@@ -45,7 +45,7 @@ export const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClos
 
       <button
         onClick={onDownloadClick}
-        className="mt-6 w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-sm shadow-lg shadow-teal-500/30 transition-colors"
+        className="mt-6 w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-teal-400 hover:bg-teal-300 text-[#00203d] font-bold text-sm shadow-lg shadow-teal-500/20 transition-colors duration-200"
       >
         Descargá TecniUrbano
       </button>

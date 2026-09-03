@@ -39,11 +39,11 @@ export const LandingFooter: React.FC = () => {
   ];
 
   return (
-    <footer className="bg-slate-900 text-white pt-12 pb-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+    <footer className="bg-[#0B1B33] text-white pt-16 pb-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
         <div className="lg:col-span-1">
           <Logo size="md" variant="white" showTagline />
-          <p className="text-xs text-slate-400 mt-3 leading-relaxed">
+          <p className="text-[13px] text-slate-400 mt-4 leading-relaxed max-w-[16rem]">
             Servicios técnicos a domicilio con seguimiento en tiempo real, de principio a fin.
           </p>
         </div>
@@ -51,13 +51,13 @@ export const LandingFooter: React.FC = () => {
         {columns.map((col) =>
           col.links.length > 0 ? (
             <div key={col.title}>
-              <h4 className="text-xs font-bold uppercase tracking-wide text-slate-400 mb-3">{col.title}</h4>
-              <ul className="space-y-2">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-4">{col.title}</h4>
+              <ul className="space-y-2.5">
                 {col.links.map((link) => (
                   <li key={link.label}>
                     <button
                       onClick={() => scrollOrNavigate(link.href)}
-                      className="text-sm text-slate-300 hover:text-teal-300 transition-colors"
+                      className="text-sm text-slate-300 hover:text-teal-300 transition-colors duration-200"
                     >
                       {link.label}
                     </button>
@@ -67,21 +67,24 @@ export const LandingFooter: React.FC = () => {
             </div>
           ) : (
             <div key={col.title}>
-              <h4 className="text-xs font-bold uppercase tracking-wide text-slate-400 mb-3">{col.title}</h4>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-4">{col.title}</h4>
               <p className="text-sm text-slate-500 italic">Próximamente</p>
             </div>
           )
         )}
 
         <div>
-          <h4 className="text-xs font-bold uppercase tracking-wide text-slate-400 mb-3">Contacto</h4>
-          <a href="mailto:hola@tecniurbano.online" className="text-sm text-slate-300 hover:text-teal-300 transition-colors">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-4">Contacto</h4>
+          <a
+            href="mailto:hola@tecniurbano.online"
+            className="text-sm text-slate-300 hover:text-teal-300 transition-colors duration-200"
+          >
             hola@tecniurbano.online
           </a>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-10 pt-6 border-t border-slate-800 text-center">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12 pt-6 border-t border-white/[0.06] text-center">
         <p className="text-xs text-slate-500">© {new Date().getFullYear()} TecniUrbano. Todos los derechos reservados.</p>
       </div>
     </footer>

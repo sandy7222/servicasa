@@ -13,25 +13,25 @@ export const LANDING_STEPS: LandingStep[] = [
   {
     step: '1',
     title: 'Solicitás el servicio',
-    desc: 'Contanos qué necesitás desde la app en pocos pasos.',
+    desc: 'Contanos qué necesitás en pocos pasos.',
     icon: <PhoneCall className="w-5 h-5" />,
   },
   {
     step: '2',
     title: 'Técnico asignado',
-    desc: 'Te asignamos el mejor técnico disponible cerca tuyo.',
+    desc: 'Te asignamos al mejor disponible cerca tuyo.',
     icon: <UserCheck className="w-5 h-5" />,
   },
   {
     step: '3',
     title: 'Seguimiento en tiempo real',
-    desc: 'Vas a poder ver en tiempo real el estado del servicio y la ubicación del técnico.',
+    desc: 'Ves el estado del servicio y la ubicación del técnico.',
     icon: <MapPin className="w-5 h-5" />,
   },
   {
     step: '4',
     title: 'Trabajo terminado',
-    desc: 'Calificás el servicio y tenés 30 días de garantía por cualquier inconveniente.',
+    desc: 'Calificás el servicio, con 30 días de garantía.',
     icon: <CheckCircle2 className="w-5 h-5" />,
   },
 ];

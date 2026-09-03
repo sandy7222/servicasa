@@ -211,7 +211,7 @@ export const DiagnosisAssistant: React.FC = () => {
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="pointer-events-auto w-16 h-16 rounded-full overflow-hidden border-2 border-white shadow-xl shadow-slate-900/25 ring-2 ring-teal-500/40 hover:ring-teal-500 focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-400"
+        className="pointer-events-auto w-16 h-16 rounded-full overflow-hidden border-2 border-white shadow-xl shadow-slate-900/25 ring-2 ring-teal-500/40 hover:ring-teal-500 transition-transform duration-200 motion-safe:hover:scale-[1.03] focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-400"
         aria-label={open ? 'Cerrar asistente de diagnóstico' : 'Abrir asistente de diagnóstico'}
         aria-expanded={open}
       >

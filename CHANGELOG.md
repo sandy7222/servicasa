@@ -4,6 +4,65 @@ Registro de cambios funcionales relevantes de TecniUrbano. No reemplaza `git log
 (los detalles de implementación están en los commits y las migraciones) — es un
 resumen de qué cambió para el negocio y qué evidencia lo respalda.
 
+## 2026-09-03 (cont. 2) — Dirección de arte y refinamiento visual de la landing
+
+Segunda etapa del rediseño (post `d9b777c`), pedida explícitamente como
+"solo visual polish" — sin tocar arquitectura, contenido, rutas, backend,
+autenticación, ni la lógica del asistente. Alcance: CSS, composición,
+jerarquía, espaciado, tipografía y microinteracciones sobre los mismos
+componentes ya aprobados.
+
+- **Sistema visual global:** paleta consistente (azul marino `#0B1B33` en
+  header/footer, azul TecniUrbano `#003875` en fondos importantes, turquesa
+  como acento, blanco y `#F1F5FB` para alternar secciones) — ritmo:
+  azul (hero) → blanco (servicios) → azul muy claro (cómo funciona) → banda
+  azul (confianza) → azul con profundidad (descarga app) → blanco
+  (testimonios) → superficie clara (empresas) → marino (footer).
+- **Hero:** degradado de fusión foto/fondo de 5 paradas (antes: 3 paradas,
+  banda fija de 192px) ocupando ~24% del ancho de la foto — técnico
+  nítido, sin oscurecer. Jerarquía tipográfica reforzada (H1 más grande,
+  línea partida "Soluciones rápidas para" / "tu hogar"), beneficios con
+  íconos en superficie circular turquesa.
+- **Servicios:** sección ~15-20% más baja (menos padding vertical, no
+  cards más chicas); 3 columnas cuando hay exactamente 6 categorías
+  (caso real hoy) en vez de 4+2; se sacó el estado de foco persistente que
+  hacía ver una tarjeta como "seleccionada" sin serlo.
+- **Cómo funciona:** fondo `#F1F5FB` propio (antes compartía tono con
+  Servicios), números "01-04" en turquesa, círculos con sombra muy suave,
+  textos acortados — menos "timeline técnico", más "esto es fácil".
+- **Banda de confianza:** separadores verticales sutiles en desktop,
+  funciona como una sola unidad (nunca fueron cards individuales).
+- **Sección de descarga de app — la corrección más grande:** tratada como
+  "segundo hero" (fondo con profundidad + halo turquesa). El teléfono
+  ocupaba antes un rectángulo blanco liso; se probaron y descartaron dos
+  técnicas para disolver ese fondo (máscara de opacidad → dejaba un halo
+  blanco peor que el rectángulo original; `mix-blend-mode: multiply` →
+  oscurecía ilegible la propia pantalla de la app contra un fondo tan
+  oscuro). Solución final: recorte más ajustado del mismo asset (mismo
+  `app-celular.png`/`.webp`, sin reemplazarlo — ver `scripts/trim-phone.mjs`,
+  ya removido) presentado sobre una tarjeta blanca redondeada con sombra
+  suave — una superficie deliberada en vez de "una foto pegada".
+- **Testimonios y familia:** tarjetas con borde/sombra más suaves, nombre
+  en semibold. El aviso "Ejemplo ilustrativo — todavía no contamos con
+  testimonios reales publicados" se conservó intacto, sin tocar.
+- **Empresas:** superficie clara consistente con el resto, email
+  incorporado al bloque, sigue claramente secundaria frente a la app.
+- **Footer:** mismo azul marino que el header, jerarquía y espaciado
+  refinados.
+- **Asistente flotante:** cero cambios de lógica — solo `hover:scale-[1.03]`
+  sutil (respeta `prefers-reduced-motion`).
+- **Bug real encontrado en la verificación, no pedido explícitamente:** a
+  768px (tablet) el nav de escritorio del header (`md:flex`, activo desde
+  768px) no entraba — "Trabajá con nosotros" se cortaba en 3 líneas y todo
+  quedaba apretado contra el logo. Corregido moviendo el breakpoint del nav
+  de escritorio a `lg:` (1024px); hasta 1023px queda el menú hamburguesa,
+  que sí tiene espacio de sobra. Verificado en 1440/1280/1024/768/430/390px.
+- `tsc`/`vitest` (106/106)/`build` limpios. Verificado en vivo: hero,
+  servicios, cómo funciona, banda de confianza, descarga de app (incluida
+  la tarjeta del teléfono), testimonios, empresas y footer en desktop y
+  mobile; sin errores de consola; sin scroll horizontal en ningún ancho
+  probado.
+
 ## 2026-09-03 (cont.) — "Trabajá con nosotros", foto del hero más grande, y el bug real del header duplicado en sesión activa
 
 Commit: `36c556c`.
