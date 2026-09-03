@@ -4,6 +4,25 @@ Registro de cambios funcionales relevantes de TecniUrbano. No reemplaza `git log
 (los detalles de implementación están en los commits y las migraciones) — es un
 resumen de qué cambió para el negocio y qué evidencia lo respalda.
 
+## 2026-09-03 (cont. 4) — Dos correcciones puntuales del Hero
+
+Sandy reportó, con captura, dos problemas visuales en el Hero.
+
+- **Desborde de letras:** el párrafo tenía su propio `max-w-xl` (576px),
+  más ancho que la columna de texto real en desktop (`lg:max-w-[45%]`,
+  ~547px a 1440px de ancho) — el texto se corría hacia la zona del
+  degradado. Corregido con `lg:max-w-none` para que el párrafo respete el
+  ancho real de su columna en desktop (mobile/tablet sin cambios).
+- **Fondo no unificado:** la fusión foto/fondo usaba un color plano fijo
+  (`#00203d`) mientras el fondo de la sección es un degradado vertical de
+  3 paradas — a media altura no coincidían, dejando ver una franja. Ahora
+  la fusión usa exactamente el mismo degradado vertical que el fondo de
+  la sección como color, y una máscara aparte solo para el desvanecido
+  horizontal — mismo color en cualquier altura, sin costura visible.
+- Verificado en 1440×900 (el desborde y la costura no se reproducen más)
+  y en mobile (sin cambios, como esperado). `vitest` (106/106)/`build`
+  limpios.
+
 ## 2026-09-03 (cont. 3) — Menú de navegación y encuadre de scroll
 
 Commit: `916ab38`.

@@ -36,11 +36,17 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onDownloadClick, onHow
           fondo es un degradado progresivo de 5 paradas (~22% del ancho de la foto),
           no un corte entre dos columnas. */}
       <div className="hidden lg:block absolute inset-y-0 right-0 w-[56%]">
+        {/* El color de fusión es EL MISMO degradado vertical de la sección
+            (no un tono plano) — así el borde izquierdo, donde queda opaco,
+            calza exacto con el fondo en vez de verse como una franja distinta. */}
         <div
           className="absolute inset-y-0 left-0 w-[24%] z-10"
           style={{
-            background:
-              'linear-gradient(to right, #00203d 0%, #00203d 12%, rgba(0,32,61,0.85) 45%, rgba(0,32,61,0.35) 78%, rgba(0,32,61,0) 100%)',
+            background: 'linear-gradient(to bottom, #071A32 0%, #003875 50%, #00284f 100%)',
+            WebkitMaskImage:
+              'linear-gradient(to right, black 0%, black 12%, rgba(0,0,0,0.85) 45%, rgba(0,0,0,0.35) 78%, rgba(0,0,0,0) 100%)',
+            maskImage:
+              'linear-gradient(to right, black 0%, black 12%, rgba(0,0,0,0.85) 45%, rgba(0,0,0,0.35) 78%, rgba(0,0,0,0) 100%)',
           }}
           aria-hidden="true"
         />
@@ -53,7 +59,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onDownloadClick, onHow
             <span className="block text-white">Soluciones rápidas para</span>
             <span className="block text-teal-400">tu hogar</span>
           </h1>
-          <p className="mt-6 text-blue-100/85 text-base leading-relaxed max-w-xl mx-auto lg:mx-0">
+          <p className="mt-6 text-blue-100/85 text-base leading-relaxed max-w-xl lg:max-w-none mx-auto lg:mx-0">
             Pedí un técnico, seguí el trabajo en tiempo real y disfrutá la tranquilidad de un
             servicio garantizado.
           </p>
