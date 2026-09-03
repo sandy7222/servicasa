@@ -6,6 +6,8 @@ resumen de qué cambió para el negocio y qué evidencia lo respalda.
 
 ## 2026-09-03 (cont. 2) — Dirección de arte y refinamiento visual de la landing
 
+Commit: `e44700b`.
+
 Segunda etapa del rediseño (post `d9b777c`), pedida explícitamente como
 "solo visual polish" — sin tocar arquitectura, contenido, rutas, backend,
 autenticación, ni la lógica del asistente. Alcance: CSS, composición,
