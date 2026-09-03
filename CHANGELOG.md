@@ -6,6 +6,8 @@ resumen de qué cambió para el negocio y qué evidencia lo respalda.
 
 ## 2026-09-02 (noche) — Problema 9: "Nueva Orden" del Admin Hub no podía crear órdenes
 
+Commit: `de0909d`.
+
 Sandy reportó, haciendo el smoke test manual de la Fase 10 (flujo 3,
 asignación técnica), que "Nueva Orden" en el Admin Hub fallaba siempre con
 `null value in column "service_status" of relation "service_orders" violates
