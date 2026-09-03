@@ -6,6 +6,8 @@ resumen de qué cambió para el negocio y qué evidencia lo respalda.
 
 ## 2026-09-03 — Rediseño visual de la landing pública
 
+Commit: `26520b0`.
+
 Rediseño de apariencia de `tecniurbano.online` pedido por Sandy con una spec
 completa (recursos gráficos reales del técnico, la familia, el logo y el
 asistente, más un boceto de referencia). Alcance explícito: **cambiar la
