@@ -6,6 +6,8 @@ resumen de qué cambió para el negocio y qué evidencia lo respalda.
 
 ## 2026-09-03 (cont. 5) — Base para la descarga real de Android (TWA)
 
+Commit: `1a878c8`.
+
 Sandy pidió activar la descarga real de Android en la sección "Descargá
 TecniUrbano" (QR + botón), dejando iOS intacto ("Muy pronto"), con un
 pipeline de CI que genere y publique el APK automáticamente.
