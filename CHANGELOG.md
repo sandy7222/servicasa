@@ -6,6 +6,8 @@ resumen de qué cambió para el negocio y qué evidencia lo respalda.
 
 ## 2026-09-03 (cont. 4) — Dos correcciones puntuales del Hero
 
+Commit: `f2366c1`.
+
 Sandy reportó, con captura, dos problemas visuales en el Hero.
 
 - **Desborde de letras:** el párrafo tenía su propio `max-w-xl` (576px),
