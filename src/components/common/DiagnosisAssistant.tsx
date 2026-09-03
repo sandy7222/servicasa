@@ -17,9 +17,9 @@ import {
 } from '../../lib/diagnosisAssistant';
 import { saveAssistantDraft } from '../../lib/diagnosisDraft';
 import type { CatalogSubcategory, ServiceItem } from '../../types';
-import assistantPortrait from '../../assets/landing/asistente-personaje.jpeg';
+import assistantBody from '../../assets/landing/asistente-cuerpo.png';
 
-const assistantFaceClass = 'object-cover object-[52%_8%] bg-white';
+const assistantFaceClass = 'object-cover object-[50%_6%] bg-white';
 
 function slugMap(subcategories: readonly CatalogSubcategory[]) {
   return new Map(subcategories.map((sub) => [sub.id, sub.slug]));
@@ -75,14 +75,15 @@ export const DiagnosisAssistant: React.FC = () => {
   };
 
   return (
-    <div className="fixed bottom-4 right-4 z-[70] flex flex-col items-end gap-3 pointer-events-none">
-      {open && (
+    <div className="fixed bottom-4 right-4 z-[70] pointer-events-none">
+      <div className={open ? 'relative' : 'flex flex-col items-end'}>
+        {open && (
         <section
           className="pointer-events-auto w-[min(100vw-2rem,26rem)] max-h-[min(40rem,calc(100vh-6.5rem))] flex flex-col overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xl shadow-slate-900/20"
           aria-label="Asistente de diagnóstico guiado"
         >
           <header className="flex items-center gap-2.5 px-3 py-2.5 bg-[#0F172A] text-white">
-            <img src={assistantPortrait} alt="" className={`w-9 h-9 rounded-full ${assistantFaceClass}`} />
+            <img src={assistantBody} alt="" className={`w-9 h-9 rounded-full ${assistantFaceClass}`} />
             <div className="min-w-0 flex-1">
               <p className="text-xs font-bold leading-tight">Asistente de diagnóstico</p>
               <p className="text-[10px] text-slate-400">Preguntas con botones · Electricidad piloto</p>
@@ -99,7 +100,7 @@ export const DiagnosisAssistant: React.FC = () => {
             {session.messages.map((message) => (
               <div key={message.id} className={`flex gap-2 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 {message.role === 'assistant' && (
-                  <img src={assistantPortrait} alt="" className={`w-7 h-7 rounded-full ${assistantFaceClass} border border-slate-200 dark:border-slate-700 shrink-0 mt-0.5`} />
+                  <img src={assistantBody} alt="" className={`w-7 h-7 rounded-full ${assistantFaceClass} border border-slate-200 dark:border-slate-700 shrink-0 mt-0.5`} />
                 )}
                 <p
                   className={`max-w-[85%] rounded-2xl px-3 py-2 text-xs leading-relaxed whitespace-pre-line ${
@@ -210,20 +211,32 @@ export const DiagnosisAssistant: React.FC = () => {
         </section>
       )}
 
-      <button
-        type="button"
-        onClick={() => setOpen((value) => !value)}
-        className="pointer-events-auto w-16 h-16 rounded-full overflow-hidden border-2 border-white shadow-xl shadow-slate-900/25 ring-2 ring-teal-500/40 hover:ring-teal-500 transition-transform duration-200 motion-safe:hover:scale-[1.03] focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-400"
-        aria-label={open ? 'Cerrar asistente de diagnóstico' : 'Abrir asistente de diagnóstico'}
-        aria-expanded={open}
-      >
-        <img
-          src={assistantPortrait}
-          alt="Asistente de diagnóstico"
-          className={`w-full h-full ${assistantFaceClass}`}
-          style={{ transform: 'scale(1.22)', transformOrigin: '52% 14%' }}
-        />
-      </button>
+        {open && (
+          <img
+            src={assistantBody}
+            alt=""
+            aria-hidden
+            className="absolute z-10 pointer-events-none select-none -bottom-[8%] right-0 h-[33%] w-auto drop-shadow-[0_10px_18px_rgba(15,23,42,0.28)]"
+          />
+        )}
+
+        {!open && (
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="pointer-events-auto w-16 h-16 rounded-full overflow-hidden border-2 border-white shadow-xl shadow-slate-900/25 ring-2 ring-teal-500/40 hover:ring-teal-500 transition-transform duration-200 motion-safe:hover:scale-[1.03] focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-400"
+            aria-label="Abrir asistente de diagnóstico"
+            aria-expanded={false}
+          >
+            <img
+              src={assistantBody}
+              alt="Asistente de diagnóstico"
+              className={`w-full h-full ${assistantFaceClass}`}
+              style={{ transform: 'scale(1.18)', transformOrigin: '50% 8%' }}
+            />
+          </button>
+        )}
+      </div>
     </div>
   );
 };
