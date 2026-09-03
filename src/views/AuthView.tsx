@@ -30,6 +30,13 @@ function readInviteToken() {
   return new URLSearchParams(query).get('invite');
 }
 
+function readModeParam(): AuthMode | null {
+  const hash = window.location.hash.replace(/^#/, '');
+  const query = hash.includes('?') ? hash.slice(hash.indexOf('?') + 1) : '';
+  const raw = new URLSearchParams(query).get('mode');
+  return raw === 'apply' || raw === 'register' ? raw : null;
+}
+
 type AuthMode = 'login' | 'register' | 'apply' | 'guest' | 'recover';
 
 const inputClass =
@@ -40,9 +47,10 @@ const inputPasswordWithToggleClass = inputWithIconClass.replace('pr-3', 'pr-9');
 const labelClass = 'block text-xs font-bold text-slate-700 font-mono uppercase tracking-wider mb-1.5';
 
 export const AuthView: React.FC = () => {
-  const { loginWithPassword, requestPasswordRecovery, registerWithInvite, registerCustomer, registerTechnician, authLoading, showToast, catalogCategories } =
+  const { loginWithPassword, requestPasswordRecovery, registerWithInvite, registerCustomer, registerTechnician, authLoading, showToast, catalogCategories, navigate, isAuthenticated, currentUser } =
     useApp();
   const inviteToken = useMemo(() => readInviteToken(), []);
+  const modeParam = useMemo(() => readModeParam(), []);
   const [invite, setInvite] = useState<AccountInvitePreview | null>(null);
   const [inviteLoading, setInviteLoading] = useState(Boolean(inviteToken));
   const [inviteError, setInviteError] = useState<string | null>(null);
@@ -57,7 +65,7 @@ export const AuthView: React.FC = () => {
     Boolean(localStorage.getItem('tecniurbano_selectedServiceId') || hasAssistantDraft())
   );
 
-  const [mode, setMode] = useState<AuthMode>(orderIntent ? 'guest' : 'login');
+  const [mode, setMode] = useState<AuthMode>(orderIntent ? 'guest' : modeParam ?? 'login');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -65,6 +73,17 @@ export const AuthView: React.FC = () => {
     window.addEventListener(ASSISTANT_DRAFT_EVENT, onDraft);
     return () => window.removeEventListener(ASSISTANT_DRAFT_EVENT, onDraft);
   }, []);
+
+  // Si ya hay una sesión activa (de cualquier rol) y no es una redención de
+  // invitación ni un checkout de invitado en curso, esta pantalla no tiene
+  // sentido — se manda al usuario a su propio panel en vez de mostrarle un
+  // formulario de login/alta superpuesto con el header de su sesión actual.
+  useEffect(() => {
+    if (!isAuthenticated || !currentUser || inviteToken || orderIntent) return;
+    if (currentUser.role === 'admin') navigate('/hub');
+    else if (currentUser.role === 'technician') navigate('/technician');
+    else navigate('/customer');
+  }, [isAuthenticated, currentUser, inviteToken, orderIntent, navigate]);
 
   // Login
   const [email, setEmail] = useState(DEMO_MODE ? 'admin@tecniurbano.com.ar' : '');
@@ -264,6 +283,9 @@ export const AuthView: React.FC = () => {
             : mode === 'recover'
               ? 'Ingresá tu email y te mandamos un enlace para elegir una contraseña nueva.'
               : 'Creá tu cuenta y entrá ahora — completá el resto de tu perfil y el equipo lo revisa antes de asignarte trabajos.';
+
+  // Se está redirigiendo (ver el useEffect de arriba) — no mostrar el formulario ni un instante.
+  if (isAuthenticated && currentUser && !inviteToken && !orderIntent) return null;
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-10 sm:py-16 px-4 sm:px-6 lg:px-8" id="tecniurbano-auth-view">

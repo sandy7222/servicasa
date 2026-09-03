@@ -27,6 +27,7 @@ export const LandingFooter: React.FC = () => {
         { label: 'Garantía', href: '#garantia' },
         { label: 'Contacto', href: '#contacto' },
         { label: 'Empresas', href: '#contacto' },
+        { label: 'Trabajá con nosotros', href: '/auth?mode=apply' },
       ],
     },
     {

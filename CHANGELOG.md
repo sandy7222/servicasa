@@ -4,6 +4,36 @@ Registro de cambios funcionales relevantes de TecniUrbano. No reemplaza `git log
 (los detalles de implementación están en los commits y las migraciones) — es un
 resumen de qué cambió para el negocio y qué evidencia lo respalda.
 
+## 2026-09-03 (cont.) — "Trabajá con nosotros", foto del hero más grande, y el bug real del header duplicado en sesión activa
+
+Sandy revisó el sitio en vivo desde su propio navegador y pidió dos ajustes
+sobre `fa3e63b`, más una tercera nota que resultó ser un bug real (no solo
+un problema de la landing).
+
+- **"Trabajá con nosotros"** agregado en `LandingHeader.tsx` (nav superior y
+  menú mobile) y en `LandingFooter.tsx`, apuntando a `/auth?mode=apply`.
+  Nuevo: `AuthView` ahora lee `?mode=` de la URL (mismo patrón que ya
+  usaba `?invite=`) para caer directo en "Creá tu cuenta de técnico" en vez
+  de la pantalla neutra de login — verificado en vivo.
+- **Foto del técnico en el Hero, agrandada** acercándola a la proporción del
+  boceto original: en desktop ahora ocupa todo el alto de la sección y se
+  extiende hasta el borde derecho (antes era un recuadro más chico y
+  centrado verticalmente). Mobile sin cambios (foto contenida debajo del
+  texto). No hizo falta reexportar el asset — el original nativo (1536px)
+  ya alcanza para el contenedor más grande.
+- **Bug real, no solo un problema de la landing:** un usuario con sesión
+  activa de cualquier rol que visitaba `/#/auth` (por ejemplo, vía el link
+  nuevo "Trabajá con nosotros") veía el formulario de login/alta con el
+  `<Header/>` compartido de su sesión superpuesto arriba — confuso para un
+  técnico externo, y preexistente al rediseño (el header compartido siempre
+  se mostró en `/auth`, el fix de `fa3e63b` solo cubría `/`). Corregido en
+  `AuthView.tsx`: si hay sesión activa y no es una redención de invitación
+  ni un checkout de invitado en curso, redirige de inmediato al panel del
+  usuario (`/hub`, `/technician` o `/customer` según el rol) sin llegar a
+  renderizar el formulario. Verificado en vivo: logueado como admin,
+  navegar a `/#/auth` a mano rebota a `/hub` sin flash del formulario.
+- `tsc`/`vitest` (106/106)/`build` limpios.
+
 ## 2026-09-03 — Rediseño visual de la landing pública
 
 Commit: `26520b0`.

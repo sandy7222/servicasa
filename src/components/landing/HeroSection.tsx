@@ -14,11 +14,35 @@ const BENEFITS = [
   { icon: <MessageCircle className="w-4 h-4" />, label: 'Apertura de reclamo 48 hs' },
 ];
 
+const TechnicianPicture: React.FC<{ className: string }> = ({ className }) => (
+  <picture>
+    <source srcSet={tecnicoHeroWebp} type="image/webp" />
+    <img
+      src={tecnicoHeroPng}
+      alt="Técnico de TecniUrbano revisando el pedido desde su celular en el domicilio del cliente"
+      width={1400}
+      height={933}
+      className={className}
+      fetchPriority="high"
+      draggable={false}
+    />
+  </picture>
+);
+
 export const HeroSection: React.FC<HeroSectionProps> = ({ onDownloadClick, onHowItWorksClick }) => {
   return (
     <section className="relative overflow-hidden bg-gradient-to-b from-blue-950 via-[#003875] to-[#00264d] text-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20 grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-        <div className="text-center lg:text-left space-y-6">
+      {/* Foto del técnico a todo el alto de la sección — solo desktop, ver versión mobile más abajo. */}
+      <div className="hidden lg:block absolute inset-y-0 right-0 w-[54%]">
+        <div
+          className="absolute inset-y-0 left-0 w-48 bg-gradient-to-r from-[#00264d] via-[#00264d]/70 to-transparent z-10"
+          aria-hidden="true"
+        />
+        <TechnicianPicture className="w-full h-full object-cover object-[center_25%]" />
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20 relative z-20">
+        <div className="text-center lg:text-left space-y-6 lg:max-w-[44%]">
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight">
             Soluciones rápidas para <span className="text-teal-400">tu hogar</span>
           </h1>
@@ -56,23 +80,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onDownloadClick, onHow
           <p className="text-xs text-blue-200/70">Disponible para Android e iOS</p>
         </div>
 
-        <div className="relative">
-          <div
-            className="absolute inset-y-0 -left-6 w-1/2 bg-gradient-to-r from-[#00264d] via-[#00264d]/60 to-transparent z-10 hidden lg:block"
-            aria-hidden="true"
-          />
-          <picture>
-            <source srcSet={tecnicoHeroWebp} type="image/webp" />
-            <img
-              src={tecnicoHeroPng}
-              alt="Técnico de TecniUrbano revisando el pedido desde su celular en el domicilio del cliente"
-              width={1400}
-              height={933}
-              className="w-full h-auto rounded-2xl lg:rounded-none object-cover shadow-2xl lg:shadow-none max-h-[420px] lg:max-h-none"
-              fetchPriority="high"
-              draggable={false}
-            />
-          </picture>
+        {/* Mobile/tablet: foto contenida debajo del texto, sin bleed a todo el alto. */}
+        <div className="mt-8 lg:hidden">
+          <TechnicianPicture className="w-full h-auto max-h-[420px] rounded-2xl object-cover shadow-2xl" />
         </div>
       </div>
     </section>

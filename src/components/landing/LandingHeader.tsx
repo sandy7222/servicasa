@@ -48,6 +48,12 @@ export const LandingHeader: React.FC = () => {
                 {a.label}
               </button>
             ))}
+            <button
+              onClick={() => navigate('/auth?mode=apply')}
+              className="text-sm font-semibold text-slate-300 hover:text-white transition-colors"
+            >
+              Trabajá con nosotros
+            </button>
           </nav>
 
           <div className="hidden md:block">
@@ -82,6 +88,15 @@ export const LandingHeader: React.FC = () => {
               {a.label}
             </button>
           ))}
+          <button
+            onClick={() => {
+              setMobileOpen(false);
+              navigate('/auth?mode=apply');
+            }}
+            className="block w-full text-left px-3 py-3 rounded-lg text-sm font-semibold text-slate-200 hover:bg-slate-800 min-h-11"
+          >
+            Trabajá con nosotros
+          </button>
           <button
             onClick={() => navigate('/auth')}
             className="mt-2 w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-sm transition-colors"
