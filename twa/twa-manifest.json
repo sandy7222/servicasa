@@ -12,7 +12,7 @@
   "navigationDividerColorDark": "#000000",
   "backgroundColor": "#F8FAFC",
   "enableNotifications": true,
-  "startUrl": "/",
+  "startUrl": "/#/auth",
   "iconUrl": "https://tecniurbano.online/icons/icon-512.png",
   "maskableIconUrl": "https://tecniurbano.online/icons/icon-512-maskable.png",
   "splashScreenFadeOutDuration": 300,

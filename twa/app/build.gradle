@@ -23,7 +23,7 @@ plugins {
 def twaManifest = [
     applicationId: 'online.tecniurbano.twa',
     hostName: 'tecniurbano.online', // The domain being opened in the TWA.
-    launchUrl: '/', // The start path for the TWA. Must be relative to the domain.
+    launchUrl: '/#/auth', // The start path for the TWA. Must be relative to the domain.
     name: 'TecniUrbano', // The application name.
     launcherName: 'TecniUrbano', // The name shown on the Android Launcher.
     themeColor: '#0F172A', // The color used for the status bar.

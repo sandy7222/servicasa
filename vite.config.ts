@@ -18,7 +18,7 @@ export default defineConfig(() => {
           short_name: 'TecniUrbano',
           description: 'Gestión integral de servicios técnicos a domicilio.',
           lang: 'es-AR',
-          start_url: '/',
+          start_url: '/#/auth',
           display: 'standalone',
           theme_color: '#0F172A',
           background_color: '#F8FAFC',
