@@ -30,7 +30,9 @@ export default defineConfig(() => {
         },
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff2}'],
-          navigateFallbackDenylist: [/^\/(?:supabase)\//],
+          // Android verifies this exact JSON endpoint. It must bypass the SPA
+          // fallback when a previously installed PWA service worker is active.
+          navigateFallbackDenylist: [/^\/(?:supabase)\//, /^\/\.well-known\//],
           runtimeCaching: [
             {
               urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
