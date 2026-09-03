@@ -56,6 +56,22 @@ jobs:
         with:
           node-version: '22'
 
+      # Bubblewrap guarda las rutas de JDK y SDK en ~/.bubblewrap/config.json.
+      # Un runner de GitHub es nuevo en cada ejecución: sin este archivo intenta
+      # preguntar de forma interactiva y el job se interrumpe.
+      - name: Configurar Bubblewrap para el runner
+        if: steps.check.outputs.configured == 'true'
+        shell: bash
+        run: |
+          test -d "$JAVA_HOME"
+          test -d "$ANDROID_HOME"
+          if [[ ! -e "$ANDROID_HOME/tools" && -d "$ANDROID_HOME/cmdline-tools/latest" ]]; then
+            ln -s "$ANDROID_HOME/cmdline-tools/latest" "$ANDROID_HOME/tools"
+          fi
+          mkdir -p "$HOME/.bubblewrap"
+          printf '{\n  "jdkPath": "%s",\n  "androidSdkPath": "%s"\n}\n' \
+            "$JAVA_HOME" "$ANDROID_HOME" > "$HOME/.bubblewrap/config.json"
+
       - name: Instalar Bubblewrap CLI
         if: steps.check.outputs.configured == 'true'
         run: npm install -g @bubblewrap/cli
