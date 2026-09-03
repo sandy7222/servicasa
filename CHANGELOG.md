@@ -6,6 +6,8 @@ resumen de qué cambió para el negocio y qué evidencia lo respalda.
 
 ## 2026-09-03 (cont. 3) — Menú de navegación y encuadre de scroll
 
+Commit: `916ab38`.
+
 Ajuste puntual pedido explícitamente como "no rediseñar la landing" — solo
 el menú superior y el punto exacto donde cae el scroll de cada anchor.
 Contenido, diseño, funcionalidades, backend, asistente y login sin tocar.
