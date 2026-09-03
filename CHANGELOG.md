@@ -6,6 +6,8 @@ resumen de qué cambió para el negocio y qué evidencia lo respalda.
 
 ## 2026-09-03 (cont.) — "Trabajá con nosotros", foto del hero más grande, y el bug real del header duplicado en sesión activa
 
+Commit: `36c556c`.
+
 Sandy revisó el sitio en vivo desde su propio navegador y pidió dos ajustes
 sobre `fa3e63b`, más una tercera nota que resultó ser un bug real (no solo
 un problema de la landing).
