@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Moon, Sun } from 'lucide-react';
-import { resolveTheme, toggleTheme, type Theme } from '../../lib/theme';
+import { resolveTheme, toggleTheme, THEME_CHANGE_EVENT, type Theme } from '../../lib/theme';
 
 type Variant = 'bar' | 'page';
 
@@ -18,7 +18,14 @@ export const ThemeToggle: React.FC<{
   );
 
   useEffect(() => {
-    setTheme(resolveTheme());
+    const sync = () => setTheme(resolveTheme());
+    sync();
+    window.addEventListener(THEME_CHANGE_EVENT, sync);
+    window.addEventListener('storage', sync);
+    return () => {
+      window.removeEventListener(THEME_CHANGE_EVENT, sync);
+      window.removeEventListener('storage', sync);
+    };
   }, []);
 
   return (

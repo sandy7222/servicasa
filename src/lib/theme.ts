@@ -1,4 +1,5 @@
 export const THEME_STORAGE_KEY = 'tecniurbano_theme';
+export const THEME_CHANGE_EVENT = 'tecniurbano-theme';
 
 export type Theme = 'light' | 'dark';
 
@@ -35,6 +36,7 @@ export function persistTheme(theme: Theme) {
     /* private mode */
   }
   applyTheme(theme);
+  window.dispatchEvent(new CustomEvent(THEME_CHANGE_EVENT, { detail: theme }));
 }
 
 export function toggleTheme(): Theme {
