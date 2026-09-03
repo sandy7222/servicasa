@@ -215,12 +215,11 @@ export const DiagnosisAssistant: React.FC = () => {
         aria-label={open ? 'Cerrar asistente de diagnóstico' : 'Abrir asistente de diagnóstico'}
         aria-expanded={open}
       >
-        {/* El PNG ya viene en círculo con bastante aire; el scale recorta ese
-            padding para que la cara llene el botón. */}
         <img
           src={assistantPortrait}
           alt="Asistente de diagnóstico"
-          className="w-full h-full object-cover object-[center_28%] scale-[1.75] origin-center bg-white"
+          className="w-full h-full object-cover bg-white"
+          style={{ transform: 'scale(1.9)', transformOrigin: 'center 32%' }}
         />
       </button>
     </div>
