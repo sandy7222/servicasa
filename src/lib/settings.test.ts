@@ -26,7 +26,7 @@ describe('getSettingValue — nunca dejar la app sin un número si Supabase no r
     expect(getSettingValue<number>([], 'platform_commission_rate')).toBe(DEFAULT_SETTINGS.platform_commission_rate);
   });
 
-  it('los 8 defaults declarados coinciden con lo sembrado en la Fase 7 (ver migración system_settings_typed_and_audited)', () => {
+  it('los defaults declarados coinciden con lo sembrado en system_settings', () => {
     expect(DEFAULT_SETTINGS.visit_deposit_amount).toBe(30000);
     expect(DEFAULT_SETTINGS.platform_commission_rate).toBe(0.17);
     expect(DEFAULT_SETTINGS.warranty_days).toBe(30);
@@ -35,5 +35,7 @@ describe('getSettingValue — nunca dejar la app sin un número si Supabase no r
     expect(DEFAULT_SETTINGS.message_max_length).toBe(2000);
     expect(Array.isArray(DEFAULT_SETTINGS.enabled_provinces)).toBe(true);
     expect(DEFAULT_SETTINGS.feature_flags).toEqual({});
+    expect(DEFAULT_SETTINGS.payout_daily_process_time).toBe('20:00');
+    expect(DEFAULT_SETTINGS.payout_stale_scheduled_days).toBe(1);
   });
 });

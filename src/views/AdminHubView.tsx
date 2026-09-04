@@ -44,6 +44,7 @@ import {
   EyeOff,
   ShieldAlert,
   MessageCircle,
+  Landmark,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { startOrderConversation } from '../lib/conversations';
@@ -59,9 +60,7 @@ import { TechnicianReviewCard } from '../components/admin/TechnicianReviewCard';
 import { persistArchiveOrders } from '../lib/supabaseMutations';
 import { downloadArchivedOrdersExcel } from '../lib/exportOrdersExcel';
 import { TechnicianApplications } from '../components/admin/TechnicianApplications';
-import { PayoutScheduler } from '../components/admin/PayoutScheduler';
-import { PayoutBatchesPanel } from '../components/admin/PayoutBatchesPanel';
-import { SettlementReconciliation } from '../components/admin/SettlementReconciliation';
+import { SettlementsHub, usePendingPayoutRequestCount } from '../components/admin/SettlementsHub';
 import { canTechnicianReceiveOrders } from '../lib/technicianEligibility';
 import { sortByDisplayOrder, UNGROUPED_SUBCATEGORY_LABEL } from '../lib/catalogOrder';
 import {
@@ -229,7 +228,8 @@ export const AdminHubView: React.FC = () => {
   } = useApp();
 
   // Navigation tab within hub
-  const [activeTab, setActiveTab] = useState<'orders' | 'pendingPayment' | 'customers' | 'technicians' | 'inventory' | 'services' | 'categories'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'pendingPayment' | 'customers' | 'technicians' | 'settlements' | 'inventory' | 'services' | 'categories'>('orders');
+  const { count: pendingPayoutRequests, refresh: refreshPayoutQueue } = usePendingPayoutRequestCount(activeTab === 'settlements');
 
   // Filters & search
   const [searchQuery, setSearchQuery] = useState('');
@@ -1697,6 +1697,25 @@ export const AdminHubView: React.FC = () => {
             </button>
 
             <button
+              onClick={() => setActiveTab('settlements')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
+                activeTab === 'settlements'
+                  ? 'bg-[#0F172A] text-teal-300 shadow-xs border border-slate-800'
+                  : pendingPayoutRequests > 0
+                    ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-800 hover:bg-amber-100 border border-amber-200 dark:border-amber-800'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
+              }`}
+            >
+              <Landmark className="w-3.5 h-3.5" />
+              <span>Liquidaciones</span>
+              {pendingPayoutRequests > 0 && (
+                <span className="min-w-4 h-4 px-1 rounded-full bg-amber-600 text-white text-[10px] font-black leading-4 text-center">
+                  {pendingPayoutRequests}
+                </span>
+              )}
+            </button>
+
+            <button
               onClick={() => setActiveTab('inventory')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
                 activeTab === 'inventory'
@@ -2111,9 +2130,6 @@ export const AdminHubView: React.FC = () => {
           <div className="space-y-3">
             <TechnicianApplications />
             <TechnicianValidation />
-            <PayoutScheduler />
-            <PayoutBatchesPanel />
-            <SettlementReconciliation />
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">Cuadrilla de Técnicos</h2>
@@ -2258,6 +2274,10 @@ export const AdminHubView: React.FC = () => {
               </div>
             )}
           </div>
+        )}
+
+        {activeTab === 'settlements' && (
+          <SettlementsHub onQueueChange={() => void refreshPayoutQueue()} />
         )}
 
         {/* ================= TAB 4: INVENTORY ================= */}

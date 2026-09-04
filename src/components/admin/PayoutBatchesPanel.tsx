@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { CheckCircle2, FileUp, Landmark, ShieldCheck } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useApp } from '../../context/AppContext';
+import type { PaymentAccount } from '../../lib/wallets';
 
 type Batch = {
   id: string;
@@ -21,24 +22,43 @@ const dateTime = (value?: string | null) =>
 /** Cierre real de un lote programado: transición atómica e idempotente vía
  * la RPC close_payout_batch(). Reintentar sobre un lote ya cerrado no hace
  * nada (closed=false) — no hay riesgo de doble pago por doble click. */
-export const PayoutBatchesPanel: React.FC = () => {
+export const PayoutBatchesPanel: React.FC<{ accounts?: PaymentAccount[] }> = ({ accounts: accountsProp }) => {
   const { technicians, showToast, refreshRemoteData } = useApp();
   const [batches, setBatches] = useState<Batch[]>([]);
+  const [accounts, setAccounts] = useState<PaymentAccount[]>(accountsProp ?? []);
   const [reference, setReference] = useState<Record<string, string>>({});
   const [last4, setLast4] = useState<Record<string, string>>({});
   const [files, setFiles] = useState<Record<string, File | null>>({});
   const [closing, setClosing] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   const load = async () => {
+    setLoadError(false);
     const { data, error } = await supabase
       .from('technician_payout_batches')
       .select('id, technician_id, status, total_amount, settlement_count, scheduled_date, transfer_method')
       .eq('status', 'scheduled')
       .order('scheduled_date');
-    if (error) { showToast('No se pudieron cargar los lotes programados.', 'error'); return; }
+    if (error) {
+      showToast('No se pudieron cargar los lotes programados.', 'error');
+      setLoadError(true);
+      setLoading(false);
+      return;
+    }
     setBatches((data ?? []) as Batch[]);
+    if (!accountsProp) {
+      const { data: accountRows } = await supabase
+        .from('technician_payment_accounts')
+        .select('technician_id, account_holder, cbu_cvu, alias, provider');
+      setAccounts((accountRows ?? []) as PaymentAccount[]);
+    }
+    setLoading(false);
   };
   useEffect(() => { void load(); }, []);
+  useEffect(() => {
+    if (accountsProp) setAccounts(accountsProp);
+  }, [accountsProp]);
 
   const close = async (batch: Batch) => {
     const ref = (reference[batch.id] ?? '').trim();
@@ -76,7 +96,31 @@ export const PayoutBatchesPanel: React.FC = () => {
     }
   };
 
-  if (batches.length === 0) return null;
+  if (loading) {
+    return (
+      <section className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
+        <p className="text-xs text-slate-500 dark:text-slate-400">Cargando lotes programados…</p>
+      </section>
+    );
+  }
+
+  if (loadError || batches.length === 0) {
+    return (
+      <section className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 space-y-1">
+        <div className="flex items-start gap-2">
+          <ShieldCheck className="w-4 text-teal-600 mt-0.5" />
+          <div>
+            <h3 className="text-sm font-bold">Cerrar lotes programados</h3>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              {loadError
+                ? 'No se pudieron cargar los lotes. Probá recargar la página.'
+                : 'No hay lotes programados pendientes de marcar como pagados.'}
+            </p>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 space-y-3">
@@ -92,6 +136,7 @@ export const PayoutBatchesPanel: React.FC = () => {
       <div className="space-y-3">
         {batches.map((batch) => {
           const technician = technicians.find((t) => t.id === batch.technician_id);
+          const account = accounts.find((a) => a.technician_id === batch.technician_id);
           return (
             <div key={batch.id} className="rounded-lg border border-slate-200 dark:border-slate-700 p-3 space-y-2">
               <div className="flex items-center justify-between">
@@ -99,6 +144,11 @@ export const PayoutBatchesPanel: React.FC = () => {
                   <strong className="text-xs">{technician?.name ?? 'Técnico'}</strong>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400">
                     {batch.settlement_count} liquidación(es) · Programado: {dateTime(batch.scheduled_date)}
+                  </p>
+                  <p className="text-[11px] font-mono text-slate-600 dark:text-slate-300 mt-0.5">
+                    {account
+                      ? `${account.account_holder} · ${account.provider === 'mercadopago' ? 'CVU' : 'CBU'} ${account.cbu_cvu}${account.alias ? ` · alias ${account.alias}` : ''}`
+                      : 'Sin CBU/alias cargado'}
                   </p>
                 </div>
                 <strong className="text-sm text-teal-700">{ars(batch.total_amount)}</strong>

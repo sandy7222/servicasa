@@ -9,7 +9,9 @@ export type SettingKey =
   | 'urgent_surcharge_percent'
   | 'message_max_length'
   | 'enabled_provinces'
-  | 'feature_flags';
+  | 'feature_flags'
+  | 'payout_daily_process_time'
+  | 'payout_stale_scheduled_days';
 
 /** Defaults seguros si Supabase no responde — reflejan el mismo valor que
  * el seed real en system_settings, así la app nunca queda sin un número
@@ -23,6 +25,8 @@ export const DEFAULT_SETTINGS: Record<SettingKey, unknown> = {
   message_max_length: 2000,
   enabled_provinces: ARGENTINA_PROVINCES,
   feature_flags: {},
+  payout_daily_process_time: '20:00',
+  payout_stale_scheduled_days: 1,
 };
 
 export type SettingRow = {
