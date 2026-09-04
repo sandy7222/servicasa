@@ -4,6 +4,30 @@ Registro de cambios funcionales relevantes de TecniUrbano. No reemplaza `git log
 (los detalles de implementación están en los commits y las migraciones) — es un
 resumen de qué cambió para el negocio y qué evidencia lo respalda.
 
+## 2026-09-03 (cont. 7) — Fix: el deploy se rompía por el límite de funciones de Vercel Hobby
+
+Commit: (pendiente).
+
+Después de pushear la foto del asistente (cont. 6), los deploys a producción
+empezaron a fallar en el paso "Deploying outputs..." (el build en sí
+terminaba bien, `npm run build` y `tsc` no mostraban ningún error). Con la
+CLI de Vercel (`vercel inspect --json`, `vercel build` local) confirmé la
+causa real: el plan Hobby permite como máximo 12 Serverless Functions por
+deployment, y este proyecto (Vite, no Next.js) trata **cada archivo bajo
+`/api`, incluidos los de `api/lib/` (`auth.ts`, `mercadopago.ts`,
+`supabaseAdmin.ts`), como una función aparte** — no son endpoints, son
+helpers compartidos que cada ruta importa, pero Vercel los contaba igual.
+Antes de la foto del asistente ya eran 11 funciones (8 rutas reales + 3
+helpers); las 2 rutas nuevas (`upload-diagnosis-photo.ts`,
+`cleanup-diagnosis-photos.ts`) lo llevaron a 13, por encima del límite.
+
+- **Fix:** `api/lib/` pasó a `api/_lib/` — Vercel excluye de la cuenta de
+  funciones cualquier archivo o carpeta bajo `/api` que empiece con `_`
+  (convención documentada, no un hack). Bajó el conteo a 10 funciones reales,
+  con margen para futuras rutas sin tocar el plan de Vercel.
+- Confirmado localmente con `vercel build` antes de pushear: contando
+  `.vercel/output/functions/**/*.func` bajó de 13 a 10.
+
 ## 2026-09-03 (cont. 6) — Foto real del asistente de diagnóstico
 
 Commit: `9b0a901`.

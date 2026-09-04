@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { MPNotFoundError, Payment } from 'mercadopago';
-import { mpClient } from '../lib/mercadopago.js';
-import { supabaseAdmin } from '../lib/supabaseAdmin.js';
+import { mpClient } from '../_lib/mercadopago.js';
+import { supabaseAdmin } from '../_lib/supabaseAdmin.js';
 
 /**
  * Legacy IPN notifications (the only format available on this MP account —

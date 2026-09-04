@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getAuthenticatedCaller } from './lib/auth.js';
+import { getAuthenticatedCaller } from './_lib/auth.js';
 
 /**
  * Público: solo confirma que el servicio está arriba, sin revelar nada de

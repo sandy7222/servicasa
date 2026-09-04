@@ -13,7 +13,7 @@ import { ACCOUNTS, hasCredentials, login } from './helpers';
  * la app real.
  *
  * Requiere SUPABASE_SERVICE_ROLE_KEY y VITE_SUPABASE_URL en el entorno
- * (los mismos que usa api/lib/supabaseAdmin.ts) — si faltan, el test se
+ * (los mismos que usa api/_lib/supabaseAdmin.ts) — si faltan, el test se
  * saltea en vez de fallar en falso.
  */
 

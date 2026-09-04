@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { Preference } from 'mercadopago';
-import { mpClient } from '../lib/mercadopago.js';
-import { supabaseAdmin } from '../lib/supabaseAdmin.js';
+import { mpClient } from '../_lib/mercadopago.js';
+import { supabaseAdmin } from '../_lib/supabaseAdmin.js';
 
 type WorkMode = 'diagnosis' | 'direct';
 

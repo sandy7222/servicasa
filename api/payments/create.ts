@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { Preference } from 'mercadopago';
-import { mpClient } from '../lib/mercadopago.js';
-import { supabaseAdmin } from '../lib/supabaseAdmin.js';
-import { getAuthenticatedCaller } from '../lib/auth.js';
+import { mpClient } from '../_lib/mercadopago.js';
+import { supabaseAdmin } from '../_lib/supabaseAdmin.js';
+import { getAuthenticatedCaller } from '../_lib/auth.js';
 
 type PaymentType = 'visit_deposit' | 'balance_payment' | 'full_advance' | 'extra_payment';
 const VALID_PAYMENT_TYPES: PaymentType[] = ['visit_deposit', 'balance_payment', 'full_advance', 'extra_payment'];

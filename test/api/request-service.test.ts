@@ -8,11 +8,11 @@ const mocks = vi.hoisted(() => ({
   createPreference: vi.fn(),
 }));
 
-vi.mock('../../api/lib/auth.js', () => ({ getAuthenticatedCaller: mocks.caller }));
-vi.mock('../../api/lib/supabaseAdmin.js', () => ({
+vi.mock('../../api/_lib/auth.js', () => ({ getAuthenticatedCaller: mocks.caller }));
+vi.mock('../../api/_lib/supabaseAdmin.js', () => ({
   supabaseAdmin: { from: (...args: unknown[]) => mocks.from(...args) },
 }));
-vi.mock('../../api/lib/mercadopago.js', () => ({ mpClient: {} }));
+vi.mock('../../api/_lib/mercadopago.js', () => ({ mpClient: {} }));
 vi.mock('mercadopago', () => ({
   Preference: class {
     create(args: unknown) {

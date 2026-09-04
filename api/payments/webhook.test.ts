@@ -102,10 +102,10 @@ vi.mock('mercadopago', () => ({
   },
   MPNotFoundError: class MPNotFoundError extends Error {},
 }));
-vi.mock('../lib/mercadopago.js', () => ({ mpClient: {} }));
+vi.mock('../_lib/mercadopago.js', () => ({ mpClient: {} }));
 
 let tables: Record<string, Row[]>;
-vi.mock('../lib/supabaseAdmin.js', () => ({
+vi.mock('../_lib/supabaseAdmin.js', () => ({
   get supabaseAdmin() {
     return makeFakeSupabaseAdmin(tables);
   },

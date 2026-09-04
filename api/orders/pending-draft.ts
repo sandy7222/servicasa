@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { supabaseAdmin } from '../lib/supabaseAdmin.js';
-import { getAuthenticatedCaller } from '../lib/auth.js';
+import { supabaseAdmin } from '../_lib/supabaseAdmin.js';
+import { getAuthenticatedCaller } from '../_lib/auth.js';
 
 /**
  * Lets the logged-in customer check for a draft request they started but
