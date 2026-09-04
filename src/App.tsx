@@ -8,6 +8,8 @@ import {
   InlineBusyBar,
 } from './components/common/AppStatus';
 import { LandingView } from './views/LandingView';
+import { AboutView } from './views/AboutView';
+import { TermsView } from './views/TermsView';
 import { AuthView } from './views/AuthView';
 import { AdminHubView } from './views/AdminHubView';
 import { TechnicianView } from './views/TechnicianView';
@@ -88,16 +90,21 @@ const AppContent: React.FC = () => {
   const { currentPath, currentUser, remoteBusy, authReady, passwordRecoveryMode, isAuthenticated } = useApp();
 
   const pathOnly = currentPath.split('?')[0];
+  const isMarketingDoc = pathOnly === '/quienes-somos' || pathOnly === '/terminos';
   // La landing pública sin sesión arma su propio header de marketing
   // (LandingHeader, dentro de LandingView) — se omite el header compartido
-  // de las vistas autenticadas para no duplicarlo. Cualquier otra ruta
-  // sigue mostrando el header compartido como siempre.
-  const showSharedHeader = !(pathOnly === '/' && !isAuthenticated);
+  // de las vistas autenticadas para no duplicarlo. Quiénes somos y Términos
+  // usan el mismo header de marketing.
+  const showSharedHeader = !(pathOnly === '/' && !isAuthenticated) && !isMarketingDoc;
 
   const renderView = () => {
     switch (pathOnly) {
       case '/':
         return <LandingView />;
+      case '/quienes-somos':
+        return <AboutView />;
+      case '/terminos':
+        return <TermsView />;
       case '/auth':
         return <AuthView />;
       case '/home':

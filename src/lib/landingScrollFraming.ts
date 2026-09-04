@@ -52,3 +52,40 @@ export function scrollToFramedSection(topId: string, bottomBoundaryId?: string):
 
   window.scrollTo({ top: target, behavior: 'smooth' });
 }
+
+const PENDING_SCROLL_KEY = 'tecniurbano_pending_landing_scroll';
+
+export function queueLandingScroll(targetId: string, boundaryId?: string): void {
+  sessionStorage.setItem(PENDING_SCROLL_KEY, JSON.stringify({ targetId, boundaryId }));
+}
+
+export function peekQueuedLandingScroll(): { targetId: string; boundaryId?: string } | null {
+  try {
+    const raw = sessionStorage.getItem(PENDING_SCROLL_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { targetId?: string; boundaryId?: string };
+    if (!parsed.targetId) return null;
+    return { targetId: parsed.targetId, boundaryId: parsed.boundaryId };
+  } catch {
+    return null;
+  }
+}
+
+export function clearQueuedLandingScroll(): void {
+  sessionStorage.removeItem(PENDING_SCROLL_KEY);
+}
+
+export function goToLandingSection(
+  navigate: (path: string, options?: { scroll?: boolean }) => void,
+  currentPath: string,
+  targetId: string,
+  boundaryId?: string,
+): void {
+  const pathOnly = currentPath.split('?')[0];
+  if (pathOnly === '/') {
+    scrollToFramedSection(targetId, boundaryId);
+    return;
+  }
+  queueLandingScroll(targetId, boundaryId);
+  navigate('/', { scroll: false });
+}

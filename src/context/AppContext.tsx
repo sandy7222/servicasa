@@ -137,7 +137,7 @@ interface AppContextType {
   usingRemoteData: boolean;
   currentPath: string;
   toast: ToastNotification | null;
-  navigate: (path: string) => void;
+  navigate: (path: string, options?: { scroll?: boolean }) => void;
   setCurrentUser: (user: CurrentUserData) => void;
   loginAsRole: (role: UserRole, specificId?: string) => void;
   loginWithPassword: (email: string, password: string) => Promise<void>;
@@ -622,7 +622,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  const navigate = (path: string) => {
+  const navigate = (path: string, options?: { scroll?: boolean }) => {
     // Handle home redirect
     if (path === '/home') {
       if (currentUser?.role === 'admin') path = '/hub';
@@ -632,7 +632,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     
     window.location.hash = path;
     setCurrentPath(path);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (options?.scroll !== false) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
   const showToast = (

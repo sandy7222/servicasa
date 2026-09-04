@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ArrowRight, Menu, X } from 'lucide-react';
 import { Logo } from '../common/Logo';
 import { useApp } from '../../context/AppContext';
-import { scrollToFramedSection } from '../../lib/landingScrollFraming';
+import { goToLandingSection } from '../../lib/landingScrollFraming';
 import { ThemeToggle } from '../common/ThemeToggle';
 
 interface NavAnchor {
@@ -27,15 +27,16 @@ const NAV_ANCHORS: NavAnchor[] = [
  * (admin/técnico/cliente) no se toca.
  */
 export const LandingHeader: React.FC = () => {
-  const { navigate } = useApp();
+  const { navigate, currentPath } = useApp();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const scrollToAnchor = (a: NavAnchor) => {
     setMobileOpen(false);
+    const run = () => goToLandingSection(navigate, currentPath, a.targetId, a.boundaryId);
     // Esperar a que React aplique el cierre del menú antes de medir: si el
     // menú mobile estaba abierto, calcular el scroll en el mismo tick
     // mediría el header todavía "alto" por el menú desplegado.
-    setTimeout(() => scrollToFramedSection(a.targetId, a.boundaryId), 0);
+    setTimeout(run, 0);
   };
 
   return (

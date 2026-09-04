@@ -1,40 +1,58 @@
 import React from 'react';
 import { Logo } from '../common/Logo';
 import { useApp } from '../../context/AppContext';
+import { goToLandingSection } from '../../lib/landingScrollFraming';
+import { OPEN_DIAGNOSIS_ASSISTANT_EVENT } from '../common/DiagnosisAssistant';
 
-interface FooterColumn {
-  title: string;
-  links: { label: string; href: string }[];
-}
+type FooterLink = {
+  label: string;
+  href?: string;
+  action?: 'assistant';
+  boundaryId?: string;
+};
 
 export const LandingFooter: React.FC = () => {
-  const { navigate } = useApp();
+  const { navigate, currentPath } = useApp();
 
-  const scrollOrNavigate = (href: string) => {
-    if (href.startsWith('#')) {
-      document.querySelector(href)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    } else {
-      navigate(href);
+  const handleLink = (link: FooterLink) => {
+    if (link.action === 'assistant') {
+      window.dispatchEvent(new CustomEvent(OPEN_DIAGNOSIS_ASSISTANT_EVENT, { detail: { reset: true } }));
+      return;
     }
+    if (!link.href) return;
+    if (link.href.startsWith('#')) {
+      goToLandingSection(navigate, currentPath, link.href.slice(1), link.boundaryId);
+      return;
+    }
+    if (link.href.startsWith('mailto:')) {
+      window.location.href = link.href;
+      return;
+    }
+    navigate(link.href);
   };
 
-  const columns: FooterColumn[] = [
+  const columns: { title: string; links: FooterLink[] }[] = [
     {
       title: 'Enlaces',
       links: [
+        { label: 'Quiénes somos', href: '/quienes-somos' },
         { label: 'Servicios', href: '#servicios-ofrecidos' },
-        { label: 'Cómo funciona', href: '#como-funciona' },
+        { label: 'Cómo funciona', href: '#como-funciona', boundaryId: 'garantia' },
         { label: 'Garantía', href: '#garantia' },
-        { label: 'Contacto', href: '#contacto' },
-        { label: 'Empresas', href: '#contacto' },
+        { label: 'Términos y condiciones', href: '/terminos' },
         { label: 'Trabajá con nosotros', href: '/auth?mode=apply' },
       ],
     },
     {
       title: 'Ayuda',
-      // Sin rutas reales todavía (no hay páginas de FAQ/legales en el sitio hoy)
-      // — se dejan como texto simple en vez de links rotos.
-      links: [],
+      links: [{ label: 'Asistencia', action: 'assistant' }],
+    },
+    {
+      title: 'Contacto',
+      links: [
+        { label: 'Empresas', href: '#contacto' },
+        { label: 'Contacto', href: 'mailto:hola@tecniurbano.online' },
+      ],
     },
   ];
 
@@ -48,40 +66,24 @@ export const LandingFooter: React.FC = () => {
           </p>
         </div>
 
-        {columns.map((col) =>
-          col.links.length > 0 ? (
-            <div key={col.title}>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-4">{col.title}</h4>
-              <ul className="space-y-2.5">
-                {col.links.map((link) => (
-                  <li key={link.label}>
-                    <button
-                      onClick={() => scrollOrNavigate(link.href)}
-                      className="text-sm text-slate-300 hover:text-teal-300 transition-colors duration-200"
-                    >
-                      {link.label}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : (
-            <div key={col.title}>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-4">{col.title}</h4>
-              <p className="text-sm text-slate-500 italic">Próximamente</p>
-            </div>
-          )
-        )}
-
-        <div>
-          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-4">Contacto</h4>
-          <a
-            href="mailto:hola@tecniurbano.online"
-            className="text-sm text-slate-300 hover:text-teal-300 transition-colors duration-200"
-          >
-            hola@tecniurbano.online
-          </a>
-        </div>
+        {columns.map((col) => (
+          <div key={col.title}>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-4">{col.title}</h4>
+            <ul className="space-y-2.5">
+              {col.links.map((link) => (
+                <li key={link.label}>
+                  <button
+                    type="button"
+                    onClick={() => handleLink(link)}
+                    className="text-sm text-slate-300 hover:text-teal-300 transition-colors duration-200"
+                  >
+                    {link.label}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12 pt-6 border-t border-white/[0.06] text-center">

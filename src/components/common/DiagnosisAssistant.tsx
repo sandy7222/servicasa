@@ -20,7 +20,9 @@ import { uploadDiagnosisPhoto } from '../../lib/diagnosisPhotoUpload';
 import type { CatalogSubcategory, ServiceItem } from '../../types';
 import assistantBody from '../../assets/landing/asistente-cuerpo.png';
 
-const assistantFaceClass = 'object-cover object-[54%_16%] bg-white';
+export const OPEN_DIAGNOSIS_ASSISTANT_EVENT = 'tecniurbano-open-assistant';
+
+const assistantFaceClass = 'object-cover object-[70%_16%] bg-white';
 
 function slugMap(subcategories: readonly CatalogSubcategory[]) {
   return new Map(subcategories.map((sub) => [sub.id, sub.slug]));
@@ -49,6 +51,22 @@ export const DiagnosisAssistant: React.FC = () => {
   useEffect(() => {
     scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: 'smooth' });
   }, [session.messages.length, session.step, open]);
+
+  useEffect(() => {
+    const onOpen = (event: Event) => {
+      if (event instanceof CustomEvent && event.detail?.reset) {
+        setSession(startAssistant());
+        setFreeText('');
+        setPhotoName(undefined);
+        setPhotoStoragePath(undefined);
+        setPhotoError(undefined);
+        draftIdRef.current = crypto.randomUUID();
+      }
+      setOpen(true);
+    };
+    window.addEventListener(OPEN_DIAGNOSIS_ASSISTANT_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_DIAGNOSIS_ASSISTANT_EVENT, onOpen);
+  }, []);
 
   useEffect(() => {
     if (!open || prompt.kind !== 'pick-items' || prompt.allowUnsure || pickable.length !== 1) return;
@@ -259,7 +277,7 @@ export const DiagnosisAssistant: React.FC = () => {
               src={assistantBody}
               alt="Asistente de diagnóstico"
               className={`w-full h-full ${assistantFaceClass}`}
-              style={{ transform: 'scale(1.18)', transformOrigin: '54% 16%' }}
+              style={{ transform: 'scale(1.18)', transformOrigin: '70% 16%' }}
             />
           </button>
         )}
