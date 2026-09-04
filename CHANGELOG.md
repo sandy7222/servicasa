@@ -6,7 +6,7 @@ resumen de qué cambió para el negocio y qué evidencia lo respalda.
 
 ## 2026-09-03 (cont. 7) — Fix: el deploy se rompía por el límite de funciones de Vercel Hobby
 
-Commit: (pendiente).
+Commit: `382d252`.
 
 Después de pushear la foto del asistente (cont. 6), los deploys a producción
 empezaron a fallar en el paso "Deploying outputs..." (el build en sí
