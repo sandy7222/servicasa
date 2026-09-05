@@ -235,7 +235,32 @@ insert into test_results select 15, 'technician_public_view.total_ratings_count 
   (select total_ratings_count from technician_public_view where id = 'a1df8a0c-fa2b-45da-9d96-d6756c8074c0') = 2,
   'ok';
 
+-- ============================================================
+-- TEST 16: unique(order_id) — un segundo INSERT del dueño real sobre la
+-- misma orden (701, ya calificada con id 801 en el TEST 1) debe fallar
+-- por unique_violation (23505), no por RLS: el WITH CHECK lo deja pasar,
+-- es la constraint de la tabla la que lo frena.
+-- ============================================================
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'f4f82018-bfc9-4d69-9aa2-40446a19684a', true); -- Marcos
+select set_config('request.jwt.claim.role', 'authenticated', true);
+
+do $$
+begin
+  begin
+    insert into order_ratings (order_id, technician_id, customer_id, stars)
+    values ('00000000-0000-4000-8000-000000000701', 'a1df8a0c-fa2b-45da-9d96-d6756c8074c0',
+            'bdca3efe-9d20-47ef-9989-8bae352d1378', 4);
+    insert into test_results select 16, 'unique(order_id): 2do insert sobre 701 debio fallar', false, 'no lanzo error';
+  exception when unique_violation then
+    insert into test_results select 16, 'unique(order_id): 2do insert sobre 701 debio fallar', true, 'ok (23505)';
+  when others then
+    insert into test_results select 16, 'unique(order_id): 2do insert sobre 701 debio fallar', false, 'error inesperado: ' || sqlstate;
+  end;
+end $$;
+
 reset role;
+
 
 select * from test_results order by n;
 

@@ -107,21 +107,26 @@ calificaciones reales de cliente.
 
 **Bug de frontend encontrado al cerrar Fase 1:** ningún componente de UI del admin tiene un campo para editar `rating` a mano, pero `persistCreateTechnician`/`persistUpdateTechnician` igual mandaban `rating: input.rating ?? 5` en el `insert`/`update`. Como `input.rating` nunca lo llena el form, cada vez que el admin editaba nombre/teléfono/zona de un técnico, el `update` reescribía `rating` a `5` — pisando en silencio cualquier valor ya calculado por el trigger de Fase 1. Corregido: ambas funciones dejan de tocar `rating`. Verificado con `tsc --noEmit` limpio; `npx vitest run` no se pudo correr en el sandbox de este agente por un problema ajeno (`@rollup/rollup-linux-x64-gnu` no resuelve en este entorno) — recomendable correrlo en un entorno normal (Windows/CI) antes de dar por cerrado del todo.
 
-### Fase 2 — Flujo del cliente
-- [ ] Disparo del pedido de calificación al cerrar la orden (integrar con el sistema de notificaciones push/in-app ya pendiente en el roadmap general)
-- [ ] Componente de estrellas + comentario opcional (alta hasta 30 días post-cierre; edición dentro de 48h)
-- [ ] `AssignedTechnicianCard.tsx` y demás vistas: badge "Nuevo" para técnicos con `total_ratings_count < 3`
+### Fase 2 — Flujo del cliente (CERRADA 5/9/2026, commit `7703b62`)
+- [x] Disparo del pedido de calificación: sin sistema de notificaciones nuevo (no existía) — el widget aparece directo al abrir el detalle de una orden `completed` (`src/views/CustomerView.tsx`)
+- [x] `src/lib/orderRatings.ts` + `src/components/client/OrderRatingCard.tsx`: estrellas + comentario opcional (alta hasta 30 días post-cierre; edición dentro de 48h; solo lectura después), ventanas replicadas del lado del cliente para no ofrecer un submit que la RLS va a rechazar
+- [x] `AssignedTechnicianCard.tsx`: badge "Nuevo" para técnicos con `total_ratings_count < 3`
 
-### Fase 3 — Vista del admin
-- [ ] Mostrar rating + `total_ratings_count` en el modal de asignar técnico (`AdminHubView.tsx`)
-- [ ] Orden/filtro manual por reputación (sin auto-asignación — el admin decide con ese dato + zona/disponibilidad/especialidad)
+### Fase 3 — Vista del admin (CERRADA 5/9/2026)
+- [x] `total_ratings_count` en el catálogo admin (`fetchCatalog` pide a `technician_public_view` solo si `isAdmin`, merge sin tocar `TECHNICIAN_COLUMNS_*`)
+- [x] Modal de asignar técnico y directorio: badge "Nuevo" o `rating · N calificaciones` (`TechnicianRatingBadge`)
+- [x] Orden "Mejor rating" (nuevos al final, después rating desc, empate por nombre — así un 5.00 sin reseñas no le gana a un 4.7 con historial) + filtro "Solo con calificación real", default Nombre al abrir el modal. Sin auto-asignación: `assignTechnician` y la elegibilidad no cambiaron
 
-### Fase 4 — Vista del técnico
-- [ ] `TechnicianStatisticsView.tsx`: tendencia de calificación + comentarios recientes (no solo el número)
+### Fase 4 — Vista del técnico (CERRADA 5/9/2026)
+- [x] `TechnicianStatisticsView.tsx`: badge "Nuevo" bajo 3 calificaciones; con 3+, rating público + cantidad
+- [x] Sparkline de las últimas 25 estrellas crudas (sin el colchón bayesiano) + tendencia Mejorando/En baja/Estable comparando promedio de las últimas 5 vs. las 5 anteriores — solo con 10 calificaciones reales o más (bug encontrado y corregido antes del commit: el guard inicial dejaba comparar con una ventana "anterior" incompleta de 1 a 4 calificaciones entre 6 y 9 totales, dando una tendencia engañosa con muy poca muestra)
+- [x] Comentarios recientes (hasta 8, más nuevos primero, sin nombre del cliente)
 
-### Fase 5 — Anti-abuso / QA
-- [ ] Confirmar que la constraint `unique(order_id)` + RLS impide calificar sin haber sido cliente real de esa orden cerrada
-- [ ] `npm run build` + `npx vitest run` + advisors de seguridad en verde
+### Fase 5 — Anti-abuso / QA (CERRADA 5/9/2026)
+- [x] TEST 16 agregado a `supabase/tests/order_ratings_rls.sql`: un segundo `INSERT` del dueño real sobre una orden ya calificada falla por `unique_violation` (23505), no por RLS — confirma que la constraint de tabla es la última línea de defensa, no solo la policy
+- [x] Re-corrida completa contra el proyecto dev en un solo `BEGIN…ROLLBACK`: 16/16 OK (nada persistido)
+- [x] `npx vitest run` completo: 143/143. `npm run build`: OK (Vite 6.4.3, único warning preexistente de tamaño de chunk, no nuevo)
+- [x] `get_advisors` security y performance: 0 ERROR. Hallazgos nuevos atados a `order_ratings` (ninguno bloqueante): 2 INFO por FKs sin índice de cobertura (`customer_id`, `technician_id`) y 3 WARN `auth_rls_initplan` (las policies de `order_ratings` re-evalúan `auth.uid()`/`current_setting()` por fila en vez de `(select auth.uid())`) — queda pendiente para una fase de performance futura, no bloquea v1
 
 ## 6. Fuera de alcance (v1)
 
@@ -137,6 +142,6 @@ calificaciones reales de cliente.
 
 | Campo | Valor |
 | --- | --- |
-| Fase activa | **2 — Flujo del cliente** (Fase 1 cerrada y verificada el 5/9/2026 contra el proyecto dev `ayszrtieplmqscqtabsu`) |
-| Bloqueador principal | Ninguno. Falta decidir cómo se dispara el pedido de calificación (push/in-app) antes de construir la Fase 2 |
+| Fase activa | **Ninguna — plan v1 completo.** Fases 0 a 5 cerradas y verificadas el 5/9/2026 contra el proyecto dev `ayszrtieplmqscqtabsu` |
+| Bloqueador principal | Ninguno. Pendiente no bloqueante: 3 policies de `order_ratings` con `auth_rls_initplan` (WARN de performance, ver Fase 5) |
 | Sistemas relacionados (no tocar en este plan) | Incidencias/reclamos (`reportOrderIncident`), liquidaciones |
