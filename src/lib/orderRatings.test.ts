@@ -5,6 +5,10 @@ import {
   compareTechniciansByRating,
   isNewTechnicianRating,
   parseInstant,
+  ratingSparklineValues,
+  recentRatingComments,
+  summarizeRatingTrend,
+  type OrderRating,
 } from './orderRatings';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -110,5 +114,116 @@ describe('compareTechniciansByRating', () => {
       'Ana Pérez',
       'Elena Ruiz',
     ]);
+  });
+});
+
+function rating(partial: Pick<OrderRating, 'stars' | 'createdAt'> & Partial<OrderRating>): OrderRating {
+  return {
+    id: partial.id ?? `r-${partial.createdAt}`,
+    orderId: partial.orderId ?? `o-${partial.createdAt}`,
+    technicianId: 'tech-1',
+    customerId: 'cust-1',
+    stars: partial.stars,
+    comment: partial.comment ?? null,
+    createdAt: partial.createdAt,
+    editedAt: null,
+  };
+}
+
+describe('summarizeRatingTrend', () => {
+  it('es insufficient con menos de 3 calificaciones', () => {
+    const trend = summarizeRatingTrend([
+      rating({ stars: 5, createdAt: '2026-08-01T00:00:00.000Z' }),
+      rating({ stars: 4, createdAt: '2026-08-02T00:00:00.000Z' }),
+    ]);
+    expect(trend.direction).toBe('insufficient');
+    expect(trend.previousAverage).toBeNull();
+    expect(trend.sampleSize).toBe(2);
+  });
+
+  it('es insufficient si hay 3 o más pero no hay ventana previa de 5', () => {
+    const trend = summarizeRatingTrend([
+      rating({ stars: 5, createdAt: '2026-08-01T00:00:00.000Z' }),
+      rating({ stars: 4, createdAt: '2026-08-02T00:00:00.000Z' }),
+      rating({ stars: 5, createdAt: '2026-08-03T00:00:00.000Z' }),
+    ]);
+    expect(trend.direction).toBe('insufficient');
+    expect(trend.recentAverage).toBeCloseTo(14 / 3);
+    expect(trend.previousAverage).toBeNull();
+  });
+
+  it.each([6, 7, 8, 9])(
+    'es insufficient con %i calificaciones (ventana previa incompleta)',
+    (count) => {
+      const ratings = Array.from({ length: count }, (_, i) =>
+        rating({
+          stars: 5,
+          createdAt: `2026-08-${String(i + 1).padStart(2, '0')}T00:00:00.000Z`,
+        })
+      );
+      const trend = summarizeRatingTrend(ratings);
+      expect(trend.direction).toBe('insufficient');
+      expect(trend.previousAverage).toBeNull();
+    }
+  );
+
+  it('marca up cuando las últimas 5 superan a las 5 anteriores', () => {
+    const previous = [2, 2, 3, 2, 3].map((stars, i) =>
+      rating({ stars, createdAt: `2026-08-0${i + 1}T00:00:00.000Z` })
+    );
+    const recent = [5, 4, 5, 5, 4].map((stars, i) =>
+      rating({ stars, createdAt: `2026-08-1${i}T00:00:00.000Z` })
+    );
+    const trend = summarizeRatingTrend([...recent, ...previous]);
+    expect(trend.direction).toBe('up');
+    expect(trend.recentAverage).toBeCloseTo(4.6);
+    expect(trend.previousAverage).toBeCloseTo(2.4);
+  });
+
+  it('marca down cuando las últimas 5 bajan', () => {
+    const previous = [5, 5, 4, 5, 5].map((stars, i) =>
+      rating({ stars, createdAt: `2026-08-0${i + 1}T00:00:00.000Z` })
+    );
+    const recent = [2, 3, 2, 2, 3].map((stars, i) =>
+      rating({ stars, createdAt: `2026-08-1${i}T00:00:00.000Z` })
+    );
+    expect(summarizeRatingTrend([...previous, ...recent]).direction).toBe('down');
+  });
+
+  it('marca stable si el delta es menor al umbral', () => {
+    const previous = [4, 4, 5, 4, 4].map((stars, i) =>
+      rating({ stars, createdAt: `2026-08-0${i + 1}T00:00:00.000Z` })
+    );
+    const recent = [4, 4, 4, 5, 4].map((stars, i) =>
+      rating({ stars, createdAt: `2026-08-1${i}T00:00:00.000Z` })
+    );
+    expect(summarizeRatingTrend([...previous, ...recent]).direction).toBe('stable');
+  });
+});
+
+describe('ratingSparklineValues', () => {
+  it('devuelve estrellas en orden cronológico y recorta a 25', () => {
+    const ratings = Array.from({ length: 30 }, (_, i) =>
+      rating({
+        stars: (i % 5) + 1,
+        createdAt: `2026-07-${String(i + 1).padStart(2, '0')}T00:00:00.000Z`,
+      })
+    );
+    const values = ratingSparklineValues(ratings);
+    expect(values).toHaveLength(25);
+    expect(values[0]).toBe((5 % 5) + 1);
+    expect(values[24]).toBe((29 % 5) + 1);
+  });
+});
+
+describe('recentRatingComments', () => {
+  it('devuelve solo comentarios con texto, más recientes primero, con tope', () => {
+    const ratings = [
+      rating({ stars: 5, createdAt: '2026-08-01T00:00:00.000Z', comment: 'Primero' }),
+      rating({ stars: 4, createdAt: '2026-08-02T00:00:00.000Z', comment: '   ' }),
+      rating({ stars: 3, createdAt: '2026-08-03T00:00:00.000Z', comment: null }),
+      rating({ stars: 5, createdAt: '2026-08-04T00:00:00.000Z', comment: 'Último' }),
+    ];
+    expect(recentRatingComments(ratings, 8).map((r) => r.comment)).toEqual(['Último', 'Primero']);
   });
 });

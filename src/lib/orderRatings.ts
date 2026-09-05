@@ -26,6 +26,78 @@ export function compareTechniciansByRating(a: TechnicianRatingSortable, b: Techn
   return a.name.localeCompare(b.name, 'es');
 }
 
+export const RATING_TREND_WINDOW = 5;
+export const RATING_TREND_STABLE_EPSILON = 0.15;
+export const RATING_SPARKLINE_LIMIT = 25;
+export const RECENT_RATING_COMMENTS_LIMIT = 8;
+
+export type RatingTrendDirection = 'up' | 'down' | 'stable' | 'insufficient';
+
+export type RatingTrend = {
+  direction: RatingTrendDirection;
+  recentAverage: number | null;
+  previousAverage: number | null;
+  delta: number | null;
+  sampleSize: number;
+};
+
+type StarTimestamp = { stars: number; createdAt: string };
+
+function byCreatedAtAsc(a: StarTimestamp, b: StarTimestamp): number {
+  return (parseInstant(a.createdAt) ?? 0) - (parseInstant(b.createdAt) ?? 0);
+}
+
+function averageStars(items: { stars: number }[]): number | null {
+  if (!items.length) return null;
+  return items.reduce((sum, item) => sum + item.stars, 0) / items.length;
+}
+
+export function summarizeRatingTrend(ratings: StarTimestamp[]): RatingTrend {
+  const sorted = [...ratings].sort(byCreatedAtAsc);
+  const sampleSize = sorted.length;
+  const recent = sorted.slice(-RATING_TREND_WINDOW);
+  const previous = sorted.slice(-RATING_TREND_WINDOW * 2, -RATING_TREND_WINDOW);
+  const recentAverage = averageStars(recent);
+  const previousAverage = averageStars(previous);
+
+  if (
+    sampleSize < NEW_TECHNICIAN_RATING_THRESHOLD ||
+    previous.length < RATING_TREND_WINDOW ||
+    recentAverage == null ||
+    previousAverage == null
+  ) {
+    return {
+      direction: 'insufficient',
+      recentAverage,
+      previousAverage: null,
+      delta: null,
+      sampleSize,
+    };
+  }
+
+  const delta = recentAverage - previousAverage;
+  const direction: RatingTrendDirection =
+    Math.abs(delta) < RATING_TREND_STABLE_EPSILON ? 'stable' : delta > 0 ? 'up' : 'down';
+  return { direction, recentAverage, previousAverage, delta, sampleSize };
+}
+
+export function ratingSparklineValues(
+  ratings: StarTimestamp[],
+  limit = RATING_SPARKLINE_LIMIT
+): number[] {
+  return [...ratings].sort(byCreatedAtAsc).slice(-limit).map((row) => row.stars);
+}
+
+export function recentRatingComments(
+  ratings: OrderRating[],
+  limit = RECENT_RATING_COMMENTS_LIMIT
+): OrderRating[] {
+  return ratings
+    .filter((row) => row.comment?.trim())
+    .sort((a, b) => (parseInstant(b.createdAt) ?? 0) - (parseInstant(a.createdAt) ?? 0))
+    .slice(0, limit);
+}
+
 export type OrderRating = {
   id: string;
   orderId: string;
@@ -82,6 +154,16 @@ export async function fetchOrderRating(orderId: string): Promise<OrderRating | n
     .maybeSingle();
   throwIfError(error);
   return data ? mapRating(data as OrderRatingRow) : null;
+}
+
+export async function fetchTechnicianRatings(technicianId: string): Promise<OrderRating[]> {
+  const { data, error } = await supabase
+    .from('order_ratings')
+    .select('*')
+    .eq('technician_id', technicianId)
+    .order('created_at', { ascending: false });
+  throwIfError(error);
+  return ((data ?? []) as OrderRatingRow[]).map(mapRating);
 }
 
 export async function insertOrderRating(input: {
