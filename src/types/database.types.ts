@@ -64,6 +64,44 @@ export type Database = {
           },
         ]
       }
+      admin_earnings_withdrawals: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          notes: string | null
+          transfer_reference: string
+          withdrawn_at: string
+          withdrawn_by: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          transfer_reference: string
+          withdrawn_at?: string
+          withdrawn_by: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          transfer_reference?: string
+          withdrawn_at?: string
+          withdrawn_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_earnings_withdrawals_withdrawn_by_fkey"
+            columns: ["withdrawn_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       categories: {
         Row: {
           created_at: string
@@ -943,6 +981,75 @@ export type Database = {
           },
         ]
       }
+      order_ratings: {
+        Row: {
+          comment: string | null
+          created_at: string
+          customer_id: string
+          edited_at: string | null
+          id: string
+          order_id: string
+          stars: number
+          technician_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          customer_id: string
+          edited_at?: string | null
+          id?: string
+          order_id: string
+          stars: number
+          technician_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          customer_id?: string
+          edited_at?: string | null
+          id?: string
+          order_id?: string
+          stars?: number
+          technician_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_ratings_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_ratings_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_ratings_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "service_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_ratings_technician_id_fkey"
+            columns: ["technician_id"]
+            isOneToOne: false
+            referencedRelation: "technician_public_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_ratings_technician_id_fkey"
+            columns: ["technician_id"]
+            isOneToOne: false
+            referencedRelation: "technicians"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_signatures: {
         Row: {
           comments: string | null
@@ -1375,7 +1482,7 @@ export type Database = {
           priority?: Database["public"]["Enums"]["order_priority"]
           quote_status?: string
           scheduled_date: string
-          service_status: string
+          service_status?: string
           service_type: Database["public"]["Enums"]["service_type"]
           status?: Database["public"]["Enums"]["order_status"]
           technician_response_due_at?: string | null
@@ -2531,6 +2638,142 @@ export type Database = {
           },
         ]
       }
+      technician_payout_request_items: {
+        Row: {
+          created_at: string
+          net_amount: number
+          request_id: string
+          settlement_id: string
+        }
+        Insert: {
+          created_at?: string
+          net_amount: number
+          request_id: string
+          settlement_id: string
+        }
+        Update: {
+          created_at?: string
+          net_amount?: number
+          request_id?: string
+          settlement_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "technician_payout_request_items_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "technician_payout_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "technician_payout_request_items_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "technician_reserved_settlements"
+            referencedColumns: ["request_id"]
+          },
+          {
+            foreignKeyName: "technician_payout_request_items_settlement_id_fkey"
+            columns: ["settlement_id"]
+            isOneToOne: false
+            referencedRelation: "admin_settlement_reconciliation"
+            referencedColumns: ["settlement_id"]
+          },
+          {
+            foreignKeyName: "technician_payout_request_items_settlement_id_fkey"
+            columns: ["settlement_id"]
+            isOneToOne: false
+            referencedRelation: "technician_settlements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      technician_payout_requests: {
+        Row: {
+          cancel_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          completed_at: string | null
+          created_at: string
+          id: string
+          paid_amount: number | null
+          payout_batch_id: string | null
+          processed_at: string | null
+          requested_amount: number
+          requested_at: string
+          settlement_count: number | null
+          status: string
+          technician_id: string
+          transfer_reference: string | null
+          updated_at: string
+        }
+        Insert: {
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          paid_amount?: number | null
+          payout_batch_id?: string | null
+          processed_at?: string | null
+          requested_amount: number
+          requested_at?: string
+          settlement_count?: number | null
+          status?: string
+          technician_id: string
+          transfer_reference?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          paid_amount?: number | null
+          payout_batch_id?: string | null
+          processed_at?: string | null
+          requested_amount?: number
+          requested_at?: string
+          settlement_count?: number | null
+          status?: string
+          technician_id?: string
+          transfer_reference?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "technician_payout_requests_cancelled_by_fkey"
+            columns: ["cancelled_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "technician_payout_requests_payout_batch_id_fkey"
+            columns: ["payout_batch_id"]
+            isOneToOne: false
+            referencedRelation: "technician_payout_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "technician_payout_requests_technician_id_fkey"
+            columns: ["technician_id"]
+            isOneToOne: false
+            referencedRelation: "technician_public_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "technician_payout_requests_technician_id_fkey"
+            columns: ["technician_id"]
+            isOneToOne: false
+            referencedRelation: "technicians"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       technician_requirements: {
         Row: {
           id: string
@@ -3063,6 +3306,7 @@ export type Database = {
           public_avatar_path: string | null
           rating: number | null
           specialty: string | null
+          total_ratings_count: number | null
           validated_licenses: Json | null
           validation_status: string | null
         }
@@ -3077,6 +3321,7 @@ export type Database = {
           public_avatar_path?: string | null
           rating?: number | null
           specialty?: never
+          total_ratings_count?: never
           validated_licenses?: never
           validation_status?: string | null
         }
@@ -3091,13 +3336,57 @@ export type Database = {
           public_avatar_path?: string | null
           rating?: number | null
           specialty?: never
+          total_ratings_count?: never
           validated_licenses?: never
           validation_status?: string | null
         }
         Relationships: []
       }
+      technician_reserved_settlements: {
+        Row: {
+          request_id: string | null
+          settlement_id: string | null
+          technician_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "technician_payout_request_items_settlement_id_fkey"
+            columns: ["settlement_id"]
+            isOneToOne: false
+            referencedRelation: "admin_settlement_reconciliation"
+            referencedColumns: ["settlement_id"]
+          },
+          {
+            foreignKeyName: "technician_payout_request_items_settlement_id_fkey"
+            columns: ["settlement_id"]
+            isOneToOne: false
+            referencedRelation: "technician_settlements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "technician_payout_requests_technician_id_fkey"
+            columns: ["technician_id"]
+            isOneToOne: false
+            referencedRelation: "technician_public_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "technician_payout_requests_technician_id_fkey"
+            columns: ["technician_id"]
+            isOneToOne: false
+            referencedRelation: "technicians"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
+      admin_platform_wallet_available: { Args: never; Returns: number }
+      admin_platform_wallet_available_guarded: { Args: never; Returns: number }
+      cancel_technician_payout_request: {
+        Args: { p_reason?: string; p_request_id: string }
+        Returns: undefined
+      }
       close_payout_batch: {
         Args: {
           p_batch_id: string
@@ -3131,6 +3420,21 @@ export type Database = {
       }
       enforce_max_length: { Args: { p_text: string }; Returns: undefined }
       expire_stale_technician_offers: { Args: never; Returns: undefined }
+      fulfill_technician_payout_request: {
+        Args: {
+          p_destination_last4?: string
+          p_receipt_url?: string
+          p_request_id: string
+          p_transfer_method?: string
+          p_transfer_reference: string
+        }
+        Returns: {
+          batch_id: string
+          paid_amount: number
+          request_id: string
+          settlement_count: number
+        }[]
+      }
       get_account_invite: {
         Args: { p_token: string }
         Returns: {
@@ -3185,6 +3489,7 @@ export type Database = {
         Returns: string
       }
       release_due_technician_settlements: { Args: never; Returns: number }
+      request_technician_payout: { Args: { p_amount: number }; Returns: string }
       respond_to_technician_assignment: {
         Args: { p_order_id: string; p_response: string }
         Returns: undefined
@@ -3241,6 +3546,22 @@ export type Database = {
         Args: { p_customer_id: string }
         Returns: boolean
       }
+      technician_wallet_available: {
+        Args: { p_technician_id: string }
+        Returns: number
+      }
+      technician_wallet_available_guarded: {
+        Args: { p_technician_id: string }
+        Returns: number
+      }
+      withdraw_admin_earnings: {
+        Args: {
+          p_amount: number
+          p_notes?: string
+          p_transfer_reference: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       material_category:
@@ -3294,12 +3615,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3323,11 +3644,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3348,11 +3669,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3373,11 +3694,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3390,11 +3711,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3449,4 +3770,3 @@ export const Constants = {
     },
   },
 } as const
-

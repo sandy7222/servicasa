@@ -396,7 +396,10 @@ export async function persistCreateTechnician(
       name: input.name,
       phone: input.phone,
       email: input.email,
-      rating: input.rating ?? 5,
+      // rating NO se manda: technicians.rating tiene DEFAULT 5.00 en la
+      // columna y, a partir de Fase 1 del plan de calificaciones, se
+      // recalcula solo via trigger (order_ratings). Ver
+      // plan-calificaciones-tecnicos.md, punto 10 de "Casos borde".
       avatar_bg: pickAvatarBg(input.email || input.name),
       zone: input.zone,
       province: input.province,
@@ -424,7 +427,10 @@ export async function persistUpdateTechnician(
       name: input.name,
       phone: input.phone,
       email: input.email,
-      rating: input.rating ?? 5,
+      // rating NO se manda: pisar esto aca resetearia a 5 el rating real
+      // calculado por el trigger de order_ratings cada vez que el admin
+      // edita cualquier otro campo de la ficha (nombre, zona, etc). Ver
+      // plan-calificaciones-tecnicos.md, punto 10 de "Casos borde".
       zone: input.zone,
       province: input.province,
       address: input.address?.trim() || '',
