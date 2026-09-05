@@ -31,6 +31,7 @@ import { CustomerAddressesPanel } from '../components/client/CustomerAddressesPa
 import { ServiceRequestForm } from '../components/client/ServiceRequestForm';
 import { QuoteViewer } from '../components/client/QuoteViewer';
 import { AssignedTechnicianCard } from '../components/client/AssignedTechnicianCard';
+import { OrderRatingCard } from '../components/client/OrderRatingCard';
 import { MyClaimsPanel } from '../components/common/MyClaimsPanel';
 import { ConversationsPanel } from '../components/common/ConversationsPanel';
 import { startOrderConversation } from '../lib/conversations';
@@ -51,6 +52,7 @@ export const CustomerView: React.FC = () => {
   const [orderPendingDelete, setOrderPendingDelete] = useState<ServiceOrder | null>(null);
   const [linkedDraft, setLinkedDraft] = useState<PendingCustomerDraft | null | undefined>(undefined);
   const [resumingPayment, setResumingPayment] = useState(false);
+  const [ratingNonce, setRatingNonce] = useState(0);
 
   useEffect(() => {
     const interval = window.setInterval(() => setClockNow(Date.now()), 1000);
@@ -340,7 +342,10 @@ export const CustomerView: React.FC = () => {
                   </div>
                 )}
 
-                <AssignedTechnicianCard technicianId={activeOrder.assignedTechnicianId} />
+                <AssignedTechnicianCard
+                  key={`${activeOrder.assignedTechnicianId ?? 'none'}-${ratingNonce}`}
+                  technicianId={activeOrder.assignedTechnicianId}
+                />
 
                 {activeOrder.assignedTechnicianId && (
                   <button
@@ -596,6 +601,16 @@ export const CustomerView: React.FC = () => {
                     </div>
                   )}
                 </div>
+
+                {activeOrder.status === 'completed' && (
+                  <OrderRatingCard
+                    orderId={activeOrder.id}
+                    technicianId={activeOrder.assignedTechnicianId}
+                    customerId={customerId}
+                    completedAt={activeOrder.completedAt}
+                    onSaved={() => setRatingNonce((n) => n + 1)}
+                  />
+                )}
               </div>
             )}
           </div>
