@@ -8,6 +8,24 @@ const EDIT_WINDOW_MS = 48 * 60 * 60 * 1000;
 
 export const NEW_TECHNICIAN_RATING_THRESHOLD = 3;
 
+export function isNewTechnicianRating(count: number | null | undefined): boolean {
+  return (count ?? 0) < NEW_TECHNICIAN_RATING_THRESHOLD;
+}
+
+type TechnicianRatingSortable = {
+  name: string;
+  rating: number;
+  totalRatingsCount?: number | null;
+};
+
+export function compareTechniciansByRating(a: TechnicianRatingSortable, b: TechnicianRatingSortable): number {
+  const aNew = isNewTechnicianRating(a.totalRatingsCount);
+  const bNew = isNewTechnicianRating(b.totalRatingsCount);
+  if (aNew !== bNew) return aNew ? 1 : -1;
+  if (b.rating !== a.rating) return b.rating - a.rating;
+  return a.name.localeCompare(b.name, 'es');
+}
+
 export type OrderRating = {
   id: string;
   orderId: string;

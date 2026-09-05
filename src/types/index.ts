@@ -317,6 +317,7 @@ export interface Technician {
   phone: string;
   email: string;
   rating: number;
+  totalRatingsCount?: number;
   avatarBg: string;
   activeOrdersCount: number;
   completedOrdersCount: number;

@@ -506,6 +506,18 @@ export async function fetchCatalog(isAdmin: boolean) {
   const technicians = (techRes.data as unknown as DbTechnician[]).map((row) =>
     mapTechnician(row, specialtiesByTechnician.get(row.id) ?? [])
   );
+
+  const ratingCountById = new Map<string, number>();
+  if (isAdmin) {
+    const { data: ratingRows, error: ratingError } = await supabase
+      .from('technician_public_view')
+      .select('id, total_ratings_count');
+    if (ratingError) throw ratingError;
+    for (const row of ratingRows ?? []) {
+      if (!row.id) continue;
+      ratingCountById.set(String(row.id), Number(row.total_ratings_count) || 0);
+    }
+  }
   const customers = (custRes.data as DbCustomer[]).map(mapCustomer);
 
   const { data: profileLinks } = await supabase
@@ -526,6 +538,7 @@ export async function fetchCatalog(isAdmin: boolean) {
   return {
     technicians: technicians.map((t) => ({
       ...t,
+      ...(isAdmin ? { totalRatingsCount: ratingCountById.get(t.id) ?? 0 } : {}),
       customerId:
         techCustomerByProfile.get(t.id) ??
         (t.email ? customersByEmail.get(t.email.toLowerCase()) ?? null : null),

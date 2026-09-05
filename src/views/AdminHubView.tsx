@@ -63,6 +63,7 @@ import { TechnicianApplications } from '../components/admin/TechnicianApplicatio
 import { SettlementsHub, usePendingPayoutRequestCount } from '../components/admin/SettlementsHub';
 import { canTechnicianReceiveOrders } from '../lib/technicianEligibility';
 import { sortByDisplayOrder, UNGROUPED_SUBCATEGORY_LABEL } from '../lib/catalogOrder';
+import { compareTechniciansByRating, isNewTechnicianRating } from '../lib/orderRatings';
 import {
   OrderPriority,
   ServiceItem,
@@ -85,6 +86,22 @@ function toDateInputValue(value: string) {
   const parsed = new Date(value);
   if (!Number.isNaN(parsed.getTime())) return parsed.toISOString().slice(0, 10);
   return new Date().toISOString().slice(0, 10);
+}
+
+function TechnicianRatingBadge({ technician }: { technician: Technician }) {
+  if (isNewTechnicianRating(technician.totalRatingsCount)) {
+    return (
+      <span className="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-1.5 py-0.5 font-bold text-sky-800 text-[10px]">
+        Nuevo
+      </span>
+    );
+  }
+  const n = technician.totalRatingsCount ?? 0;
+  return (
+    <span className="px-1.5 py-0.2 rounded bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 font-mono font-bold text-[10px]">
+      {Number(technician.rating).toFixed(1)} · {n} {n === 1 ? 'calificación' : 'calificaciones'}
+    </span>
+  );
 }
 
 function AccountBadge({ hasAccount }: { hasAccount: boolean }) {
@@ -274,6 +291,22 @@ export const AdminHubView: React.FC = () => {
   const [assignModalReviewingTechId, setAssignModalReviewingTechId] = useState<string | null>(null);
   const [assignEligibility, setAssignEligibility] = useState<Record<string, { canReceive: boolean; missingRequirements: string[] }>>({});
   const [assignEligibilityLoading, setAssignEligibilityLoading] = useState(false);
+  const [assignSort, setAssignSort] = useState<'name' | 'rating'>('name');
+  const [assignOnlyRated, setAssignOnlyRated] = useState(false);
+
+  useEffect(() => {
+    if (!isAssignModalOpen) return;
+    setAssignSort('name');
+    setAssignOnlyRated(false);
+  }, [isAssignModalOpen]);
+
+  const assignModalTechnicians = useMemo(() => {
+    const filtered = assignOnlyRated
+      ? technicians.filter((t) => !isNewTechnicianRating(t.totalRatingsCount))
+      : technicians;
+    if (assignSort !== 'rating') return filtered;
+    return [...filtered].sort(compareTechniciansByRating);
+  }, [technicians, assignSort, assignOnlyRated]);
 
   // Única fuente de verdad de elegibilidad (src/lib/technicianEligibility.ts) —
   // antes este modal decidía con un chequeo propio (solo validation_status +
@@ -2249,9 +2282,7 @@ export const AdminHubView: React.FC = () => {
                               También cliente
                             </span>
                           )}
-                          <span className="px-1.5 py-0.2 rounded bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 font-mono font-bold text-[10px]">
-                            Rating {t.rating}
-                          </span>
+                          <TechnicianRatingBadge technician={t} />
                         </div>
                       </div>
 
@@ -3752,8 +3783,45 @@ export const AdminHubView: React.FC = () => {
                   </div>
                 )}
 
+                <div className="mb-4 flex flex-wrap items-center gap-2">
+                  <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setAssignSort('name')}
+                      className={`px-2.5 py-1 text-[11px] font-semibold ${
+                        assignSort === 'name'
+                          ? 'bg-slate-900 text-white'
+                          : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400'
+                      }`}
+                    >
+                      Nombre
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAssignSort('rating')}
+                      className={`px-2.5 py-1 text-[11px] font-semibold ${
+                        assignSort === 'rating'
+                          ? 'bg-slate-900 text-white'
+                          : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400'
+                      }`}
+                    >
+                      Mejor rating
+                    </button>
+                  </div>
+                  <label className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                    <input
+                      type="checkbox"
+                      checked={assignOnlyRated}
+                      onChange={(e) => setAssignOnlyRated(e.target.checked)}
+                    />
+                    Solo con calificación real
+                  </label>
+                </div>
+
                 <div className="space-y-2.5">
-                  {technicians.map((t) => {
+                  {assignModalTechnicians.length === 0 ? (
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Ningún técnico cumple el filtro.</p>
+                  ) : assignModalTechnicians.map((t) => {
                     const isCurrent = orderToAssign.assignedTechnicianId === t.id;
                     const eligibility = assignEligibility[t.id];
                     // Mientras carga, tratar como no elegible (fail-safe): nunca
@@ -3789,6 +3857,9 @@ export const AdminHubView: React.FC = () => {
                           <div>
                             <div className="text-xs font-bold text-slate-900 dark:text-slate-100">{t.name}</div>
                             <div className="text-[11px] text-slate-500 dark:text-slate-400">{t.specialty}</div>
+                            <div className="mt-0.5">
+                              <TechnicianRatingBadge technician={t} />
+                            </div>
                             {!isEligible && !assignEligibilityLoading && (
                               <div className="text-[10px] font-bold text-amber-700 mt-0.5">
                                 {missingLabel} · no habilitado

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { canCreateRating, canEditRating, parseInstant } from './orderRatings';
+import {
+  canCreateRating,
+  canEditRating,
+  compareTechniciansByRating,
+  isNewTechnicianRating,
+  parseInstant,
+} from './orderRatings';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;
@@ -54,5 +60,55 @@ describe('canEditRating — 48 horas desde created_at', () => {
 
   it('bloquea después de 48 hs', () => {
     expect(canEditRating(new Date(now - 48 * HOUR_MS - 1).toISOString(), now)).toBe(false);
+  });
+});
+
+describe('isNewTechnicianRating', () => {
+  it('trata ausencia, 0 y menos de 3 como Nuevo', () => {
+    expect(isNewTechnicianRating(undefined)).toBe(true);
+    expect(isNewTechnicianRating(null)).toBe(true);
+    expect(isNewTechnicianRating(0)).toBe(true);
+    expect(isNewTechnicianRating(2)).toBe(true);
+  });
+
+  it('deja de ser Nuevo a partir de 3 calificaciones', () => {
+    expect(isNewTechnicianRating(3)).toBe(false);
+    expect(isNewTechnicianRating(12)).toBe(false);
+  });
+});
+
+describe('compareTechniciansByRating', () => {
+  const ana = { name: 'Ana Pérez', rating: 4.2, totalRatingsCount: 12 };
+  const bruno = { name: 'Bruno Díaz', rating: 4.9, totalRatingsCount: 8 };
+  const carla = { name: 'Carla Gómez', rating: 5, totalRatingsCount: 1 };
+  const diego = { name: 'Diego López', rating: 4.2, totalRatingsCount: 20 };
+  const elena = { name: 'Elena Ruiz', rating: 5, totalRatingsCount: undefined };
+
+  it('manda a los Nuevos al final aunque tengan 5.00', () => {
+    expect([carla, bruno].sort(compareTechniciansByRating).map((t) => t.name)).toEqual([
+      'Bruno Díaz',
+      'Carla Gómez',
+    ]);
+  });
+
+  it('entre calificados ordena por rating descendente', () => {
+    expect([ana, bruno].sort(compareTechniciansByRating).map((t) => t.name)).toEqual([
+      'Bruno Díaz',
+      'Ana Pérez',
+    ]);
+  });
+
+  it('empata por nombre si el rating es igual', () => {
+    expect([diego, ana].sort(compareTechniciansByRating).map((t) => t.name)).toEqual([
+      'Ana Pérez',
+      'Diego López',
+    ]);
+  });
+
+  it('trata totalRatingsCount ausente como Nuevo', () => {
+    expect([elena, ana].sort(compareTechniciansByRating).map((t) => t.name)).toEqual([
+      'Ana Pérez',
+      'Elena Ruiz',
+    ]);
   });
 });
