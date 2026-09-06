@@ -39,6 +39,7 @@ import {
 import {
   persistAddChecklistItem,
   persistMarkTravelStarted,
+  persistMarkArrived,
   persistRespondToAssignment,
   persistAddNote,
   persistAddTimeLog,
@@ -197,6 +198,7 @@ interface AppContextType {
   addChecklistItem: (orderId: string, label: string) => void;
   respondToAssignment: (orderId: string, response: 'accepted' | 'rejected') => Promise<void>;
   markTravelStarted: (orderId: string) => Promise<void>;
+  markArrived: (orderId: string) => Promise<void>;
   addTimeLog: (orderId: string, minutes: number, note: string) => void;
   addTechnicalNote: (orderId: string, text: string) => void;
   addUsedMaterial: (
@@ -1341,6 +1343,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       showToast('Salida registrada. Presioná "Llegué al domicilio" cuando llegues.', 'success');
     } catch (err) {
       showToast(friendlyErrorMessage(err, 'No se pudo registrar la salida hacia el domicilio'), 'error');
+    }
+  };
+
+  const markArrived = async (orderId: string) => {
+    try {
+      requireTechnician(currentUser);
+    } catch (err) {
+      showToast(err instanceof SecurityError ? err.message : 'No autorizado', 'error', 'Seguridad');
+      return;
+    }
+    const order = orders.find((o) => o.id === orderId);
+    if (!order || order.arrivedAt) {
+      // Ya se registró la llegada (o la orden no existe) — evita duplicar.
+      return;
+    }
+    if (order.workMode !== 'diagnosis') {
+      // Esta función es exclusiva del flujo de diagnóstico: en 'direct',
+      // "Llegué" sigue yendo directo a updateOrderStatus(..., 'in_progress').
+      return;
+    }
+    if (!usingRemoteData) return;
+    try {
+      await persistMarkArrived({ orderId, author: currentUser?.name ?? 'Sistema' });
+      await refreshRemoteData();
+      showToast('Llegada registrada. Presupuestá el trabajo — el resto se habilita cuando el cliente acepte y pague.', 'success');
+    } catch (err) {
+      showToast(friendlyErrorMessage(err, 'No se pudo registrar la llegada al domicilio'), 'error');
     }
   };
 
@@ -2769,6 +2798,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addChecklistItem,
         respondToAssignment,
         markTravelStarted,
+        markArrived,
         addTimeLog,
         addTechnicalNote,
         addUsedMaterial,

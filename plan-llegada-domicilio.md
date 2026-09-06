@@ -80,3 +80,86 @@ Antes de tocar código, revisé todos los triggers reales sobre `service_orders`
 ## 6. Nota sobre el ayudante
 
 Este plan no incluye construir el ayudante todavía — solo dejar el evento correcto (el nuevo "Llegué al domicilio") como el punto de enganche para cuando lo diseñemos. Una vez que definamos el personaje/estilo del ayudante técnico, el mensaje "Llegaste a tiempo técnico, ahora debes presupuestar el trabajo a realizar" se dispara en el mismo handler que ya vamos a tocar acá.
+
+---
+
+# Ampliación: el cronómetro arranca con el pago del presupuesto (solo `work_mode = 'diagnosis'`)
+
+## 7. Diagnóstico (por qué ampliar el plan ya cerrado)
+
+- Con el plan de arriba (Fases 1–5, ya en producción), "Llegué al domicilio" dispara **siempre** `updateOrderStatus(order.id, 'in_progress')` — cronómetro arranca, Pausar/Finalizar aparecen, y **todas** las pestañas operativas (Checklist, Tiempo, Materiales, Notas, Firma) quedan visibles de una, incluida Presupuesto activa por defecto.
+- Para `work_mode === 'diagnosis'` eso no refleja el proceso real: el técnico llega, **presupuesta**, y recién si el cliente acepta y paga el presupuesto empieza a trabajar. Cronometrar el trabajo desde la llegada (mientras todavía se está armando/negociando el presupuesto) ensucia la métrica de tiempo trabajado y habilita Checklist/Materiales/Notas/Firma antes de que exista un presupuesto pagado.
+- Para `work_mode === 'direct'` no hay presupuesto de por medio — la orden ya se acordó de antemano — así que "llegué → in_progress" ya es correcto y no se toca.
+- Hallazgo en el historial del repo (migración `20260829041551_technician_acceptance_and_overlap_and_manual_departure.sql`, "Decisión 4"): este mecanismo **ya existió** — un trigger `service_orders_start_execution_after_payment` que arrancaba `in_progress` automáticamente al pagarse el presupuesto — y fue retirado a propósito en favor del arranque manual único ("Salí"). La función que quedó huérfana, `public.start_execution_after_payment_confirmation()`, sigue viva en la base pero sin ningún trigger enganchado (confirmado contra la base real: `pg_trigger` no tiene ninguna fila con `tgfoid` apuntando a esa función). Es decir, el mecanismo de origen sigue disponible para adaptar, no hay que inventarlo de cero.
+- El trigger de liquidación (`create_visit_settlement_on_started`) ya exige `status = 'in_progress' AND payment_status = 'paid_in_full'` en su condición `WHEN` — o sea que ya asume implícitamente que para cuando la orden pasa a `in_progress`, el pago está confirmado. Mover el disparo de `in_progress` desde "llegada" hacia "pago del presupuesto" en diagnóstico **lo alinea mejor**, no lo rompe.
+- El trigger `prevent_unpaid_execution_timer` (vigente) ya prohíbe `in_progress` en diagnóstico sin `payment_status IN ('deposit_paid','paid_in_full')` — sigue siendo una red de seguridad válida y no hace falta tocarlo.
+
+## 8. Objetivo de esta ampliación
+
+1. Para `work_mode === 'diagnosis'`: "Llegué al domicilio" deja de disparar `in_progress`. Solo registra la llegada (`arrived_at`) y habilita **únicamente** la pestaña Presupuesto (con el resto del panel operativo oculto y un aviso: "Presupuestá el trabajo. El checklist y las demás herramientas se habilitan cuando el cliente acepta y paga el presupuesto").
+2. Cuando el cliente acepta y paga el presupuesto (`order_quotes.status = 'accepted'` y `service_orders.payment_status = 'paid_in_full'`, que ya es el flujo existente vía `api/payments/webhook.ts`), un trigger de base de datos —scopeado a diagnóstico— pasa la orden a `in_progress` y arranca `work_started_at` automáticamente, sin que el técnico tenga que tocar nada. En ese momento se habilita el resto del panel (Checklist, Tiempo, Materiales, Notas, Firma).
+3. Para `work_mode === 'direct'`: cero cambios. "Llegué" sigue disparando `in_progress` tal cual quedó en la Fase 3.
+4. Se preserva el 100% de lo ya probado: `prevent_unpaid_execution_timer`, `create_visit_settlement_on_started`, STRICT COMPLETION de `updateOrderStatus`, RLS.
+5. El nuevo evento "llegada en modo diagnóstico" (`arrived_at`) queda como el gancho para el mensaje del ayudante "Llegaste a tiempo técnico, ahora debes presupuestar el trabajo a realizar" (sin cambios respecto a la Nota del punto 6 — sigue siendo el mismo momento conceptual, solo que ahora ya no coincide con el arranque del cronómetro en diagnóstico).
+
+## 9. Diseño técnico
+
+- **Nueva columna** `service_orders.arrived_at timestamptz null` — informativa, igual que `travel_started_at`, no dispara reglas de negocio por sí sola.
+- **`src/types/index.ts`**: `arrivedAt?: string` en `ServiceOrder`, junto a `travelStartedAt`.
+- **`src/lib/supabase.ts`** / **`database.types.ts`**: `arrived_at: string | null` en `DbServiceOrder` (regenerar tipos vía `mcp__Supabase__generate_typescript_types` igual que se hizo con `travel_started_at`).
+- **`src/lib/supabaseData.ts`**: `arrivedAt: row.arrived_at ?? undefined` en `mapOrder()`.
+- **`src/lib/supabaseMutations.ts`**: nueva función `persistMarkArrived({ orderId, author })`, calcada de `persistMarkTravelStarted` — solo `update service_orders set arrived_at = now()`.
+- **`AppContext.tsx`**: nueva función `markArrived(orderId)` en el context, calcada de `markTravelStarted`.
+- **`TechnicianView.tsx` — `handleArrival` pasa a bifurcar por `workMode`**:
+  - `workMode === 'direct'` (o `undefined`): comportamiento actual sin cambios — llama a `handleStartOrResumeService` (→ `in_progress`, cronómetro arranca).
+  - `workMode === 'diagnosis'`: llama a `markArrived(order.id)` en vez de cambiar status, y hace `setActiveTab('quote')`. La orden queda en `'assigned'` con `arrived_at` seteado.
+- **Gating del panel operativo — pasa a tener tres estados** (hoy son dos: antes/después de `in_progress`):
+  1. **Aún no llegó** (`!arrivedAt` en diagnóstico, o `!travelStartedAt`/`status==='assigned'` sin llegar en directo): cartel pre-llegada actual, sin pestañas.
+  2. **Llegó, diagnóstico, esperando pago** (`workMode==='diagnosis' && arrivedAt && status==='assigned'`): panel reducido — **solo la pestaña Presupuesto**, visible y activa. Debajo o al lado, un aviso: "Checklist, materiales, notas y firma se habilitan cuando el cliente acepta y paga el presupuesto."
+  3. **En curso / pausado / completado** (`status IN ('in_progress','paused','completed')`): panel completo actual, sin cambios — Presupuesto sigue siendo la primera pestaña.
+  - Para `direct`, el estado 2 nunca aplica (no hay `arrivedAt` sin pasar directo a `in_progress`), así que su recorrido es idéntico al actual: estado 1 → estado 3.
+  - Se agrega un `useEffect` que fuerza `activeTab` a `'quote'` mientras se está en el estado 2, para cubrir el caso de refrescar la página con la orden ya en ese estado intermedio (mismo motivo por el que hoy el `useState` inicial ya contempla esto, pero acá hace falta el efecto porque la orden puede *entrar* a este estado sin remount del componente).
+- **Nuevo trigger DB, scopeado a diagnóstico** (adaptando la intención de `start_execution_after_payment_confirmation`, sin revivir el trigger viejo genérico):
+  - Nombre propuesto: `start_diagnosis_execution_after_payment`.
+  - Se dispara `AFTER UPDATE OF payment_status, quote_status ON service_orders`.
+  - Condición `WHEN`: `NEW.work_mode = 'diagnosis' AND NEW.status = 'assigned' AND NEW.work_started_at IS NULL AND NEW.quote_status = 'accepted' AND NEW.payment_status = 'paid_in_full'`.
+  - Acción: `UPDATE service_orders SET status = 'in_progress', work_started_at = now() WHERE id = NEW.id` (respetando `prevent_unpaid_execution_timer`, que a esta altura ya no objeta nada porque `payment_status = 'paid_in_full'`).
+  - Se inserta también un `order_events` con `event_type = 'started'` y autor "sistema" (patrón ya usado en otros triggers automáticos del repo, p. ej. liquidaciones) para que el historial de la orden quede consistente con lo que ve un técnico que dispara `in_progress` a mano.
+  - Este trigger es nuevo (nombre y condición propios), no una restauración literal del viejo — el viejo no distinguía `work_mode` y por eso interfería con `direct`; este sí lo distingue, por lo que `direct` sigue sin verse afectado nunca.
+- **Nada de esto toca**: `prevent_unpaid_execution_timer`, `create_visit_settlement_on_started`, `isOrderPaymentSettled`, el flujo de pago (`QuoteViewer.tsx`, `paymentClient.ts`, `api/payments/webhook.ts`), ni las reglas STRICT COMPLETION de cierre.
+
+## 10. Riesgo revisado
+
+- **Condición de carrera técnico-vs-cliente**: si el cliente paga *antes* de que el técnico presione "Llegué" (pago adelantado/remoto), el trigger nuevo no dispara nada porque su `WHEN` exige `status='assigned'` — pero también exige que ya no se dispare dos veces: una vez que pasa a `in_progress` por el trigger, `work_started_at` deja de ser `NULL`, así que un segundo `UPDATE` de `payment_status`/`quote_status` (p. ej. reintentos de webhook) no lo vuelve a disparar. Igualmente, si el pago llega antes que la llegada del técnico, no hay ningún problema: el trigger igual pasa la orden a `in_progress` en cuanto se cumplen las condiciones, sin depender de `arrived_at`; el panel del técnico simplemente mostrará el estado 3 (completo) apenas entre, sin pasar por el estado 2. Esto es deseable, no un bug: si ya está todo pagado, no tiene sentido bloquear el checklist esperando un click de "llegué".
+- **Reintentos de webhook / updates redundantes**: el trigger es `AFTER UPDATE`, así que un `UPDATE` que no cambie `payment_status` ni `quote_status` ni dispara el trigger; y si los cambia pero la fila ya está en `in_progress`, el `WHEN` (`status='assigned'`) ya lo filtra. No hace falta lógica adicional de idempotencia.
+- **Órdenes `direct` no se ven afectadas en ningún escenario**: el `WHEN` filtra por `work_mode='diagnosis'` explícitamente.
+- **Tests existentes**: `workTimer.test.ts` y similares no asumen que el cronómetro arranque en un click específico del técnico — ya probamos esto en la Fase 4 original al mover "Salí"→"Llegué"; el mismo razonamiento aplica acá.
+
+## 11. Fases de implementación
+
+- [x] **Fase 6.1** — Migración Supabase: columna `service_orders.arrived_at` (timestamptz, nullable, sin default) aplicada y verificada contra el proyecto real (`ayszrtieplmqscqtabsu`). Las 3 órdenes existentes quedaron con `arrived_at = null`, sin romper nada.
+- [x] **Fase 6.2** — Migración Supabase: función + trigger `trg_start_diagnosis_execution_after_payment` (`AFTER UPDATE OF payment_status, quote_status`) aplicados y verificados con `begin;...;rollback;` contra una orden real:
+  - Test A (diagnóstico): `assigned`/`deposit_paid`/`sent` → al simular `quote_status='accepted'` + `payment_status='paid_in_full'`, pasó sola a `in_progress` con `work_started_at` seteado, y se insertó 1 evento `order_events` (`type='started'`, `author='Sistema'`).
+  - Idempotencia: un update redundante de `payment_status` después de la transición no volvió a disparar el trigger (`status` ya no es `assigned`) — se mantuvo en 1 solo evento del sistema.
+  - Test B (directo): la misma orden con `work_mode='direct'` y el mismo tipo de update (`quote_status`/`payment_status`) NO se vio afectada — quedó en `assigned`, `work_started_at` en `null`, 0 eventos del sistema. Confirma que el filtro por `work_mode` aísla correctamente a `direct`.
+  - Confirmado el `rollback`: la orden real quedó intacta (`cancelled`/`diagnosis`/`deposit_paid`/`sent`) y 0 eventos `author='Sistema'` reales en la base — ninguna prueba tocó producción.
+  - Hallazgo menor: el `WHEN` real de `trg_create_visit_settlement_on_started` es solo `new.status = 'in_progress'` (no exige también `payment_status='paid_in_full'` como decía el resumen previo) — no cambia nada del diseño, porque tanto diagnóstico como directo ya exigen el pago confirmado antes de llegar a `in_progress` vía `prevent_unpaid_execution_timer`.
+- [x] **Fase 6.3** — Código implementado y verificado:
+  - `src/types/index.ts`: `arrivedAt?: string` en `ServiceOrder`.
+  - `src/lib/supabase.ts` + `src/types/database.types.ts`: `arrived_at: string | null` (tipos regenerados desde Supabase live y verificados por hash contra el archivo escrito en el repo).
+  - `src/lib/supabaseData.ts`: mapeo `arrivedAt: row.arrived_at ?? undefined` en `mapOrder()`.
+  - `src/lib/supabaseMutations.ts`: `persistMarkArrived({ orderId, author })` — solo persiste `arrived_at = now()`, sin evento (a diferencia de `persistMarkTravelStarted`, que sí inserta uno — decisión consciente para no requerir un nuevo valor de enum `order_event_type`).
+  - `AppContext.tsx`: `markArrived(orderId)` — con guardas de seguridad (`requireTechnician`), de duplicado (`order.arrivedAt` ya seteado) y de modo (`order.workMode !== 'diagnosis'` corta silenciosamente, ya que esta función es exclusiva de diagnóstico).
+  - Verificación: `git diff --ignore-space-at-eol --stat` confirma 61 líneas insertadas, 0 borradas/modificadas en los 6 archivos tocados. `npx tsc --noEmit` sin errores.
+- [x] **Fase 6.4** — `TechnicianView.tsx` implementado y verificado:
+  - `handleArrival` bifurca por `workMode`: `diagnosis` llama a `markArrived(order.id)` + `setActiveTab('quote')` sin tocar status; `direct` (o sin definir) sigue llamando a `handleStartOrResumeService` sin cambios.
+  - Nuevo estado derivado `isDiagnosisAwaitingPayment` (`workMode==='diagnosis' && arrivedAt && status==='assigned'`) + `useEffect` que fuerza `activeTab` a `'quote'` mientras se está en ese estado, para cubrir el caso de que la orden entre a él sin remount (ej. refresh remoto).
+  - Panel operativo con gating de tres estados: completo (`in_progress\|paused\|completed`, sin cambios) → reducido (`isDiagnosisAwaitingPayment`: solo pestaña Presupuesto + aviso "Checklist, materiales, notas y firma se habilitan cuando el cliente acepta y paga el presupuesto") → cartel pre-llegada (sin cambios, para el resto de los casos).
+  - Confirmado que `QuoteBuilder` no depende de `order.status` (no hay ninguna referencia en el componente), por lo que renderizarlo con la orden todavía en `assigned` es seguro.
+  - Botones "Salí"/"Llegué" sin cambios — `isOrderPaymentSettled` en diagnóstico solo exige la seña (`deposit_paid`), que es un concepto distinto del pago completo del presupuesto que dispara el trigger de la Fase 6.2.
+  - Verificación: `git diff --ignore-space-at-eol` muestra solo el diff esperado (bifurcación de `handleArrival`, el nuevo estado/efecto, y el nuevo bloque `else if` del panel — nada del resto del archivo tocado). `npx tsc --noEmit` sin errores.
+- [x] **Fase 6.5** — Completa. Base de datos + tsc por mí, código/UI/tests reales por Cursor:
+  - **Mío**: ciclo completo de una orden de diagnóstico simulado con `begin;...;rollback;` contra una orden real (pre-visita → "Llegué" → pago del presupuesto → auto `in_progress` → checklist/firma/tiempo → `completed`), sin errores, `rollback` confirmado sin dejar rastro. `tsc --noEmit` limpio.
+  - **Cursor, contra la app real corriendo**: `tsc --noEmit` limpio; `npm run test` — **143 tests pasados (19 archivos)**, incluye `workTimer.test.ts`; `npm run build` compiló sin errores (solo el aviso preexistente de chunk >500kB). Click-through completo en una orden de diagnóstico real: "Salí" sin cronómetro ni Pausar/Finalizar → "Llegué" (`arrived_at` seteado, sigue `assigned`, panel reducido con solo Presupuesto y el aviso exacto) → presupuestó y envió → simuló el pago (sin sandbox de Mercado Pago local) → el trigger pasó la orden sola a `in_progress` con cronómetro corriendo → panel completo habilitado, aviso de espera desaparecido → checklist + firma + cierre sin error. Repitió el ciclo corto en una orden `direct`: recorrido idéntico al de antes de esta fase, `arrived_at` nunca se setea (no usa `markArrived`), sin pestaña Presupuesto ni aviso.
+  - **Bug real encontrado y corregido**: el botón "Llegué al domicilio" no miraba `arrivedAt` en su condición, así que quedaba visible y clickeable durante toda la espera del pago (en diagnóstico). Aunque `markArrived` en `AppContext.tsx` ya es idempotente (corta si `order.arrivedAt` ya está seteado, así que no rompía nada a nivel de datos), era un bug de UX real. Se agregó `&& !activeOrder.arrivedAt` a la condición del botón en `TechnicianView.tsx`. Verificado con `tsc --noEmit` (limpio) y `git diff --stat` (solo +1/-1 en esa línea, nada más tocado). No afecta a `direct` (nunca setea `arrivedAt`, así que la condición se comporta igual que antes).
+- [x] **Fase 6.6** — Cierre: ampliación completa, verificada de punta a punta (base de datos, tipos, código, tests, build y click-through real) y commiteada junto con el código en un solo commit acotado a este cambio.

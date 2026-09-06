@@ -217,6 +217,12 @@ export interface ServiceOrder {
    * negocio por sí solo — eso sigue pasando en workStartedAt/'in_progress',
    * ahora recién con "Llegué al domicilio". */
   travelStartedAt?: string;
+  /** Momento en que el técnico llegó al domicilio. Para workMode='diagnosis'
+   * solo habilita la pestaña Presupuesto — NO dispara 'in_progress' ni el
+   * cronómetro; eso lo hace el trigger de base de datos recién cuando el
+   * cliente acepta y paga el presupuesto. Para workMode='direct' es
+   * informativo (la llegada ya dispara 'in_progress' directamente). */
+  arrivedAt?: string;
   /** Inicio de la sesión de trabajo actualmente en curso. */
   workStartedAt?: string;
   /** Segundos de trabajo acumulados en sesiones ya pausadas o finalizadas. */

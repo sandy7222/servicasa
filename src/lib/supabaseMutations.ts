@@ -892,6 +892,26 @@ export async function persistMarkTravelStarted(input: { orderId: string; author:
   throwIfError(eventError);
 }
 
+/**
+ * "Llegué al domicilio", solo para `workMode === 'diagnosis'`: registra la
+ * llegada sin tocar `status` (la orden sigue 'assigned') ni arrancar el
+ * cronómetro. Habilita únicamente la pestaña Presupuesto en la UI. La
+ * transición real a 'in_progress' — cronómetro, panel operativo completo —
+ * la dispara sola la base de datos (trigger
+ * `trg_start_diagnosis_execution_after_payment`) recién cuando el cliente
+ * acepta y paga el presupuesto. Para `workMode === 'direct'` no se usa esta
+ * función: "Llegué" sigue llamando directamente a
+ * `persistUpdateOrderStatus(..., 'in_progress')` sin pasar por acá.
+ */
+export async function persistMarkArrived(input: { orderId: string; author: string }) {
+  const now = new Date().toISOString();
+  const { error } = await supabase
+    .from('service_orders')
+    .update({ arrived_at: now })
+    .eq('id', input.orderId);
+  throwIfError(error);
+}
+
 export async function persistUpdateOrderStatus(input: {
   orderId: string;
   status: OrderStatus;

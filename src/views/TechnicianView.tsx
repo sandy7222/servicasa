@@ -63,6 +63,7 @@ export const TechnicianView: React.FC = () => {
     addChecklistItem,
     respondToAssignment,
     markTravelStarted,
+    markArrived,
     addTimeLog,
     addTechnicalNote,
     addUsedMaterial,
@@ -110,6 +111,24 @@ export const TechnicianView: React.FC = () => {
   // Tab inside order details: 'checklist' | 'time' | 'materials' | 'notes' | 'quote' | 'signature'
   const [activeTab, setActiveTab] = useState<'checklist' | 'time' | 'materials' | 'notes' | 'quote' | 'signature'>('checklist');
 
+  // Estado intermedio, exclusivo de diagnóstico: ya llegó (arrivedAt) pero
+  // la orden sigue 'assigned' porque el cliente todavía no aceptó/pagó el
+  // presupuesto. En este estado el panel operativo muestra únicamente la
+  // pestaña Presupuesto (ver gating más abajo).
+  const isDiagnosisAwaitingPayment =
+    activeOrder?.workMode === 'diagnosis' &&
+    !!activeOrder.arrivedAt &&
+    activeOrder.status === 'assigned';
+
+  // Si la orden entra a ese estado intermedio sin que el componente se
+  // remonte (por ej. tras un refresh remoto), forzamos la pestaña activa a
+  // 'quote' — es la única disponible en ese momento.
+  useEffect(() => {
+    if (isDiagnosisAwaitingPayment && activeTab !== 'quote') {
+      setActiveTab('quote');
+    }
+  }, [isDiagnosisAwaitingPayment, activeTab]);
+
   // Form states
   const [newChecklistText, setNewChecklistText] = useState('');
   const [timeMinutes, setTimeMinutes] = useState<number>(30);
@@ -155,14 +174,20 @@ export const TechnicianView: React.FC = () => {
     updateOrderStatus(order.id, 'in_progress');
   };
 
-  // "Llegué al domicilio": dispara la misma transición que ya usa Reanudar
-  // (assigned/paused -> in_progress), y además abre Presupuesto como
-  // primera pestaña cuando corresponde (trabajos con diagnóstico).
+  // "Llegué al domicilio" se bifurca según el modo de trabajo:
+  // - 'direct' (o sin definir): comportamiento original — dispara la misma
+  //   transición que Reanudar (assigned/paused -> in_progress).
+  // - 'diagnosis': NO arranca in_progress todavía. Solo registra la llegada
+  //   (arrivedAt) y abre Presupuesto — el trabajo en sí (cronómetro, resto
+  //   de las pestañas) lo dispara sola la base de datos recién cuando el
+  //   cliente acepta y paga el presupuesto.
   const handleArrival = (order: ServiceOrder) => {
-    handleStartOrResumeService(order);
     if (order.workMode === 'diagnosis') {
+      void markArrived(order.id);
       setActiveTab('quote');
+      return;
     }
+    handleStartOrResumeService(order);
   };
 
   const handlePauseService = (order: ServiceOrder, reason: string) => {
@@ -435,7 +460,7 @@ export const TechnicianView: React.FC = () => {
                         </button>
                       )}
 
-                      {activeOrder.status === 'assigned' && activeOrder.technicianResponseStatus === 'accepted' && isOrderPaymentSettled(activeOrder) && activeOrder.travelStartedAt && (
+                      {activeOrder.status === 'assigned' && activeOrder.technicianResponseStatus === 'accepted' && isOrderPaymentSettled(activeOrder) && activeOrder.travelStartedAt && !activeOrder.arrivedAt && (
                         <button
                           onClick={() => handleArrival(activeOrder)}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-lg shadow-xs transition-colors"
@@ -637,7 +662,10 @@ export const TechnicianView: React.FC = () => {
                   })()}
                 </div>
 
-                {/* Operational Tabs — recién visibles desde que el técnico confirma "Llegué al domicilio" */}
+                {/* Operational Tabs — tres estados posibles:
+                    1) todavía no llegó -> cartel más abajo.
+                    2) diagnóstico, llegó, esperando pago del presupuesto -> panel reducido (solo Presupuesto).
+                    3) in_progress/paused/completed -> panel completo (este bloque). */}
                 {(activeOrder.status === 'in_progress' || activeOrder.status === 'paused' || activeOrder.status === 'completed') ? (
                 <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs overflow-hidden">
                   {/* Tabs header */}
@@ -1093,6 +1121,25 @@ export const TechnicianView: React.FC = () => {
                         )}
                       </div>
                     )}
+                  </div>
+                </div>
+                ) : isDiagnosisAwaitingPayment ? (
+                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs overflow-hidden">
+                  <div className="flex border-b border-slate-200 dark:border-slate-700 bg-slate-50/70 p-1 gap-1">
+                    <button
+                      onClick={() => setActiveTab('quote')}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-md bg-[#0F172A] text-teal-300 shadow-xs whitespace-nowrap"
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      <span>Presupuesto</span>
+                    </button>
+                  </div>
+                  <div className="p-3.5 space-y-3">
+                    <div className="flex items-start gap-2 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 px-3 py-2 text-xs font-bold text-amber-900 dark:text-amber-200">
+                      <Lock className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                      <span>Checklist, materiales, notas y firma se habilitan cuando el cliente acepta y paga el presupuesto.</span>
+                    </div>
+                    <QuoteBuilder order={activeOrder} />
                   </div>
                 </div>
                 ) : (

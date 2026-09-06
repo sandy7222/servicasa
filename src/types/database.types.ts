@@ -1396,6 +1396,7 @@ export type Database = {
           admin_incident_resolved_by: string | null
           admin_incident_status: string
           archived_at: string | null
+          arrived_at: string | null
           assigned_technician_id: string | null
           assigned_technician_name: string | null
           cancellation_reason: string | null
@@ -1452,6 +1453,7 @@ export type Database = {
           admin_incident_resolved_by?: string | null
           admin_incident_status?: string
           archived_at?: string | null
+          arrived_at?: string | null
           assigned_technician_id?: string | null
           assigned_technician_name?: string | null
           cancellation_reason?: string | null
@@ -1508,6 +1510,7 @@ export type Database = {
           admin_incident_resolved_by?: string | null
           admin_incident_status?: string
           archived_at?: string | null
+          arrived_at?: string | null
           assigned_technician_id?: string | null
           assigned_technician_name?: string | null
           cancellation_reason?: string | null
