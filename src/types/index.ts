@@ -116,6 +116,7 @@ export interface OrderQuote {
 
 export type OrderEventType =
   | 'assigned'
+  | 'travel_started'
   | 'started'
   | 'paused'
   | 'resumed'
@@ -211,6 +212,11 @@ export interface ServiceOrder {
   /** El cliente la "eliminó" de su propia lista — nunca se borra la fila,
    * solo deja de listarse en su portal. El admin la sigue viendo entera. */
   hiddenFromCustomerAt?: string;
+  /** Momento en que el técnico presionó "Salí hacia el domicilio" (viaje
+   * iniciado). Informativo: no dispara el cronómetro ni ninguna regla de
+   * negocio por sí solo — eso sigue pasando en workStartedAt/'in_progress',
+   * ahora recién con "Llegué al domicilio". */
+  travelStartedAt?: string;
   /** Inicio de la sesión de trabajo actualmente en curso. */
   workStartedAt?: string;
   /** Segundos de trabajo acumulados en sesiones ya pausadas o finalizadas. */

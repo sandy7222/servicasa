@@ -62,6 +62,7 @@ export const TechnicianView: React.FC = () => {
     toggleChecklistItem,
     addChecklistItem,
     respondToAssignment,
+    markTravelStarted,
     addTimeLog,
     addTechnicalNote,
     addUsedMaterial,
@@ -152,6 +153,16 @@ export const TechnicianView: React.FC = () => {
       return;
     }
     updateOrderStatus(order.id, 'in_progress');
+  };
+
+  // "Llegué al domicilio": dispara la misma transición que ya usa Reanudar
+  // (assigned/paused -> in_progress), y además abre Presupuesto como
+  // primera pestaña cuando corresponde (trabajos con diagnóstico).
+  const handleArrival = (order: ServiceOrder) => {
+    handleStartOrResumeService(order);
+    if (order.workMode === 'diagnosis') {
+      setActiveTab('quote');
+    }
   };
 
   const handlePauseService = (order: ServiceOrder, reason: string) => {
@@ -414,13 +425,23 @@ export const TechnicianView: React.FC = () => {
                         </div>
                       )}
 
-                      {activeOrder.status === 'assigned' && activeOrder.technicianResponseStatus === 'accepted' && isOrderPaymentSettled(activeOrder) && (
+                      {activeOrder.status === 'assigned' && activeOrder.technicianResponseStatus === 'accepted' && isOrderPaymentSettled(activeOrder) && !activeOrder.travelStartedAt && (
                         <button
-                          onClick={() => handleStartOrResumeService(activeOrder)}
+                          onClick={() => void markTravelStarted(activeOrder.id)}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-lg shadow-xs transition-colors"
                         >
                           <Play className="w-3 h-3" />
                           <span>Salí hacia el domicilio</span>
+                        </button>
+                      )}
+
+                      {activeOrder.status === 'assigned' && activeOrder.technicianResponseStatus === 'accepted' && isOrderPaymentSettled(activeOrder) && activeOrder.travelStartedAt && (
+                        <button
+                          onClick={() => handleArrival(activeOrder)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-lg shadow-xs transition-colors"
+                        >
+                          <MapPin className="w-3 h-3" />
+                          <span>Llegué al domicilio</span>
                         </button>
                       )}
 
@@ -616,10 +637,25 @@ export const TechnicianView: React.FC = () => {
                   })()}
                 </div>
 
-                {/* Operational Tabs (Checklist, Time, Materials, Notes, Signature) */}
+                {/* Operational Tabs — recién visibles desde que el técnico confirma "Llegué al domicilio" */}
+                {(activeOrder.status === 'in_progress' || activeOrder.status === 'paused' || activeOrder.status === 'completed') ? (
                 <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs overflow-hidden">
                   {/* Tabs header */}
                   <div className="flex border-b border-slate-200 dark:border-slate-700 overflow-x-auto bg-slate-50/70 p-1 gap-1">
+                    {activeOrder.workMode === 'diagnosis' && (
+                      <button
+                        onClick={() => setActiveTab('quote')}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-md transition-all whitespace-nowrap ${
+                          activeTab === 'quote'
+                            ? 'bg-[#0F172A] text-teal-300 shadow-xs'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 hover:bg-slate-200/60'
+                        }`}
+                      >
+                        <FileText className="w-3.5 h-3.5" />
+                        <span>Presupuesto</span>
+                      </button>
+                    )}
+
                     <button
                       onClick={() => setActiveTab('checklist')}
                       className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-md transition-all whitespace-nowrap ${
@@ -667,20 +703,6 @@ export const TechnicianView: React.FC = () => {
                       <FileText className="w-3.5 h-3.5" />
                       <span>Notas ({activeOrder.technicalNotes.length})</span>
                     </button>
-
-                    {activeOrder.workMode === 'diagnosis' && (
-                      <button
-                        onClick={() => setActiveTab('quote')}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-md transition-all whitespace-nowrap ${
-                          activeTab === 'quote'
-                            ? 'bg-[#0F172A] text-teal-300 shadow-xs'
-                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 hover:bg-slate-200/60'
-                        }`}
-                      >
-                        <FileText className="w-3.5 h-3.5" />
-                        <span>Presupuesto</span>
-                      </button>
-                    )}
 
                     <button
                       onClick={() => setActiveTab('signature')}
@@ -1073,6 +1095,14 @@ export const TechnicianView: React.FC = () => {
                     )}
                   </div>
                 </div>
+                ) : (
+                  <div className="rounded-xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-950/40 p-4 text-center">
+                    <Lock className="w-5 h-5 mx-auto text-slate-400 mb-1.5" />
+                    <p className="text-xs font-bold text-slate-600 dark:text-slate-400">
+                      Presioná "Llegué al domicilio" para habilitar presupuesto, checklist y el resto de las herramientas del servicio.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </div>

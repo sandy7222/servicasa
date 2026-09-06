@@ -199,6 +199,7 @@ export function mapOrder(
     completedAt: row.completed_at ?? undefined,
     archivedAt: row.archived_at ?? undefined,
     hiddenFromCustomerAt: row.hidden_from_customer_at ?? undefined,
+    travelStartedAt: row.travel_started_at ?? undefined,
     workStartedAt: row.work_started_at ?? undefined,
     workElapsedSeconds: Number(row.work_elapsed_seconds ?? 0),
     clientId: row.customer_id,

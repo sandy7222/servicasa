@@ -867,6 +867,31 @@ export async function persistAdminExceptionalClose(input: { orderId: string; rea
   throwIfError(eventError);
 }
 
+/**
+ * "Salí hacia el domicilio": registra que el técnico inició el viaje, sin
+ * tocar `status` (la orden sigue 'assigned') ni arrancar el cronómetro de
+ * trabajo. La transición real a 'in_progress' — cronómetro, Pausar/
+ * Finalizar, panel operativo — ocurre recién con "Llegué al domicilio"
+ * (ver persistUpdateOrderStatus). El trigger de notificación al cliente
+ * ("Tu técnico está en camino") escucha esta misma columna.
+ */
+export async function persistMarkTravelStarted(input: { orderId: string; author: string }) {
+  const now = new Date().toISOString();
+  const { error } = await supabase
+    .from('service_orders')
+    .update({ travel_started_at: now })
+    .eq('id', input.orderId);
+  throwIfError(error);
+
+  const { error: eventError } = await supabase.from('order_events').insert({
+    order_id: input.orderId,
+    type: 'travel_started',
+    description: 'Técnico salió hacia el domicilio.',
+    author: input.author,
+  });
+  throwIfError(eventError);
+}
+
 export async function persistUpdateOrderStatus(input: {
   orderId: string;
   status: OrderStatus;

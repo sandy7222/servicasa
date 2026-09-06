@@ -1435,6 +1435,7 @@ export type Database = {
           title: string
           total_paid_amount: number
           total_quoted_amount: number
+          travel_started_at: string | null
           visit_deposit_amount: number
           work_elapsed_seconds: number
           work_mode: string
@@ -1490,6 +1491,7 @@ export type Database = {
           title: string
           total_paid_amount?: number
           total_quoted_amount?: number
+          travel_started_at?: string | null
           visit_deposit_amount?: number
           work_elapsed_seconds?: number
           work_mode?: string
@@ -1545,6 +1547,7 @@ export type Database = {
           title?: string
           total_paid_amount?: number
           total_quoted_amount?: number
+          travel_started_at?: string | null
           visit_deposit_amount?: number
           work_elapsed_seconds?: number
           work_mode?: string
@@ -3583,6 +3586,7 @@ export type Database = {
         | "completed"
         | "cancelled"
         | "reassigned"
+        | "travel_started"
       order_priority: "baja" | "media" | "alta" | "urgente"
       order_status:
         | "assigned"
@@ -3747,6 +3751,7 @@ export const Constants = {
         "completed",
         "cancelled",
         "reassigned",
+        "travel_started",
       ],
       order_priority: ["baja", "media", "alta", "urgente"],
       order_status: [
