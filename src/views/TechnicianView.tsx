@@ -34,7 +34,7 @@ import { useApp } from '../context/AppContext';
 import { PriorityBadge, ServiceBadge, StatusBadge } from '../components/common/Badge';
 import { DiagnosisPhotoCard } from '../components/common/DiagnosisPhotoCard';
 import { ServiceOrder } from '../types';
-import { isOrderPaymentSettled, formatElapsedTime, getOrderElapsedSeconds } from '../lib/workTimer';
+import { isOrderPaymentSettled, formatElapsedTime, getOrderElapsedSeconds, getTimerStatusLabel, type TimerStatusLabel } from '../lib/workTimer';
 import { QuoteBuilder } from '../components/technician/QuoteBuilder';
 import { ProfessionalProfile } from '../components/technician/ProfessionalProfile';
 import { EarningsView } from '../components/technician/EarningsView';
@@ -51,6 +51,21 @@ const directionsUrl = (order: ServiceOrder) => {
     .filter(Boolean)
     .join(', ');
   return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}&travelmode=driving`;
+};
+
+// Color por estado del cronómetro (ver getTimerStatusLabel en lib/workTimer):
+// teal para trabajo activo, ámbar para pausado, slate para los estados
+// previos a empezar (pendiente/en camino/presupuestando/asignada), verde
+// para finalizado, rojo para cancelada.
+const TIMER_LABEL_COLOR: Record<TimerStatusLabel, string> = {
+  'EN CURSO': 'text-teal-300',
+  PAUSADO: 'text-amber-400',
+  PENDIENTE: 'text-slate-400',
+  ASIGNADA: 'text-slate-400',
+  'EN CAMINO': 'text-slate-400',
+  PRESUPUESTANDO: 'text-slate-400',
+  FINALIZADO: 'text-emerald-400',
+  CANCELADA: 'text-rose-400',
 };
 
 export const TechnicianView: React.FC = () => {
@@ -285,9 +300,11 @@ export const TechnicianView: React.FC = () => {
                 <Timer className={`w-3.5 h-3.5 ${activeOrder?.status === 'in_progress' && activeOrder.workStartedAt ? 'text-teal-400 animate-spin' : 'text-slate-400'}`} />
                 <span className="text-xs tracking-wider">{activeOrder ? formatStopwatch(getElapsedSeconds(activeOrder)) : '00:00:00'}</span>
               </div>
-              <span className={`text-[10px] font-bold ${activeOrder?.status === 'in_progress' ? 'text-teal-300' : 'text-slate-400'}`}>
-                {activeOrder?.status === 'in_progress' ? 'EN CURSO' : 'PAUSADO'}
-              </span>
+              {activeOrder && (
+                <span className={`text-[10px] font-bold ${TIMER_LABEL_COLOR[getTimerStatusLabel(activeOrder)]}`}>
+                  {getTimerStatusLabel(activeOrder)}
+                </span>
+              )}
             </div>
             <button onClick={() => navigate('/technician/profile')} className="hidden sm:inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-bold text-slate-200 hover:border-teal-500/60 hover:text-teal-300">
               <UserRound className="w-3.5 h-3.5" /> Mi perfil

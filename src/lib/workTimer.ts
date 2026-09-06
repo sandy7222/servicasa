@@ -1,6 +1,44 @@
-import type { PaymentStatus, ServiceOrder, WorkMode } from '../types';
+import type { OrderStatus, PaymentStatus, ServiceOrder, WorkMode } from '../types';
 
 type OrderPaymentShape = { workMode?: WorkMode; paymentStatus?: PaymentStatus };
+
+type OrderTimerLabelShape = {
+  status: OrderStatus;
+  workMode?: WorkMode;
+  technicianResponseStatus?: 'pending' | 'accepted' | 'rejected';
+  travelStartedAt?: string;
+  arrivedAt?: string;
+};
+
+export type TimerStatusLabel =
+  | 'PENDIENTE'
+  | 'ASIGNADA'
+  | 'EN CAMINO'
+  | 'PRESUPUESTANDO'
+  | 'EN CURSO'
+  | 'PAUSADO'
+  | 'FINALIZADO'
+  | 'CANCELADA';
+
+/**
+ * Etiqueta del cronómetro en la terminal del técnico. Antes era un binario
+ * EN CURSO / PAUSADO que mostraba "PAUSADO" para cualquier cosa que no
+ * fuera 'in_progress' — incluida una orden recién asignada, en camino,
+ * presupuestando (diagnóstico esperando el pago) o ya finalizada, todas
+ * mostradas como si el técnico hubiera pausado un trabajo que en realidad
+ * ni empezó. Esta función distingue esos casos por lo que realmente son.
+ */
+export function getTimerStatusLabel(order: OrderTimerLabelShape): TimerStatusLabel {
+  if (order.status === 'in_progress') return 'EN CURSO';
+  if (order.status === 'paused') return 'PAUSADO';
+  if (order.status === 'completed') return 'FINALIZADO';
+  if (order.status === 'cancelled') return 'CANCELADA';
+  // order.status === 'assigned' a partir de acá
+  if (order.technicianResponseStatus === 'pending') return 'PENDIENTE';
+  if (order.workMode === 'diagnosis' && order.arrivedAt) return 'PRESUPUESTANDO';
+  if (order.travelStartedAt) return 'EN CAMINO';
+  return 'ASIGNADA';
+}
 
 /**
  * Whether an order goes through the visit-deposit / precio-fijo payment flow

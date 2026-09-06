@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatElapsedTime, getOrderElapsedSeconds, isOrderPaymentSettled, orderRequiresPaymentGate } from './workTimer';
+import { formatElapsedTime, getOrderElapsedSeconds, getTimerStatusLabel, isOrderPaymentSettled, orderRequiresPaymentGate } from './workTimer';
 import type { ServiceOrder } from '../types';
 
 function baseOrder(overrides: Partial<ServiceOrder> = {}): ServiceOrder {
@@ -38,6 +38,47 @@ describe('orderRequiresPaymentGate', () => {
     expect(orderRequiresPaymentGate({ workMode: 'diagnosis' })).toBe(true);
     expect(orderRequiresPaymentGate({ workMode: 'direct' })).toBe(true);
     expect(orderRequiresPaymentGate({ workMode: undefined })).toBe(false);
+  });
+});
+
+describe('getTimerStatusLabel — antes era un binario EN CURSO/PAUSADO que mostraba "pausado" para cualquier cosa que no fuera in_progress', () => {
+  it('estados terminales/activos, uno a uno', () => {
+    expect(getTimerStatusLabel(baseOrder({ status: 'in_progress' }))).toBe('EN CURSO');
+    expect(getTimerStatusLabel(baseOrder({ status: 'paused' }))).toBe('PAUSADO');
+    expect(getTimerStatusLabel(baseOrder({ status: 'completed' }))).toBe('FINALIZADO');
+    expect(getTimerStatusLabel(baseOrder({ status: 'cancelled' }))).toBe('CANCELADA');
+  });
+
+  it('assigned + todavía no respondió la asignación: PENDIENTE, no PAUSADO', () => {
+    expect(getTimerStatusLabel(baseOrder({ status: 'assigned', technicianResponseStatus: 'pending' }))).toBe('PENDIENTE');
+  });
+
+  it('assigned + diagnóstico + llegó (esperando que el cliente pague el presupuesto): PRESUPUESTANDO', () => {
+    expect(
+      getTimerStatusLabel(
+        baseOrder({ status: 'assigned', technicianResponseStatus: 'accepted', workMode: 'diagnosis', arrivedAt: new Date().toISOString() })
+      )
+    ).toBe('PRESUPUESTANDO');
+  });
+
+  it('assigned + salió hacia el domicilio pero todavía no llegó: EN CAMINO', () => {
+    expect(
+      getTimerStatusLabel(
+        baseOrder({ status: 'assigned', technicianResponseStatus: 'accepted', travelStartedAt: new Date().toISOString() })
+      )
+    ).toBe('EN CAMINO');
+  });
+
+  it('assigned + aceptó pero todavía no salió: ASIGNADA', () => {
+    expect(getTimerStatusLabel(baseOrder({ status: 'assigned', technicianResponseStatus: 'accepted' }))).toBe('ASIGNADA');
+  });
+
+  it('directo llegado (arrivedAt no aplica fuera de diagnóstico) sigue como EN CAMINO, no PRESUPUESTANDO', () => {
+    expect(
+      getTimerStatusLabel(
+        baseOrder({ status: 'assigned', technicianResponseStatus: 'accepted', workMode: 'direct', travelStartedAt: new Date().toISOString(), arrivedAt: new Date().toISOString() })
+      )
+    ).toBe('EN CAMINO');
   });
 });
 
