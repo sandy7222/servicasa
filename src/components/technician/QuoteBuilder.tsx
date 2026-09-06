@@ -6,6 +6,7 @@ import { getCategoriesByRubro, getRubros, getTarifarioByRubroName, type CatalogC
 import { groupItemsBySubcategory } from '../../lib/catalogOrder';
 import { SubcategorySectionHeader } from '../common/SubcategorySectionHeader';
 import { supabase } from '../../lib/supabase';
+import { isOrderPaymentSettled } from '../../lib/workTimer';
 import type { OrderQuote, ServiceOrder } from '../../types';
 
 type Props = { order: ServiceOrder };
@@ -34,7 +35,14 @@ export const QuoteBuilder: React.FC<Props> = ({ order }) => {
   const [selectedMaterialId, setSelectedMaterialId] = useState(materials[0]?.id ?? '');
   const [materialQty, setMaterialQty] = useState(1);
 
-  const canDiagnose = order.workMode === 'diagnosis' && order.paymentStatus === 'deposit_paid';
+  // Habilitado desde que se paga la seña de visita, y se mantiene habilitado
+  // aunque el pago avance a 'paid_in_full' (presupuesto ya aceptado y
+  // pagado) — antes este chequeo exigía exactamente 'deposit_paid', así que
+  // apenas el cliente pagaba el presupuesto completo esta pestaña volvía a
+  // mostrar "Esperando la seña de visita" en vez del presupuesto ya enviado
+  // o aceptado. Mismo criterio que ya usa isOrderPaymentSettled para las
+  // demás pantallas de esta orden.
+  const canDiagnose = order.workMode === 'diagnosis' && isOrderPaymentSettled(order);
   const isDraft = !quote || quote.status === 'draft';
   const totals = useMemo(() => ({
     total: quote?.totalAmount ?? 0,
