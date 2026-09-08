@@ -54,6 +54,7 @@ export type DbTechnician = {
   is_enabled?: boolean | null;
   can_receive_orders?: boolean | null;
   is_available?: boolean | null;
+  tutorial_tips_seen?: string[] | null;
 };
 
 export type DbCustomer = {

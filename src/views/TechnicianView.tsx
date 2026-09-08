@@ -35,7 +35,9 @@ import { PriorityBadge, ServiceBadge, StatusBadge } from '../components/common/B
 import { DiagnosisPhotoCard } from '../components/common/DiagnosisPhotoCard';
 import { ServiceOrder } from '../types';
 import { isOrderPaymentSettled, formatElapsedTime, getOrderElapsedSeconds, getTimerStatusLabel, type TimerStatusLabel } from '../lib/workTimer';
+import { formatArs } from '../lib/pricing';
 import { QuoteBuilder } from '../components/technician/QuoteBuilder';
+import { TechnicianAssistant } from '../components/technician/TechnicianAssistant';
 import { ProfessionalProfile } from '../components/technician/ProfessionalProfile';
 import { EarningsView } from '../components/technician/EarningsView';
 import { WorkHistoryView } from '../components/technician/WorkHistoryView';
@@ -426,6 +428,7 @@ export const TechnicianView: React.FC = () => {
             {/* Right Column: Active Order Workspace (8 cols) */}
             {activeOrder && (
               <div className="lg:col-span-8 space-y-3">
+                <TechnicianAssistant order={activeOrder} />
                 {/* Order Header Card */}
                 <div className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-700 shadow-xs space-y-3">
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
@@ -678,6 +681,45 @@ export const TechnicianView: React.FC = () => {
                     );
                   })()}
                 </div>
+
+                {/* Servicios contratados y pagados — antes esto solo se veía
+                    entrando a la pestaña Presupuesto (ver "Detalle
+                    presupuestado" más abajo en QuoteBuilder). El checklist es
+                    una lista de tareas libres que el técnico escribe a mano y
+                    no tenía ninguna referencia a qué servicios se cobraron,
+                    así que si se quedaba trabajando desde Checklist/Tiempo/
+                    Materiales nunca tenía a la vista qué era lo pactado sin
+                    cambiar de pestaña. Se repite acá, siempre visible salvo en
+                    la pestaña Presupuesto (donde ya está el detalle
+                    completo), para no duplicarlo dos veces en la misma
+                    vista. */}
+                {activeOrder.workMode === 'diagnosis' && activeTab !== 'quote' && (() => {
+                  const quote = activeOrder.quotes?.[0];
+                  if (!quote || (quote.status !== 'sent' && quote.status !== 'accepted') || quote.items.length === 0) return null;
+                  return (
+                    <div className="rounded-xl border border-teal-200 dark:border-teal-800 bg-teal-50/70 dark:bg-teal-950/30 p-3 space-y-1.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="flex items-center gap-1.5 text-xs font-bold text-teal-900 dark:text-teal-200">
+                          <FileText className="w-3.5 h-3.5" />
+                          Servicios que el cliente contrató y pagó
+                        </span>
+                        {quote.status === 'accepted' ? (
+                          <span className="shrink-0 text-[10px] font-bold text-emerald-700 bg-emerald-100 dark:bg-emerald-900/40 px-1.5 py-0.5 rounded">Pago confirmado</span>
+                        ) : (
+                          <span className="shrink-0 text-[10px] font-bold text-amber-700 bg-amber-100 dark:bg-amber-900/40 px-1.5 py-0.5 rounded">Esperando confirmación de pago</span>
+                        )}
+                      </div>
+                      <ul className="space-y-1">
+                        {quote.items.map((item) => (
+                          <li key={item.id} className="flex items-center justify-between gap-2 text-[11px] text-teal-950 dark:text-teal-100">
+                            <span>{item.description}{item.quantity > 1 ? ` × ${item.quantity}` : ''}</span>
+                            <span className="shrink-0 font-bold">{formatArs(item.subtotal)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  );
+                })()}
 
                 {/* Operational Tabs — tres estados posibles:
                     1) todavía no llegó -> cartel más abajo.

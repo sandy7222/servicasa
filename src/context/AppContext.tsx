@@ -578,9 +578,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Refresh operational data immediately when another user changes an order.
   // The database publication is enabled separately in Supabase for these tables.
+  //
+  // postgres_changes rides a websocket that can go quiet without ever firing
+  // an explicit CLOSED/error event — a technician's phone locking mid-visit,
+  // a spotty signal, a laptop coming back from sleep. The client has no way
+  // to tell "no changes happened" apart from "we silently stopped
+  // listening", so a technician who steps away right after the client pays
+  // could be left staring at a stale "esperando el pago" screen indefinitely.
+  // To close that gap: resubscribe if the channel itself reports an error or
+  // timeout, and force a resync whenever the tab regains focus or the
+  // connection comes back — both are cheap, both catch the failure modes a
+  // silently-dead socket can't self-report.
   useEffect(() => {
     if (!usingRemoteData || !isSupabaseConfigured) return;
 
+    let cancelled = false;
     let refreshTimeout: number | undefined;
     const refreshCatalog = () => {
       if (refreshTimeout) window.clearTimeout(refreshTimeout);
@@ -596,21 +608,50 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }, 250);
     };
 
-    const channel = supabase
-      .channel('tecniurbano-operational-live')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'service_orders' }, refreshCatalog)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'order_checklist_items' }, refreshCatalog)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'order_time_logs' }, refreshCatalog)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'order_materials_used' }, refreshCatalog)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'order_events' }, refreshCatalog)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'order_signatures' }, refreshCatalog)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'order_quotes' }, refreshCatalog)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'order_quote_items' }, refreshCatalog)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'order_diagnosis_photos' }, refreshCatalog)
-      .subscribe();
+    let channel: ReturnType<typeof supabase.channel>;
+    const buildChannel = () => {
+      channel = supabase
+        .channel('tecniurbano-operational-live')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'service_orders' }, refreshCatalog)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'order_checklist_items' }, refreshCatalog)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'order_time_logs' }, refreshCatalog)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'order_materials_used' }, refreshCatalog)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'order_events' }, refreshCatalog)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'order_signatures' }, refreshCatalog)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'order_quotes' }, refreshCatalog)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'order_quote_items' }, refreshCatalog)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'order_diagnosis_photos' }, refreshCatalog)
+        .subscribe((status) => {
+          if (cancelled) return;
+          if (status === 'SUBSCRIBED') {
+            // Reconnecting (e.g. after a dropped socket) can itself miss the
+            // exact change that happened while offline — resync once on top
+            // of whatever postgres_changes replays.
+            refreshCatalog();
+            return;
+          }
+          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+            void supabase.removeChannel(channel);
+            window.setTimeout(() => {
+              if (!cancelled) buildChannel();
+            }, 2000);
+          }
+        });
+    };
+    buildChannel();
+
+    const handleBackOnline = () => refreshCatalog();
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') refreshCatalog();
+    };
+    window.addEventListener('online', handleBackOnline);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
+      cancelled = true;
       if (refreshTimeout) window.clearTimeout(refreshTimeout);
+      window.removeEventListener('online', handleBackOnline);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       void supabase.removeChannel(channel);
     };
   }, [usingRemoteData]);

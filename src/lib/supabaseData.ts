@@ -73,6 +73,7 @@ export function mapTechnician(row: DbTechnician, specialties: { id: string; name
     isEnabled: row.is_enabled ?? undefined,
     canReceiveOrders: row.can_receive_orders ?? false,
     isAvailable: row.is_available ?? undefined,
+    tutorialTipsSeen: row.tutorial_tips_seen ?? [],
   };
 }
 
@@ -324,7 +325,7 @@ export async function fetchTechnicianApplications(): Promise<TechnicianApplicati
 // que PostgREST tire "column does not exist" en vez de simplemente omitirla
 // como hacía select('*').
 export const TECHNICIAN_COLUMNS_SHARED =
-  'id,technician_number,name,specialty,phone,email,rating,avatar_bg,active_orders_count,completed_orders_count,zone,province,profile_id,bio,education_level,degree_title,institution_name,public_avatar_path,validation_status,is_enabled,can_receive_orders';
+  'id,technician_number,name,specialty,phone,email,rating,avatar_bg,active_orders_count,completed_orders_count,zone,province,profile_id,bio,education_level,degree_title,institution_name,public_avatar_path,validation_status,is_enabled,can_receive_orders,tutorial_tips_seen';
 // El admin sí necesita work_phone y address del catálogo compartido:
 // AdminHubView los precarga al abrir el modal de edición del técnico.
 // validation_notes sigue afuera — el admin la re-consulta puntualmente en

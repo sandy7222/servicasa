@@ -349,6 +349,11 @@ export interface Technician {
   isEnabled?: boolean;
   canReceiveOrders?: boolean;
   isAvailable?: boolean;
+  // Claves de tips del asistente en pantalla (ver TechnicianAssistant.tsx)
+  // que este técnico ya vio — cada tip se muestra una única vez y esto
+  // persiste esa marca server-side para que no reaparezca en otro
+  // dispositivo/navegador.
+  tutorialTipsSeen?: string[];
 }
 
 export type TechnicianInput = {

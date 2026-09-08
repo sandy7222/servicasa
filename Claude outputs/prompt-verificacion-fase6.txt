@@ -1,0 +1,15 @@
+Necesito que verifiques la Fase 6 del plan "plan-llegada-domicilio.md" (ampliación: el cronómetro arranca con el pago del presupuesto, solo para work_mode='diagnosis'). El código ya está implementado y commiteado en el working tree (sin commitear todavía). Por favor:
+
+1. Corré `npx tsc --noEmit` y confirmá que no hay errores.
+2. Corré `npm run test` (vitest) y confirmá que todos los tests pasan, en particular src/lib/workTimer.test.ts.
+3. Corré `npm run build` y confirmá que compila sin errores.
+4. Click-through manual con la app corriendo (`npm run dev`), usando una orden real de diagnóstico asignada a un técnico:
+   a. Como técnico, aceptá la visita y presioná "Salí hacia el domicilio" — confirmá que NO aparece cronómetro ni Pausar/Finalizar.
+   b. Presioná "Llegué al domicilio" — confirmá que el panel muestra SOLO la pestaña Presupuesto (con el aviso "Checklist, materiales, notas y firma se habilitan cuando el cliente acepta y paga el presupuesto"), y que la orden sigue sin cronómetro corriendo.
+   c. Armá y enviá un presupuesto desde esa pestaña.
+   d. Como cliente, aceptá y pagá el presupuesto (o simulá el webhook si no tenés Mercado Pago sandbox a mano).
+   e. Volvé a la vista de técnico (puede necesitar un refresh) y confirmá que la orden pasó SOLA a "en curso", con el cronómetro corriendo y ahora sí visibles Checklist/Tiempo/Materiales/Notas/Firma.
+   f. Completá el checklist, firmá como cliente, y finalizá la orden — confirmá que cierra sin problemas.
+5. Repetí un ciclo corto con una orden de work_mode='direct' (si hay alguna disponible) y confirmá que el flujo "Salí" → "Llegué" → en curso directo NO cambió nada respecto a como funcionaba antes de esta fase.
+
+Contame el resultado de cada punto en texto plano (no hace falta que abras ningún plan de Cursor ni relaciones esto con otra tarea — es específicamente sobre esta Fase 6 del archivo plan-llegada-domicilio.md).

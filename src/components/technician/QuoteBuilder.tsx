@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { FileCheck2, Minus, Plus, Send, Trash2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { formatArs } from '../../lib/pricing';
@@ -44,6 +44,19 @@ export const QuoteBuilder: React.FC<Props> = ({ order }) => {
   // demás pantallas de esta orden.
   const canDiagnose = order.workMode === 'diagnosis' && isOrderPaymentSettled(order);
   const isDraft = !quote || quote.status === 'draft';
+
+  // Señal explícita del momento en que se confirma la seña: sin esto, el
+  // técnico solo se entera de que ya puede diagnosticar si vuelve a mirar
+  // esta pantalla justo después de que cambie sola (vía el refresco en
+  // tiempo real de AppContext). Un toast en la transición false -> true es
+  // lo mínimo para que no dependa de la casualidad de estar mirando.
+  const wasAbleToDiagnose = useRef(canDiagnose);
+  useEffect(() => {
+    if (!wasAbleToDiagnose.current && canDiagnose) {
+      showToast('Seña confirmada por Mercado Pago. Ya podés cargar el diagnóstico y el presupuesto.', 'success', 'Pago confirmado');
+    }
+    wasAbleToDiagnose.current = canDiagnose;
+  }, [canDiagnose, showToast]);
   const totals = useMemo(() => ({
     total: quote?.totalAmount ?? 0,
     labor: quote?.subtotalLabor ?? 0,
@@ -219,7 +232,18 @@ export const QuoteBuilder: React.FC<Props> = ({ order }) => {
   };
 
   if (order.workMode !== 'diagnosis') return null;
-  if (!canDiagnose) return <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-4 text-xs text-amber-900 dark:text-amber-200"><strong>Esperando la seña de visita.</strong> El diagnóstico se habilita cuando el pago sea confirmado por Mercado Pago.</div>;
+  if (!canDiagnose) return (
+    <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-4 text-xs text-amber-900 dark:text-amber-200">
+      <div className="flex items-center gap-1.5">
+        <span className="relative flex h-2 w-2">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-500 opacity-75" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-600" />
+        </span>
+        <strong>Esperando la seña de visita.</strong>
+      </div>
+      <p className="mt-1">El diagnóstico se habilita solo cuando Mercado Pago confirma el pago. Esta pantalla se actualiza sola en cuanto eso pasa — no hace falta refrescar.</p>
+    </div>
+  );
 
   return <section className="space-y-3">
     <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 shadow-xs"><div className="flex items-start gap-2"><FileCheck2 className="mt-0.5 h-4 w-4 text-teal-700" /><div><h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Diagnóstico y presupuesto</h3><p className="text-[11px] text-slate-500 dark:text-slate-400">Elegí servicios del catálogo publicado. El sistema fija el precio antes de guardar.</p></div></div></div>
