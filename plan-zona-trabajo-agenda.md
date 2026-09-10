@@ -257,6 +257,8 @@ base ya está migrada aunque nadie la usa todavía. Verificado en vivo contra la
   como frase, no como dato estructurado) — recién en la Fase 4, al convertirlo en un campo real, se
   fijan esos horarios y ahí tiene sentido escribir la función que los use. Escribirla antes sería
   inventar un límite que la Fase 4 podría después contradecir.
+  **Commiteado: `e46435bb`** (`feat: agenda del tecnico - horario semanal y ausencias (Fase 3 de zona
+  de trabajo)`, 8 archivos, 166 inserciones, 23 eliminaciones). Sin push.
 - [ ] **Fase 4** — Revivir `appointmentWindow` como bloque real en la orden (Mañana/Tarde), conectado
   de punta a punta (formulario de pedido → order real).
 - [ ] **Fase 5** — Admin: distancia + conflicto en el modal de asignar, contador de técnicos en zona
