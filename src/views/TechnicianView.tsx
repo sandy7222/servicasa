@@ -29,6 +29,7 @@ import {
   ShieldAlert,
   MessageCircle,
   MapPinned,
+  CalendarDays,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useApp } from '../context/AppContext';
@@ -47,6 +48,7 @@ import { TechnicianConversationsView } from '../components/technician/Technician
 import { startOrderConversation } from '../lib/conversations';
 import { TechnicianStatisticsView } from '../components/technician/TechnicianStatisticsView';
 import { WorkZone } from '../components/technician/WorkZone';
+import { AvailabilityView } from '../components/technician/AvailabilityView';
 
 // Google Maps URLs are cross-platform and require no Maps API key.
 // The browser/Maps app obtains the technician's location; TecniUrbano never stores it.
@@ -111,6 +113,9 @@ export const TechnicianView: React.FC = () => {
   }
   if (currentPath.split('?')[0] === '/technician/zona-trabajo') {
     return <WorkZone />;
+  }
+  if (currentPath.split('?')[0] === '/technician/disponibilidad') {
+    return <AvailabilityView />;
   }
 
   const techId = currentUser?.technicianId || '';
@@ -328,6 +333,9 @@ export const TechnicianView: React.FC = () => {
             <button onClick={() => navigate('/technician/zona-trabajo')} className="hidden lg:inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-bold text-slate-200 hover:border-teal-500/60 hover:text-teal-300">
               <MapPinned className="w-3.5 h-3.5" /> Zona de trabajo
             </button>
+            <button onClick={() => navigate('/technician/disponibilidad')} className="hidden lg:inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-bold text-slate-200 hover:border-teal-500/60 hover:text-teal-300">
+              <CalendarDays className="w-3.5 h-3.5" /> Disponibilidad
+            </button>
             <button onClick={() => navigate('/technician/reclamos')} className="hidden lg:inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-bold text-slate-200 hover:border-teal-500/60 hover:text-teal-300">
               <ShieldAlert className="w-3.5 h-3.5" /> Reclamos
             </button>
@@ -345,6 +353,7 @@ export const TechnicianView: React.FC = () => {
               { path: '/technician/history', label: 'Historial', icon: History },
               { path: '/technician/statistics', label: 'Estadísticas', icon: BarChart3 },
               { path: '/technician/zona-trabajo', label: 'Zona de trabajo', icon: MapPinned },
+              { path: '/technician/disponibilidad', label: 'Disponibilidad', icon: CalendarDays },
               { path: '/technician/reclamos', label: 'Reclamos', icon: ShieldAlert },
               { path: '/technician/conversaciones', label: 'Conversaciones', icon: MessageCircle },
             ].map(({ path, label, icon: Icon }) => (

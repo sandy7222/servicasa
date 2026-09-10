@@ -19,6 +19,7 @@ const ADMIN_ONLY_COLUMNS = [
   'work_zone_radius_km',
   'work_zone_city',
   'work_zone_province',
+  'is_available',
 ];
 
 describe('columnas de technicians en el catálogo compartido', () => {

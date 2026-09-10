@@ -327,10 +327,13 @@ export async function fetchTechnicianApplications(): Promise<TechnicianApplicati
 // (dato de contacto interno) — ninguna pantalla que lee del catálogo
 // compartido los necesita; ProfessionalProfile.tsx y TechnicianReviewCard.tsx
 // ya los piden aparte, con su propia consulta puntual, cuando corresponde.
-// is_available NO se incluye porque esa columna no existe en la tabla real
-// (verificado contra el esquema en vivo) -- nombrarla explícitamente hace
-// que PostgREST tire "column does not exist" en vez de simplemente omitirla
-// como hacía select('*').
+// is_available queda afuera del catálogo compartido con clientes: es una
+// señal operativa para que el admin decida a quién asignar (ver Fase 3 de
+// plan-zona-trabajo-agenda.md), no algo que un cliente necesite ver. Se
+// agrega a TECHNICIAN_COLUMNS_ADMIN más abajo. (Hasta la migración
+// technician_is_available esta columna no existía en la tabla real, así que
+// nombrarla explícitamente en un select tiraba "column does not exist" —
+// por eso el hueco en este comentario antes.)
 export const TECHNICIAN_COLUMNS_SHARED =
   'id,technician_number,name,specialty,phone,email,rating,avatar_bg,active_orders_count,completed_orders_count,zone,province,profile_id,bio,education_level,degree_title,institution_name,public_avatar_path,validation_status,is_enabled,can_receive_orders,tutorial_tips_seen';
 // El admin sí necesita work_phone y address del catálogo compartido:
@@ -342,7 +345,7 @@ export const TECHNICIAN_COLUMNS_SHARED =
 // no algo que un cliente necesite ver — el propio técnico los carga/edita
 // con su propio select acotado en el componente de Zona de trabajo, igual
 // que ya hace ProfessionalProfile.tsx con address/work_phone/bio.
-export const TECHNICIAN_COLUMNS_ADMIN = `${TECHNICIAN_COLUMNS_SHARED},work_phone,address,work_zone_lat,work_zone_lng,work_zone_radius_km,work_zone_city,work_zone_province`;
+export const TECHNICIAN_COLUMNS_ADMIN = `${TECHNICIAN_COLUMNS_SHARED},work_phone,address,work_zone_lat,work_zone_lng,work_zone_radius_km,work_zone_city,work_zone_province,is_available`;
 
 export async function fetchCatalog(isAdmin: boolean) {
   const technicianColumns = isAdmin ? TECHNICIAN_COLUMNS_ADMIN : TECHNICIAN_COLUMNS_SHARED;

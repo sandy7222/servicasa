@@ -191,7 +191,7 @@ base ya está migrada aunque nadie la usa todavía. Verificado en vivo contra la
   como "no hay dato" en vez de asumir string. Segunda corrida: **149/149 tests, 19/19 archivos,
   todo verde.** **Commiteado: `99cf4ee`** (`feat: geocodificar la direccion del cliente al crear una
   orden (Fase 1 de zona de trabajo)`, 8 archivos, 291 inserciones). Sin push.
-- [~] **Fase 2** — Zona de trabajo (en curso). Hecho: migración `technician_work_zone` aplicada de
+- [x] **Fase 2** — Zona de trabajo. Migración `technician_work_zone` aplicada de
   verdad en Supabase (`work_zone_lat/lng/radius_km/city/province` en `technicians`, con `CHECK` de
   radio 5-60km y de lat/lng válidos — probada primero con `begin;...rollback;`, después aplicada en
   serio; verificado que RLS ya cubre esto sin cambios, `technicians_update_own_professional_profile`
@@ -210,14 +210,53 @@ base ya está migrada aunque nadie la usa todavía. Verificado en vivo contra la
   directamente en vez de pasárselo a Cursor como se había hablado — no hace falta preview visual para
   escribir la integración de Leaflet correctamente, es la misma lógica que el resto del código de
   esta sesión (vos verificás con `tsc`/`vitest`/probándolo en el navegador, igual que las demás
-  fases). Falta: correr `npm install`, verificar (`tsc --noEmit`, `vitest run`), y commitear.
-- [ ] **Fase 3** — Agenda. Replanteada por el hallazgo de `AvailabilityView.tsx` (ver sección 2):
-  crear las tablas `technician_working_hours` y `technician_availability_exceptions` que ese
-  componente ya espera (en vez de `technician_weekly_availability`/`technician_time_off` como se
-  había pensado antes de encontrarlo), sacarle la sección de "zona de cobertura por nombre" (la
-  reemplaza el radio en mapa de la Fase 2), cablear su ruta (`/technician/disponibilidad` o similar)
-  en `App.tsx`/`TechnicianView.tsx`, y escribir `technicianSchedule.ts` con
-  `isTechnicianAvailable(technicianId, date, block)` como única fuente de verdad para la Fase 5.
+  fases). Se sumó también `supabase/migrations/20260910122407_technician_work_zone.sql` (faltaba el
+  archivo local de la migración, que ya estaba aplicada en la base — este proyecto versiona cada
+  migración como archivo, lo que hubiera dejado un drift entre el repo y la base real). Un ajuste de
+  UX después de la primera prueba en navegador: el zoom al geocodificar arrancaba mostrando todo el
+  partido/región (zoom 11); se subió a zoom 13 (nivel localidad) y se corrigió que una búsqueda nueva
+  siempre recentre el mapa (antes solo pasaba si el mapa seguía en la vista de Argentina entera).
+  **Verificado** (vía terminal en tu máquina): `tsc --noEmit` limpio, `vitest run` **149/149 tests,
+  19/19 archivos, todo verde** (un test de regresión de columnas rompió al principio — esperaba
+  exactamente 2 columnas admin-only y ahora son 7 por los `work_zone_*` nuevos, corregido para que
+  cuente dinámicamente), y probado a mano en el navegador como técnico: declarar localidad, ubicar,
+  arrastrar el centro, ajustar el radio, guardar y recargar — todo funciona. **Commiteado: `22c78f6`**
+  (`feat: modulo Zona de trabajo del tecnico (mapa Leaflet + radio de cobertura) (Fase 2 de zona de
+  trabajo)`, 13 archivos, 540 inserciones, 18 eliminaciones). Sin push.
+- [x] **Fase 3** — Agenda. Migración `technician_agenda` aplicada de verdad en Supabase
+  (tablas `technician_working_hours` y `technician_availability_exceptions`, mismo diseño que ya
+  estaba escrito sin aplicar en `supabase/sql/enable_technician_availability.sql` — probada primero
+  con `begin;...rollback;`, incluida una prueba explícita de que el constraint `start_time < end_time`
+  rechaza un horario invertido; RLS con el mismo patrón que `technician_payment_accounts` — el técnico
+  tiene ALL sobre sus propias filas, el admin sobre todas). `AvailabilityView.tsx` adaptado: se le
+  sacó la sección de "Zona de cobertura por nombre" (`technician_coverage_areas`, `addArea`/
+  `removeArea`/`setBase`, tipo `Area`) — quedaba reemplazada por el radio en mapa de la Fase 2, y
+  además esa tabla tiene RLS de escritura solo-admin (el técnico nunca hubiera podido guardar ahí
+  aunque la pantalla estuviera cableada). Ruta `/technician/disponibilidad` cableada en `App.tsx` y
+  `TechnicianView.tsx` (botón de escritorio + menú mobile, mismo patrón que las otras).
+  `tsc --noEmit` limpio y `vitest run` 149/149 desde el primer intento (no hizo falta `npm install`,
+  no se agregó ninguna dependencia nueva).
+  **Bug encontrado probando a mano en el navegador**: el toggle "Activar/No disponible" tocaba y
+  volvía siempre a su estado anterior, con el toast "No se pudo actualizar tu estado." Causa: las
+  columnas `technicians.is_available`/`availability_updated_at` que escribe ese toggle **tampoco
+  existían** en la tabla real — el propio código ya tenía un comentario de un desarrollador anterior
+  confirmándolo ("is_available NO se incluye porque esa columna no existe en la tabla real"), y de
+  paso eso significaba que la insignia "Disponible/No disponible" del admin en `AdminHubView.tsx`
+  venía mostrando siempre "No disponible" para todos, en silencio. Se agregó la migración
+  `technician_is_available` (mismo patrón: dry-run con rollback, después aplicada en serio) y se sumó
+  `is_available` a `TECHNICIAN_COLUMNS_ADMIN` en `supabaseData.ts` (antes deliberadamente afuera
+  porque la columna no existía) — de paso corrige también la insignia del admin.
+  **Verificado** (vía terminal en tu máquina, después del fix): `tsc --noEmit` limpio, `vitest run`
+  149/149 de nuevo, y probado a mano en el navegador — el toggle "Activar" ya queda en verde como
+  "Disponible" con su toast, se guardó el horario semanal y se agregó una excepción con fecha, todo
+  sin problemas.
+  **Nota sobre `technicianSchedule.ts`**: se saca de esta fase y se mueve a cuando arranque la Fase 4
+  — su firma (`isTechnicianAvailable(technicianId, date, block)`) depende de cómo queden definidos
+  los bloques Mañana/Tarde, y al revisar el código encontré que `appointmentWindow` hoy es texto libre
+  sin ningún límite horario fijado todavía (el cliente escribe cualquier cosa, ej. "Mañana (08-12h)"
+  como frase, no como dato estructurado) — recién en la Fase 4, al convertirlo en un campo real, se
+  fijan esos horarios y ahí tiene sentido escribir la función que los use. Escribirla antes sería
+  inventar un límite que la Fase 4 podría después contradecir.
 - [ ] **Fase 4** — Revivir `appointmentWindow` como bloque real en la orden (Mañana/Tarde), conectado
   de punta a punta (formulario de pedido → order real).
 - [ ] **Fase 5** — Admin: distancia + conflicto en el modal de asignar, contador de técnicos en zona
