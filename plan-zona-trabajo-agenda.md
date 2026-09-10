@@ -324,6 +324,8 @@ base ya está migrada aunque nadie la usa todavía. Verificado en vivo contra la
   tiene un selector de franja — queda en `'unscheduled'` por el default de la columna. No hacía
   falta tocarlo para "conectar de punta a punta" el flujo del cliente, que es lo que pediste; se
   puede sumar más adelante si hace falta que el admin también lo cargue a mano.
+  **Commiteado: `4b5a227`** (`feat: bloque horario real de la orden y disponibilidad del tecnico
+  (Fase 4 de zona de trabajo)`, 12 archivos, 340 inserciones, 3 eliminaciones). Sin push.
 - [ ] **Fase 5** — Admin: distancia + conflicto en el modal de asignar, contador de técnicos en zona
   en la orden pendiente.
 - [ ] **Fase 6** — Verificación: `tsc --noEmit`, tests unitarios de `technicianDistance.ts` y
