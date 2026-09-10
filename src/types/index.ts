@@ -236,6 +236,12 @@ export interface ServiceOrder {
    * creadas antes de esa fase no la tienen (undefined). */
   clientCity?: string;
   clientProvince?: string;
+  /** Coordenadas geocodificadas de la dirección del cliente (ver
+   * api/_lib/mapbox.ts) — undefined en órdenes viejas o cuando el geocoding
+   * no pudo resolver la localidad. Se usan para ordenar técnicos por
+   * distancia al asignar, nunca para bloquear nada si faltan. */
+  clientLat?: number;
+  clientLng?: number;
   assignedTechnicianId: string | null;
   assignedTechnicianName: string | null;
   checklist: ChecklistItem[];

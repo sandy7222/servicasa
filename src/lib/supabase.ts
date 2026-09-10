@@ -152,6 +152,8 @@ export type DbServiceOrder = {
   client_neighborhood: string;
   client_city?: string | null;
   client_province?: string | null;
+  client_lat?: number | null;
+  client_lng?: number | null;
   assigned_technician_id: string | null;
   assigned_technician_name: string | null;
   work_mode?: 'diagnosis' | 'direct' | null;

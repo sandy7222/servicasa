@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { MPNotFoundError, Payment } from 'mercadopago';
 import { mpClient } from '../_lib/mercadopago.js';
+import { geocodeLocality } from '../_lib/geocoding.js';
 import { supabaseAdmin } from '../_lib/supabaseAdmin.js';
 
 /**
@@ -210,6 +211,10 @@ async function createOrderFromApprovedGuestDraft(
     .eq('id', draftId)
     .single();
 
+  // Best-effort: nunca bloquea la creación de la orden si Mapbox no
+  // responde o falta el token — ver el comentario en api/_lib/mapbox.ts.
+  const geocoded = await geocodeLocality(payload.city, payload.province);
+
   const { data: order, error: orderError } = await supabaseAdmin
     .from('service_orders')
     .insert({
@@ -240,6 +245,8 @@ async function createOrderFromApprovedGuestDraft(
       client_neighborhood: payload.neighborhood || '',
       client_city: payload.city,
       client_province: payload.province,
+      client_lat: geocoded?.lat ?? null,
+      client_lng: geocoded?.lng ?? null,
       assigned_technician_id: null,
       assigned_technician_name: null,
       guest_access_token: draftRow?.guest_access_token ?? null,
@@ -300,6 +307,10 @@ async function createOrderFromApprovedCustomerDraft(
     throw customerError ?? new Error('No se encontró el cliente.');
   }
 
+  // Best-effort: nunca bloquea la creación de la orden si Mapbox no
+  // responde o falta el token — ver el comentario en api/_lib/mapbox.ts.
+  const geocoded = await geocodeLocality(payload.city, payload.province);
+
   const { data: order, error: orderError } = await supabaseAdmin
     .from('service_orders')
     .insert({
@@ -326,6 +337,8 @@ async function createOrderFromApprovedCustomerDraft(
       client_neighborhood: payload.neighborhood || '',
       client_city: payload.city,
       client_province: payload.province,
+      client_lat: geocoded?.lat ?? null,
+      client_lng: geocoded?.lng ?? null,
       client_address_id: payload.addressId,
       assigned_technician_id: null,
       assigned_technician_name: null,
