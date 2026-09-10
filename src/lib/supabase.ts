@@ -55,6 +55,15 @@ export type DbTechnician = {
   can_receive_orders?: boolean | null;
   is_available?: boolean | null;
   tutorial_tips_seen?: string[] | null;
+  /** Zona de trabajo declarada por el técnico (mapa + radio) — ver
+   * plan-zona-trabajo-agenda.md. Todos null hasta que el técnico la
+   * declara por primera vez; nunca se usa `zone` (label decorativo) para
+   * esto. */
+  work_zone_lat?: number | null;
+  work_zone_lng?: number | null;
+  work_zone_radius_km?: number | null;
+  work_zone_city?: string | null;
+  work_zone_province?: string | null;
 };
 
 export type DbCustomer = {

@@ -74,6 +74,11 @@ export function mapTechnician(row: DbTechnician, specialties: { id: string; name
     canReceiveOrders: row.can_receive_orders ?? false,
     isAvailable: row.is_available ?? undefined,
     tutorialTipsSeen: row.tutorial_tips_seen ?? [],
+    workZoneLat: row.work_zone_lat ?? undefined,
+    workZoneLng: row.work_zone_lng ?? undefined,
+    workZoneRadiusKm: row.work_zone_radius_km ?? undefined,
+    workZoneCity: row.work_zone_city ?? undefined,
+    workZoneProvince: row.work_zone_province ?? undefined,
   };
 }
 
@@ -331,8 +336,13 @@ export const TECHNICIAN_COLUMNS_SHARED =
 // El admin sí necesita work_phone y address del catálogo compartido:
 // AdminHubView los precarga al abrir el modal de edición del técnico.
 // validation_notes sigue afuera — el admin la re-consulta puntualmente en
-// TechnicianReviewCard.
-export const TECHNICIAN_COLUMNS_ADMIN = `${TECHNICIAN_COLUMNS_SHARED},work_phone,address`;
+// TechnicianReviewCard. work_zone_* (lat/lng/radio/localidad) se suma acá
+// por el mismo criterio que address: son datos operativos para que el
+// admin ordene por distancia al asignar (ver plan-zona-trabajo-agenda.md),
+// no algo que un cliente necesite ver — el propio técnico los carga/edita
+// con su propio select acotado en el componente de Zona de trabajo, igual
+// que ya hace ProfessionalProfile.tsx con address/work_phone/bio.
+export const TECHNICIAN_COLUMNS_ADMIN = `${TECHNICIAN_COLUMNS_SHARED},work_phone,address,work_zone_lat,work_zone_lng,work_zone_radius_km,work_zone_city,work_zone_province`;
 
 export async function fetchCatalog(isAdmin: boolean) {
   const technicianColumns = isAdmin ? TECHNICIAN_COLUMNS_ADMIN : TECHNICIAN_COLUMNS_SHARED;

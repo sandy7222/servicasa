@@ -39,7 +39,22 @@ base ya está migrada aunque nadie la usa todavía. Verificado en vivo contra la
   campo nuevo.
 - El modal "Asignar técnico" de hoy (`AdminHubView.tsx`) lista a todos los técnicos elegibles,
   ordenados por nombre o rating — sin filtrar por zona ni avisar de superposición de horarios.
-- No hay ninguna tabla de disponibilidad/agenda/turnos en la base — esto sí es 100% nuevo.
+- **Hallazgo nuevo (revisando para la Fase 3): existe `src/components/technician/AvailabilityView.tsx`,
+  una pantalla de "Mi disponibilidad" completa (toggle online/offline, horario semanal por día con
+  hora exacta, excepciones puntuales por fecha, y zonas de cobertura por nombre de barrio/ciudad) —
+  pero está huérfana: no la importa ni la rutea nada (`App.tsx`/`TechnicianView.tsx`), y consulta dos
+  tablas que ni siquiera existen en la base real (`technician_working_hours`,
+  `technician_availability_exceptions` — confirmado contra `information_schema.tables`, solo existe
+  `technician_coverage_areas`, con 0 filas, la misma que ya se deja de lado en el punto anterior). Es
+  código escrito y nunca terminado de cablear, probablemente de la misma tanda que el ADR de agosto.
+  Para la Fase 3 (Agenda) conviene adaptarlo en vez de escribir `AgendaView.tsx` desde cero: ya tiene
+  el patrón semanal + excepciones que pedís, con mejor granularidad (hora exacta, no solo
+  Mañana/Tarde) — falta crear las dos tablas que le faltan, cablear la ruta, y sacarle la sección de
+  "zonas de cobertura por nombre" (haría doble función con el radio en mapa de la Fase 2). Se decide
+  al llegar a esa fase, no bloquea la Fase 2 actual.
+- No hay ninguna tabla de disponibilidad/agenda/turnos en la base — esto sí es 100% nuevo (salvo el
+  hallazgo de `AvailabilityView.tsx` recién descripto, que ya trae el diseño pensado aunque sin
+  tablas ni ruteo).
 
 ## 3. Decisiones ya acordadas en la charla
 
@@ -174,11 +189,35 @@ base ya está migrada aunque nadie la usa todavía. Verificado en vivo contra la
   `api/payments/webhook.test.ts` — un test de antes del ADR de direcciones — no tiene `city` en su
   payload), rompiendo el test de idempotencia del webhook. Corregido tratando `null`/`undefined`
   como "no hay dato" en vez de asumir string. Segunda corrida: **149/149 tests, 19/19 archivos,
-  todo verde.** Pendiente: commitear (comando abajo).
-- [ ] **Fase 2** — Zona de trabajo: migración de columnas en `technicians`, componente
-  `WorkZone.tsx` con mapa Leaflet + OpenStreetMap y círculo arrastrable, guardado geocodificado.
-- [ ] **Fase 3** — Agenda: migraciones `technician_weekly_availability` + `technician_time_off`,
-  `technicianSchedule.ts`, componente `AgendaView.tsx`.
+  todo verde.** **Commiteado: `99cf4ee`** (`feat: geocodificar la direccion del cliente al crear una
+  orden (Fase 1 de zona de trabajo)`, 8 archivos, 291 inserciones). Sin push.
+- [~] **Fase 2** — Zona de trabajo (en curso). Hecho: migración `technician_work_zone` aplicada de
+  verdad en Supabase (`work_zone_lat/lng/radius_km/city/province` en `technicians`, con `CHECK` de
+  radio 5-60km y de lat/lng válidos — probada primero con `begin;...rollback;`, después aplicada en
+  serio; verificado que RLS ya cubre esto sin cambios, `technicians_update_own_professional_profile`
+  es por fila, no por columna); tipos actualizados (`DbTechnician` en `src/lib/supabase.ts`,
+  `Technician` en `src/types/index.ts`, mapeo en `mapTechnician()` y columna nueva en
+  `TECHNICIAN_COLUMNS_ADMIN` en `src/lib/supabaseData.ts` — igual criterio que `address`/`work_phone`,
+  afuera del set compartido con clientes); endpoint `api/technicians/geocode-work-zone.ts` (solo
+  técnico autenticado, reusa `geocodeLocality`); helper de cliente `src/lib/technicianWorkZone.ts`
+  (mirror del patrón de `paymentClient.ts`); componente `src/components/technician/WorkZone.tsx`
+  (mapa Leaflet + capa OpenStreetMap, marcador arrastrable con divIcon propio para no depender de los
+  íconos default de Leaflet, círculo de radio sincronizado con un slider 5-60km, geocodifica al tocar
+  "Ubicar" o permite marcar el centro con un click en el mapa); ruta `/technician/zona-trabajo`
+  cableada en `App.tsx` y `TechnicianView.tsx` (botón de escritorio + entrada del menú mobile, mismo
+  patrón que `/technician/profile`); dependencias `leaflet` + `@types/leaflet` agregadas a
+  `package.json` (falta `npm install` antes de poder compilar/testear). Nota: el mapa lo armé yo
+  directamente en vez de pasárselo a Cursor como se había hablado — no hace falta preview visual para
+  escribir la integración de Leaflet correctamente, es la misma lógica que el resto del código de
+  esta sesión (vos verificás con `tsc`/`vitest`/probándolo en el navegador, igual que las demás
+  fases). Falta: correr `npm install`, verificar (`tsc --noEmit`, `vitest run`), y commitear.
+- [ ] **Fase 3** — Agenda. Replanteada por el hallazgo de `AvailabilityView.tsx` (ver sección 2):
+  crear las tablas `technician_working_hours` y `technician_availability_exceptions` que ese
+  componente ya espera (en vez de `technician_weekly_availability`/`technician_time_off` como se
+  había pensado antes de encontrarlo), sacarle la sección de "zona de cobertura por nombre" (la
+  reemplaza el radio en mapa de la Fase 2), cablear su ruta (`/technician/disponibilidad` o similar)
+  en `App.tsx`/`TechnicianView.tsx`, y escribir `technicianSchedule.ts` con
+  `isTechnicianAvailable(technicianId, date, block)` como única fuente de verdad para la Fase 5.
 - [ ] **Fase 4** — Revivir `appointmentWindow` como bloque real en la orden (Mañana/Tarde), conectado
   de punta a punta (formulario de pedido → order real).
 - [ ] **Fase 5** — Admin: distancia + conflicto en el modal de asignar, contador de técnicos en zona

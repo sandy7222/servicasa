@@ -360,6 +360,17 @@ export interface Technician {
   // persiste esa marca server-side para que no reaparezca en otro
   // dispositivo/navegador.
   tutorialTipsSeen?: string[];
+  /** Zona de trabajo declarada por el técnico (mapa + radio de cobertura) —
+   * ver plan-zona-trabajo-agenda.md. Distinta de `zone` (label de texto
+   * libre, decorativo, sin usar para filtrar nada). undefined hasta que el
+   * técnico la declara por primera vez. */
+  workZoneLat?: number;
+  workZoneLng?: number;
+  /** Entre 5 y 60 (constraint de base) — ver decisión de radio máximo en el
+   * plan. */
+  workZoneRadiusKm?: number;
+  workZoneCity?: string;
+  workZoneProvince?: string;
 }
 
 export type TechnicianInput = {

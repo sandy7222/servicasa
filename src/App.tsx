@@ -156,6 +156,7 @@ const AppContent: React.FC = () => {
       case '/technician/statistics':
       case '/technician/reclamos':
       case '/technician/conversaciones':
+      case '/technician/zona-trabajo':
         return (
           <Protected roles={['admin', 'technician']}>
             <TechnicianView />
