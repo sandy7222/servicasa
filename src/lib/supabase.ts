@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import type { Technician, UserRole } from '../types';
+import type { AppointmentBlock, Technician, UserRole } from '../types';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
@@ -148,6 +148,9 @@ export type DbServiceOrder = {
   priority: string;
   status: string;
   scheduled_date: string;
+  // Ver plan-zona-trabajo-agenda.md, Fase 4. NOT NULL con default
+  // 'unscheduled' en la base — siempre presente.
+  appointment_block: AppointmentBlock;
   created_at: string;
   completed_at: string | null;
   travel_started_at: string | null;

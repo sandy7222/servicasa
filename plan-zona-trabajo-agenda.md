@@ -259,8 +259,71 @@ base ya está migrada aunque nadie la usa todavía. Verificado en vivo contra la
   inventar un límite que la Fase 4 podría después contradecir.
   **Commiteado: `e46435bb`** (`feat: agenda del tecnico - horario semanal y ausencias (Fase 3 de zona
   de trabajo)`, 8 archivos, 166 inserciones, 23 eliminaciones). Sin push.
-- [ ] **Fase 4** — Revivir `appointmentWindow` como bloque real en la orden (Mañana/Tarde), conectado
-  de punta a punta (formulario de pedido → order real).
+- [x] **Fase 4** — Revivir `appointmentWindow` como bloque real en la orden. Al revisar
+  `ServiceRequestForm.tsx`/`GuestServiceRequestForm.tsx` de cerca encontré que el selector "Franja
+  para este pedido" ya existe y ya ofrece 4 opciones reales con horario fijo, no solo Mañana/Tarde
+  como decía el diseño original: "A coordinar", "Mañana (08–12 h)", "Mediodía (12–15 h)", "Tarde
+  (15–19 h)" — el texto ya se manda hoy (`appointmentWindow`), solo que quedaba pegado como texto
+  libre dentro de `description` ("Disponibilidad solicitada: X") y nunca en una columna propia.
+  Migración `service_orders_appointment_block` aplicada de verdad en Supabase: columna
+  `service_orders.appointment_block` (`'unscheduled' | 'morning' | 'midday' | 'afternoon'`, NOT
+  NULL, default `'unscheduled'`, con CHECK — probada primero con `begin;...rollback;`, incluida una
+  prueba explícita de que el CHECK rechaza un valor inválido). El default cubre sin romper nada la
+  creación manual de órdenes del admin (`persistCreateOrder()` en `supabaseMutations.ts`, que no
+  pide este dato todavía — queda fuera de esta fase, ver nota más abajo).
+  Server: nuevo `api/_lib/appointmentBlock.ts` (`resolveAppointmentBlock()`, mapea las 3 etiquetas
+  con horario fijo a su bloque — cualquier otro texto, incluido "A coordinar", cae en
+  `'unscheduled'`; nunca confía en que el cliente mande el bloque estructurado directamente), usado
+  en `api/orders/request-service.ts` y `api/orders/guest-checkout.ts` para sumar `appointmentBlock`
+  al payload del borrador (sin tocar el texto libre existente en `description`, por compatibilidad
+  con lo que ya lee el técnico/admin). `api/payments/webhook.ts` actualizado (los dos tipos de
+  payload + las dos funciones que crean la orden real) para escribir `appointment_block` al insertar
+  — con `?? 'unscheduled'` por si un borrador viejo, ya en vuelo antes de este cambio, no tiene el
+  campo en su payload guardado.
+  Frontend: `AppointmentBlock` nuevo en `src/types/index.ts`, sumado a `ServiceOrder`;
+  `DbServiceOrder` en `src/lib/supabase.ts` y mapeo en `mapOrder()` (`supabaseData.ts`) — no hizo
+  falta tocar ningún `select()` de `service_orders` porque ya usan `select('*')` en todos lados.
+  No se tocaron los formularios del cliente: ya mandaban el dato correcto, faltaba solo guardarlo
+  estructurado del lado del servidor.
+  Se escribió también `src/lib/technicianSchedule.ts` (quedó pendiente de la Fase 3 a propósito,
+  como estaba anotado ahí: recién con el bloque real definido tenía sentido escribirla).
+  `resolveAvailability()` es la lógica pura (patrón semanal + excepción puntual → disponible/no,
+  sin red) y `isTechnicianAvailable(technicianId, date, block)` es el wrapper que consulta
+  `technician_working_hours`/`technician_availability_exceptions` y nunca lanza (ante cualquier
+  error de red devuelve `true` — no bloquea ni inventa un conflicto no verificado, mismo criterio de
+  "aviso, nunca bloqueo" de todo este módulo). `'unscheduled'` ("A coordinar") solo se resuelve por
+  ausencia de todo el día, nunca comparando horas — no hay nada más específico que comparar. Es la
+  pieza que va a usar el modal de asignar del admin en la Fase 5.
+  Tests nuevos: `api/_lib/appointmentBlock.test.ts` (mapeo de etiquetas) y
+  `src/lib/technicianSchedule.test.ts` (`resolveAvailability()` — unscheduled, ausencia de todo el
+  día, solapamiento con el bloque, día inactivo, sin horario cargado, excepción puntual pisando el
+  patrón semanal).
+  **Bug real encontrado por el propio test** (no en la prueba, en el diseño): la primera versión de
+  `resolveAvailability()` exigía que el horario del técnico *cubriera el bloque entero* (ej. trabajar
+  desde las 08:00 en punto para calificar para "Mañana"). Con el horario default que carga
+  `AvailabilityView.tsx` (09:00-18:00), eso significaba que NINGÚN técnico con ese horario default
+  iba a calificar nunca para "Mañana" (arranca 08h) ni "Tarde" (termina 19h), solo para "Mediodía" —
+  hubiera generado un aviso de conflicto falso para casi todos los técnicos en dos de los tres
+  bloques reales. Corregido a comparar por solapamiento (alcanza con que se crucen en algún punto,
+  no que uno cubra al otro entero) — dos franjas que solo se tocan en la punta no cuentan como
+  solapadas. Los 7 tests del archivo se reescribieron para probar esta semántica correcta.
+  **Verificado**: `tsc --noEmit` limpio y `vitest run` **158/158 tests, 21/21 archivos, todo
+  verde** (149 de antes + 9 nuevos: 7 de `technicianSchedule.test.ts` y 2 de
+  `appointmentBlock.test.ts`). La prueba manual de punta a punta (pedido real → pago sandbox →
+  webhook → orden con `appointment_block` correcto) se decidió saltear esta vez: las cuentas de
+  sandbox de Mercado Pago estaban colgándose, un problema ajeno al código que no vale la pena
+  perseguir. Cobertura igual sólida para esta fase en particular: la única lógica con riesgo real
+  (el mapeo de etiqueta a bloque y la resolución de disponibilidad) quedó 100% cubierta por tests
+  unitarios — de hecho fue un test, no la prueba manual, el que encontró el bug real de esta fase
+  (ver más abajo). Lo que no verificamos a mano es la escritura de dos líneas en el insert del
+  webhook, que es sintácticamente trivial y ya pasa `tsc` + los tests de idempotencia existentes de
+  `webhook.test.ts` sin romperse. Se puede volver a intentar la prueba manual más adelante si hace
+  falta más confianza antes de construir la Fase 5 sobre esto.
+  **Nota, queda fuera de esta fase**: la creación manual de una orden desde el admin
+  (`handleCreateOrderSubmit` en `AdminHubView.tsx` → `createOrder` → `persistCreateOrder`) todavía no
+  tiene un selector de franja — queda en `'unscheduled'` por el default de la columna. No hacía
+  falta tocarlo para "conectar de punta a punta" el flujo del cliente, que es lo que pediste; se
+  puede sumar más adelante si hace falta que el admin también lo cargue a mano.
 - [ ] **Fase 5** — Admin: distancia + conflicto en el modal de asignar, contador de técnicos en zona
   en la orden pendiente.
 - [ ] **Fase 6** — Verificación: `tsc --noEmit`, tests unitarios de `technicianDistance.ts` y

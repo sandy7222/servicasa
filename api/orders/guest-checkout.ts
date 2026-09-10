@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { Preference } from 'mercadopago';
 import { mpClient } from '../_lib/mercadopago.js';
 import { supabaseAdmin } from '../_lib/supabaseAdmin.js';
+import { resolveAppointmentBlock } from '../_lib/appointmentBlock.js';
 
 type WorkMode = 'diagnosis' | 'direct';
 
@@ -139,6 +140,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const paymentType = workMode === 'diagnosis' ? 'visit_deposit' : 'full_advance';
   const requestedDescription = `${description}\n\nDisponibilidad solicitada: ${appointmentWindow}`;
+  // Ver plan-zona-trabajo-agenda.md, Fase 4: además del texto libre de
+  // siempre (arriba), se resuelve el bloque estructurado para que la orden
+  // real quede con un dato comparable contra la agenda del técnico.
+  const appointmentBlock = resolveAppointmentBlock(appointmentWindow);
 
   const payload = {
     fullName,
@@ -153,6 +158,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     serviceType,
     priority,
     scheduledDate,
+    appointmentBlock,
     workMode,
     visitDepositAmount: workMode === 'diagnosis' ? amount : 0,
     totalQuotedAmount: workMode === 'direct' ? amount : 0,

@@ -3,6 +3,7 @@ import { MPNotFoundError, Payment } from 'mercadopago';
 import { mpClient } from '../_lib/mercadopago.js';
 import { geocodeLocality } from '../_lib/geocoding.js';
 import { supabaseAdmin } from '../_lib/supabaseAdmin.js';
+import type { AppointmentBlock } from '../_lib/appointmentBlock.js';
 
 /**
  * Legacy IPN notifications (the only format available on this MP account —
@@ -97,6 +98,7 @@ type GuestDraftPayload = {
   serviceType: string;
   priority: 'baja' | 'media' | 'alta' | 'urgente';
   scheduledDate: string;
+  appointmentBlock: AppointmentBlock;
   workMode: 'diagnosis' | 'direct';
   visitDepositAmount: number;
   totalQuotedAmount: number;
@@ -111,6 +113,7 @@ type CustomerDraftPayload = {
   serviceType: string;
   priority: 'baja' | 'media' | 'alta' | 'urgente';
   scheduledDate: string;
+  appointmentBlock: AppointmentBlock;
   workMode: 'diagnosis' | 'direct';
   address: string;
   neighborhood: string;
@@ -234,6 +237,9 @@ async function createOrderFromApprovedGuestDraft(
       total_paid_amount: payload.workMode === 'diagnosis' ? payload.visitDepositAmount : payload.totalQuotedAmount,
       extra_amount: 0,
       scheduled_date: payload.scheduledDate,
+      // Borradores en vuelo de antes de este cambio no tienen este campo en
+      // su payload guardado — cae en el default de la columna ('unscheduled').
+      appointment_block: payload.appointmentBlock ?? 'unscheduled',
       customer_id: customerId,
       client_name: payload.fullName,
       client_phone: payload.phone,
@@ -330,6 +336,9 @@ async function createOrderFromApprovedCustomerDraft(
       total_paid_amount: payload.workMode === 'diagnosis' ? payload.visitDepositAmount : payload.totalQuotedAmount,
       extra_amount: 0,
       scheduled_date: payload.scheduledDate,
+      // Borradores en vuelo de antes de este cambio no tienen este campo en
+      // su payload guardado — cae en el default de la columna ('unscheduled').
+      appointment_block: payload.appointmentBlock ?? 'unscheduled',
       customer_id: customerId,
       client_name: customer.name,
       client_phone: customer.phone,

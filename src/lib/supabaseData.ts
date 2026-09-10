@@ -201,6 +201,7 @@ export function mapOrder(
     adminExceptionReason: row.admin_exception_reason ?? undefined,
     adminExceptionClosedAt: row.admin_exception_closed_at ?? undefined,
     scheduledDate: row.scheduled_date,
+    appointmentBlock: row.appointment_block,
     createdAt: row.created_at,
     completedAt: row.completed_at ?? undefined,
     archivedAt: row.archived_at ?? undefined,
