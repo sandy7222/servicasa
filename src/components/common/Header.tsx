@@ -7,7 +7,6 @@ import {
   LogOut,
   Menu,
   X,
-  Home,
   ChevronDown,
   MessageCircle,
 } from 'lucide-react';
@@ -86,7 +85,11 @@ export const Header: React.FC = () => {
   // guards de <Protected roles={...}> en App.tsx para no mostrar accesos que la
   // ruta real igual va a rechazar.
   const navLinks: Array<{ label: string; path: string; icon: React.ReactNode; badge?: number; roles?: UserRole[] }> = [
-    { label: 'Inicio', path: '/', icon: <Home className="w-3.5 h-3.5" /> },
+    // No hay un link "Inicio" separado a propósito: para cada rol, su propio
+    // link (Admin Hub/Técnico/Cliente) YA es su panel principal — y el logo
+    // (ver más abajo) también lleva ahí. Un "Inicio" aparte sería un botón
+    // repetido que apunta al mismo lugar que otro ya visible en este mismo
+    // menú, para los tres roles.
     { label: 'Admin Hub', path: '/hub', icon: <LayoutDashboard className="w-3.5 h-3.5" />, badge: activeOrdersCount, roles: ['admin'] },
     { label: 'Técnico', path: '/technician', icon: <Wrench className="w-3.5 h-3.5" />, roles: ['admin', 'technician'] },
     { label: 'Cliente', path: '/customer', icon: <UserCheck className="w-3.5 h-3.5" />, roles: ['admin', 'customer'] },
@@ -111,7 +114,11 @@ export const Header: React.FC = () => {
             {/* Left: Logo & Live badge */}
             <div className="flex items-center gap-3">
               <div
-                onClick={() => navigate('/')}
+                // Mismo criterio que el link "Inicio" de más abajo: con sesión
+                // iniciada, el logo lleva al panel de la app (por rol), nunca
+                // a la landing pública — evita el header duplicado. Sin
+                // sesión (por ejemplo en /auth), sigue yendo a la landing.
+                onClick={() => navigate(isAuthenticated ? '/home' : '/')}
                 className="cursor-pointer flex items-center gap-2 group transition-transform hover:scale-[1.02]"
               >
                 <Logo size="md" showText={true} showTagline={false} variant="white" />
