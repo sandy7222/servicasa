@@ -372,7 +372,8 @@ base ya está migrada aunque nadie la usa todavía. Verificado en vivo contra la
   renderizado real en el navegador con datos reales (que el chip/los avisos efectivamente aparezcan
   donde y cuando corresponde) — se puede retomar esa prueba manual más adelante si aparece algo raro
   en el uso real, antes de dar por buena definitivamente esta fase.
-  **Commiteado: pendiente.**
+  **Commiteado: `81e3db3`** (`feat: distancia, zona y conflicto de agenda en el modal de asignar
+  (Fase 5 de zona de trabajo)`, 6 archivos, 388 inserciones, 10 eliminaciones). Sin push.
 - [ ] **Fase 6** — Verificación: `tsc --noEmit`, tests unitarios de `technicianDistance.ts` y
   `technicianSchedule.ts`, tests de rollback contra la base real para las migraciones nuevas,
   click-through completo (Cursor/vos en Windows): técnico carga su zona y agenda → cliente pide un
