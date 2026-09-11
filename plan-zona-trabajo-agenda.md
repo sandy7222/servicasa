@@ -374,11 +374,51 @@ base ya está migrada aunque nadie la usa todavía. Verificado en vivo contra la
   en el uso real, antes de dar por buena definitivamente esta fase.
   **Commiteado: `81e3db3`** (`feat: distancia, zona y conflicto de agenda en el modal de asignar
   (Fase 5 de zona de trabajo)`, 6 archivos, 388 inserciones, 10 eliminaciones). Sin push.
-- [ ] **Fase 6** — Verificación: `tsc --noEmit`, tests unitarios de `technicianDistance.ts` y
+- [x] **Fase 6** — Verificación: `tsc --noEmit`, tests unitarios de `technicianDistance.ts` y
   `technicianSchedule.ts`, tests de rollback contra la base real para las migraciones nuevas,
   click-through completo (Cursor/vos en Windows): técnico carga su zona y agenda → cliente pide un
   servicio en esa zona → admin ve el contador y el orden por distancia → asigna a alguien con
   conflicto y confirma igual → asigna a alguien libre sin problema.
+  `tsc --noEmit` y `vitest run` (174/174) ya venían verificados desde el cierre de la Fase 5, sin
+  cambios de código en esta fase que ameriten repetirlos.
+  **Rollback de las 4 migraciones de este módulo, contra la base real**: dentro de una única
+  transacción (`begin; ...reversa completa de las 4 migraciones en orden inverso...; select
+  verificación; rollback;`, nunca se hizo commit) se revirtieron, en orden: `service_orders_appointment_block`
+  (drop del CHECK + la columna), `technician_is_available` (drop de `is_available`/
+  `availability_updated_at`), `technician_agenda` (drop de las 2 policies + las 2 tablas
+  `technician_working_hours`/`technician_availability_exceptions`) y `technician_work_zone` (drop de
+  los 3 CHECK + las 5 columnas `work_zone_*`). Verificación con 4 `select count(*)` contra
+  `information_schema` confirmó que las 4 reversas dejan **0 columnas/tablas remanentes**, sin
+  errores de sintaxis ni de dependencias (por ejemplo, las policies de `technician_agenda` se
+  dropean antes que las tablas). Conclusión: si alguna vez hace falta revertir este módulo completo,
+  las 4 migraciones se pueden deshacer limpiamente y en este orden, sin dejar nada residual.
+  **Click-through en el navegador**: como el `client_lat`/`client_lng` de una orden solo se completa
+  hoy vía el flujo real de pago (Mercado Pago, con problemas de cuentas sandbox ajenos al código —
+  mismo bloqueo que en la Fase 4), en vez de saltear del todo la prueba se cargaron a mano por SQL
+  coordenadas de prueba en una orden real ya existente y sin asignar (`dd0f52d3-c069-460c-8a84-808e6888240f`,
+  ~3km del centro de la única zona de trabajo declarada hoy, la de María Rodríguez en Junín) y
+  `appointment_block='morning'` — revertido a `null`/`null`/`'unscheduled'` apenas terminada la
+  prueba, no quedó dato de prueba en la base. Con eso, click-through hecho en `localhost` (vía otra
+  herramienta de código corriendo directo en la máquina de Sandy, dado que el sandbox Linux de esta
+  sesión no puede levantar Vite por un choque de plataforma en `node_modules` — no se instaló nada
+  ahí para no romper el entorno de Windows real):
+  - El chip nuevo aparece exactamente como se diseñó: `"1 en zona · 1 libres"` al lado de "Sin
+    asignar", con el tooltip explicativo.
+  - En el modal "Asignar técnico": los tres botones de orden (Nombre/Mejor rating/Más cerca) presentes,
+    "Más cerca" visible porque la orden tiene coordenadas.
+  - María Rodríguez (única con zona declarada) muestra `"@ 3 km"`, sin aviso de "fuera de su zona
+    declarada" — correcto, cae dentro de su radio de 35km.
+  - Los otros 3 técnicos (sin zona declarada) no muestran ninguna línea de distancia — comportamiento
+    esperado, no un bug.
+  - Consola del navegador sin errores, antes y después de abrir el modal.
+  No se probaron a mano los avisos de conflicto de agenda ("Ya tiene X aceptada ese día/turno") ni de
+  disponibilidad ("No disponible este turno según su agenda") porque hubiera hecho falta fabricar una
+  segunda orden activa aceptada del mismo técnico en la misma fecha/bloque — se decidió no sumar más
+  datos sintéticos a la base real solo para esto, dado que esa lógica (`findConflictingOrder`,
+  `isTechnicianAvailable`/`resolveAvailability`) ya está 100% cubierta por tests unitarios (Fases 4 y
+  5) y usa el mismo patrón de renderizado condicional ya verificado a ojo con la distancia/zona en
+  este mismo click-through — el riesgo residual ahí es mínimo.
+  **Fase 6 cerrada.**
 - [ ] **Fase 7** — Cierre y commits (probablemente uno por fase, no todo junto, dado el tamaño).
 
 Cada fase se confirma antes de arrancarla, como ya veníamos haciendo con los otros módulos grandes.
