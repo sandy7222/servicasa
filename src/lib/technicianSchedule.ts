@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import type { AppointmentBlock } from '../types';
+import type { AppointmentBlock, OrderStatus } from '../types';
 
 /** Rango horario fijo de cada bloque (HH:MM, 24h) — coincide exactamente con
  * las etiquetas que ve el cliente en el selector "Franja para este pedido"
@@ -116,4 +116,56 @@ export async function isTechnicianAvailable(
   } catch {
     return true;
   }
+}
+
+/** Forma mínima de una orden que hace falta para el chequeo de conflicto —
+ * ver `findConflictingOrder`. */
+export type ConflictCandidateOrder = {
+  id: string;
+  status: OrderStatus;
+  scheduledDate: string;
+  appointmentBlock?: AppointmentBlock;
+  assignedTechnicianId: string | null;
+  technicianResponseStatus?: 'pending' | 'accepted' | 'rejected';
+};
+
+// Estados en los que una orden asignada sigue "viva" — una cancelada o
+// completada ya liberó al técnico, no cuenta como conflicto.
+const ACTIVE_CONFLICT_STATUSES: OrderStatus[] = ['assigned', 'in_progress', 'paused'];
+
+function blocksMayOverlap(a: AppointmentBlock | undefined, b: AppointmentBlock | undefined): boolean {
+  // Sin bloque estructurado en cualquiera de las dos (órdenes de antes de la
+  // Fase 4, o "A coordinar") no se puede descartar el solape — mejor avisar
+  // de más que de menos, mismo criterio de "aviso, nunca bloqueo" de todo
+  // este módulo.
+  if (!a || !b || a === 'unscheduled' || b === 'unscheduled') return true;
+  return a === b;
+}
+
+/**
+ * Busca, entre las órdenes ya cargadas del admin, otra orden activa
+ * (asignada, en curso o pausada) que ese mismo técnico ya aceptó para la
+ * misma fecha y un bloque horario que podría superponerse con `order`. Es un
+ * chequeo puro (sin red) sobre datos ya en memoria — distinto de
+ * `isTechnicianAvailable`, que resuelve la agenda declarada del técnico
+ * (horario semanal + excepciones), no sus otras órdenes. Ver
+ * plan-zona-trabajo-agenda.md, Fase 5: es solo un aviso para el admin, nunca
+ * bloquea la asignación.
+ */
+export function findConflictingOrder(
+  technicianId: string,
+  order: { id: string; scheduledDate: string; appointmentBlock?: AppointmentBlock },
+  allOrders: ConflictCandidateOrder[]
+): ConflictCandidateOrder | null {
+  return (
+    allOrders.find(
+      (candidate) =>
+        candidate.id !== order.id &&
+        candidate.assignedTechnicianId === technicianId &&
+        candidate.technicianResponseStatus === 'accepted' &&
+        ACTIVE_CONFLICT_STATUSES.includes(candidate.status) &&
+        candidate.scheduledDate === order.scheduledDate &&
+        blocksMayOverlap(candidate.appointmentBlock, order.appointmentBlock)
+    ) ?? null
+  );
 }

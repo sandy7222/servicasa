@@ -326,8 +326,53 @@ base ya está migrada aunque nadie la usa todavía. Verificado en vivo contra la
   puede sumar más adelante si hace falta que el admin también lo cargue a mano.
   **Commiteado: `4b5a227`** (`feat: bloque horario real de la orden y disponibilidad del tecnico
   (Fase 4 de zona de trabajo)`, 12 archivos, 340 inserciones, 3 eliminaciones). Sin push.
-- [ ] **Fase 5** — Admin: distancia + conflicto en el modal de asignar, contador de técnicos en zona
+- [x] **Fase 5** — Admin: distancia + conflicto en el modal de asignar, contador de técnicos en zona
   en la orden pendiente.
+  Nuevo `src/lib/technicianDistance.ts`: `distanceKm()` (fórmula de Haversine, sin dependencias
+  nuevas — mismo criterio que el radio de "Zona de trabajo" de la Fase 2), `distanceToOrderKm()`
+  (distancia orden↔zona declarada del técnico, `null` si a cualquiera de los dos le falta
+  coordenadas — nunca inventa una distancia) e `isWithinWorkZone()` (compara esa distancia contra el
+  radio declarado, `false` por defecto ante cualquier dato faltante).
+  Sumado a `src/lib/technicianSchedule.ts`: `findConflictingOrder(technicianId, order, allOrders)` —
+  chequeo puro sobre las órdenes ya cargadas en memoria del admin (sin red, a diferencia de
+  `isTechnicianAvailable`), busca otra orden activa (`assigned`/`in_progress`/`paused`) que ese mismo
+  técnico ya aceptó (`technicianResponseStatus === 'accepted'`) para la misma fecha y un bloque que
+  podría superponerse. `blocksMayOverlap()` trata `'unscheduled'` en cualquiera de las dos puntas (u
+  órdenes viejas sin `appointmentBlock`, de antes de la Fase 4) como "podría solaparse" en vez de
+  descartar el conflicto — mismo criterio de avisar de más que de menos.
+  `AdminHubView.tsx`: `assignSort` ahora admite `'distance'` (nuevo botón "Más cerca" en el modal,
+  solo visible si la orden tiene coordenadas); nuevo estado `assignAvailability` con un efecto que
+  hace un solo batch de `isTechnicianAvailable()` al abrir el modal (mismo patrón que
+  `assignEligibility`, ya existente); nuevo `zoneCountsByOrderId` (memo, sin red) que para cada orden
+  sin asignar y geocodificada cuenta técnicos dentro de su zona declarada y, de esos, cuántos están
+  disponibles (toggle) y sin otra orden aceptada superpuesta — deliberadamente más liviano que el
+  chequeo del modal (que si consulta la base) porque se recalcula por cada orden visible en la lista
+  y no escala igual. Se sumó un chip nuevo junto a "Sin asignar" en la tarjeta de la orden
+  (`"N en zona · M libres"` o `"Sin técnicos en zona"`), y en cada técnico del modal de asignar, tres
+  avisos nuevos: distancia en km (con "fuera de su zona declarada" si corresponde), "No disponible
+  este turno según su agenda" y "Ya tiene {orden} aceptada ese día/turno". Los tres son puramente
+  informativos: no ocultan a ningún técnico, no cambian si `isEligible` permite el click de asignar —
+  mismo criterio de "aviso, nunca bloqueo" de toda esta funcionalidad.
+  Tests nuevos: `src/lib/technicianDistance.test.ts` (8 tests: distancia cero, una referencia real
+  —Glew a Capital ~34km—, y los `null`/`false` por defecto de `distanceToOrderKm`/`isWithinWorkZone`
+  ante datos faltantes) y 8 tests nuevos de `findConflictingOrder` en `technicianSchedule.test.ts`
+  (encuentra el conflicto real, ignora la propia orden/otro técnico/respuesta pendiente o
+  rechazada/orden cancelada o completada/otro día/otro bloque sin solapar, y confirma que
+  `'unscheduled'` de cualquier lado no descarta el conflicto).
+  **Verificado**: `tsc --noEmit` limpio y `vitest run` **174/174 tests, 22/22 archivos, todo verde**
+  (158 de la Fase 4 + 16 nuevos). La prueba manual de click-through en el navegador (ver el chip en
+  una orden sin asignar, el botón "Más cerca" y los avisos por técnico en el modal) se decidió
+  saltear esta vez — a diferencia de la Fase 4, acá no hubo un bloqueo externo, fue una decisión
+  explícita para no gastar el tiempo del click-through dado que: (a) toda la lógica con riesgo real
+  (distancia, zona, conflicto) quedó 100% cubierta por tests unitarios; (b) `tsc --noEmit` pasa limpio
+  sobre todo `AdminHubView.tsx`, lo que ya descarta errores de nombres de campo o tipos en el nuevo
+  JSX; y (c) las tres piezas nuevas son estrictamente informativas, nunca bloquean ni ocultan una
+  asignación — en el peor caso, un problema de wiring no detectado haría que un chip o un aviso no se
+  muestre bien, nunca que se rompa la asignación en sí. Lo que sí queda sin verificar a ojo es el
+  renderizado real en el navegador con datos reales (que el chip/los avisos efectivamente aparezcan
+  donde y cuando corresponde) — se puede retomar esa prueba manual más adelante si aparece algo raro
+  en el uso real, antes de dar por buena definitivamente esta fase.
+  **Commiteado: pendiente.**
 - [ ] **Fase 6** — Verificación: `tsc --noEmit`, tests unitarios de `technicianDistance.ts` y
   `technicianSchedule.ts`, tests de rollback contra la base real para las migraciones nuevas,
   click-through completo (Cursor/vos en Windows): técnico carga su zona y agenda → cliente pide un

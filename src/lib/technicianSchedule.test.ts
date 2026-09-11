@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { resolveAvailability, type ExceptionRow, type WorkingHoursRow } from './technicianSchedule';
+import {
+  findConflictingOrder,
+  resolveAvailability,
+  type ConflictCandidateOrder,
+  type ExceptionRow,
+  type WorkingHoursRow,
+} from './technicianSchedule';
 
 const weekday = (start: string, end: string, is_active = true): WorkingHoursRow => ({
   weekday: 1,
@@ -56,5 +62,61 @@ describe('resolveAvailability', () => {
     expect(resolveAvailability([weekday('09:00', '18:00', false)], punctualAvailable, 'morning')).toBe(true);
     // ...pero termina antes de que empiece "Mediodía" (12h): no se solapan.
     expect(resolveAvailability([weekday('09:00', '18:00', false)], punctualAvailable, 'midday')).toBe(false);
+  });
+});
+
+const order = (id: string, technicianId: string | null, overrides: Partial<ConflictCandidateOrder> = {}): ConflictCandidateOrder => ({
+  id,
+  status: 'assigned',
+  scheduledDate: '2026-09-18',
+  appointmentBlock: 'morning',
+  assignedTechnicianId: technicianId,
+  technicianResponseStatus: 'accepted',
+  ...overrides,
+});
+
+describe('findConflictingOrder', () => {
+  it('encuentra otra orden activa, aceptada, mismo día y mismo bloque', () => {
+    const other = order('order-2', 'tech-1');
+    const found = findConflictingOrder('tech-1', order('order-1', 'tech-1'), [other]);
+    expect(found?.id).toBe('order-2');
+  });
+
+  it('ignora la orden que se está por asignar (mismo id)', () => {
+    const self = order('order-1', 'tech-1');
+    expect(findConflictingOrder('tech-1', self, [self])).toBeNull();
+  });
+
+  it('ignora órdenes de otro técnico', () => {
+    const other = order('order-2', 'tech-2');
+    expect(findConflictingOrder('tech-1', order('order-1', 'tech-1'), [other])).toBeNull();
+  });
+
+  it('ignora órdenes todavía sin aceptar por el técnico (pending/rejected)', () => {
+    const pending = order('order-2', 'tech-1', { technicianResponseStatus: 'pending' });
+    const rejected = order('order-3', 'tech-1', { technicianResponseStatus: 'rejected' });
+    expect(findConflictingOrder('tech-1', order('order-1', 'tech-1'), [pending, rejected])).toBeNull();
+  });
+
+  it('ignora órdenes ya canceladas o completadas', () => {
+    const cancelled = order('order-2', 'tech-1', { status: 'cancelled' });
+    const completed = order('order-3', 'tech-1', { status: 'completed' });
+    expect(findConflictingOrder('tech-1', order('order-1', 'tech-1'), [cancelled, completed])).toBeNull();
+  });
+
+  it('ignora órdenes de otro día', () => {
+    const otherDay = order('order-2', 'tech-1', { scheduledDate: '2026-09-19' });
+    expect(findConflictingOrder('tech-1', order('order-1', 'tech-1'), [otherDay])).toBeNull();
+  });
+
+  it('ignora órdenes del mismo día pero un bloque distinto que no se solapa', () => {
+    const afternoon = order('order-2', 'tech-1', { appointmentBlock: 'afternoon' });
+    expect(findConflictingOrder('tech-1', order('order-1', 'tech-1', { appointmentBlock: 'morning' }), [afternoon])).toBeNull();
+  });
+
+  it('"A coordinar" (unscheduled) en cualquiera de las dos no descarta el conflicto', () => {
+    const unscheduled = order('order-2', 'tech-1', { appointmentBlock: 'unscheduled' });
+    const found = findConflictingOrder('tech-1', order('order-1', 'tech-1', { appointmentBlock: 'afternoon' }), [unscheduled]);
+    expect(found?.id).toBe('order-2');
   });
 });

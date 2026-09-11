@@ -64,6 +64,8 @@ import { SettlementsHub, usePendingPayoutRequestCount } from '../components/admi
 import { canTechnicianReceiveOrders } from '../lib/technicianEligibility';
 import { sortByDisplayOrder, UNGROUPED_SUBCATEGORY_LABEL } from '../lib/catalogOrder';
 import { compareTechniciansByRating, isNewTechnicianRating } from '../lib/orderRatings';
+import { distanceToOrderKm, isWithinWorkZone } from '../lib/technicianDistance';
+import { findConflictingOrder, isTechnicianAvailable } from '../lib/technicianSchedule';
 import {
   OrderPriority,
   ServiceItem,
@@ -291,8 +293,14 @@ export const AdminHubView: React.FC = () => {
   const [assignModalReviewingTechId, setAssignModalReviewingTechId] = useState<string | null>(null);
   const [assignEligibility, setAssignEligibility] = useState<Record<string, { canReceive: boolean; missingRequirements: string[] }>>({});
   const [assignEligibilityLoading, setAssignEligibilityLoading] = useState(false);
-  const [assignSort, setAssignSort] = useState<'name' | 'rating'>('name');
+  const [assignSort, setAssignSort] = useState<'name' | 'rating' | 'distance'>('name');
   const [assignOnlyRated, setAssignOnlyRated] = useState(false);
+  // Ver plan-zona-trabajo-agenda.md, Fase 5: disponibilidad declarada del
+  // técnico (horario semanal + excepciones) para la fecha/bloque de esta
+  // orden puntual — solo aviso, nunca oculta ni bloquea a nadie. Se recalcula
+  // por orden porque depende de scheduledDate/appointmentBlock, no solo de
+  // que el modal esté abierto.
+  const [assignAvailability, setAssignAvailability] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (!isAssignModalOpen) return;
@@ -304,9 +312,21 @@ export const AdminHubView: React.FC = () => {
     const filtered = assignOnlyRated
       ? technicians.filter((t) => !isNewTechnicianRating(t.totalRatingsCount))
       : technicians;
-    if (assignSort !== 'rating') return filtered;
-    return [...filtered].sort(compareTechniciansByRating);
-  }, [technicians, assignSort, assignOnlyRated]);
+    if (assignSort === 'rating') return [...filtered].sort(compareTechniciansByRating);
+    if (assignSort === 'distance' && orderToAssign) {
+      return [...filtered].sort((a, b) => {
+        const distanceA = distanceToOrderKm(orderToAssign, a);
+        const distanceB = distanceToOrderKm(orderToAssign, b);
+        // Sin distancia conocida (falta geocodificar la orden o el técnico
+        // no declaró su Zona de trabajo) va al final, nunca se descarta.
+        if (distanceA == null && distanceB == null) return 0;
+        if (distanceA == null) return 1;
+        if (distanceB == null) return -1;
+        return distanceA - distanceB;
+      });
+    }
+    return filtered;
+  }, [technicians, assignSort, assignOnlyRated, orderToAssign]);
 
   // Única fuente de verdad de elegibilidad (src/lib/technicianEligibility.ts) —
   // antes este modal decidía con un chequeo propio (solo validation_status +
@@ -324,6 +344,21 @@ export const AdminHubView: React.FC = () => {
       .finally(() => { if (!cancelled) setAssignEligibilityLoading(false); });
     return () => { cancelled = true; };
   }, [isAssignModalOpen, technicians]);
+
+  // Disponibilidad declarada (Fase 3/4) para la fecha/bloque de esta orden —
+  // un solo batch al abrir el modal, mismo patrón que assignEligibility de
+  // arriba. Solo es un aviso: no cambia si se puede o no hacer click.
+  useEffect(() => {
+    if (!isAssignModalOpen || !orderToAssign) return;
+    let cancelled = false;
+    const block = orderToAssign.appointmentBlock ?? 'unscheduled';
+    Promise.all(
+      technicians.map(async (t) => [t.id, await isTechnicianAvailable(t.id, orderToAssign.scheduledDate, block)] as const)
+    ).then((entries) => {
+      if (!cancelled) setAssignAvailability(Object.fromEntries(entries));
+    });
+    return () => { cancelled = true; };
+  }, [isAssignModalOpen, orderToAssign, technicians]);
   const [isNewCustomerModalOpen, setIsNewCustomerModalOpen] = useState(false);
   const [returnToCreateOrderAfterNewClient, setReturnToCreateOrderAfterNewClient] = useState(false);
   const [isEditCustomerModalOpen, setIsEditCustomerModalOpen] = useState(false);
@@ -755,6 +790,32 @@ export const AdminHubView: React.FC = () => {
     [visibleOrders]
   );
 
+  // "X técnicos en la zona, Y sin conflicto ese turno" para órdenes todavía
+  // sin asignar — ver plan-zona-trabajo-agenda.md, Fase 5, punto 2 del pedido
+  // original. Solo datos ya en memoria (sin red): "en zona" usa el radio de
+  // Zona de trabajo (Fase 2), "sin conflicto" suma el toggle de
+  // disponibilidad del técnico (Fase 3) y que no tenga otra orden aceptada
+  // superpuesta (Fase 4/5) — es una aproximación rápida para la lista, no el
+  // chequeo completo de horario semanal que sí hace el modal de asignar
+  // (ese hace consultas a la base, acá se recalcularía por cada orden en
+  // pantalla y no escala).
+  const zoneCountsByOrderId = useMemo(() => {
+    const counts = new Map<string, { inZone: number; withoutConflict: number }>();
+    for (const order of orders) {
+      if (order.assignedTechnicianId || order.clientLat == null || order.clientLng == null) continue;
+      let inZone = 0;
+      let withoutConflict = 0;
+      for (const technician of technicians) {
+        if (!isWithinWorkZone(order, technician)) continue;
+        inZone += 1;
+        const hasConflict = findConflictingOrder(technician.id, order, orders) != null;
+        if (technician.isAvailable !== false && !hasConflict) withoutConflict += 1;
+      }
+      counts.set(order.id, { inZone, withoutConflict });
+    }
+    return counts;
+  }, [orders, technicians]);
+
   // Metrics calculation
   const metrics = useMemo(() => {
     const total = operationalOrders.length;
@@ -867,10 +928,13 @@ export const AdminHubView: React.FC = () => {
     const totalChecklist = order.checklist.length;
     const hasSignature = !!order.customerSignature;
     const quoteRejected = order.quotes?.some((quote) => quote.status === 'rejected');
-    // Punto 3 del ADR de mensajería: sin franja horaria persistida todavía
-    // (solo queda como texto libre en la descripción al pedir el turno), así
-    // que por ahora el aviso es a nivel de día agendado, no de hora exacta.
+    // Punto 3 del ADR de mensajería: este aviso sigue siendo a nivel de día
+    // agendado, no de hora exacta — aunque desde la Fase 4 de
+    // plan-zona-trabajo-agenda.md la orden ya tiene un bloque horario
+    // estructurado (appointmentBlock), afinarlo a nivel de bloque queda como
+    // mejora futura, no era parte del alcance de esa fase.
     const scheduledStartOfDay = new Date(`${order.scheduledDate}T00:00:00`);
+    const zoneCount = zoneCountsByOrderId.get(order.id);
     const isOverdueNoDeparture =
       order.status === 'assigned' &&
       !!order.assignedTechnicianId &&
@@ -941,6 +1005,14 @@ export const AdminHubView: React.FC = () => {
             ) : (
               <span className="text-amber-800 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.2 rounded border border-amber-200 dark:border-amber-800 text-[10px] font-bold">
                 Sin asignar
+              </span>
+            )}
+            {!order.assignedTechnicianName && zoneCount && (
+              <span
+                className="text-slate-600 bg-slate-100 dark:bg-slate-800 dark:text-slate-300 px-1.5 py-0.2 rounded border border-slate-200 dark:border-slate-700 text-[10px] font-semibold"
+                title="Técnicos con Zona de trabajo declarada que cubre esta dirección, y de esos, cuántos están disponibles y sin otra orden aceptada ese mismo día/turno (ver el modal de Asignar para el detalle completo)"
+              >
+                {zoneCount.inZone === 0 ? 'Sin técnicos en zona' : `${zoneCount.inZone} en zona · ${zoneCount.withoutConflict} libres`}
               </span>
             )}
             {order.assignedTechnicianName && order.status === 'assigned' && (
@@ -3807,6 +3879,19 @@ export const AdminHubView: React.FC = () => {
                     >
                       Mejor rating
                     </button>
+                    {orderToAssign.clientLat != null && orderToAssign.clientLng != null && (
+                      <button
+                        type="button"
+                        onClick={() => setAssignSort('distance')}
+                        className={`px-2.5 py-1 text-[11px] font-semibold ${
+                          assignSort === 'distance'
+                            ? 'bg-slate-900 text-white'
+                            : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400'
+                        }`}
+                      >
+                        Más cerca
+                      </button>
+                    )}
                   </div>
                   <label className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-600 dark:text-slate-400">
                     <input
@@ -3831,6 +3916,13 @@ export const AdminHubView: React.FC = () => {
                     const missingLabel = eligibility && !eligibility.canReceive && eligibility.missingRequirements.length > 0
                       ? eligibility.missingRequirements.join(', ')
                       : statusLabel;
+                    // Ver plan-zona-trabajo-agenda.md, Fase 5: distancia +
+                    // zona + conflicto de agenda son solo avisos — nunca
+                    // ocultan al técnico ni cambian si se lo puede asignar.
+                    const distanceKmToOrder = distanceToOrderKm(orderToAssign, t);
+                    const withinZone = isWithinWorkZone(orderToAssign, t);
+                    const conflictingOrder = findConflictingOrder(t.id, orderToAssign, orders);
+                    const availableThisTurn = assignAvailability[t.id];
                     return (
                       <div
                         key={t.id}
@@ -3863,6 +3955,23 @@ export const AdminHubView: React.FC = () => {
                             {!isEligible && !assignEligibilityLoading && (
                               <div className="text-[10px] font-bold text-amber-700 mt-0.5">
                                 {missingLabel} · no habilitado
+                              </div>
+                            )}
+                            {distanceKmToOrder != null && (
+                              <div className={`mt-0.5 text-[10px] font-semibold ${withinZone ? 'text-slate-500 dark:text-slate-400' : 'text-amber-700'}`}>
+                                <MapPin className="inline w-2.5 h-2.5 mr-0.5" />
+                                {distanceKmToOrder < 1 ? '<1 km' : `${distanceKmToOrder.toFixed(0)} km`}
+                                {!withinZone && ' · fuera de su zona declarada'}
+                              </div>
+                            )}
+                            {availableThisTurn === false && (
+                              <div className="text-[10px] font-bold text-amber-700 mt-0.5">
+                                No disponible este turno según su agenda
+                              </div>
+                            )}
+                            {conflictingOrder && (
+                              <div className="text-[10px] font-bold text-amber-700 mt-0.5">
+                                Ya tiene {conflictingOrder.id} aceptada ese día/turno
                               </div>
                             )}
                           </div>
