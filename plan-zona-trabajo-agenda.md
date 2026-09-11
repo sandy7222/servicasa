@@ -419,6 +419,30 @@ base ya está migrada aunque nadie la usa todavía. Verificado en vivo contra la
   5) y usa el mismo patrón de renderizado condicional ya verificado a ojo con la distancia/zona en
   este mismo click-through — el riesgo residual ahí es mínimo.
   **Fase 6 cerrada.**
-- [ ] **Fase 7** — Cierre y commits (probablemente uno por fase, no todo junto, dado el tamaño).
+- [x] **Fase 7** — Cierre. Como cada fase anterior ya se fue commiteando por separado (Fases 1-6, un
+  commit de código + uno de doc por fase), el "cierre y commits" que imaginaba esta fase al planear
+  ya estaba hecho — quedó solo una prolijidad chica pendiente de fases anteriores:
+  - Borrado `api/_lib/mapbox.ts` (stub muerto desde la Fase 1, reemplazado por Nominatim — sin
+    ninguna importación activa, confirmado con un `grep` antes de borrar).
+  - Corregidos 3 comentarios que todavía decían "Mapbox"/`api/_lib/mapbox.ts` en vez de
+    "Nominatim"/`api/_lib/geocoding.ts` (`api/payments/webhook.ts` ×2, `api/_lib/geocoding.ts`,
+    `src/types/index.ts`).
+  - Corridos los advisories de seguridad y performance de Supabase después de las 4 migraciones
+    nuevas de este módulo: **ningún hallazgo menciona `technician_working_hours`,
+    `technician_availability_exceptions`, ni las columnas `work_zone_*`/`is_available`/
+    `appointment_block`** — todo lo que aparece (RLS sin política en 2 tablas de borradores de pago,
+    funciones `SECURITY DEFINER` ejecutables por `anon`/`authenticated`, protección de contraseñas
+    filtradas deshabilitada, foreign keys sin índice) es preexistente de otras partes de la app, no
+    introducido por este trabajo.
+  **Verificado**: `tsc --noEmit` limpio y `vitest run` 174/174 de nuevo (sin cambios de lógica, solo
+  comentarios y un archivo sin uso borrado).
+  Con esto, el módulo completo de "Zona de trabajo + Agenda del técnico + Asignación por distancia y
+  horario" queda commiteado localmente de punta a punta (Fases 1-7), **sin push a `origin/main`
+  todavía** — eso queda para cuando Sandy lo pida explícitamente. Antes de ese push conviene tener
+  presente: (a) la Fase 4 no tuvo verificación manual completa de Mercado Pago por el problema de
+  cuentas sandbox (cobertura por tests unitarios en su lugar); (b) queda pendiente, fuera de alcance
+  de este plan, que el admin pueda cargar la franja horaria al crear una orden a mano; y (c) el mapa
+  de admin mencionado como opcional en el punto 4.4 nunca se construyó — no bloqueaba nada y no se
+  pidió explícitamente.
 
 Cada fase se confirma antes de arrancarla, como ya veníamos haciendo con los otros módulos grandes.

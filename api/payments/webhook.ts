@@ -214,8 +214,8 @@ async function createOrderFromApprovedGuestDraft(
     .eq('id', draftId)
     .single();
 
-  // Best-effort: nunca bloquea la creación de la orden si Mapbox no
-  // responde o falta el token — ver el comentario en api/_lib/mapbox.ts.
+  // Best-effort: nunca bloquea la creación de la orden si Nominatim no
+  // responde o no matchea la localidad — ver el comentario en api/_lib/geocoding.ts.
   const geocoded = await geocodeLocality(payload.city, payload.province);
 
   const { data: order, error: orderError } = await supabaseAdmin
@@ -313,8 +313,8 @@ async function createOrderFromApprovedCustomerDraft(
     throw customerError ?? new Error('No se encontró el cliente.');
   }
 
-  // Best-effort: nunca bloquea la creación de la orden si Mapbox no
-  // responde o falta el token — ver el comentario en api/_lib/mapbox.ts.
+  // Best-effort: nunca bloquea la creación de la orden si Nominatim no
+  // responde o no matchea la localidad — ver el comentario en api/_lib/geocoding.ts.
   const geocoded = await geocodeLocality(payload.city, payload.province);
 
   const { data: order, error: orderError } = await supabaseAdmin

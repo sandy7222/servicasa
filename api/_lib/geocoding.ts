@@ -4,11 +4,11 @@ const NOMINATIM_USER_AGENT = 'TecniUrbano/1.0';
 
 /**
  * Geocodifica "Ciudad, Provincia, Argentina" contra Nominatim (el geocoder
- * público de OpenStreetMap). Reemplaza al primer intento con Mapbox
- * (api/_lib/mapbox.ts, ahora sin uso — se puede borrar cuando quieras):
- * Mapbox pide cargar una tarjeta para crear la cuenta aunque el uso quede
- * dentro del nivel gratuito, y se prefirió no dejarla cargada solo para
- * esto. Nominatim no pide cuenta, API key ni tarjeta.
+ * público de OpenStreetMap). Reemplaza al primer intento con Mapbox (código
+ * ya borrado, ver plan-zona-trabajo-agenda.md Fase 1/7): Mapbox pedía cargar
+ * una tarjeta para crear la cuenta aunque el uso quedara dentro del nivel
+ * gratuito, y se prefirió no dejarla cargada solo para esto. Nominatim no
+ * pide cuenta, API key ni tarjeta.
  *
  * Su política de uso (operations.osmfoundation.org/policies/nominatim)
  * permite búsquedas puntuales disparadas por un usuario — exactamente este
