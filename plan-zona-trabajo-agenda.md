@@ -446,3 +446,27 @@ base ya está migrada aunque nadie la usa todavía. Verificado en vivo contra la
   pidió explícitamente.
 
 Cada fase se confirma antes de arrancarla, como ya veníamos haciendo con los otros módulos grandes.
+
+## Bug post-lanzamiento (11/9/2026): mapa sin cartografía en "Zona de trabajo"
+
+Sandy reportó desde el celular (María Rodríguez, rol Técnico) que en `WorkZone.tsx` el mapa se ve
+gris — el círculo de cobertura y el punto central sí aparecen, pero sin calles/imagen de fondo — y
+que buscar localidad/provincia con "Ubicar" "no posiciona" el mapa.
+
+**Causa real, una sola para los dos síntomas**: el header `Content-Security-Policy` en `vercel.json`
+(agregado antes de este módulo, por seguridad general del sitio) trae un `img-src` que solo permite
+`'self' data: https://ayszrtieplmqscqtabsu.supabase.co` — no incluye los dominios de tiles de
+OpenStreetMap (`a/b/c.tile.openstreetmap.org`) que usa el `L.tileLayer(...)` de Leaflet. El navegador
+bloquea esas imágenes por CSP (sin romper nada más), y como el marcador es un `divIcon` (HTML/CSS
+inline) y el círculo es SVG, ambos se dibujan igual — de ahí que se vea "la mitad" del mapa
+funcionando. Y como sin las tiles no hay calles ni nombres de lugar como referencia visual, un
+recentrado correcto del mapa (`map.setView(...)` tras geocodificar) es indistinguible de que "no pasó
+nada" — de ahí el segundo síntoma reportado, que no es un bug aparte.
+
+Se descartó que fuera el `connect-src`: `geocodeWorkZoneLocality` en `src/lib/technicianWorkZone.ts`
+llama a `/api/technicians/geocode-work-zone` (mismo origen), y es esa ruta la que en el servidor
+llama a Nominatim (`api/_lib/geocoding.ts`) — el navegador nunca contacta a Nominatim directo, así que
+ese header no necesitaba cambios.
+
+**Fix**: agregado `https://*.tile.openstreetmap.org` al `img-src` de `vercel.json`. Sin cambios de
+código en `WorkZone.tsx` ni en la lógica de geocodificación — era puramente el header.
