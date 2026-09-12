@@ -542,3 +542,35 @@ alias de provincia (CABA), match parcial por ILIKE, fallback a Nominatim sin mat
 ciudad/provincia vacías sin consultar nada. Con esto la verificación de esta mejora queda
 completa — el `tsc --noEmit` limpio + el workaround funcional ya daban confianza, pero esta es
 la confirmación oficial que faltaba, corrida con el `vitest`/`node_modules` reales del proyecto.
+
+## Mejora post-lanzamiento (12/9/2026): franja horaria al crear una orden a mano
+
+Quedó anotado al cerrar la Fase 7 de este plan que el admin no podía cargar la franja horaria
+(`appointmentBlock`) al crear una orden a mano — solo llegaba por el flujo del cliente
+(`ServiceRequestForm.tsx`/`GuestServiceRequestForm.tsx`, que la resuelve del lado del servidor con
+`api/_lib/appointmentBlock.ts`). Toda orden creada por el admin quedaba en `'unscheduled'` por
+default de la base, lo que le restaba precisión al aviso de conflicto de agenda de la Fase 5 para
+esas órdenes.
+
+**Cambio**: el modal "Crear Nueva Orden de Servicio" en `AdminHubView.tsx` ahora tiene un segundo
+selector al lado de "Fecha programada" — "Franja horaria", con las mismas 4 opciones que ya usa el
+cliente (A coordinar / Mañana 08–12 h / Mediodía 12–15 h / Tarde 15–19 h) — pero a diferencia del
+selector del cliente (que manda un texto libre y lo resuelve el servidor), acá el admin elige
+directamente el valor estructurado (`'unscheduled' | 'morning' | 'midday' | 'afternoon'`), sin
+necesidad de replicar la lógica de `resolveAppointmentBlock` del lado del cliente. El valor viaja
+por `createOrder` (`AppContext.tsx`) → `persistCreateOrder` (`supabaseMutations.ts`) → columna
+`appointment_block` de `service_orders`, con `'unscheduled'` como default si no se cambia el
+selector — mismo default que ya tenía la base, así que no cambia el comportamiento de nada
+existente, solo agrega la posibilidad de elegir otra cosa.
+
+**Alcance**: solo la creación manual. No se tocó el modal de edición de orden ni ningún otro flujo.
+
+**Verificación**: `tsc --noEmit` limpio sobre los 4 archivos tocados (`src/types/index.ts`,
+`src/lib/supabaseMutations.ts`, `src/context/AppContext.tsx`, `src/views/AdminHubView.tsx`).
+
+**Nota aparte, no relacionada con este cambio**: al revisar el diff de `AdminHubView.tsx` para
+commitear, aparecieron 2 hunks de código ya escritos en el archivo (sin commitear) que muestran la
+"Zona de trabajo" del técnico (ciudad/provincia/radio) en dos lugares de la lista de técnicos del
+admin — no forman parte de esta mejora, no los escribí yo en esta sesión, y se dejaron
+deliberadamente sin commitear (con `git add -p`) para no mezclarlos con este cambio ni commitear
+algo sin que Sandy lo haya revisado. Siguen en el working tree tal cual estaban.

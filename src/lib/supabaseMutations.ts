@@ -1,4 +1,5 @@
 import type {
+  AppointmentBlock,
   CatalogCategory,
   CatalogSubcategory,
   Customer,
@@ -601,6 +602,7 @@ export async function persistCreateOrder(input: {
   serviceType: ServiceType;
   priority: OrderPriority;
   scheduledDate: string;
+  appointmentBlock: AppointmentBlock;
   customer: Customer;
   technician?: { id: string; name: string } | null;
   checklistLabels: string[];
@@ -618,6 +620,7 @@ export async function persistCreateOrder(input: {
       scheduled_date: /^\d{4}-\d{2}-\d{2}$/.test(input.scheduledDate)
         ? input.scheduledDate
         : new Date().toISOString().slice(0, 10),
+      appointment_block: input.appointmentBlock,
       customer_id: input.customer.id,
       client_name: input.customer.name,
       client_phone: input.customer.phone,

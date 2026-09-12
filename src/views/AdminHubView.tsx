@@ -67,6 +67,7 @@ import { compareTechniciansByRating, isNewTechnicianRating } from '../lib/orderR
 import { distanceToOrderKm, isWithinWorkZone } from '../lib/technicianDistance';
 import { findConflictingOrder, isTechnicianAvailable } from '../lib/technicianSchedule';
 import {
+  AppointmentBlock,
   OrderPriority,
   ServiceItem,
   ServiceItemInput,
@@ -386,6 +387,7 @@ export const AdminHubView: React.FC = () => {
   const [newOrderClientId, setNewOrderClientId] = useState('');
   const [newOrderTechId, setNewOrderTechId] = useState('');
   const [newOrderDate, setNewOrderDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [newOrderAppointmentBlock, setNewOrderAppointmentBlock] = useState<AppointmentBlock>('unscheduled');
 
   const newOrderClient = useMemo(
     () => customers.find((c) => c.id === newOrderClientId),
@@ -1124,6 +1126,7 @@ export const AdminHubView: React.FC = () => {
       // así que el selector ya viene deshabilitado/vaciado en ese caso.
       assignedTechnicianId: newOrderTechId || undefined,
       scheduledDate: newOrderDate,
+      appointmentBlock: newOrderAppointmentBlock,
     });
 
     setIsCreateModalOpen(false);
@@ -1131,6 +1134,7 @@ export const AdminHubView: React.FC = () => {
     setNewOrderDesc('');
     setNewOrderClientId('');
     setNewOrderDate(new Date().toISOString().slice(0, 10));
+    setNewOrderAppointmentBlock('unscheduled');
 
     // Cliente sin cuenta: generamos la invitación de una y la dejamos
     // lista para copiar en el momento, en vez de depender de que el admin
@@ -3569,20 +3573,41 @@ export const AdminHubView: React.FC = () => {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Fecha programada
-                </label>
-                <input
-                  type="date"
-                  value={newOrderDate}
-                  onChange={(e) => setNewOrderDate(e.target.value)}
-                  required
-                  className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white"
-                />
-                <p className="mt-1 text-[10px] text-slate-500 dark:text-slate-400">
-                  Formato fecha (Supabase). Ej: 2026-08-17
-                </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Fecha programada
+                  </label>
+                  <input
+                    type="date"
+                    value={newOrderDate}
+                    onChange={(e) => setNewOrderDate(e.target.value)}
+                    required
+                    className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white"
+                  />
+                  <p className="mt-1 text-[10px] text-slate-500 dark:text-slate-400">
+                    Formato fecha (Supabase). Ej: 2026-08-17
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Franja horaria
+                  </label>
+                  <select
+                    value={newOrderAppointmentBlock}
+                    onChange={(e) => setNewOrderAppointmentBlock(e.target.value as AppointmentBlock)}
+                    className="w-full text-xs sm:text-sm px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white"
+                  >
+                    <option value="unscheduled">A coordinar</option>
+                    <option value="morning">Mañana (08–12 h)</option>
+                    <option value="midday">Mediodía (12–15 h)</option>
+                    <option value="afternoon">Tarde (15–19 h)</option>
+                  </select>
+                  <p className="mt-1 text-[10px] text-slate-500 dark:text-slate-400">
+                    Para detectar conflicto de agenda del técnico al asignar.
+                  </p>
+                </div>
               </div>
 
               <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2">

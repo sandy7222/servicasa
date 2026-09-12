@@ -89,6 +89,7 @@ import { friendlyErrorMessage } from '../components/common/AppStatus';
 import { isOrderPaymentSettled, orderRequiresPaymentGate } from '../lib/workTimer';
 import { sortByDisplayOrder } from '../lib/catalogOrder';
 import {
+  AppointmentBlock,
   CatalogCategory,
   CatalogSubcategory,
   CurrentUserData,
@@ -166,6 +167,7 @@ interface AppContextType {
     clientId: string;
     assignedTechnicianId?: string;
     scheduledDate: string;
+    appointmentBlock?: AppointmentBlock;
     customChecklist?: string[];
   }) => string;
   updateOrder: (
@@ -1925,6 +1927,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     clientId: string;
     assignedTechnicianId?: string;
     scheduledDate: string;
+    appointmentBlock?: AppointmentBlock;
     customChecklist?: string[];
   }): string => {
     // ✓ SECURITY: Only admin can create orders
@@ -1989,6 +1992,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             serviceType: data.serviceType,
             priority: data.priority,
             scheduledDate: data.scheduledDate || new Date().toISOString().slice(0, 10),
+            appointmentBlock: data.appointmentBlock ?? 'unscheduled',
             customer: client,
             technician: tech ? { id: tech.id, name: tech.name } : null,
             checklistLabels,
@@ -2012,6 +2016,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       priority: data.priority,
       status: 'assigned',
       scheduledDate: data.scheduledDate || 'Hoy, a convenir',
+      appointmentBlock: data.appointmentBlock ?? 'unscheduled',
       createdAt: nowStr,
       clientId: client.id,
       clientName: client.name,

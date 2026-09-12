@@ -81,10 +81,11 @@ export type OrderPriority = 'baja' | 'media' | 'alta' | 'urgente';
 
 /** Bloque horario real del turno de una orden — ver plan-zona-trabajo-agenda.md,
  * Fase 4. Mismas 4 opciones que ofrece el selector "Franja para este pedido"
- * en ServiceRequestForm.tsx / GuestServiceRequestForm.tsx. 'unscheduled' =
- * "A coordinar": sin horario fijo, nunca genera un aviso de conflicto por sí
- * solo (ver src/lib/technicianSchedule.ts). Órdenes creadas antes de esta
- * fase, o creadas manualmente por el admin (que todavía no pide este dato),
+ * en ServiceRequestForm.tsx / GuestServiceRequestForm.tsx, y que también
+ * puede elegir el admin al crear una orden a mano (AdminHubView.tsx, mejora
+ * post-lanzamiento del 12/9). 'unscheduled' = "A coordinar": sin horario
+ * fijo, nunca genera un aviso de conflicto por sí solo (ver
+ * src/lib/technicianSchedule.ts). Órdenes creadas antes de esta mejora
  * quedan en 'unscheduled' por default de la base. */
 export type AppointmentBlock = 'unscheduled' | 'morning' | 'midday' | 'afternoon';
 
