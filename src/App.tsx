@@ -91,34 +91,49 @@ const AppContent: React.FC = () => {
 
   const pathOnly = currentPath.split('?')[0];
   const isMarketingDoc = pathOnly === '/quienes-somos' || pathOnly === '/terminos';
+  // La instalación (TWA en Android, o "Agregar a pantalla de inicio" como
+  // PWA) se abre en su propia ventana sin barra de navegador — el mismo
+  // "display-mode: standalone" que usa el manifest.webmanifest. Alguien que
+  // ya la tiene instalada nunca debería ver la landing pública con su botón
+  // "Descargá la app": no tiene sentido ofrecerle instalar lo que ya está
+  // usando. Es distinto de `isAuthenticated`: cubre además el caso de haber
+  // quedado deslogueado adentro de la app instalada (por ejemplo, borrar el
+  // caché/almacenamiento para forzar una actualización) — ahí "/" debe ir
+  // directo al login, no a la landing.
+  const isStandaloneApp =
+    typeof window !== 'undefined' && window.matchMedia?.('(display-mode: standalone)').matches === true;
   // La landing pública sin sesión arma su propio header de marketing
   // (LandingHeader, dentro de LandingView) — se omite el header compartido
   // de las vistas autenticadas para no duplicarlo. Quiénes somos y Términos
   // usan el mismo header de marketing.
   const showSharedHeader = !(pathOnly === '/' && !isAuthenticated) && !isMarketingDoc;
 
-  // Con sesión iniciada, "/" (la landing pública) redirige al panel de la
-  // app según el rol — mismo destino que navigate('/home') en AppContext.tsx.
-  // Sin este efecto, llegar a "/" con sesión activa por cualquier vía que no
-  // sea el logo/link "Inicio" (volver atrás con el navegador, un enlace
-  // guardado, recargar con "#/" en la URL) igual mostraba la landing con su
-  // propio header apilado sobre el header de la app ya logueada — un cliente
-  // o técnico no debería poder volver a ver la landing de marketing una vez
-  // que entró a operar la aplicación.
+  // "/" (la landing pública) redirige al panel de la app si hay sesión
+  // (mismo destino que navigate('/home') en AppContext.tsx), o directo al
+  // login si estamos en la app instalada sin sesión. Sin este efecto,
+  // llegar a "/" por cualquier vía que no sea el logo/link "Inicio" (volver
+  // atrás con el navegador, un enlace guardado, recargar con "#/" en la
+  // URL, o que la instalación restaure una pestaña vieja) mostraba la
+  // landing de marketing — con su propio header apilado sobre el de la app
+  // si había sesión — a alguien que ya entró a operar la aplicación.
   React.useEffect(() => {
-    if (authReady && isAuthenticated && pathOnly === '/') {
+    if (!authReady || pathOnly !== '/') return;
+    if (isAuthenticated) {
       navigate('/home');
+    } else if (isStandaloneApp) {
+      navigate('/auth');
     }
-  }, [authReady, isAuthenticated, pathOnly, navigate]);
+  }, [authReady, isAuthenticated, isStandaloneApp, pathOnly, navigate]);
 
   const renderView = () => {
     switch (pathOnly) {
       case '/':
-        // Con sesión activa, el efecto de arriba ya está redirigiendo a
-        // '/home' — no renderizar la landing ni un instante mientras tanto
-        // (mismo criterio que <Protected> más abajo: nunca mostrar contenido
-        // que no corresponde, ni brevemente).
-        if (isAuthenticated) return null;
+        // El efecto de arriba ya está redirigiendo a '/home' o '/auth' en
+        // ambos casos en que "/" no debe mostrar la landing — no renderizar
+        // nada ni un instante mientras tanto (mismo criterio que <Protected>
+        // más abajo: nunca mostrar contenido que no corresponde, ni
+        // brevemente).
+        if (isAuthenticated || isStandaloneApp) return null;
         return <LandingView />;
       case '/quienes-somos':
         return <AboutView />;
