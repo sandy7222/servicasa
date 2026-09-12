@@ -422,6 +422,11 @@ export type CustomerRegistrationInput = {
   phone: string;
   address: string;
   neighborhood: string;
+  // Evidencia de aceptación de T&C (charla con Sandy, 12/9): versión y hash
+  // SHA-256 del texto exacto mostrado en el checkbox del formulario de
+  // registro. Ver src/lib/legalTerms.ts y src/lib/legalAcceptance.ts.
+  acceptedTermsVersion: string;
+  acceptedTermsHash: string;
 };
 
 export type TechnicianRegistrationInput = {
@@ -431,6 +436,11 @@ export type TechnicianRegistrationInput = {
   phone: string;
   specialtyIds: string[];
   message?: string;
+  // Evidencia de aceptación de T&C (charla con Sandy, 12/9): versión y hash
+  // SHA-256 del texto exacto mostrado en el checkbox del formulario de alta
+  // de técnico. Ver src/lib/legalTerms.ts y src/lib/legalAcceptance.ts.
+  acceptedTermsVersion: string;
+  acceptedTermsHash: string;
 };
 
 export interface TechnicianApplication {

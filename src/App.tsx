@@ -10,6 +10,8 @@ import {
 import { LandingView } from './views/LandingView';
 import { AboutView } from './views/AboutView';
 import { TermsView } from './views/TermsView';
+import { TermsClienteView } from './views/TermsClienteView';
+import { TermsTecnicoView } from './views/TermsTecnicoView';
 import { AuthView } from './views/AuthView';
 import { AdminHubView } from './views/AdminHubView';
 import { TechnicianView } from './views/TechnicianView';
@@ -90,7 +92,11 @@ const AppContent: React.FC = () => {
   const { currentPath, currentUser, remoteBusy, authReady, passwordRecoveryMode, isAuthenticated, navigate } = useApp();
 
   const pathOnly = currentPath.split('?')[0];
-  const isMarketingDoc = pathOnly === '/quienes-somos' || pathOnly === '/terminos';
+  const isMarketingDoc =
+    pathOnly === '/quienes-somos' ||
+    pathOnly === '/terminos' ||
+    pathOnly === '/terminos_y_condiciones/cliente' ||
+    pathOnly === '/terminos_y_condiciones/tecnico';
   // La instalación (TWA en Android, o "Agregar a pantalla de inicio" como
   // PWA) se abre en su propia ventana sin barra de navegador — el mismo
   // "display-mode: standalone" que usa el manifest.webmanifest. Alguien que
@@ -139,6 +145,10 @@ const AppContent: React.FC = () => {
         return <AboutView />;
       case '/terminos':
         return <TermsView />;
+      case '/terminos_y_condiciones/cliente':
+        return <TermsClienteView />;
+      case '/terminos_y_condiciones/tecnico':
+        return <TermsTecnicoView />;
       case '/auth':
         return <AuthView />;
       case '/home':

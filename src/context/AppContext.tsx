@@ -88,6 +88,7 @@ import {
 import { friendlyErrorMessage } from '../components/common/AppStatus';
 import { isOrderPaymentSettled, orderRequiresPaymentGate } from '../lib/workTimer';
 import { sortByDisplayOrder } from '../lib/catalogOrder';
+import { recordTermsAcceptance } from '../lib/legalAcceptance';
 import {
   AppointmentBlock,
   CatalogCategory,
@@ -870,6 +871,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const session = signed.session;
       if (!user) throw new Error('No se pudo crear la cuenta.');
 
+      // Imprescindible para tener cuenta (charla con Sandy, 12/9): si esto
+      // falla, el registro entero falla — va ANTES de dar el alta por
+      // buena, en ambos caminos (con o sin confirmación de email pendiente).
+      await recordTermsAcceptance({
+        userId: user.id,
+        role: 'cliente',
+        documentSlug: 'terminos_cliente',
+        documentVersion: input.acceptedTermsVersion,
+        documentHash: input.acceptedTermsHash,
+      });
+
       if (!session) {
         showToast(
           'Revisá tu email para confirmar la cuenta. Después ingresá y completá tu perfil.',
@@ -904,6 +916,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const user = signed.user;
       const session = signed.session;
       if (!user) throw new Error('No se pudo crear la cuenta.');
+
+      // Imprescindible para tener cuenta (charla con Sandy, 12/9): si esto
+      // falla, el registro entero falla — va ANTES de dar el alta por
+      // buena, en ambos caminos (con o sin confirmación de email pendiente).
+      await recordTermsAcceptance({
+        userId: user.id,
+        role: 'tecnico',
+        documentSlug: 'terminos_tecnico',
+        documentVersion: input.acceptedTermsVersion,
+        documentHash: input.acceptedTermsHash,
+      });
 
       if (!session) {
         showToast(

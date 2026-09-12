@@ -24,6 +24,13 @@ import { fetchAccountInvite, type AccountInvitePreview } from '../lib/supabaseMu
 import { GuestServiceRequestForm } from '../components/client/GuestServiceRequestForm';
 import { hasAssistantDraft, ASSISTANT_DRAFT_EVENT } from '../lib/diagnosisDraft';
 import { ThemeToggle } from '../components/common/ThemeToggle';
+import {
+  TERMS_CLIENTE_TEXT,
+  TERMS_CLIENTE_VERSION,
+  TERMS_TECNICO_TEXT,
+  TERMS_TECNICO_VERSION,
+} from '../lib/legalTerms';
+import { sha256Hex } from '../lib/legalAcceptance';
 
 function readInviteToken() {
   const hash = window.location.hash.replace(/^#/, '');
@@ -105,6 +112,7 @@ export const AuthView: React.FC = () => {
   const [regPhone, setRegPhone] = useState('');
   const [regAddress, setRegAddress] = useState('');
   const [regNeighborhood, setRegNeighborhood] = useState('');
+  const [regAcceptedTerms, setRegAcceptedTerms] = useState(false);
   const [registerSubmitted, setRegisterSubmitted] = useState(false);
 
   // "Ser técnico" — alta real de cuenta
@@ -114,6 +122,7 @@ export const AuthView: React.FC = () => {
   const [appPhone, setAppPhone] = useState('');
   const [appSpecialtyIds, setAppSpecialtyIds] = useState<string[]>([]);
   const [appMessage, setAppMessage] = useState('');
+  const [appAcceptedTerms, setAppAcceptedTerms] = useState(false);
   const [applySubmitted, setApplySubmitted] = useState(false);
 
   useEffect(() => {
@@ -209,7 +218,12 @@ export const AuthView: React.FC = () => {
       setError('La contraseña debe tener al menos 8 caracteres.');
       return;
     }
+    if (!regAcceptedTerms) {
+      setError('Tenés que aceptar los Términos y Condiciones para crear la cuenta.');
+      return;
+    }
     try {
+      const acceptedTermsHash = await sha256Hex(TERMS_CLIENTE_TEXT);
       await registerCustomer({
         fullName: regFullName,
         email: regEmail,
@@ -217,6 +231,8 @@ export const AuthView: React.FC = () => {
         phone: regPhone,
         address: regAddress,
         neighborhood: regNeighborhood,
+        acceptedTermsVersion: TERMS_CLIENTE_VERSION,
+        acceptedTermsHash,
       });
       setRegisterSubmitted(true);
     } catch (err) {
@@ -237,7 +253,12 @@ export const AuthView: React.FC = () => {
       setError('La contraseña debe tener al menos 8 caracteres.');
       return;
     }
+    if (!appAcceptedTerms) {
+      setError('Tenés que aceptar los Términos y Condiciones para crear la cuenta.');
+      return;
+    }
     try {
+      const acceptedTermsHash = await sha256Hex(TERMS_TECNICO_TEXT);
       await registerTechnician({
         fullName: appFullName,
         email: appEmail,
@@ -245,6 +266,8 @@ export const AuthView: React.FC = () => {
         phone: appPhone,
         specialtyIds: appSpecialtyIds,
         message: appMessage.trim() || undefined,
+        acceptedTermsVersion: TERMS_TECNICO_VERSION,
+        acceptedTermsHash,
       });
       setApplySubmitted(true);
     } catch (err) {
@@ -717,13 +740,36 @@ export const AuthView: React.FC = () => {
                 </div>
               </div>
 
+              <label className="flex items-start gap-2 text-xs text-slate-600 dark:text-slate-400">
+                <input
+                  type="checkbox"
+                  checked={regAcceptedTerms}
+                  onChange={(e) => setRegAcceptedTerms(e.target.checked)}
+                  disabled={authLoading}
+                  required
+                  className="mt-0.5"
+                />
+                <span>
+                  Leí y acepto los{' '}
+                  <a
+                    href="/terminos_y_condiciones/cliente"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-semibold text-teal-700 hover:text-teal-600 underline"
+                  >
+                    Términos y Condiciones para clientes
+                  </a>{' '}
+                  de TecniUrbano.
+                </span>
+              </label>
+
               {error && (
                 <div className="text-xs text-red-700 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{error}</div>
               )}
 
               <button
                 type="submit"
-                disabled={authLoading}
+                disabled={authLoading || !regAcceptedTerms}
                 className="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-[#0F172A] hover:bg-slate-800 disabled:opacity-60 text-white font-bold text-sm rounded-lg shadow-sm transition-all"
               >
                 {authLoading ? (
@@ -864,13 +910,36 @@ export const AuthView: React.FC = () => {
                 />
               </div>
 
+              <label className="flex items-start gap-2 text-xs text-slate-600 dark:text-slate-400">
+                <input
+                  type="checkbox"
+                  checked={appAcceptedTerms}
+                  onChange={(e) => setAppAcceptedTerms(e.target.checked)}
+                  disabled={authLoading}
+                  required
+                  className="mt-0.5"
+                />
+                <span>
+                  Leí y acepto los{' '}
+                  <a
+                    href="/terminos_y_condiciones/tecnico"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-semibold text-teal-700 hover:text-teal-600 underline"
+                  >
+                    Términos y Condiciones para técnicos
+                  </a>{' '}
+                  de TecniUrbano.
+                </span>
+              </label>
+
               {error && (
                 <div className="text-xs text-red-700 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{error}</div>
               )}
 
               <button
                 type="submit"
-                disabled={authLoading}
+                disabled={authLoading || !appAcceptedTerms}
                 className="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-[#0F172A] hover:bg-slate-800 disabled:opacity-60 text-white font-bold text-sm rounded-lg shadow-sm transition-all"
               >
                 {authLoading ? (
