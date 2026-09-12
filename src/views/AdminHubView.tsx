@@ -166,9 +166,8 @@ function CategoryIcon({ name, className }: { name?: string; className?: string }
 }
 
 const ORDERS_PAGE_SIZE = 15;
-// TEMP FOR TESTING (Sandy asked to verify the archive flow end-to-end) — revert to
-// `ORDERS_PAGE_SIZE * 6` once confirmed working.
-const ARCHIVE_PROMPT_THRESHOLD = 3;
+// Prompt to archive once the active list grows past ~6 pages worth of orders.
+const ARCHIVE_PROMPT_THRESHOLD = ORDERS_PAGE_SIZE * 6;
 
 const PageControls: React.FC<{ page: number; totalItems: number; pageSize: number; onChange: (page: number) => void }> = ({ page, totalItems, pageSize, onChange }) => {
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
@@ -708,10 +707,8 @@ export const AdminHubView: React.FC = () => {
 
   // Eligible to archive: closed at least ~2 months ago (30-day warranty +
   // buffer). Never touches an order that's still assigned/in progress/paused.
-  // TEMP FOR TESTING — cutoff at 0 days so today's test data qualifies too.
-  // Revert to `60 * 24 * 60 * 60 * 1000` (2 months) once confirmed working.
   const archivableOrders = useMemo(() => {
-    const cutoff = Date.now() - 0 * 24 * 60 * 60 * 1000;
+    const cutoff = Date.now() - 60 * 24 * 60 * 60 * 1000;
     return visibleOrders.filter((o) => {
       if (!isOrderTerminal(o)) return false;
       const closedAt = o.completedAt ?? o.cancelledAt;

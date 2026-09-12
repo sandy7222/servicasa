@@ -600,3 +600,24 @@ existían en memoria (`visibleOrders`), sin queries nuevas a Supabase.
 **Nota**: al revisar el diff de `AdminHubView.tsx` volvieron a aparecer los mismos 2 hunks sin
 commitear de "Zona de trabajo" del técnico (mencionados en la mejora anterior de este mismo día) —
 se dejaron intactos, sin commitear, otra vez con `git add -p`.
+
+## Mejora post-lanzamiento (12/9/2026): revertidos los umbrales de archivado bajados para testing
+
+Quedaban dos umbrales del flujo de archivado de órdenes (`AdminHubView.tsx`) bajados a propósito
+para poder probar el flujo de punta a punta con datos de prueba de hoy mismo, cada uno con un
+comentario `TEMP FOR TESTING` explicando a qué valor volver una vez confirmado:
+
+- `ARCHIVE_PROMPT_THRESHOLD` (a partir de cuántas órdenes activas se sugiere archivar): estaba en
+  `3` de prueba, vuelve a `ORDERS_PAGE_SIZE * 6` = 90.
+- El cutoff de "elegible para archivar" (cerrada hace cuánto tiempo, contando desde `completedAt`/
+  `cancelledAt`): estaba en `0` días de prueba (cualquier orden cerrada hoy ya calificaba), vuelve a
+  `60 * 24 * 60 * 60 * 1000` = 60 días (2 meses, pensado como garantía de 30 días + margen).
+
+**Cambio**: solo se sacaron los valores de testing y sus comentarios `TEMP FOR TESTING`, dejando un
+comentario normal explicando el criterio. No se tocó la lógica del filtro ni ningún otro comportamiento.
+
+**Verificación**: `tsc --noEmit` limpio.
+
+**Nota aparte, no relacionada con este cambio**: al revisar el diff de `AdminHubView.tsx` volvieron
+a aparecer los mismos 2 hunks sin commitear de "Zona de trabajo" del técnico (mencionados en las dos
+mejoras anteriores de este mismo día) — se dejaron intactos, sin commitear, otra vez con `git add -p`.
