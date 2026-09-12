@@ -792,6 +792,21 @@ export const AdminHubView: React.FC = () => {
     [visibleOrders]
   );
 
+  // Panel "Cronómetros activos" — pendiente del roadmap general ("cronómetro
+  // de trabajo para el admin"): antes solo se veía el tiempo transcurrido de
+  // UNA orden a la vez, abriendo su detalle (ver "Tiempo operativo del
+  // servicio" más abajo, existente desde el 17/8). Esto junta TODAS las
+  // órdenes en curso ahora mismo en un solo panel, sin tener que abrir cada
+  // una — ordenadas por más tiempo corriendo primero, que es la que más
+  // probablemente necesita atención del admin.
+  const activeTimerOrders = useMemo(
+    () =>
+      visibleOrders
+        .filter((o): o is ServiceOrder & { workStartedAt: string } => o.status === 'in_progress' && Boolean(o.workStartedAt))
+        .sort((a, b) => new Date(a.workStartedAt).getTime() - new Date(b.workStartedAt).getTime()),
+    [visibleOrders]
+  );
+
   // "X técnicos en la zona, Y sin conflicto ese turno" para órdenes todavía
   // sin asignar — ver plan-zona-trabajo-agenda.md, Fase 5, punto 2 del pedido
   // original. Solo datos ya en memoria (sin red): "en zona" usa el radio de
@@ -1870,6 +1885,44 @@ export const AdminHubView: React.FC = () => {
         {/* ================= TAB 1: ORDERS ================= */}
         {activeTab === 'orders' && (
           <div className="space-y-3">
+            {/* Panel de cronómetros activos — ver activeTimerOrders arriba */}
+            {activeTimerOrders.length > 0 && (
+              <div className="bg-white dark:bg-slate-900 rounded-xl border border-teal-200 dark:border-teal-800 shadow-xs overflow-hidden">
+                <div className="flex items-center justify-between gap-2 px-3 py-2 bg-teal-50 dark:bg-teal-950/40 border-b border-teal-200 dark:border-teal-800">
+                  <div className="flex items-center gap-1.5 text-teal-900 dark:text-teal-200">
+                    <Clock className="w-4 h-4" />
+                    <h3 className="text-xs font-bold">Cronómetros activos ({activeTimerOrders.length})</h3>
+                  </div>
+                  <span className="text-[10px] text-teal-700 dark:text-teal-400 hidden sm:inline">
+                    Trabajos en curso ahora mismo, más tiempo corriendo primero
+                  </span>
+                </div>
+                <div className="divide-y divide-slate-100 dark:divide-slate-800 max-h-64 overflow-y-auto">
+                  {activeTimerOrders.map((order) => (
+                    <button
+                      key={order.id}
+                      type="button"
+                      onClick={() => setSelectedOrderId(order.id)}
+                      className="w-full flex items-center justify-between gap-3 px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900 dark:text-slate-100">
+                          <Wrench className="w-3 h-3 text-teal-600 shrink-0" />
+                          <span className="truncate">{order.assignedTechnicianName ?? 'Sin técnico'}</span>
+                        </div>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
+                          {order.title} · {order.clientName}
+                        </p>
+                      </div>
+                      <span className="font-mono font-black text-teal-800 dark:text-teal-300 text-sm shrink-0">
+                        {formatElapsedTime(getOrderElapsedSeconds(order, clockNow))}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Filters Bar - High Density */}
             <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs space-y-2">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">

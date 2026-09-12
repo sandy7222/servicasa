@@ -574,3 +574,29 @@ commitear, aparecieron 2 hunks de código ya escritos en el archivo (sin commite
 admin — no forman parte de esta mejora, no los escribí yo en esta sesión, y se dejaron
 deliberadamente sin commitear (con `git add -p`) para no mezclarlos con este cambio ni commitear
 algo sin que Sandy lo haya revisado. Siguen en el working tree tal cual estaban.
+
+## Mejora post-lanzamiento (12/9/2026): panel de cronómetros activos para el admin
+
+Otro pendiente del roadmap general era "el cronómetro de trabajo para el admin". Al revisar el
+código para encararlo apareció que una parte ya existía: el detalle de una orden (`AdminHubView.tsx`)
+ya mostraba, desde el 17/8, un cronómetro en vivo ("Tiempo operativo del servicio", con segundero
+corriendo cada 1 segundo vía `clockNow`) — pero solo de a una orden por vez, abriendo su detalle.
+Lo que faltaba, confirmado con Sandy antes de tocar nada, era un panel que junte todos los
+cronómetros activos de un vistazo, sin tener que abrir cada orden.
+
+**Cambio**: nuevo panel "Cronómetros activos" al principio de la pestaña "Órdenes" en
+`AdminHubView.tsx`, visible solo cuando hay al menos una orden `in_progress`. Lista cada orden en
+curso con: técnico asignado, título de la orden + cliente, y el tiempo transcurrido en vivo (mismo
+cálculo que ya usaba el detalle: `getOrderElapsedSeconds`/`formatElapsedTime` sobre el `clockNow`
+existente, sin agregar un segundo timer). Ordenado por más tiempo corriendo primero — la orden que
+lleva más tiempo es la que más probablemente necesita que el admin la revise. Clickear una fila
+abre el detalle completo de esa orden (mismo `setSelectedOrderId` que ya usa el botón "Detalle").
+
+No se tocó ninguna lógica de negocio ni el cronómetro en sí — es una vista nueva sobre datos que ya
+existían en memoria (`visibleOrders`), sin queries nuevas a Supabase.
+
+**Verificación**: `tsc --noEmit` limpio.
+
+**Nota**: al revisar el diff de `AdminHubView.tsx` volvieron a aparecer los mismos 2 hunks sin
+commitear de "Zona de trabajo" del técnico (mencionados en la mejora anterior de este mismo día) —
+se dejaron intactos, sin commitear, otra vez con `git add -p`.
