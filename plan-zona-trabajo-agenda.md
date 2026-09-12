@@ -534,3 +534,11 @@ temporales de ese workaround se borraron al terminar. Falta correr `vitest run` 
 máquina de Sandy (PowerShell/VS Code, igual que el click-through de la Fase 6) para tener la
 confirmación oficial del proyecto — no debería haber sorpresas dado que la lógica ya se verificó
 funcionalmente, pero queda como pendiente explícito hasta que se corra ahí.
+
+**Actualización (12/9/2026, más tarde el mismo día): confirmado.** Sandy corrió
+`npx vitest run api/_lib/geocoding.test.ts` directo en su PowerShell — **5/5 tests pasaron**
+(`vitest v4.1.11`, 19ms de duración real de los tests): match exacto sin tocar fetch/Nominatim,
+alias de provincia (CABA), match parcial por ILIKE, fallback a Nominatim sin match local, y
+ciudad/provincia vacías sin consultar nada. Con esto la verificación de esta mejora queda
+completa — el `tsc --noEmit` limpio + el workaround funcional ya daban confianza, pero esta es
+la confirmación oficial que faltaba, corrida con el `vitest`/`node_modules` reales del proyecto.
