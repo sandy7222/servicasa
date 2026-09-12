@@ -470,3 +470,67 @@ ese header no necesitaba cambios.
 
 **Fix**: agregado `https://*.tile.openstreetmap.org` al `img-src` de `vercel.json`. Sin cambios de
 código en `WorkZone.tsx` ni en la lógica de geocodificación — era puramente el header.
+
+## Mejora post-lanzamiento (12/9/2026): tabla de geocoding local antes de Nominatim
+
+`geocodeLocality` (`api/_lib/geocoding.ts`) usaba **solo** Nominatim para convertir "Ciudad,
+Provincia" en lat/lng — tanto para que el técnico declare su zona de trabajo (Fase 1-2 de este
+mismo plan) como para completar `client_lat`/`client_lng` de una orden nueva. Nominatim funciona
+bien, pero es un servicio externo por request: cada declaración de zona y cada orden pagan una
+ida y vuelta a un servidor público de OpenStreetMap, con su política de rate-limit (1 req/seg) de
+por medio. Se agregó una tabla local con el dataset oficial de localidades argentinas (INDEC,
+vía la API `georef`) para resolver localmente la enorme mayoría de los casos, sin tocar red, y
+dejar Nominatim solo como fallback para lo que no está en el dataset.
+
+**Tabla nueva `public.ar_localidades`** — migración
+`supabase/migrations/20260912021710_create_ar_localidades_geocoding_table.sql`: `id`, `nombre`,
+`nombre_normalizado`, `categoria`, `provincia_id`, `provincia_nombre`, `provincia_normalizada`,
+`departamento_id`, `departamento_nombre`, `lat`/`lng` (con CHECK de rango), `created_at`; índice
+compuesto `(provincia_normalizada, nombre_normalizado)` para que el lookup sea por índice y no por
+scan. RLS habilitada **sin policies** — mismo patrón que `payment_transactions`: la tabla solo se
+lee desde `api/_lib/geocoding.ts` con el cliente service-role (`supabaseAdmin`), nunca desde
+`src/` con el cliente anon/browser.
+
+**Seed**: migración `supabase/migrations/20260912021711_seed_ar_localidades.sql`, **3866
+localidades** deduplicadas del dataset INDEC/georef, con `nombre_normalizado`/
+`provincia_normalizada` pre-calculados con la misma normalización (NFD, sin diacríticos,
+minúscula, espacios colapsados) que usa el lookup en JS, para que comparar sea un `=`/`ILIKE`
+directo sin normalizar en cada query. Al aplicar el seed en la base real se detectó que el conteo
+final daba 3716 en vez de 3866 — un chunk de 150 filas (`seed_01350.sql`, en el medio del rango)
+había quedado afuera por un corte silencioso en un intento anterior de pegar varios chunks juntos.
+Se identificó comparando IDs de arranque de cada chunk contra lo que realmente había en la base, y
+se volvió a aplicar ese chunk puntual. Verificado con `select count(*) from ar_localidades` = 3866,
+que coincide exactamente con el total de filas de los 26 archivos fuente.
+
+**Cambios en `api/_lib/geocoding.ts`**: `geocodeLocality(city, province)` ahora, antes de llamar a
+Nominatim, prueba contra `ar_localidades` en dos pasos: (1) match exacto por
+`provincia_normalizada` + `nombre_normalizado`; (2) si no hay exacto, un `ILIKE` por
+`nombre_normalizado` dentro de la misma provincia, para cubrir que alguien escriba "Bariloche" en
+vez de "San Carlos de Bariloche" (los campos de `WorkZone.tsx` son texto libre, no un selector
+cerrado, así que hacía falta tolerar nombres parciales). Se agregó también un mapa chico de alias
+de provincia (`PROVINCE_ALIASES`) para "CABA"/"Capital Federal" → el nombre canónico de la tabla, y
+para Tierra del Fuego (nombre oficial largo que nadie escribe completo). Si la tabla local no
+tiene match, o si falla la consulta a Supabase por cualquier motivo, cae al fallback de Nominatim
+exactamente como antes — la función sigue sin lanzar nunca, tratando cualquier error como "no
+encontrado" para no bloquear ni el guardado de una zona ni la creación de una orden.
+
+**Tests nuevos**: `api/_lib/geocoding.test.ts`, con el mismo patrón de mock de `supabaseAdmin` que
+ya usa `api/payments/webhook.test.ts` (un query-builder falso encadenable). Cubre: match exacto
+sin tocar `fetch`; alias de provincia (CABA); match parcial por ILIKE; sin match local cae a
+Nominatim; y ciudad/provincia vacías o ausentes no consultan nada (ni la tabla ni Nominatim).
+
+**Verificación**: `tsc --noEmit` pasa limpio sobre `geocoding.ts`/`geocoding.test.ts`. `vitest run`
+**no se pudo ejecutar** desde esta sesión: es el mismo choque de plataforma Linux/Windows ya
+documentado en la Fase 6 (`node_modules` de este checkout solo tiene binarios nativos de rollup/
+esbuild para `win32`, no para `linux`, porque se instaló en la máquina real de Sandy) — reproducido
+también en un test ya existente sin tocar (`appointmentBlock.test.ts`), así que es una limitación
+del entorno de esta sesión, no algo roto por este cambio. Como workaround **solo para verificar**
+(no se instaló nada nuevo en el `node_modules` real, para no arriesgar el entorno de Windows), se
+compiló `geocoding.ts`/`supabaseAdmin.ts` con `tsc` a JS plano dentro del árbol del proyecto y se
+corrió con Node puro, con `fetch` mockeado a mano para simular tanto las respuestas de Supabase
+como el fallback de Nominatim: los 9 chequeos (match exacto, match parcial, fallback a Nominatim
+llamado una sola vez, ciudad/provincia vacías sin llamar a nada) dieron **OK**. Los archivos
+temporales de ese workaround se borraron al terminar. Falta correr `vitest run` de verdad en la
+máquina de Sandy (PowerShell/VS Code, igual que el click-through de la Fase 6) para tener la
+confirmación oficial del proyecto — no debería haber sorpresas dado que la lógica ya se verificó
+funcionalmente, pero queda como pendiente explícito hasta que se corra ahí.
