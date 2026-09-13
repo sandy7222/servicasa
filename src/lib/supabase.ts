@@ -42,6 +42,8 @@ export type DbTechnician = {
   zone: string;
   province: string;
   address?: string | null;
+  dni?: string | null;
+  cuit?: string | null;
   profile_id: string | null;
   work_phone?: string | null;
   bio?: string | null;

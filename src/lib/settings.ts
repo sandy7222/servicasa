@@ -11,7 +11,9 @@ export type SettingKey =
   | 'enabled_provinces'
   | 'feature_flags'
   | 'payout_daily_process_time'
-  | 'payout_stale_scheduled_days';
+  | 'payout_stale_scheduled_days'
+  | 'platform_legal_name'
+  | 'platform_legal_cuit';
 
 /** Defaults seguros si Supabase no responde — reflejan el mismo valor que
  * el seed real en system_settings, así la app nunca queda sin un número
@@ -27,6 +29,8 @@ export const DEFAULT_SETTINGS: Record<SettingKey, unknown> = {
   feature_flags: {},
   payout_daily_process_time: '20:00',
   payout_stale_scheduled_days: 1,
+  platform_legal_name: '',
+  platform_legal_cuit: '',
 };
 
 export type SettingRow = {

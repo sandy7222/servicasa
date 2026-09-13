@@ -61,6 +61,7 @@ import { persistArchiveOrders } from '../lib/supabaseMutations';
 import { downloadArchivedOrdersExcel } from '../lib/exportOrdersExcel';
 import { TechnicianApplications } from '../components/admin/TechnicianApplications';
 import { SettlementsHub, usePendingPayoutRequestCount } from '../components/admin/SettlementsHub';
+import { TechnicianContractPanel } from '../components/admin/TechnicianContractPanel';
 import { canTechnicianReceiveOrders } from '../lib/technicianEligibility';
 import { sortByDisplayOrder, UNGROUPED_SUBCATEGORY_LABEL } from '../lib/catalogOrder';
 import { compareTechniciansByRating, isNewTechnicianRating } from '../lib/orderRatings';
@@ -247,7 +248,7 @@ export const AdminHubView: React.FC = () => {
   } = useApp();
 
   // Navigation tab within hub
-  const [activeTab, setActiveTab] = useState<'orders' | 'pendingPayment' | 'customers' | 'technicians' | 'settlements' | 'inventory' | 'services' | 'categories'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'pendingPayment' | 'customers' | 'technicians' | 'contracts' | 'settlements' | 'inventory' | 'services' | 'categories'>('orders');
   const { count: pendingPayoutRequests, refresh: refreshPayoutQueue } = usePendingPayoutRequestCount(activeTab === 'settlements');
 
   // Filters & search
@@ -478,6 +479,8 @@ export const AdminHubView: React.FC = () => {
   const [editTechEmail, setEditTechEmail] = useState('');
   const [editTechZone, setEditTechZone] = useState('');
   const [editTechProvince, setEditTechProvince] = useState('CABA');
+  const [editTechDni, setEditTechDni] = useState('');
+  const [editTechCuit, setEditTechCuit] = useState('');
   const [editTechAlsoCustomer, setEditTechAlsoCustomer] = useState(false);
   const [editTechAddress, setEditTechAddress] = useState('');
   const [editTechNeighborhood, setEditTechNeighborhood] = useState('');
@@ -1287,6 +1290,8 @@ export const AdminHubView: React.FC = () => {
     setEditTechEmail(tech.email);
     setEditTechZone(tech.zone ?? '');
     setEditTechProvince(tech.province || 'CABA');
+    setEditTechDni(tech.dni ?? '');
+    setEditTechCuit(tech.cuit ?? '');
     setEditTechAlsoCustomer(Boolean(linkedCustomer || tech.customerId));
     setEditTechAddress(linkedCustomer?.address ?? '');
     setEditTechNeighborhood(linkedCustomer?.neighborhood ?? '');
@@ -1308,6 +1313,8 @@ export const AdminHubView: React.FC = () => {
       // desde "Mi perfil profesional" — este formulario no la toca, así que
       // hay que reenviar el valor actual para no pisarlo con vacío.
       address: technicianToEdit.address,
+      dni: editTechDni.trim() || undefined,
+      cuit: editTechCuit.trim() || undefined,
       rating: technicianToEdit.rating,
       alsoAsCustomer: editTechAlsoCustomer,
       customerAddress: editTechAddress.trim() || undefined,
@@ -1815,6 +1822,18 @@ export const AdminHubView: React.FC = () => {
             >
               <Wrench className="w-3.5 h-3.5" />
               <span>Técnicos ({technicians.length})</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('contracts')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
+                activeTab === 'contracts'
+                  ? 'bg-[#0F172A] text-teal-300 shadow-xs border border-slate-800'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
+              }`}
+            >
+              <FileSignature className="w-3.5 h-3.5" />
+              <span>Contratos</span>
             </button>
 
             <button
@@ -2432,6 +2451,8 @@ export const AdminHubView: React.FC = () => {
             )}
           </div>
         )}
+
+        {activeTab === 'contracts' && <TechnicianContractPanel />}
 
         {activeTab === 'settlements' && (
           <SettlementsHub onQueueChange={() => void refreshPayoutQueue()} />
@@ -4603,6 +4624,28 @@ export const AdminHubView: React.FC = () => {
                       </option>
                     ))}
                   </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">DNI</label>
+                  <input
+                    type="text"
+                    value={editTechDni}
+                    onChange={(e) => setEditTechDni(e.target.value)}
+                    placeholder="Para el contrato"
+                    className="w-full text-xs px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">CUIT / monotributo</label>
+                  <input
+                    type="text"
+                    value={editTechCuit}
+                    onChange={(e) => setEditTechCuit(e.target.value)}
+                    placeholder="20-XXXXXXXX-X"
+                    className="w-full text-xs px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-lg focus:bg-white"
+                  />
                 </div>
               </div>
               <label className="flex items-start gap-2 text-xs text-slate-700 dark:text-slate-300">

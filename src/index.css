@@ -38,3 +38,28 @@ html,
 body {
   background-color: var(--tu-bg);
 }
+
+/* Impresión del módulo Contratos (Hub de Admin) — charla con Sandy, 13/9.
+   Mientras body tiene la clase .printing-contract (la agrega el botón
+   "Imprimir" del módulo justo antes de window.print(), y se saca sola al
+   terminar), se oculta todo menos el nodo .printable-contract, que se
+   reposiciona para ocupar toda la hoja. Ver
+   src/components/admin/TechnicianContractPanel.tsx. */
+@media print {
+  body.printing-contract * {
+    visibility: hidden;
+  }
+  body.printing-contract .printable-contract,
+  body.printing-contract .printable-contract * {
+    visibility: visible;
+  }
+  body.printing-contract .printable-contract {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+  }
+  body.printing-contract .printable-contract .no-print {
+    display: none !important;
+  }
+}

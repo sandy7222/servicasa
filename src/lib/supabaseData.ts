@@ -61,6 +61,8 @@ export function mapTechnician(row: DbTechnician, specialties: { id: string; name
     zone: row.zone ?? '',
     province: row.province ?? '',
     address: row.address ?? '',
+    dni: row.dni ?? undefined,
+    cuit: row.cuit ?? undefined,
     profileId: row.profile_id ?? null,
     workPhone: row.work_phone ?? undefined,
     bio: row.bio ?? undefined,

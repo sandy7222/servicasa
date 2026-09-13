@@ -356,6 +356,12 @@ export interface Technician {
   zone: string;
   province: string;
   address?: string;
+  /** DNI y CUIT/monotributo del técnico. No se piden al suscribirse — se
+   * cargan a mano desde "Editar Técnico" (o desde el módulo Contratos)
+   * cuando hacen falta para completar el contrato de prestación de
+   * servicios. Ver plan-contrato-tecnico.md. */
+  dni?: string;
+  cuit?: string;
   profileId?: string | null;
   customerId?: string | null;
   workPhone?: string;
@@ -395,6 +401,8 @@ export type TechnicianInput = {
   zone: string;
   province: string;
   address?: string;
+  dni?: string;
+  cuit?: string;
   rating?: number;
   alsoAsCustomer?: boolean;
   customerAddress?: string;

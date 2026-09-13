@@ -405,6 +405,8 @@ export async function persistCreateTechnician(
       zone: input.zone,
       province: input.province,
       address: input.address?.trim() || '',
+      dni: input.dni?.trim() || null,
+      cuit: input.cuit?.trim() || null,
     })
     .select('*')
     .single();
@@ -435,6 +437,8 @@ export async function persistUpdateTechnician(
       zone: input.zone,
       province: input.province,
       address: input.address?.trim() || '',
+      dni: input.dni?.trim() || null,
+      cuit: input.cuit?.trim() || null,
     })
     .eq('id', technicianId)
     .select('*')
