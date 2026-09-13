@@ -22,14 +22,11 @@ import {
   RotateCcw,
   X,
   Navigation,
-  UserRound,
   Landmark,
   BarChart3,
   History,
   ShieldAlert,
   MessageCircle,
-  MapPinned,
-  CalendarDays,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useApp } from '../context/AppContext';
@@ -325,9 +322,6 @@ export const TechnicianView: React.FC = () => {
                 </span>
               )}
             </div>
-            <button onClick={() => navigate('/technician/profile')} className="hidden sm:inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-bold text-slate-200 hover:border-teal-500/60 hover:text-teal-300">
-              <UserRound className="w-3.5 h-3.5" /> Mi perfil
-            </button>
             <button onClick={() => navigate('/technician/earnings')} className="hidden sm:inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-bold text-slate-200 hover:border-teal-500/60 hover:text-teal-300">
               <Landmark className="w-3.5 h-3.5" /> Mis ganancias
             </button>
@@ -337,17 +331,8 @@ export const TechnicianView: React.FC = () => {
             <button onClick={() => navigate('/technician/statistics')} className="hidden lg:inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-bold text-slate-200 hover:border-teal-500/60 hover:text-teal-300">
               <BarChart3 className="w-3.5 h-3.5" /> Estadísticas
             </button>
-            <button onClick={() => navigate('/technician/zona-trabajo')} className="hidden lg:inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-bold text-slate-200 hover:border-teal-500/60 hover:text-teal-300">
-              <MapPinned className="w-3.5 h-3.5" /> Zona de trabajo
-            </button>
-            <button onClick={() => navigate('/technician/disponibilidad')} className="hidden lg:inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-bold text-slate-200 hover:border-teal-500/60 hover:text-teal-300">
-              <CalendarDays className="w-3.5 h-3.5" /> Disponibilidad
-            </button>
             <button onClick={() => navigate('/technician/reclamos')} className="hidden lg:inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-bold text-slate-200 hover:border-teal-500/60 hover:text-teal-300">
               <ShieldAlert className="w-3.5 h-3.5" /> Reclamos
-            </button>
-            <button onClick={() => navigate('/technician/conversaciones')} className="hidden lg:inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-bold text-slate-200 hover:border-teal-500/60 hover:text-teal-300">
-              <MessageCircle className="w-3.5 h-3.5" /> Conversaciones
             </button>
           </div>
 
@@ -355,14 +340,10 @@ export const TechnicianView: React.FC = () => {
               strip there is no way to reach these sub-pages from a phone. */}
           <div className="flex sm:hidden items-center gap-1.5 overflow-x-auto pb-2 -mx-3 px-3 mt-2">
             {[
-              { path: '/technician/profile', label: 'Mi perfil', icon: UserRound },
               { path: '/technician/earnings', label: 'Ganancias', icon: Landmark },
               { path: '/technician/history', label: 'Historial', icon: History },
               { path: '/technician/statistics', label: 'Estadísticas', icon: BarChart3 },
-              { path: '/technician/zona-trabajo', label: 'Zona de trabajo', icon: MapPinned },
-              { path: '/technician/disponibilidad', label: 'Disponibilidad', icon: CalendarDays },
               { path: '/technician/reclamos', label: 'Reclamos', icon: ShieldAlert },
-              { path: '/technician/conversaciones', label: 'Conversaciones', icon: MessageCircle },
             ].map(({ path, label, icon: Icon }) => (
               <button
                 key={path}

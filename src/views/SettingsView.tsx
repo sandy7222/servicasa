@@ -12,13 +12,16 @@ import {
   CheckCircle2,
   ExternalLink,
   Layers,
+  UserRound,
+  MapPinned,
+  CalendarDays,
+  ChevronRight,
 } from 'lucide-react';
 import { DEMO_USERS, useApp } from '../context/AppContext';
 import { CurrentUserData } from '../types';
 import { VisitFeeSettings } from '../components/admin/VisitFeeSettings';
 import { SystemSettingsPanel } from '../components/admin/SystemSettingsPanel';
 import { DEMO_MODE } from '../lib/featureFlags';
-import { ThemeToggle } from '../components/common/ThemeToggle';
 
 export const SettingsView: React.FC = () => {
   const { currentUser, setCurrentUser, navigate, resetDemoData, orders, materials, customers, technicians, usingRemoteData, refreshRemoteData, dataLoading, remoteBusy } =
@@ -112,19 +115,34 @@ export const SettingsView: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-700 shadow-xs space-y-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider font-mono">
-                Apariencia
-              </h3>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                Modo claro u oscuro. Se guarda en este dispositivo.
-              </p>
-            </div>
-            <ThemeToggle />
-          </div>
+        {currentUser.role === 'technician' && (
+        <div className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-700 shadow-xs space-y-1">
+          <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider font-mono pb-2 border-b border-slate-100 dark:border-slate-800">
+            Mi cuenta
+          </h3>
+          {[
+            { path: '/technician/profile', label: 'Mi perfil', description: 'Datos profesionales, foto y documentación.', icon: UserRound },
+            { path: '/technician/zona-trabajo', label: 'Zona de trabajo', description: 'Dónde recibís los pedidos asignados.', icon: MapPinned },
+            { path: '/technician/disponibilidad', label: 'Disponibilidad', description: 'Días y horarios en los que trabajás.', icon: CalendarDays },
+          ].map(({ path, label, description, icon: Icon }) => (
+            <button
+              key={path}
+              type="button"
+              onClick={() => navigate(path)}
+              className="w-full flex items-center gap-3 py-2.5 text-left hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg px-1.5 -mx-1.5 transition-colors"
+            >
+              <span className="w-8 h-8 rounded-lg bg-teal-50 dark:bg-teal-950/40 text-teal-600 flex items-center justify-center shrink-0">
+                <Icon className="w-4 h-4" />
+              </span>
+              <span className="flex-1 min-w-0">
+                <span className="block text-xs font-bold text-slate-900 dark:text-slate-100">{label}</span>
+                <span className="block text-[11px] text-slate-500 dark:text-slate-400">{description}</span>
+              </span>
+              <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
+            </button>
+          ))}
         </div>
+        )}
 
         {currentUser.role === 'admin' && <VisitFeeSettings />}
         {currentUser.role === 'admin' && <SystemSettingsPanel />}
