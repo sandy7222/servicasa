@@ -119,7 +119,14 @@ export const TechnicianView: React.FC = () => {
   }
 
   const techId = currentUser?.technicianId || '';
-  const assignedOrders = orders.filter((o) => o.assignedTechnicianId === techId);
+  const allAssignedOrders = orders.filter((o) => o.assignedTechnicianId === techId);
+  // Panel principal ("Terminal de Campo"): solo lo que todavía requiere accion del
+  // tecnico hoy. Lo finalizado/cancelado se consulta en /technician/history -- antes
+  // se mezclaba todo aca y un trabajo cerrado hace dias podia quedar como protagonista
+  // del panel (Sandy, 13/9).
+  const ACTIVE_ORDER_STATUSES = ['assigned', 'in_progress', 'paused'];
+  const assignedOrders = allAssignedOrders.filter((o) => ACTIVE_ORDER_STATUSES.includes(o.status));
+  const hasFinishedOrders = allAssignedOrders.some((o) => o.status === 'completed' || o.status === 'cancelled');
 
   // Selected active order for operational work
   const [selectedOrderId, setSelectedOrderId] = useState<string>(() => {
@@ -375,10 +382,23 @@ export const TechnicianView: React.FC = () => {
             <div className="w-10 h-10 rounded-xl bg-teal-50 dark:bg-teal-950/40 text-teal-600 flex items-center justify-center mx-auto mb-2.5">
               <CheckCircle2 className="w-5 h-5" />
             </div>
-            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">¡Al día! No tenés órdenes pendientes</h3>
+            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+              {hasFinishedOrders ? '¡Todo al día! No tenés trabajos activos' : '¡Al día! No tenés órdenes pendientes'}
+            </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              Podés cambiar de técnico o ingresar al Admin Hub para asignarte una nueva orden.
+              {hasFinishedOrders
+                ? 'No te queda ningún trabajo por atender ahora. Tus órdenes finalizadas están en el Historial.'
+                : 'Cuando te asignen una orden nueva, va a aparecer acá.'}
             </p>
+            {hasFinishedOrders && (
+              <button
+                onClick={() => navigate('/technician/history')}
+                className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-teal-200 dark:border-teal-800 bg-teal-50 dark:bg-teal-950/40 px-3 py-1.5 text-xs font-bold text-teal-700 dark:text-teal-300 hover:border-teal-400"
+              >
+                <History className="w-3.5 h-3.5" />
+                Ver historial de trabajos
+              </button>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
