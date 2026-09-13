@@ -31,6 +31,7 @@ import {
 import confetti from 'canvas-confetti';
 import { useApp } from '../context/AppContext';
 import { PriorityBadge, ServiceBadge, StatusBadge } from '../components/common/Badge';
+import { TechnicianStatsSummary } from '../components/technician/TechnicianStatsSummary';
 import { DiagnosisPhotoCard } from '../components/common/DiagnosisPhotoCard';
 import { ServiceOrder } from '../types';
 import { isOrderPaymentSettled, formatElapsedTime, getOrderElapsedSeconds, getTimerStatusLabel, type TimerStatusLabel } from '../lib/workTimer';
@@ -359,27 +360,30 @@ export const TechnicianView: React.FC = () => {
 
       <main className="max-w-7xl mx-auto px-3 sm:px-5 lg:px-6 pt-4">
         {assignedOrders.length === 0 ? (
-          <div className="bg-white dark:bg-slate-900 rounded-xl p-8 border border-slate-200 dark:border-slate-700 text-center max-w-md mx-auto mt-4 shadow-xs">
-            <div className="w-10 h-10 rounded-xl bg-teal-50 dark:bg-teal-950/40 text-teal-600 flex items-center justify-center mx-auto mb-2.5">
-              <CheckCircle2 className="w-5 h-5" />
+          <div className="max-w-5xl mx-auto mt-4 space-y-4">
+            <div className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-700 text-center shadow-xs">
+              <div className="w-10 h-10 rounded-xl bg-teal-50 dark:bg-teal-950/40 text-teal-600 flex items-center justify-center mx-auto mb-2.5">
+                <CheckCircle2 className="w-5 h-5" />
+              </div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                {hasFinishedOrders ? '¡Todo al día! No tenés trabajos activos' : '¡Al día! No tenés órdenes pendientes'}
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                {hasFinishedOrders
+                  ? 'Mientras no te asignen algo nuevo, así viene viniendo tu cuenta:'
+                  : 'Cuando te asignen una orden nueva, va a aparecer acá.'}
+              </p>
+              {hasFinishedOrders && (
+                <button
+                  onClick={() => navigate('/technician/history')}
+                  className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-teal-200 dark:border-teal-800 bg-teal-50 dark:bg-teal-950/40 px-3 py-1.5 text-xs font-bold text-teal-700 dark:text-teal-300 hover:border-teal-400"
+                >
+                  <History className="w-3.5 h-3.5" />
+                  Ver historial de trabajos
+                </button>
+              )}
             </div>
-            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
-              {hasFinishedOrders ? '¡Todo al día! No tenés trabajos activos' : '¡Al día! No tenés órdenes pendientes'}
-            </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              {hasFinishedOrders
-                ? 'No te queda ningún trabajo por atender ahora. Tus órdenes finalizadas están en el Historial.'
-                : 'Cuando te asignen una orden nueva, va a aparecer acá.'}
-            </p>
-            {hasFinishedOrders && (
-              <button
-                onClick={() => navigate('/technician/history')}
-                className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-teal-200 dark:border-teal-800 bg-teal-50 dark:bg-teal-950/40 px-3 py-1.5 text-xs font-bold text-teal-700 dark:text-teal-300 hover:border-teal-400"
-              >
-                <History className="w-3.5 h-3.5" />
-                Ver historial de trabajos
-              </button>
-            )}
+            {hasFinishedOrders && <TechnicianStatsSummary />}
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
