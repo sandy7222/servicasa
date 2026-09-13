@@ -4,7 +4,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useApp } from '../../context/AppContext';
 import { supabase } from '../../lib/supabase';
-import { geocodeWorkZoneLocality } from '../../lib/technicianWorkZone';
+import { geocodeWorkZoneLocality, previewWorkZoneCoverage, type CoverageLocality } from '../../lib/technicianWorkZone';
 
 // Ver plan-zona-trabajo-agenda.md: radio entre 5 y 60km (constraint de base
 // technicians_work_zone_radius_km_check), default sugerido 15km. Referencia
@@ -50,6 +50,13 @@ export const WorkZone: React.FC = () => {
   const [center, setCenter] = useState<Point | null>(null);
   const [radiusKm, setRadiusKm] = useState(DEFAULT_RADIUS_KM);
   const [loaded, setLoaded] = useState(false);
+  // Localidades que el circulo toca ahora mismo — se recalcula en vivo mientras
+  // se arrastra el marcador o el slider de radio (ver previewWorkZoneCoverage),
+  // sin esperar a "Guardar": el mismo calculo del lado del servidor es lo que
+  // termina en technician_coverage_areas al guardar, asi que esta lista nunca
+  // le miente al tecnico sobre lo que va a quedar registrado.
+  const [coverage, setCoverage] = useState<CoverageLocality[]>([]);
+  const [coverageLoading, setCoverageLoading] = useState(false);
   const [locating, setLocating] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -150,6 +157,34 @@ export const WorkZone: React.FC = () => {
       // antes).
       map.setView(latlng, TOWN_ZOOM);
     }
+  }, [center, radiusKm]);
+
+  // Recalculo en vivo (debounced) de las localidades cubiertas: se dispara con
+  // cada cambio de centro o radio, pero solo pega contra el servidor 300ms
+  // despues del ultimo cambio — arrastrar el slider o el marcador no dispara
+  // un pedido por cada pixel. El flag `cancelled` del cleanup descarta una
+  // respuesta que llega despues de que el efecto ya se volvio a disparar
+  // (ej: dos pedidos en vuelo y el mas viejo responde despues).
+  useEffect(() => {
+    if (!center) {
+      setCoverage([]);
+      return;
+    }
+    let cancelled = false;
+    setCoverageLoading(true);
+    const timeout = window.setTimeout(() => {
+      void previewWorkZoneCoverage(center, radiusKm)
+        .then((result) => {
+          if (!cancelled) setCoverage(result);
+        })
+        .finally(() => {
+          if (!cancelled) setCoverageLoading(false);
+        });
+    }, 300);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeout);
+    };
   }, [center, radiusKm]);
 
   const handleLocate = async () => {
@@ -289,6 +324,38 @@ export const WorkZone: React.FC = () => {
             </p>
           )}
         </section>
+
+        {center && (
+          <section className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-sm font-bold">Localidades que cubrís</h2>
+              {coverageLoading && <span className="text-[11px] text-slate-400">Actualizando…</span>}
+            </div>
+            <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+              Se arma sola a partir del radio: agrandalo o achicalo y esta lista suma o saca localidades — es lo mismo
+              que va a ver el administrador una vez que guardes.
+            </p>
+            {coverage.length === 0 && !coverageLoading && (
+              <p className="mt-3 text-[11px] text-slate-500 dark:text-slate-400">
+                Con este radio todavía no llegás a ninguna localidad registrada.
+              </p>
+            )}
+            {coverage.length > 0 && (
+              <ul className="mt-3 flex flex-wrap gap-1.5">
+                {coverage.map((loc) => (
+                  <li
+                    key={loc.localidadId}
+                    className="inline-flex items-center gap-1 rounded-full bg-teal-50 dark:bg-teal-500/10 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800 px-2.5 py-1 text-[11px] font-medium"
+                    title={`${loc.distanceKm} km del centro`}
+                  >
+                    {loc.city}
+                    <span className="text-teal-500/70 dark:text-teal-400/60 font-normal">, {loc.province}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        )}
 
         <button
           onClick={() => void handleSave()}

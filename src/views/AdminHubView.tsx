@@ -60,6 +60,7 @@ import { TechnicianReviewCard } from '../components/admin/TechnicianReviewCard';
 import { persistArchiveOrders } from '../lib/supabaseMutations';
 import { downloadArchivedOrdersExcel } from '../lib/exportOrdersExcel';
 import { TechnicianApplications } from '../components/admin/TechnicianApplications';
+import { ProspectiveTechnicians } from '../components/admin/ProspectiveTechnicians';
 import { SettlementsHub, usePendingPayoutRequestCount } from '../components/admin/SettlementsHub';
 import { TechnicianContractPanel } from '../components/admin/TechnicianContractPanel';
 import { canTechnicianReceiveOrders } from '../lib/technicianEligibility';
@@ -77,6 +78,7 @@ import {
   Customer,
   Technician,
   TechnicianInput,
+  ProspectiveTechnician,
   MaterialInventory,
   CatalogCategory,
   CatalogSubcategory,
@@ -226,6 +228,7 @@ export const AdminHubView: React.FC = () => {
     addTechnician,
     updateTechnician,
     deleteTechnician,
+    updateProspectiveTechnicianStatus,
     addService,
     updateService,
     deleteService,
@@ -472,6 +475,10 @@ export const AdminHubView: React.FC = () => {
   const [newTechAlsoCustomer, setNewTechAlsoCustomer] = useState(false);
   const [newTechAddress, setNewTechAddress] = useState('');
   const [newTechNeighborhood, setNewTechNeighborhood] = useState('');
+  // Id del "futuro tecnico" que se esta convirtiendo en tecnico real (si el
+  // modal de alta se abrio desde ProspectiveTechnicians), para marcarlo como
+  // 'convertido' cuando se confirme el alta. Ver handleConvertProspect.
+  const [prospectBeingConvertedId, setProspectBeingConvertedId] = useState<string | null>(null);
 
   const [editTechName, setEditTechName] = useState('');
   const [editTechSpecialtyIds, setEditTechSpecialtyIds] = useState<string[]>([]);
@@ -1256,6 +1263,7 @@ export const AdminHubView: React.FC = () => {
     setNewTechAlsoCustomer(false);
     setNewTechAddress('');
     setNewTechNeighborhood('');
+    setProspectBeingConvertedId(null);
   };
 
   const handleCreateTechnicianSubmit = (e: React.FormEvent) => {
@@ -1274,8 +1282,37 @@ export const AdminHubView: React.FC = () => {
       customerNeighborhood: newTechNeighborhood.trim() || newTechZone.trim() || undefined,
     });
 
+    // Si este alta se abrio desde "Futuros tecnicos" (ver
+    // handleConvertProspect), marcamos el prospecto como convertido. No
+    // dependemos del id real que devuelva addTechnician (es un id temporal
+    // hasta que Supabase confirma la creacion, ver AppContext.addTechnician).
+    if (prospectBeingConvertedId) {
+      updateProspectiveTechnicianStatus(prospectBeingConvertedId, 'convertido');
+    }
+
     setIsNewTechnicianModalOpen(false);
     resetNewTechnicianForm();
+  };
+
+  // Abre el modal de "Registrar Técnico" precargado con los datos del
+  // prospecto (nombre, teléfono y, si hay match, el rubro del catálogo).
+  // Ver src/components/admin/ProspectiveTechnicians.tsx.
+  const handleConvertProspect = (prospect: ProspectiveTechnician) => {
+    resetNewTechnicianForm();
+    setNewTechName(prospect.fullName);
+    setNewTechPhone(prospect.phone);
+    if (prospect.specialty) {
+      const normalized = prospect.specialty.trim().toLowerCase();
+      const match = catalogCategories.find(
+        (c) =>
+          c.name.toLowerCase() === normalized ||
+          c.name.toLowerCase().includes(normalized) ||
+          normalized.includes(c.name.toLowerCase())
+      );
+      if (match) setNewTechSpecialtyIds([match.id]);
+    }
+    setProspectBeingConvertedId(prospect.id);
+    setIsNewTechnicianModalOpen(true);
   };
 
   const openEditTechnician = (tech: Technician) => {
@@ -2306,6 +2343,7 @@ export const AdminHubView: React.FC = () => {
         {/* ================= TAB 3: TECHNICIANS ================= */}
         {activeTab === 'technicians' && (
           <div className="space-y-3">
+            <ProspectiveTechnicians onConvertToTechnician={handleConvertProspect} />
             <TechnicianApplications />
             <TechnicianValidation />
             <div className="flex items-center justify-between">
@@ -2316,7 +2354,7 @@ export const AdminHubView: React.FC = () => {
                 </p>
               </div>
               <button
-                onClick={() => setIsNewTechnicianModalOpen(true)}
+                onClick={() => { resetNewTechnicianForm(); setIsNewTechnicianModalOpen(true); }}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#0F172A] hover:bg-slate-800 text-teal-300 text-xs font-bold rounded-lg transition-colors border border-slate-700 shadow-xs"
               >
                 <Plus className="w-3.5 h-3.5 text-teal-400" />
@@ -2406,6 +2444,31 @@ export const AdminHubView: React.FC = () => {
                               <MapPin className="w-3 h-3 text-slate-400 shrink-0 mt-0.5" />
                               <span>
                                 {[t.zone, t.province].filter(Boolean).join(', ')}
+                              </span>
+                            </div>
+                          )}
+                          {(t.workZoneCity || t.workZoneProvince) && (
+                            <div className="flex items-start gap-1.5">
+                              <MapPin className="w-3 h-3 text-teal-500 shrink-0 mt-0.5" />
+                              <span>
+                                Zona de trabajo: {[t.workZoneCity, t.workZoneProvince].filter(Boolean).join(', ')}
+                                {t.workZoneRadiusKm != null && ` · radio ${t.workZoneRadiusKm} km`}
+                              </span>
+                            </div>
+                          )}
+                          {t.workZoneCoverage != null && t.workZoneCoverage.length > 0 && (
+                            <div className="flex items-start gap-1.5">
+                              <MapPin className="w-3 h-3 text-slate-300 dark:text-slate-600 shrink-0 mt-0.5" />
+                              <span
+                                title={t.workZoneCoverage.map((c) => `${c.city}, ${c.province}`).join(' · ')}
+                              >
+                                Cubre {t.workZoneCoverage.length}{' '}
+                                {t.workZoneCoverage.length === 1 ? 'localidad' : 'localidades'}:{' '}
+                                {t.workZoneCoverage
+                                  .slice(0, 5)
+                                  .map((c) => c.city)
+                                  .join(', ')}
+                                {t.workZoneCoverage.length > 5 && ` +${t.workZoneCoverage.length - 5} más`}
                               </span>
                             </div>
                           )}
@@ -4048,6 +4111,22 @@ export const AdminHubView: React.FC = () => {
                             <div className="mt-0.5">
                               <TechnicianRatingBadge technician={t} />
                             </div>
+                            {(t.workZoneCity || t.workZoneProvince) && (
+                              <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                                <MapPin className="inline w-2.5 h-2.5 mr-0.5" />
+                                {[t.workZoneCity, t.workZoneProvince].filter(Boolean).join(', ')}
+                                {t.workZoneRadiusKm != null && ` · radio ${t.workZoneRadiusKm} km`}
+                              </div>
+                            )}
+                            {t.workZoneCoverage != null && t.workZoneCoverage.length > 0 && (
+                              <div
+                                className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5"
+                                title={t.workZoneCoverage.map((c) => `${c.city}, ${c.province}`).join(' · ')}
+                              >
+                                Cubre {t.workZoneCoverage.length}{' '}
+                                {t.workZoneCoverage.length === 1 ? 'localidad' : 'localidades'}
+                              </div>
+                            )}
                             {!isEligible && !assignEligibilityLoading && (
                               <div className="text-[10px] font-bold text-amber-700 mt-0.5">
                                 {missingLabel} · no habilitado
@@ -4374,7 +4453,7 @@ export const AdminHubView: React.FC = () => {
       {isNewTechnicianModalOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150"
-          onClick={() => setIsNewTechnicianModalOpen(false)}
+          onClick={() => { resetNewTechnicianForm(); setIsNewTechnicianModalOpen(false); }}
         >
           <div
             className="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl border border-slate-200 dark:border-slate-700 animate-in zoom-in-95 duration-150"
@@ -4383,7 +4462,7 @@ export const AdminHubView: React.FC = () => {
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 mb-4">
               <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Registrar Técnico</h3>
               <button
-                onClick={() => setIsNewTechnicianModalOpen(false)}
+                onClick={() => { resetNewTechnicianForm(); setIsNewTechnicianModalOpen(false); }}
                 className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1"
               >
                 <X className="w-5 h-5" />
@@ -4501,7 +4580,7 @@ export const AdminHubView: React.FC = () => {
               <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2">
                 <button
                   type="button"
-                  onClick={() => setIsNewTechnicianModalOpen(false)}
+                  onClick={() => { resetNewTechnicianForm(); setIsNewTechnicianModalOpen(false); }}
                   className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-lg text-xs font-semibold"
                 >
                   Cancelar

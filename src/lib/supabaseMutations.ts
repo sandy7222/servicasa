@@ -15,10 +15,13 @@ import type {
   Technician,
   TechnicianRegistrationInput,
   TechnicianInput,
+  ProspectiveTechnician,
+  ProspectiveTechnicianInput,
+  ProspectiveTechnicianStatus,
 } from '../types';
 import { supabase } from './supabase';
-import { mapCatalogCategory, mapCatalogSubcategory, mapCustomer, mapMaterial, mapOrder, mapService, mapTechnician } from './supabaseData';
-import type { DbCategory, DbCustomer, DbMaterial, DbService, DbServiceOrder, DbSubcategory, DbTechnician } from './supabase';
+import { mapCatalogCategory, mapCatalogSubcategory, mapCustomer, mapMaterial, mapOrder, mapService, mapTechnician, mapProspectiveTechnician } from './supabaseData';
+import type { DbCategory, DbCustomer, DbMaterial, DbService, DbServiceOrder, DbSubcategory, DbTechnician, DbProspectiveTechnician } from './supabase';
 
 function throwIfError(error: { message: string } | null) {
   if (error) throw new Error(error.message);
@@ -467,6 +470,37 @@ export async function persistUpdateTechnician(
 
 export async function persistDeleteTechnician(technicianId: string) {
   const { error } = await supabase.from('technicians').delete().eq('id', technicianId);
+  throwIfError(error);
+}
+
+// ---------- "Futuros tecnicos": agenda interna de prospectos cargada a mano por el admin ----------
+
+export async function persistCreateProspectiveTechnician(
+  input: ProspectiveTechnicianInput
+): Promise<ProspectiveTechnician> {
+  const { data, error } = await supabase
+    .from('prospective_technicians')
+    .insert({
+      full_name: input.fullName.trim(),
+      phone: input.phone.trim(),
+      specialty: input.specialty?.trim() || null,
+    })
+    .select('*')
+    .single();
+  throwIfError(error);
+  return mapProspectiveTechnician(data as DbProspectiveTechnician);
+}
+
+export async function persistUpdateProspectiveTechnicianStatus(
+  id: string,
+  status: ProspectiveTechnicianStatus
+): Promise<void> {
+  const { error } = await supabase.from('prospective_technicians').update({ status }).eq('id', id);
+  throwIfError(error);
+}
+
+export async function persistDeleteProspectiveTechnician(id: string): Promise<void> {
+  const { error } = await supabase.from('prospective_technicians').delete().eq('id', id);
   throwIfError(error);
 }
 

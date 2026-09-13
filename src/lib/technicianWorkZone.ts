@@ -33,3 +33,39 @@ export async function geocodeWorkZoneLocality(city: string, province: string): P
   }
   return body.point ?? null;
 }
+
+export type CoverageLocality = {
+  localidadId: string;
+  city: string;
+  province: string;
+  categoria: string;
+  distanceKm: number;
+};
+
+/**
+ * Preview en vivo de que localidades toca un centro+radio, SIN guardar nada
+ * — se usa mientras el tecnico todavia esta arrastrando el mapa/slider en
+ * WorkZone.tsx, antes de tocar "Guardar zona de trabajo". Llama a la misma
+ * funcion de Postgres (`localities_within_radius`) que usa el trigger de
+ * `technicians.work_zone_*` para recalcular `technician_coverage_areas` al
+ * guardar, asi que el preview y lo que termina persistido nunca difieren.
+ * Nunca lanza por un fallo de red o de sesion — sin preview no se bloquea ni
+ * el ajuste del radio ni el guardado, solo no se muestra la lista.
+ */
+export async function previewWorkZoneCoverage(point: GeocodedPoint, radiusKm: number): Promise<CoverageLocality[]> {
+  const { data, error } = await supabase.rpc('localities_within_radius', {
+    p_lat: point.lat,
+    p_lng: point.lng,
+    p_radius_km: radiusKm,
+  });
+  if (error || !data) return [];
+  return (data as { localidad_id: string; nombre: string; provincia_nombre: string; categoria: string; distance_km: number }[]).map(
+    (row) => ({
+      localidadId: row.localidad_id,
+      city: row.nombre,
+      province: row.provincia_nombre,
+      categoria: row.categoria,
+      distanceKm: Number(row.distance_km),
+    })
+  );
+}

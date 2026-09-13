@@ -142,6 +142,15 @@ export type DbTechnicianApplication = {
   reviewed_at: string | null;
 };
 
+export type DbProspectiveTechnician = {
+  id: string;
+  full_name: string;
+  phone: string;
+  specialty: string | null;
+  status: 'pendiente' | 'contactado' | 'convertido' | 'descartado';
+  created_at: string;
+};
+
 export type DbServiceOrder = {
   id: string;
   title: string;

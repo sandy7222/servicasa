@@ -12,6 +12,7 @@ import type {
   CatalogSubcategory,
   TechnicalNote,
   TechnicianApplication,
+  ProspectiveTechnician,
   Technician,
   TimeLog,
   UsedMaterial,
@@ -29,6 +30,7 @@ import type {
   DbOrderQuote,
   DbTechnician,
   DbTechnicianApplication,
+  DbProspectiveTechnician,
 } from './supabase';
 import { supabase } from './supabase';
 
@@ -45,7 +47,11 @@ export function profileToCurrentUser(profile: DbProfile): CurrentUserData {
   };
 }
 
-export function mapTechnician(row: DbTechnician, specialties: { id: string; name: string }[] = []): Technician {
+export function mapTechnician(
+  row: DbTechnician,
+  specialties: { id: string; name: string }[] = [],
+  coverage: { city: string; province: string; distanceKm: number }[] = []
+): Technician {
   return {
     id: row.id,
     technicianNumber: row.technician_number ?? undefined,
@@ -81,6 +87,7 @@ export function mapTechnician(row: DbTechnician, specialties: { id: string; name
     workZoneRadiusKm: row.work_zone_radius_km ?? undefined,
     workZoneCity: row.work_zone_city ?? undefined,
     workZoneProvince: row.work_zone_province ?? undefined,
+    workZoneCoverage: coverage,
   };
 }
 
@@ -323,6 +330,28 @@ export async function fetchTechnicianApplications(): Promise<TechnicianApplicati
   return (data as DbTechnicianApplication[]).map(mapTechnicianApplication);
 }
 
+export function mapProspectiveTechnician(row: DbProspectiveTechnician): ProspectiveTechnician {
+  return {
+    id: row.id,
+    fullName: row.full_name,
+    phone: row.phone,
+    specialty: row.specialty ?? undefined,
+    status: row.status,
+    createdAt: row.created_at,
+  };
+}
+
+/** Admin-only: agenda de "futuros tecnicos" cargada a mano (ver
+ * src/components/admin/ProspectiveTechnicians.tsx). Sin alta publica. */
+export async function fetchProspectiveTechnicians(): Promise<ProspectiveTechnician[]> {
+  const { data, error } = await supabase
+    .from('prospective_technicians')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data as DbProspectiveTechnician[]).map(mapProspectiveTechnician);
+}
+
 // Columnas de `technicians` seguras para cualquier usuario autenticado que
 // pueda ver la fila (RLS ya restringe eso a admin / el propio técnico /
 // cliente con una orden asignada a ese técnico). Quedan afuera a propósito
@@ -352,9 +381,10 @@ export const TECHNICIAN_COLUMNS_ADMIN = `${TECHNICIAN_COLUMNS_SHARED},work_phone
 
 export async function fetchCatalog(isAdmin: boolean) {
   const technicianColumns = isAdmin ? TECHNICIAN_COLUMNS_ADMIN : TECHNICIAN_COLUMNS_SHARED;
-  const [techRes, techSpecialtiesRes, custRes, matRes, orderRes, svcRes, catRes, subcatRes] = await Promise.all([
+  const [techRes, techSpecialtiesRes, techCoverageRes, custRes, matRes, orderRes, svcRes, catRes, subcatRes] = await Promise.all([
     supabase.from('technicians').select(technicianColumns).order('name'),
     supabase.from('technician_specialties').select('technician_id, categories(id, name)'),
+    supabase.from('technician_coverage_areas').select('technician_id, city, province, distance_km').order('distance_km'),
     supabase.from('customers').select('*').order('name'),
     supabase.from('materials').select('*').order('name'),
     supabase.from('service_orders').select('*').order('created_at', { ascending: false }),
@@ -365,6 +395,7 @@ export async function fetchCatalog(isAdmin: boolean) {
 
   if (techRes.error) throw techRes.error;
   if (techSpecialtiesRes.error) throw techSpecialtiesRes.error;
+  if (techCoverageRes.error) throw techCoverageRes.error;
   if (custRes.error) throw custRes.error;
   if (matRes.error) throw matRes.error;
   if (orderRes.error) throw orderRes.error;
@@ -378,6 +409,17 @@ export async function fetchCatalog(isAdmin: boolean) {
     const list = specialtiesByTechnician.get(row.technician_id) ?? [];
     list.push({ id: row.categories.id, name: row.categories.name });
     specialtiesByTechnician.set(row.technician_id, list);
+  }
+
+  // Localidades cubiertas por tecnico — technician_coverage_areas ya viene
+  // ordenada por distance_km (ver query arriba), y ya sale de la base sin
+  // filas para tecnicos que no declararon zona (recalc_technician_coverage
+  // la deja vacia en ese caso), asi que acá solo hace falta agrupar.
+  const coverageByTechnician = new Map<string, { city: string; province: string; distanceKm: number }[]>();
+  for (const row of (techCoverageRes.data ?? []) as unknown as { technician_id: string; city: string; province: string; distance_km: number }[]) {
+    const list = coverageByTechnician.get(row.technician_id) ?? [];
+    list.push({ city: row.city, province: row.province, distanceKm: Number(row.distance_km) });
+    coverageByTechnician.set(row.technician_id, list);
   }
 
   const orderRows = (orderRes.data ?? []) as DbServiceOrder[];
@@ -525,7 +567,7 @@ export async function fetchCatalog(isAdmin: boolean) {
   });
 
   const technicians = (techRes.data as unknown as DbTechnician[]).map((row) =>
-    mapTechnician(row, specialtiesByTechnician.get(row.id) ?? [])
+    mapTechnician(row, specialtiesByTechnician.get(row.id) ?? [], coverageByTechnician.get(row.id) ?? [])
   );
 
   const ratingCountById = new Map<string, number>();

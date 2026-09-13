@@ -391,6 +391,13 @@ export interface Technician {
   workZoneRadiusKm?: number;
   workZoneCity?: string;
   workZoneProvince?: string;
+  /** Localidades que el circulo de zona de trabajo toca ahora mismo —
+   * derivado en el servidor (technician_coverage_areas, recalculado por un
+   * trigger cada vez que cambia work_zone_lat/lng/radius_km) contra la
+   * tabla maestra ar_localidades. Se recorta a [] hasta que el tecnico
+   * declara su zona por primera vez, y se actualiza solo (agrega/saca
+   * localidades) cuando agranda o achica el radio y vuelve a guardar. */
+  workZoneCoverage?: { city: string; province: string; distanceKm: number }[];
 }
 
 export type TechnicianInput = {
@@ -462,6 +469,28 @@ export interface TechnicianApplication {
   createdAt: string;
   reviewedAt?: string | null;
 }
+
+/** Agenda interna de "futuros tecnicos": contactos (ej. estudiantes) que el
+ * admin carga a mano para hacer seguimiento antes de que exista una cuenta o
+ * ficha real. Sin alta publica -- a diferencia de TechnicianApplication, nadie
+ * la llena por su cuenta, la escribe el admin (ver
+ * src/components/admin/ProspectiveTechnicians.tsx). */
+export type ProspectiveTechnicianStatus = 'pendiente' | 'contactado' | 'convertido' | 'descartado';
+
+export interface ProspectiveTechnician {
+  id: string;
+  fullName: string;
+  phone: string;
+  specialty?: string | null;
+  status: ProspectiveTechnicianStatus;
+  createdAt: string;
+}
+
+export type ProspectiveTechnicianInput = {
+  fullName: string;
+  phone: string;
+  specialty?: string;
+};
 
 export interface MaterialInventory {
   id: string;

@@ -15,6 +15,7 @@ import {
   fetchPublicCatalogSubcategories,
   fetchPublicServices,
   fetchTechnicianApplications,
+  fetchProspectiveTechnicians,
   fetchVisitDepositAmount,
   fetchVisitSettlementCommissionRate,
   profileToCurrentUser,
@@ -56,6 +57,9 @@ import {
   persistCreateOrder,
   persistCreateService,
   persistCreateTechnician,
+  persistCreateProspectiveTechnician,
+  persistUpdateProspectiveTechnicianStatus,
+  persistDeleteProspectiveTechnician,
   persistSelfRegisterTechnician,
   persistDeleteCustomer,
   persistDeleteMaterial,
@@ -107,6 +111,9 @@ import {
   ServiceType,
   Technician,
   TechnicianApplication,
+  ProspectiveTechnician,
+  ProspectiveTechnicianInput,
+  ProspectiveTechnicianStatus,
   TechnicianRegistrationInput,
   TechnicianInput,
   UserRole,
@@ -157,6 +164,10 @@ interface AppContextType {
   registerCustomer: (input: CustomerRegistrationInput) => Promise<void>;
   registerTechnician: (input: TechnicianRegistrationInput) => Promise<void>;
   technicianApplications: TechnicianApplication[];
+  prospectiveTechnicians: ProspectiveTechnician[];
+  addProspectiveTechnician: (input: ProspectiveTechnicianInput) => string;
+  updateProspectiveTechnicianStatus: (id: string, status: ProspectiveTechnicianStatus) => void;
+  deleteProspectiveTechnician: (id: string) => void;
   createAccountInviteLink: (kind: 'technician' | 'customer', targetId: string) => Promise<string>;
   logout: () => Promise<void>;
   refreshRemoteData: () => Promise<void>;
@@ -364,6 +375,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // only the pre-fetch default, matching the real system_settings default.
   const [visitSettlementCommissionRate, setVisitSettlementCommissionRate] = useState(0.15);
   const [technicianApplications, setTechnicianApplications] = useState<TechnicianApplication[]>([]);
+  const [prospectiveTechnicians, setProspectiveTechnicians] = useState<ProspectiveTechnician[]>([]);
 
   // Real Supabase-backed categories/subcategories (plan-categorias-subcategorias.md
   // Fase 4 — replaces the old localStorage-only `serviceCategories`/
@@ -450,6 +462,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       fetchVisitSettlementCommissionRate().then(setVisitSettlementCommissionRate).catch(() => {});
       if (profile.role === 'admin') {
         fetchTechnicianApplications().then(setTechnicianApplications).catch(() => {});
+        fetchProspectiveTechnicians().then(setProspectiveTechnicians).catch(() => {});
       }
     } catch (err) {
       const message = friendlyErrorMessage(err, 'No se pudieron cargar los datos remotos.');
@@ -470,6 +483,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCustomers(INITIAL_CUSTOMERS);
     setMaterials(INITIAL_MATERIALS);
     setTechnicianApplications([]);
+    setProspectiveTechnicians([]);
     void loadPublicServices();
   };
 
@@ -629,6 +643,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         .on('postgres_changes', { event: '*', schema: 'public', table: 'order_quotes' }, refreshCatalog)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'order_quote_items' }, refreshCatalog)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'order_diagnosis_photos' }, refreshCatalog)
+        // technician_coverage_areas se recalcula sola (trigger sobre
+        // technicians.work_zone_*, ver plan-zona-trabajo-agenda.md) cada vez que
+        // un tecnico agranda/achica su radio — sin esto, la lista de localidades
+        // que ve el admin (AdminHubView.tsx) quedaria pegada a como estaba hasta
+        // el proximo refresh manual.
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'technician_coverage_areas' }, refreshCatalog)
         .subscribe((status) => {
           if (cancelled) return;
           if (status === 'SUBSCRIBED') {
@@ -2419,6 +2439,66 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return { success: true, message: 'Técnico eliminado' };
   };
 
+  // "Futuros tecnicos": agenda interna de prospectos que el admin carga a
+  // mano (numeros de estudiantes, etc.) para hacer seguimiento antes de que
+  // exista una cuenta real. Ver src/components/admin/ProspectiveTechnicians.tsx.
+  const addProspectiveTechnician = (input: ProspectiveTechnicianInput): string => {
+    if (usingRemoteData) {
+      const tempId = `tmp-prospect-${Date.now()}`;
+      const tempProspect: ProspectiveTechnician = {
+        id: tempId,
+        fullName: input.fullName,
+        phone: input.phone,
+        specialty: input.specialty,
+        status: 'pendiente',
+        createdAt: new Date().toISOString(),
+      };
+      setProspectiveTechnicians((prev) => [tempProspect, ...prev]);
+      void withRemote(async () => {
+        try {
+          const created = await persistCreateProspectiveTechnician(input);
+          setProspectiveTechnicians((prev) => [created, ...prev.filter((p) => p.id !== tempId)]);
+          showToast(`${input.fullName} agendado como futuro técnico`, 'success');
+        } catch (err) {
+          setProspectiveTechnicians((prev) => prev.filter((p) => p.id !== tempId));
+          showToast(friendlyErrorMessage(err, 'Error al agendar futuro técnico'), 'error');
+        }
+      });
+      return tempId;
+    }
+
+    const newId = `prospect-${Math.random().toString(36).substring(2, 7)}`;
+    const newProspect: ProspectiveTechnician = {
+      id: newId,
+      fullName: input.fullName,
+      phone: input.phone,
+      specialty: input.specialty,
+      status: 'pendiente',
+      createdAt: new Date().toISOString(),
+    };
+    setProspectiveTechnicians((prev) => [newProspect, ...prev]);
+    showToast(`${input.fullName} agendado como futuro técnico`, 'success');
+    return newId;
+  };
+
+  const updateProspectiveTechnicianStatus = (id: string, status: ProspectiveTechnicianStatus) => {
+    setProspectiveTechnicians((prev) => prev.map((p) => (p.id === id ? { ...p, status } : p)));
+    if (usingRemoteData && !id.startsWith('tmp-prospect-') && !id.startsWith('prospect-')) {
+      void withRemote(() => persistUpdateProspectiveTechnicianStatus(id, status)).catch((err) => {
+        showToast(friendlyErrorMessage(err, 'No se pudo actualizar el estado'), 'error');
+      });
+    }
+  };
+
+  const deleteProspectiveTechnician = (id: string) => {
+    setProspectiveTechnicians((prev) => prev.filter((p) => p.id !== id));
+    if (usingRemoteData && !id.startsWith('tmp-prospect-') && !id.startsWith('prospect-')) {
+      void withRemote(() => persistDeleteProspectiveTechnician(id)).catch((err) => {
+        showToast(friendlyErrorMessage(err, 'No se pudo eliminar'), 'error');
+      });
+    }
+  };
+
   const updateMaterialStock = (materialId: string, newStock: number) => {
     const stock = Math.max(0, newStock);
     setMaterials((prev) =>
@@ -2871,6 +2951,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         registerCustomer,
         registerTechnician,
         technicianApplications,
+        prospectiveTechnicians,
+        addProspectiveTechnician,
+        updateProspectiveTechnicianStatus,
+        deleteProspectiveTechnician,
         createAccountInviteLink,
         logout,
         refreshRemoteData,

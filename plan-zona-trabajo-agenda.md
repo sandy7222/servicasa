@@ -621,3 +621,106 @@ comentario normal explicando el criterio. No se tocó la lógica del filtro ni n
 **Nota aparte, no relacionada con este cambio**: al revisar el diff de `AdminHubView.tsx` volvieron
 a aparecer los mismos 2 hunks sin commitear de "Zona de trabajo" del técnico (mencionados en las dos
 mejoras anteriores de este mismo día) — se dejaron intactos, sin commitear, otra vez con `git add -p`.
+
+## Mejora post-lanzamiento (13/9/2026): lista de localidades cubiertas (técnico + admin), en vivo
+
+Sandy pidió que la Zona de trabajo deje de ser solo un círculo lat/lng/radio silencioso: cuando el
+círculo toca una localidad, tiene que **verse como tal** tanto en la pantalla del técnico como en
+los registros del administrador, y **desaparecer sola** si después achica el radio y deja de
+tocarla — es decir, una lista derivada del círculo, no una fuente de verdad nueva.
+
+**Importante — esto revive una decisión que este mismo plan había tomado en sentido contrario.**
+La sección 2 de este documento (Fase 2) dice explícitamente sobre `technician_coverage_areas`:
+"no la voy a usar tal cual: la reemplazo por lat/lng + radio" y la sección 5 ("Qué NO cambia")
+dice "se deja de lado, no se borra por las dudas, pero no se migra ni se usa". Esa decisión seguía
+siendo correcta para lo que resolvía en su momento (la *elegibilidad* de un técnico para una orden
+se decide por distancia punto-círculo, `isWithinWorkZone()`, y **eso no cambia acá**) — pero no
+contemplaba una necesidad distinta que apareció ahora: mostrarle a un humano, en texto, qué
+localidades cubre. Para esa necesidad puntual, la tabla vacía que ya existía (con su RLS ya armada:
+admin `ALL`, técnico `SELECT` de sus propias filas) es exactamente el molde correcto, así que se
+retoma como **cache de lectura derivada**, nunca como fuente de verdad ni para decidir asignación.
+Se deja esta nota para que una sesión futura no vuelva a leer la Fase 2 y piense que la tabla sigue
+sin usarse.
+
+**Backend (Supabase, proyecto `ServiCasa`)**, tres migraciones aplicadas de verdad:
+
+1. `technician_coverage_area_auto_recalc` — agrega a `technician_coverage_areas` las columnas
+   `localidad_id` (FK a `ar_localidades.id`, la identidad real — `city`/`province` como texto puede
+   colisionar entre provincias distintas), `categoria`, `distance_km`, `updated_at`; cambia la
+   unique constraint de `(technician_id, province, city)` a `(technician_id, localidad_id)`. Nueva
+   función `ar_haversine_km(lat1,lng1,lat2,lng2)` (no hay PostGIS ni `earthdistance` instalado en
+   este proyecto). Nueva función `recalc_technician_coverage(technician_id)`: borra la cobertura
+   previa de ese técnico y la reinserta contra `ar_localidades`, filtrando por
+   `categoria in ('Localidad simple', 'Componente de localidad compuesta')` (se excluye
+   deliberadamente `Entidad` — 551 registros de sub-barrios tipo "Quilmes Oeste" dentro de
+   "Quilmes" — para no inundar la lista de nombres poco reconocibles; es un `in` de una sola línea
+   si en algún momento se quiere más granularidad). Nuevo trigger `technicians_recalc_coverage_area`
+   (`AFTER INSERT OR UPDATE OF work_zone_lat, work_zone_lng, work_zone_radius_km ON technicians`)
+   que llama a esa función — el borrar-y-reinsertar completo en cada cambio es lo que hace que
+   achicar el radio saque localidades solo, sin lógica extra. Backfill corrido sobre los técnicos
+   que ya tenían zona declarada.
+2. `localities_within_radius_preview_function` — nueva función `localities_within_radius(lat, lng,
+   radius_km)`, de solo lectura, sin persistir nada — se usa para la vista previa en vivo del lado
+   del técnico mientras todavía está arrastrando el mapa (antes de guardar). `recalc_technician_coverage`
+   se reescribió para llamar a esta misma función en vez de duplicar el filtro/cálculo, así el
+   preview y lo que termina persistido nunca pueden divergir. `security definer` porque
+   `ar_localidades` tiene RLS sin ninguna policy (uso exclusivo server-side hasta ahora, ver mejora
+   de geocoding del 12/9) — se expone acotada a esta función de solo lectura, con
+   `revoke all ... from public` + `grant execute ... to authenticated` (mismo patrón que
+   `set_technician_goal`), nunca a `anon`.
+3. `realtime_publication_technician_coverage_areas` — `technician_coverage_areas` no estaba en la
+   publicación `supabase_realtime` (igual que `technicians` tampoco lo está), así que un
+   `.on('postgres_changes', ...)` sobre esa tabla nunca hubiera disparado nada sin esto.
+
+Probado en vivo contra la base real: a María Rodríguez (Quilmes, 45km) le calcula 31 localidades
+(Berazategui a 6km, hasta Tigre a 44km); bajarle el radio a 10km lo recalcula a 3 (Quilmes,
+Berazategui, Florencio Varela) y devolverlo a 45km vuelve a las 31 — confirmado en ambos sentidos,
+después revertido a como estaba.
+
+**Frontend** (cambios en el working tree de `C:\Users\sandy\Downloads\servicasa`, **sin
+commitear todavía** — quedan para que Sandy los revise y decida cuándo commitear, mismo criterio de
+"cada fase se confirma" de siempre):
+
+- `src/lib/technicianWorkZone.ts`: nuevo `previewWorkZoneCoverage(point, radiusKm)`, llama a
+  `localities_within_radius` vía `supabase.rpc(...)`. Nunca lanza por red/sesión — sin preview no se
+  bloquea nada, solo no se muestra la lista.
+- `src/components/technician/WorkZone.tsx`: nuevo estado `coverage` + efecto debounced (300ms) sobre
+  `[center, radiusKm]` que llama a `previewWorkZoneCoverage` — cubre tanto arrastrar el slider como
+  arrastrar el marcador o hacer click en otro punto. Nueva sección debajo del mapa con la lista de
+  localidades como chips, título con la distancia exacta al pasar el mouse. Un `cancelled`/cleanup
+  descarta respuestas fuera de orden si dos pedidos quedan en vuelo.
+- `src/types/index.ts` / `src/lib/supabaseData.ts`: nuevo campo `Technician.workZoneCoverage` (lo
+  que quedó persistido, no el preview en vivo). `fetchCatalog()` ahora también trae
+  `technician_coverage_areas` (mismo patrón que ya usaba para `technician_specialties`: fetch +
+  `Map` agrupado por `technician_id` + merge en `mapTechnician()`, que ahora toma un tercer
+  parámetro opcional `coverage`). Los otros tres call-sites de `mapTechnician()` (altas/edición
+  puntual de un técnico) quedan sin tocar — no declaran zona en esos flujos, así que el default `[]`
+  es correcto ahí.
+- `src/context/AppContext.tsx`: se suma `technician_coverage_areas` al canal
+  `tecniurbano-operational-live` (mismo `refreshCatalog` que ya usan las tablas de órdenes) — esto es
+  lo que hace que, cuando un técnico guarda su zona, el admin lo vea (aparecer o desaparecer
+  localidades) sin que nadie tenga que recargar la página.
+- `src/views/AdminHubView.tsx`: extendidos los dos hunks que ya estaban sin commitear en el working
+  tree (mostraban `workZoneCity`/`workZoneProvince`/`workZoneRadiusKm` — no los escribí yo, ya
+  estaban ahí de una sesión anterior según el comentario de la mejora de franja horaria del mismo
+  12/9) — se les sumó, debajo, la lista de localidades cubiertas (`workZoneCoverage`): en la tarjeta
+  del técnico en la pestaña "Técnicos", hasta 5 nombres + "+N más" con el resto en el `title`; en el
+  modal de "Asignar técnico" (donde el espacio es más chico), solo la cuenta ("Cubre N localidades")
+  con el detalle completo en el `title`.
+
+**Verificación**: `tsc --noEmit` limpio sobre todo el proyecto después de todos los cambios de
+arriba. `vitest run` **no se corrió desde esta sesión** — mismo choque de plataforma Linux/Windows
+ya documentado en la Fase 6 y en la mejora de geocoding del 12/9 (el `node_modules` de este checkout
+tiene binarios nativos de `win32`, no de `linux`). Queda pendiente que se corra
+`npx vitest run` de verdad en la máquina de Sandy antes de dar esto por cerrado — no debería haber
+sorpresas (no se tocó ninguna lógica ya cubierta por tests existentes, solo se sumó código nuevo),
+pero es el mismo paso de confirmación oficial que se usó en cada fase anterior. Tampoco se hizo
+click-through en navegador por la misma razón (no se puede levantar Vite desde este sandbox).
+
+**No se tocó**: `isWithinWorkZone()`/`distanceToOrderKm()` (la elegibilidad de asignación de la Fase
+5 sigue siendo punto-círculo, nunca por lista de localidades) ni ningún otro flujo de la Fase 3-7.
+
+**Pendiente, no bloqueante**: no se agregó ningún test nuevo para `previewWorkZoneCoverage` ni para
+el agrupado de `technician_coverage_areas` en `fetchCatalog()` — es lógica de bajo riesgo (un
+`map`/`group by` y un `rpc()` que ya sigue el mismo patrón probado de `geocodeWorkZoneLocality`),
+pero si aparece algo raro conviene empezar por ahí.
