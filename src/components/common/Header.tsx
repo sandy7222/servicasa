@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   LayoutDashboard,
   Wrench,
@@ -17,14 +17,56 @@ import { NotificationBell } from './NotificationBell';
 import { ThemeToggle } from './ThemeToggle';
 import { DEMO_MODE } from '../../lib/featureFlags';
 import { fetchTotalUnreadCount } from '../../lib/conversations';
+import { isSupabaseConfigured, supabase } from '../../lib/supabase';
 import type { UserRole } from '../../types';
 
 const UNREAD_POLL_MS = 30000;
 
 export const Header: React.FC = () => {
-  const { currentPath, navigate, currentUser, orders, isAuthenticated, authReady, logout, authLoading, usingRemoteData } =
+  const { currentPath, navigate, currentUser, orders, isAuthenticated, authReady, logout, authLoading, usingRemoteData, technicians } =
     useApp();
   const pathOnly = currentPath.split('?')[0];
+
+  // Foto de perfil circular en el header (reemplaza el badge "v1.2.0 - HD-CORE"
+  // que no representaba nada real -- Sandy, 13/9). Para tecnicos usa la foto
+  // profesional publica que ya suben desde "Mi perfil" (bucket
+  // technician-avatars, technicians.public_avatar_path); para el resto
+  // (cliente/admin) usa el avatar de cuenta que ya suben desde su panel de
+  // perfil (bucket privado avatars, profiles.avatar_url, via signed URL).
+  // Si no subieron nada todavia, se sigue mostrando el circulo con las
+  // iniciales (avatarText) como hasta ahora.
+  const technicianRecord = useMemo(
+    () => technicians.find((item) => item.id === currentUser?.technicianId),
+    [technicians, currentUser?.technicianId],
+  );
+  const [avatarPhotoUrl, setAvatarPhotoUrl] = useState<string>();
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !currentUser) { setAvatarPhotoUrl(undefined); return; }
+    if (currentUser.role === 'technician') {
+      setAvatarPhotoUrl(
+        technicianRecord?.publicAvatarPath
+          ? supabase.storage.from('technician-avatars').getPublicUrl(technicianRecord.publicAvatarPath).data.publicUrl
+          : undefined,
+      );
+      return;
+    }
+    if (!currentUser.avatarUrl) { setAvatarPhotoUrl(undefined); return; }
+    let cancelled = false;
+    void supabase.storage.from('avatars').createSignedUrl(currentUser.avatarUrl, 3600).then(({ data }) => {
+      if (!cancelled) setAvatarPhotoUrl(data?.signedUrl);
+    });
+    return () => { cancelled = true; };
+  }, [currentUser, technicianRecord?.publicAvatarPath]);
+
+  const renderAvatar = (sizeClass: string, textSizeClass = 'text-[11px]') =>
+    avatarPhotoUrl ? (
+      <img src={avatarPhotoUrl} alt={currentUser?.name ?? 'Avatar'} className={`${sizeClass} rounded-full object-cover shrink-0`} />
+    ) : (
+      <div className={`${sizeClass} rounded-full bg-gradient-to-tr from-teal-500 to-blue-600 text-white flex items-center justify-center font-bold ${textSizeClass} shadow-xs shrink-0`}>
+        {currentUser?.avatarText ?? '?'}
+      </div>
+    );
   const [isSwitcherOpen, setIsSwitcherOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(0);
@@ -111,7 +153,7 @@ export const Header: React.FC = () => {
       >
         <div className="max-w-7xl mx-auto px-3 sm:px-5 lg:px-6">
           <div className="flex items-center justify-between h-14">
-            {/* Left: Logo & Live badge */}
+            {/* Left: Logo */}
             <div className="flex items-center gap-3">
               <div
                 // Mismo criterio que el link "Inicio" de más abajo: con sesión
@@ -122,10 +164,6 @@ export const Header: React.FC = () => {
                 className="cursor-pointer flex items-center gap-2 group transition-transform hover:scale-[1.02]"
               >
                 <Logo size="md" showText={true} showTagline={false} variant="white" />
-              </div>
-              <div className="hidden lg:flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-800/80 border border-slate-700/60 text-[10px] font-mono text-slate-400">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span>v1.2.0 • HD-CORE</span>
               </div>
             </div>
 
@@ -169,9 +207,7 @@ export const Header: React.FC = () => {
                       className="flex items-center gap-2 px-2.5 py-1 rounded-lg border border-slate-700 bg-slate-800/80 hover:bg-slate-800 hover:border-teal-500/50 transition-all text-left group"
                       title={usingRemoteData ? 'Sesión Supabase' : 'Cambiar rol demo'}
                     >
-                      <div className="w-6 h-6 rounded-md bg-gradient-to-tr from-teal-500 to-blue-600 text-white flex items-center justify-center font-bold text-[11px] shadow-xs">
-                        {currentUser.avatarText}
-                      </div>
+                      {renderAvatar('w-6 h-6')}
                       <div className="flex flex-col">
                         <div className="flex items-center gap-1.5">
                           <span className="text-xs font-semibold text-slate-200 group-hover:text-teal-300 transition-colors">
@@ -191,9 +227,7 @@ export const Header: React.FC = () => {
                       className="flex items-center gap-2 px-2.5 py-1 rounded-lg border border-slate-700 bg-slate-800/80"
                       title="Sesión Supabase"
                     >
-                      <div className="w-6 h-6 rounded-md bg-gradient-to-tr from-teal-500 to-blue-600 text-white flex items-center justify-center font-bold text-[11px] shadow-xs">
-                        {currentUser.avatarText}
-                      </div>
+                      {renderAvatar('w-6 h-6')}
                       <div className="flex flex-col">
                         <div className="flex items-center gap-1.5">
                           <span className="text-xs font-semibold text-slate-200">
@@ -254,9 +288,7 @@ export const Header: React.FC = () => {
           <div className="md:hidden border-t border-slate-800 bg-[#0F172A] px-3 pt-2 pb-4 space-y-1.5 animate-in slide-in-from-top-2 duration-150">
             <div className="p-2.5 bg-slate-800/80 rounded-lg border border-slate-700 flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-md bg-teal-600 text-white flex items-center justify-center font-bold text-xs">
-                  {currentUser?.avatarText ?? '?'}
-                </div>
+                {renderAvatar('w-7 h-7', 'text-xs')}
                 <div>
                   <div className="text-xs font-semibold text-slate-200">{currentUser?.name ?? 'Invitado'}</div>
                   <div className="text-[10px] text-slate-400 font-mono">{currentUser?.email || 'Sin sesión'}</div>
