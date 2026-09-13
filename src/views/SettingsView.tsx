@@ -200,7 +200,9 @@ export const SettingsView: React.FC = () => {
         </div>
         )}
 
-        {/* System & Architecture Info */}
+        {/* System & Architecture Info -- solo admin: son metricas de todo el
+            sistema, no de la cuenta del usuario que esta mirando sus Ajustes. */}
+        {currentUser.role === 'admin' && (
         <div className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-700 shadow-xs space-y-3">
           <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-1.5">
@@ -209,7 +211,6 @@ export const SettingsView: React.FC = () => {
                 Estado del Almacenamiento en Memoria
               </h3>
             </div>
-            <span className="text-[10px] font-mono font-bold text-slate-400">v1.0.0</span>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
@@ -248,6 +249,7 @@ export const SettingsView: React.FC = () => {
             )}
           </div>
         </div>
+        )}
       </main>
     </div>
   );
