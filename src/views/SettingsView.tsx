@@ -13,6 +13,7 @@ import {
   ExternalLink,
   Layers,
   UserRound,
+  MapPin,
   MapPinned,
   CalendarDays,
   ChevronRight,
@@ -124,6 +125,34 @@ export const SettingsView: React.FC = () => {
             { path: '/technician/profile', label: 'Mi perfil', description: 'Datos profesionales, foto y documentación.', icon: UserRound },
             { path: '/technician/zona-trabajo', label: 'Zona de trabajo', description: 'Dónde recibís los pedidos asignados.', icon: MapPinned },
             { path: '/technician/disponibilidad', label: 'Disponibilidad', description: 'Días y horarios en los que trabajás.', icon: CalendarDays },
+          ].map(({ path, label, description, icon: Icon }) => (
+            <button
+              key={path}
+              type="button"
+              onClick={() => navigate(path)}
+              className="w-full flex items-center gap-3 py-2.5 text-left hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg px-1.5 -mx-1.5 transition-colors"
+            >
+              <span className="w-8 h-8 rounded-lg bg-teal-50 dark:bg-teal-950/40 text-teal-600 flex items-center justify-center shrink-0">
+                <Icon className="w-4 h-4" />
+              </span>
+              <span className="flex-1 min-w-0">
+                <span className="block text-xs font-bold text-slate-900 dark:text-slate-100">{label}</span>
+                <span className="block text-[11px] text-slate-500 dark:text-slate-400">{description}</span>
+              </span>
+              <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
+            </button>
+          ))}
+        </div>
+        )}
+
+        {currentUser.role === 'customer' && (
+        <div className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-700 shadow-xs space-y-1">
+          <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider font-mono pb-2 border-b border-slate-100 dark:border-slate-800">
+            Mi cuenta
+          </h3>
+          {[
+            { path: '/customer/profile', label: 'Mi Perfil', description: 'Tus datos de contacto y foto de cuenta.', icon: UserRound },
+            { path: '/customer/direcciones', label: 'Mis direcciones', description: 'Domicilios guardados para pedir servicios más rápido.', icon: MapPin },
           ].map(({ path, label, description, icon: Icon }) => (
             <button
               key={path}

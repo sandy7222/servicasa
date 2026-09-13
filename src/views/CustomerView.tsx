@@ -18,6 +18,7 @@ import {
   ArrowLeft,
   Trash2,
   MessageCircle,
+  ShieldAlert,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useApp } from '../context/AppContext';
@@ -26,19 +27,37 @@ import { SignaturePad } from '../components/common/SignaturePad';
 import { ServiceOrder } from '../types';
 import { formatElapsedTime, getOrderElapsedSeconds } from '../lib/workTimer';
 import { formatArs } from '../lib/pricing';
-import { CustomerProfilePanel } from '../components/client/CustomerProfilePanel';
-import { CustomerAddressesPanel } from '../components/client/CustomerAddressesPanel';
-import { ServiceRequestForm } from '../components/client/ServiceRequestForm';
+import { CustomerProfilePage } from '../components/client/CustomerProfilePage';
+import { CustomerAddressesPage } from '../components/client/CustomerAddressesPage';
+import { CustomerServiceRequestPage } from '../components/client/CustomerServiceRequestPage';
+import { CustomerClaimsPage } from '../components/client/CustomerClaimsPage';
 import { QuoteViewer } from '../components/client/QuoteViewer';
 import { AssignedTechnicianCard } from '../components/client/AssignedTechnicianCard';
 import { OrderRatingCard } from '../components/client/OrderRatingCard';
-import { MyClaimsPanel } from '../components/common/MyClaimsPanel';
 import { ConversationsPanel } from '../components/common/ConversationsPanel';
 import { startOrderConversation } from '../lib/conversations';
 import { fetchPendingDraft, retryDraftPayment, type PendingCustomerDraft } from '../lib/paymentClient';
 
 export const CustomerView: React.FC = () => {
   const { orders, currentUser, saveCustomerSignature, showToast, currentPath, navigate, deleteCustomerOrder } = useApp();
+
+  // Sub-páginas dedicadas (mismo patrón que TechnicianView.tsx con
+  // /technician/profile, /technician/reclamos, etc.): "Mi Perfil" y "Mis
+  // direcciones" se acceden desde Ajustes; "Solicitar un servicio" y
+  // "Reclamos y garantías" son las cápsulas del header más abajo. Ver
+  // pedido de Sandy del 13/9 de dejar de apilar todo en una sola pantalla.
+  if (currentPath.split('?')[0] === '/customer/profile') {
+    return <CustomerProfilePage />;
+  }
+  if (currentPath.split('?')[0] === '/customer/direcciones') {
+    return <CustomerAddressesPage />;
+  }
+  if (currentPath.split('?')[0] === '/customer/solicitar') {
+    return <CustomerServiceRequestPage />;
+  }
+  if (currentPath.split('?')[0] === '/customer/reclamos') {
+    return <CustomerClaimsPage />;
+  }
 
   const customerId = currentUser?.customerId || '';
   // hiddenFromCustomerAt: el cliente la "eliminó" de su propia lista, pero la
@@ -147,12 +166,52 @@ export const CustomerView: React.FC = () => {
                 </p>
               </div>
             </div>
+
+            {/* Cápsulas a páginas dedicadas — mismo patrón que las de
+                TechnicianView.tsx (Ganancias, Historial, etc.). "Mi Perfil" y
+                "Mis direcciones" NO van acá: se acceden desde Ajustes, igual
+                que "Mi perfil"/"Zona de trabajo" del técnico. */}
+            <div className="hidden sm:flex items-center gap-2">
+              <button onClick={() => navigate('/customer/solicitar')} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-bold text-slate-200 hover:border-teal-500/60 hover:text-teal-300">
+                <Wrench className="w-3.5 h-3.5" /> Solicitar un servicio
+              </button>
+              <button onClick={() => navigate('/customer/reclamos')} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-bold text-slate-200 hover:border-teal-500/60 hover:text-teal-300">
+                <ShieldAlert className="w-3.5 h-3.5" /> Reclamos y garantías
+              </button>
+            </div>
+          </div>
+
+          {/* Mobile-only quick access: las cápsulas de arriba están ocultas
+              debajo de sm, así que sin esta tira no hay forma de llegar a
+              estas sub-páginas desde el celular (mismo patrón que
+              TechnicianView.tsx). */}
+          <div className="flex sm:hidden items-center gap-1.5 overflow-x-auto pb-1 -mx-3 px-3 mt-2">
+            {[
+              { path: '/customer/solicitar', label: 'Solicitar un servicio', icon: Wrench },
+              { path: '/customer/reclamos', label: 'Reclamos y garantías', icon: ShieldAlert },
+            ].map(({ path, label, icon: Icon }) => (
+              <button
+                key={path}
+                onClick={() => navigate(path)}
+                className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1.5 text-[11px] font-bold text-slate-200 whitespace-nowrap"
+              >
+                <Icon className="w-3.5 h-3.5" /> {label}
+              </button>
+            ))}
           </div>
         </div>
       </div>
 
       <main className="max-w-7xl mx-auto px-3 sm:px-5 lg:px-6 pt-4">
-        {!isDetailPage && <><CustomerProfilePanel /><div className="h-4" /><CustomerAddressesPanel /><div className="h-4" /><ConversationsPanel title="Mis conversaciones" emptyLabel="No tenés conversaciones todavía." hideWhenEmpty onOpen={(id) => (window.location.hash = `#/customer/conversaciones/${id}`)} /><div className="h-4" /><MyClaimsPanel onOpen={(claimId) => (window.location.hash = `#/customer/reclamos/${claimId}`)} /><div className="h-4" /><ServiceRequestForm /><div className="h-4" /></>}
+        {!isDetailPage && (
+          <ConversationsPanel
+            title="Mis conversaciones"
+            emptyLabel="No tenés conversaciones todavía."
+            hideWhenEmpty
+            onOpen={(id) => (window.location.hash = `#/customer/conversaciones/${id}`)}
+          />
+        )}
+        {!isDetailPage && <div className="h-4" />}
         {isDetailPage && (
           <button type="button" onClick={() => navigate('/customer')} className="mb-4 inline-flex items-center gap-1.5 text-xs font-bold text-teal-700 hover:text-teal-800">
             <ArrowLeft className="w-4 h-4" /> Volver a mis servicios

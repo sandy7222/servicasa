@@ -208,6 +208,10 @@ const AppContent: React.FC = () => {
           </Protected>
         );
       case '/customer':
+      case '/customer/profile':
+      case '/customer/direcciones':
+      case '/customer/solicitar':
+      case '/customer/reclamos':
         return (
           <Protected roles={['admin', 'customer']}>
             <CustomerView />

@@ -1,0 +1,40 @@
+import React from 'react';
+import { ArrowLeft, ShieldAlert } from 'lucide-react';
+import { useApp } from '../../context/AppContext';
+import { MyClaimsPanel } from '../common/MyClaimsPanel';
+
+/** Página dedicada de "Reclamos y garantías" para el cliente — antes vivía
+ * apilada arriba de todo en /customer, ahora es una cápsula del header,
+ * calcada de TechnicianClaimsView.tsx (/technician/reclamos). Ver pedido de
+ * Sandy del 13/9. */
+export const CustomerClaimsPage: React.FC = () => {
+  const { navigate } = useApp();
+
+  return (
+    <main className="min-h-screen bg-slate-100/70 dark:bg-slate-900/80 pb-12">
+      <header className="border-b border-slate-800 bg-[#0F172A] text-white">
+        <div className="mx-auto max-w-5xl px-4 py-5 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-400/15 text-rose-300">
+              <ShieldAlert className="w-5 h-5" />
+            </div>
+            <div>
+              <h1 className="font-bold">Reclamos y garantías</h1>
+              <p className="text-xs text-slate-400">Casos asociados a tus servicios y su comunicación.</p>
+            </div>
+          </div>
+          <button
+            onClick={() => navigate('/customer')}
+            aria-label="Volver al portal del cliente"
+            className="shrink-0 rounded-lg border border-slate-700 p-2 text-slate-200 hover:border-teal-500 hover:text-teal-300"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+        </div>
+      </header>
+      <div className="mx-auto max-w-5xl px-4 pt-5">
+        <MyClaimsPanel onOpen={(claimId) => (window.location.hash = `#/customer/reclamos/${claimId}`)} />
+      </div>
+    </main>
+  );
+};
