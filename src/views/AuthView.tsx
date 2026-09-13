@@ -100,6 +100,7 @@ export const AuthView: React.FC = () => {
 
   // Invite (existing account activation)
   const [invitePassword, setInvitePassword] = useState('');
+  const [inviteAcceptedTerms, setInviteAcceptedTerms] = useState(false);
 
   // Recuperar contraseña
   const [recoverEmail, setRecoverEmail] = useState('');
@@ -198,8 +199,19 @@ export const AuthView: React.FC = () => {
       setError('La contraseña debe tener al menos 8 caracteres.');
       return;
     }
+    if (!inviteAcceptedTerms) {
+      setError('Tenés que aceptar los Términos y Condiciones para crear la cuenta.');
+      return;
+    }
     try {
-      await registerWithInvite({ token: inviteToken, password: invitePassword });
+      const isTechnicianInvite = invite?.kind === 'technician';
+      const acceptedTermsHash = await sha256Hex(isTechnicianInvite ? TERMS_TECNICO_TEXT : TERMS_CLIENTE_TEXT);
+      await registerWithInvite({
+        token: inviteToken,
+        password: invitePassword,
+        acceptedTermsVersion: isTechnicianInvite ? TERMS_TECNICO_VERSION : TERMS_CLIENTE_VERSION,
+        acceptedTermsHash,
+      });
     } catch (err) {
       const message = friendlyErrorMessage(err, 'No se pudo crear la cuenta');
       setError(message);
@@ -409,13 +421,36 @@ export const AuthView: React.FC = () => {
               </div>
             </div>
 
+            <label className="flex items-start gap-2 text-xs text-slate-600 dark:text-slate-400">
+              <input
+                type="checkbox"
+                checked={inviteAcceptedTerms}
+                onChange={(e) => setInviteAcceptedTerms(e.target.checked)}
+                disabled={authLoading}
+                required
+                className="mt-0.5"
+              />
+              <span>
+                Leí y acepto los{' '}
+                <a
+                  href={invite?.kind === 'technician' ? '/terminos_y_condiciones/tecnico' : '/terminos_y_condiciones/cliente'}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold text-teal-700 hover:text-teal-600 underline"
+                >
+                  Términos y Condiciones para {roleLabel === 'técnico' ? 'técnicos' : 'clientes'}
+                </a>{' '}
+                de TecniUrbano.
+              </span>
+            </label>
+
             {error && (
               <div className="text-xs text-red-700 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{error}</div>
             )}
 
             <button
               type="submit"
-              disabled={authLoading || !invite}
+              disabled={authLoading || !invite || !inviteAcceptedTerms}
               className="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-[#0F172A] hover:bg-slate-800 disabled:opacity-60 text-white font-bold text-sm rounded-lg shadow-sm transition-all"
             >
               {authLoading ? (

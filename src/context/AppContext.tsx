@@ -148,7 +148,12 @@ interface AppContextType {
   passwordRecoveryMode: boolean;
   requestPasswordRecovery: (email: string) => Promise<void>;
   completePasswordRecovery: (newPassword: string) => Promise<void>;
-  registerWithInvite: (input: { token: string; password: string }) => Promise<void>;
+  registerWithInvite: (input: {
+    token: string;
+    password: string;
+    acceptedTermsVersion: string;
+    acceptedTermsHash: string;
+  }) => Promise<void>;
   registerCustomer: (input: CustomerRegistrationInput) => Promise<void>;
   registerTechnician: (input: TechnicianRegistrationInput) => Promise<void>;
   technicianApplications: TechnicianApplication[];
@@ -809,7 +814,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const registerWithInvite = async (input: { token: string; password: string }) => {
+  const registerWithInvite = async (input: {
+    token: string;
+    password: string;
+    acceptedTermsVersion: string;
+    acceptedTermsHash: string;
+  }) => {
     setAuthLoading(true);
     setDataError(null);
     try {
@@ -830,6 +840,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const user = signed.user;
       const session = signed.session;
       if (!user) throw new Error('No se pudo crear la cuenta.');
+
+      // Imprescindible para tener cuenta (mismo criterio que
+      // registerCustomer/registerTechnician, charla del 13/9): si esto
+      // falla, el registro entero falla. Acá el rol sale de la invitación
+      // (row.kind), no de un selector en el formulario.
+      const invitedRole: 'cliente' | 'tecnico' = row.kind === 'technician' ? 'tecnico' : 'cliente';
+      await recordTermsAcceptance({
+        userId: user.id,
+        role: invitedRole,
+        documentSlug: invitedRole === 'tecnico' ? 'terminos_tecnico' : 'terminos_cliente',
+        documentVersion: input.acceptedTermsVersion,
+        documentHash: input.acceptedTermsHash,
+      });
 
       if (!session) {
         sessionStorage.setItem('tecniurbano_pending_invite', input.token);

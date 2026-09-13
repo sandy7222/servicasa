@@ -71,3 +71,25 @@ pendiente si en algún momento se quiere agregar aceptación también al checkou
 - `git diff -b --stat` confirmó, antes de commitear, que el diff de los 5 archivos existentes
   correspondía exactamente a estos cambios (sin drift de línea de fin de renglón ni hunks ajenos
   mezclados).
+
+## 5. Tercer camino de alta de cuenta: `registerWithInvite`
+
+El 13/9 Sandy notó, con razón, que faltaba algo: además de `register` (cliente) y `apply`
+(técnico), la app tiene un tercer camino real para crear una cuenta con contraseña —
+`registerWithInvite` (`AppContext.tsx`), detrás del formulario "Crear cuenta y entrar" que
+aparece cuando alguien llega con un link de invitación (`?invite=...`). Es el mismo formulario
+al que llega, por ejemplo, un cliente que compró como invitado y después recibe el link para
+ponerle contraseña a su cuenta, o un técnico al que administración le generó una invitación
+directamente (`createAccountInviteLink`). Este camino se había quedado afuera del cambio
+original sin querer: no es lo mismo que el checkout de invitado (que sigue sin cuenta, y sigue
+fuera de alcance a propósito, ver sección 3).
+
+Se agregó el mismo patrón: checkbox obligatorio + validación en `AuthView.tsx`, y el registro
+de la aceptación (hash, versión, imprescindible para completar el alta) dentro de
+`registerWithInvite` en `AppContext.tsx`, antes de dar la cuenta por creada. La diferencia es
+que acá no hay selector de rol en el formulario — el rol sale de la invitación
+(`invite.kind === 'technician'`), y con eso se elige automáticamente si el link y el hash
+corresponden al documento de cliente o al de técnico.
+
+Verificación: `tsc --noEmit` limpio, `git diff -b --stat` confirmó 6 hunks para las 3 ediciones
+en cada uno de los 2 archivos tocados (`AppContext.tsx`, `AuthView.tsx`), sin drift ajeno.
