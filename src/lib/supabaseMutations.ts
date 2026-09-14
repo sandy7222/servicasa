@@ -18,10 +18,12 @@ import type {
   ProspectiveTechnician,
   ProspectiveTechnicianInput,
   ProspectiveTechnicianStatus,
+  ServicePromotion,
+  ServicePromotionInput,
 } from '../types';
 import { supabase } from './supabase';
-import { mapCatalogCategory, mapCatalogSubcategory, mapCustomer, mapMaterial, mapOrder, mapService, mapTechnician, mapProspectiveTechnician } from './supabaseData';
-import type { DbCategory, DbCustomer, DbMaterial, DbService, DbServiceOrder, DbSubcategory, DbTechnician, DbProspectiveTechnician } from './supabase';
+import { mapCatalogCategory, mapCatalogSubcategory, mapCustomer, mapMaterial, mapOrder, mapService, mapTechnician, mapProspectiveTechnician, mapServicePromotion } from './supabaseData';
+import type { DbCategory, DbCustomer, DbMaterial, DbService, DbServiceOrder, DbSubcategory, DbTechnician, DbProspectiveTechnician, DbServicePromotion } from './supabase';
 
 function throwIfError(error: { message: string } | null) {
   if (error) throw new Error(error.message);
@@ -501,6 +503,35 @@ export async function persistUpdateProspectiveTechnicianStatus(
 
 export async function persistDeleteProspectiveTechnician(id: string): Promise<void> {
   const { error } = await supabase.from('prospective_technicians').delete().eq('id', id);
+  throwIfError(error);
+}
+
+export async function persistCreateServicePromotion(
+  input: ServicePromotionInput
+): Promise<ServicePromotion> {
+  const { data, error } = await supabase
+    .from('service_promotions')
+    .insert({
+      rubro: input.rubro.trim(),
+      badge_label: input.badgeLabel.trim(),
+      title: input.title.trim(),
+      description: input.description.trim(),
+      starts_at: input.startsAt || null,
+      ends_at: input.endsAt || null,
+    })
+    .select('*')
+    .single();
+  throwIfError(error);
+  return mapServicePromotion(data as DbServicePromotion);
+}
+
+export async function persistUpdateServicePromotionActive(id: string, isActive: boolean): Promise<void> {
+  const { error } = await supabase.from('service_promotions').update({ is_active: isActive }).eq('id', id);
+  throwIfError(error);
+}
+
+export async function persistDeleteServicePromotion(id: string): Promise<void> {
+  const { error } = await supabase.from('service_promotions').delete().eq('id', id);
   throwIfError(error);
 }
 

@@ -151,6 +151,18 @@ export type DbProspectiveTechnician = {
   created_at: string;
 };
 
+export type DbServicePromotion = {
+  id: string;
+  rubro: string;
+  badge_label: string;
+  title: string;
+  description: string;
+  is_active: boolean;
+  starts_at: string | null;
+  ends_at: string | null;
+  created_at: string;
+};
+
 export type DbServiceOrder = {
   id: string;
   title: string;

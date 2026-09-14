@@ -45,6 +45,7 @@ import {
   ShieldAlert,
   MessageCircle,
   Landmark,
+  Megaphone,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { startOrderConversation } from '../lib/conversations';
@@ -61,6 +62,7 @@ import { persistArchiveOrders } from '../lib/supabaseMutations';
 import { downloadArchivedOrdersExcel } from '../lib/exportOrdersExcel';
 import { TechnicianApplications } from '../components/admin/TechnicianApplications';
 import { ProspectiveTechnicians } from '../components/admin/ProspectiveTechnicians';
+import { ServicePromotions } from '../components/admin/ServicePromotions';
 import { SettlementsHub, usePendingPayoutRequestCount } from '../components/admin/SettlementsHub';
 import { TechnicianContractPanel } from '../components/admin/TechnicianContractPanel';
 import { canTechnicianReceiveOrders } from '../lib/technicianEligibility';
@@ -229,6 +231,7 @@ export const AdminHubView: React.FC = () => {
     updateTechnician,
     deleteTechnician,
     updateProspectiveTechnicianStatus,
+    servicePromotions,
     addService,
     updateService,
     deleteService,
@@ -251,7 +254,7 @@ export const AdminHubView: React.FC = () => {
   } = useApp();
 
   // Navigation tab within hub
-  const [activeTab, setActiveTab] = useState<'orders' | 'pendingPayment' | 'customers' | 'technicians' | 'contracts' | 'settlements' | 'inventory' | 'services' | 'categories'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'pendingPayment' | 'customers' | 'technicians' | 'contracts' | 'settlements' | 'inventory' | 'services' | 'categories' | 'promos'>('orders');
   const { count: pendingPayoutRequests, refresh: refreshPayoutQueue } = usePendingPayoutRequestCount(activeTab === 'settlements');
 
   // Filters & search
@@ -1929,6 +1932,19 @@ export const AdminHubView: React.FC = () => {
               <Layers className="w-3.5 h-3.5" />
               <span>Categorías ({catalogCategories.length})</span>
             </button>
+
+            <button
+              onClick={() => setActiveTab('promos')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
+                activeTab === 'promos'
+                  ? 'bg-[#0F172A] text-teal-300 shadow-xs border border-slate-800'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
+              }`}
+              id="tab-btn-promos"
+            >
+              <Megaphone className="w-3.5 h-3.5" />
+              <span>Promociones ({servicePromotions.length})</span>
+            </button>
           </div>
         </div>
       </div>
@@ -3309,6 +3325,13 @@ export const AdminHubView: React.FC = () => {
                   })}
               </div>
             )}
+          </div>
+        )}
+
+        {/* ================= TAB: PROMOCIONES ================= */}
+        {activeTab === 'promos' && (
+          <div className="space-y-4" id="admin-promos-tab-content">
+            <ServicePromotions />
           </div>
         )}
       </main>

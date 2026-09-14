@@ -13,6 +13,7 @@ import type {
   TechnicalNote,
   TechnicianApplication,
   ProspectiveTechnician,
+  ServicePromotion,
   Technician,
   TimeLog,
   UsedMaterial,
@@ -31,6 +32,7 @@ import type {
   DbTechnician,
   DbTechnicianApplication,
   DbProspectiveTechnician,
+  DbServicePromotion,
 } from './supabase';
 import { supabase } from './supabase';
 
@@ -350,6 +352,33 @@ export async function fetchProspectiveTechnicians(): Promise<ProspectiveTechnici
     .order('created_at', { ascending: false });
   if (error) throw error;
   return (data as DbProspectiveTechnician[]).map(mapProspectiveTechnician);
+}
+
+export function mapServicePromotion(row: DbServicePromotion): ServicePromotion {
+  return {
+    id: row.id,
+    rubro: row.rubro,
+    badgeLabel: row.badge_label,
+    title: row.title,
+    description: row.description,
+    isActive: row.is_active,
+    startsAt: row.starts_at ?? undefined,
+    endsAt: row.ends_at ?? undefined,
+    createdAt: row.created_at,
+  };
+}
+
+/** Promos del mes (ver src/components/admin/ServicePromotions.tsx). Se
+ * traen todas (activas e inactivas) para cualquier usuario logueado —mismo
+ * criterio que categories/services— y el cliente decide cuál mostrar según
+ * is_active + vigencia (ver CustomerPromoBanner.tsx). */
+export async function fetchServicePromotions(): Promise<ServicePromotion[]> {
+  const { data, error } = await supabase
+    .from('service_promotions')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data as DbServicePromotion[]).map(mapServicePromotion);
 }
 
 // Columnas de `technicians` seguras para cualquier usuario autenticado que

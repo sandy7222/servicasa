@@ -16,6 +16,7 @@ import {
   fetchPublicServices,
   fetchTechnicianApplications,
   fetchProspectiveTechnicians,
+  fetchServicePromotions,
   fetchVisitDepositAmount,
   fetchVisitSettlementCommissionRate,
   profileToCurrentUser,
@@ -60,6 +61,9 @@ import {
   persistCreateProspectiveTechnician,
   persistUpdateProspectiveTechnicianStatus,
   persistDeleteProspectiveTechnician,
+  persistCreateServicePromotion,
+  persistUpdateServicePromotionActive,
+  persistDeleteServicePromotion,
   persistSelfRegisterTechnician,
   persistDeleteCustomer,
   persistDeleteMaterial,
@@ -114,6 +118,8 @@ import {
   ProspectiveTechnician,
   ProspectiveTechnicianInput,
   ProspectiveTechnicianStatus,
+  ServicePromotion,
+  ServicePromotionInput,
   TechnicianRegistrationInput,
   TechnicianInput,
   UserRole,
@@ -168,6 +174,10 @@ interface AppContextType {
   addProspectiveTechnician: (input: ProspectiveTechnicianInput) => string;
   updateProspectiveTechnicianStatus: (id: string, status: ProspectiveTechnicianStatus) => void;
   deleteProspectiveTechnician: (id: string) => void;
+  servicePromotions: ServicePromotion[];
+  addServicePromotion: (input: ServicePromotionInput) => void;
+  updateServicePromotionActive: (id: string, isActive: boolean) => void;
+  deleteServicePromotion: (id: string) => void;
   createAccountInviteLink: (kind: 'technician' | 'customer', targetId: string) => Promise<string>;
   logout: () => Promise<void>;
   refreshRemoteData: () => Promise<void>;
@@ -376,6 +386,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [visitSettlementCommissionRate, setVisitSettlementCommissionRate] = useState(0.15);
   const [technicianApplications, setTechnicianApplications] = useState<TechnicianApplication[]>([]);
   const [prospectiveTechnicians, setProspectiveTechnicians] = useState<ProspectiveTechnician[]>([]);
+  const [servicePromotions, setServicePromotions] = useState<ServicePromotion[]>([]);
 
   // Real Supabase-backed categories/subcategories (plan-categorias-subcategorias.md
   // Fase 4 — replaces the old localStorage-only `serviceCategories`/
@@ -460,6 +471,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setCurrentUserState(profileToCurrentUser(profile));
       fetchVisitDepositAmount().then(setVisitDepositAmount).catch(() => {});
       fetchVisitSettlementCommissionRate().then(setVisitSettlementCommissionRate).catch(() => {});
+      // Promos del mes: se traen para cualquier rol logueado (admin las
+      // administra, cliente las ve en su dashboard) — mismo criterio que
+      // categories/services, no solo admin.
+      fetchServicePromotions().then(setServicePromotions).catch(() => {});
       if (profile.role === 'admin') {
         fetchTechnicianApplications().then(setTechnicianApplications).catch(() => {});
         fetchProspectiveTechnicians().then(setProspectiveTechnicians).catch(() => {});
@@ -484,6 +499,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setMaterials(INITIAL_MATERIALS);
     setTechnicianApplications([]);
     setProspectiveTechnicians([]);
+    setServicePromotions([]);
     void loadPublicServices();
   };
 
@@ -507,6 +523,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setCatalogSubcategories(publicSubcategories);
     } catch (err) {
       console.warn('[TecniUrbano] No se pudo cargar categorías/subcategorías públicas', err);
+    }
+    try {
+      setServicePromotions(await fetchServicePromotions());
+    } catch (err) {
+      console.warn('[TecniUrbano] No se pudo cargar promos públicas', err);
     }
   };
 
@@ -2499,6 +2520,71 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  // Promos del mes (ver src/components/admin/ServicePromotions.tsx y
+  // src/components/client/CustomerPromoBanner.tsx). El admin las carga y
+  // activa/desactiva; no tienen edición de texto post-creación en esta
+  // primera versión, solo alta, activar/desactivar y borrar.
+  const addServicePromotion = (input: ServicePromotionInput) => {
+    if (usingRemoteData) {
+      const tempId = `tmp-promo-${Date.now()}`;
+      const tempPromo: ServicePromotion = {
+        id: tempId,
+        rubro: input.rubro,
+        badgeLabel: input.badgeLabel,
+        title: input.title,
+        description: input.description,
+        isActive: true,
+        startsAt: input.startsAt,
+        endsAt: input.endsAt,
+        createdAt: new Date().toISOString(),
+      };
+      setServicePromotions((prev) => [tempPromo, ...prev]);
+      void withRemote(async () => {
+        try {
+          const created = await persistCreateServicePromotion(input);
+          setServicePromotions((prev) => [created, ...prev.filter((p) => p.id !== tempId)]);
+          showToast('Promo creada', 'success');
+        } catch (err) {
+          setServicePromotions((prev) => prev.filter((p) => p.id !== tempId));
+          showToast(friendlyErrorMessage(err, 'Error al crear la promo'), 'error');
+        }
+      });
+      return;
+    }
+
+    const newPromo: ServicePromotion = {
+      id: `promo-${Math.random().toString(36).substring(2, 7)}`,
+      rubro: input.rubro,
+      badgeLabel: input.badgeLabel,
+      title: input.title,
+      description: input.description,
+      isActive: true,
+      startsAt: input.startsAt,
+      endsAt: input.endsAt,
+      createdAt: new Date().toISOString(),
+    };
+    setServicePromotions((prev) => [newPromo, ...prev]);
+    showToast('Promo creada', 'success');
+  };
+
+  const updateServicePromotionActive = (id: string, isActive: boolean) => {
+    setServicePromotions((prev) => prev.map((p) => (p.id === id ? { ...p, isActive } : p)));
+    if (usingRemoteData && !id.startsWith('tmp-promo-') && !id.startsWith('promo-')) {
+      void withRemote(() => persistUpdateServicePromotionActive(id, isActive)).catch((err) => {
+        showToast(friendlyErrorMessage(err, 'No se pudo actualizar la promo'), 'error');
+      });
+    }
+  };
+
+  const deleteServicePromotion = (id: string) => {
+    setServicePromotions((prev) => prev.filter((p) => p.id !== id));
+    if (usingRemoteData && !id.startsWith('tmp-promo-') && !id.startsWith('promo-')) {
+      void withRemote(() => persistDeleteServicePromotion(id)).catch((err) => {
+        showToast(friendlyErrorMessage(err, 'No se pudo eliminar la promo'), 'error');
+      });
+    }
+  };
+
   const updateMaterialStock = (materialId: string, newStock: number) => {
     const stock = Math.max(0, newStock);
     setMaterials((prev) =>
@@ -2955,6 +3041,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addProspectiveTechnician,
         updateProspectiveTechnicianStatus,
         deleteProspectiveTechnician,
+        servicePromotions,
+        addServicePromotion,
+        updateServicePromotionActive,
+        deleteServicePromotion,
         createAccountInviteLink,
         logout,
         refreshRemoteData,

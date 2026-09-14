@@ -492,6 +492,32 @@ export type ProspectiveTechnicianInput = {
   specialty?: string;
 };
 
+/** Promo del mes gestionada por el admin, mostrada en el dashboard del
+ * cliente (/customer) cuando no tiene un servicio en curso — ver
+ * src/components/admin/ServicePromotions.tsx y
+ * src/components/client/CustomerPromoBanner.tsx. Es contenido informativo,
+ * no toca precios reales de servicios. */
+export interface ServicePromotion {
+  id: string;
+  rubro: string;
+  badgeLabel: string;
+  title: string;
+  description: string;
+  isActive: boolean;
+  startsAt?: string | null;
+  endsAt?: string | null;
+  createdAt: string;
+}
+
+export type ServicePromotionInput = {
+  rubro: string;
+  badgeLabel: string;
+  title: string;
+  description: string;
+  startsAt?: string;
+  endsAt?: string;
+};
+
 export interface MaterialInventory {
   id: string;
   name: string;
