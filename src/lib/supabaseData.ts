@@ -364,6 +364,8 @@ export function mapServicePromotion(row: DbServicePromotion): ServicePromotion {
     isActive: row.is_active,
     startsAt: row.starts_at ?? undefined,
     endsAt: row.ends_at ?? undefined,
+    imageUrl: row.image_url ?? undefined,
+    highlights: row.highlights ?? undefined,
     createdAt: row.created_at,
   };
 }

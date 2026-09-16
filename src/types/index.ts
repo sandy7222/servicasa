@@ -506,6 +506,11 @@ export interface ServicePromotion {
   isActive: boolean;
   startsAt?: string | null;
   endsAt?: string | null;
+  /** Ruta estática (/images/promos/...) o URL externa ya hosteada. Sin
+   * imagen, el banner cae al estilo solo-texto. */
+  imageUrl?: string | null;
+  /** Bullets cortos separados por "|" (ej. "Más seguridad|Monitoreo 24/7"). */
+  highlights?: string | null;
   createdAt: string;
 }
 
@@ -514,6 +519,8 @@ export type ServicePromotionInput = {
   badgeLabel: string;
   title: string;
   description: string;
+  imageUrl?: string;
+  highlights?: string;
   startsAt?: string;
   endsAt?: string;
 };

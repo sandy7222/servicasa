@@ -2536,6 +2536,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         isActive: true,
         startsAt: input.startsAt,
         endsAt: input.endsAt,
+        imageUrl: input.imageUrl,
+        highlights: input.highlights,
         createdAt: new Date().toISOString(),
       };
       setServicePromotions((prev) => [tempPromo, ...prev]);
@@ -2561,6 +2563,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       isActive: true,
       startsAt: input.startsAt,
       endsAt: input.endsAt,
+      imageUrl: input.imageUrl,
+      highlights: input.highlights,
       createdAt: new Date().toISOString(),
     };
     setServicePromotions((prev) => [newPromo, ...prev]);

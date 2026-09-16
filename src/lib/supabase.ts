@@ -160,6 +160,8 @@ export type DbServicePromotion = {
   is_active: boolean;
   starts_at: string | null;
   ends_at: string | null;
+  image_url: string | null;
+  highlights: string | null;
   created_at: string;
 };
 

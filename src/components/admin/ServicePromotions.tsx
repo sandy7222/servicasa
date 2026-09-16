@@ -16,6 +16,8 @@ export const ServicePromotions: React.FC = () => {
   const [description, setDescription] = useState('');
   const [startsAt, setStartsAt] = useState('');
   const [endsAt, setEndsAt] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
+  const [highlights, setHighlights] = useState('');
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,6 +27,8 @@ export const ServicePromotions: React.FC = () => {
       badgeLabel: badgeLabel.trim() || 'Promo del mes',
       title: title.trim(),
       description: description.trim(),
+      imageUrl: imageUrl.trim() || undefined,
+      highlights: highlights.trim() || undefined,
       startsAt: startsAt || undefined,
       endsAt: endsAt || undefined,
     });
@@ -33,6 +37,8 @@ export const ServicePromotions: React.FC = () => {
     setDescription('');
     setStartsAt('');
     setEndsAt('');
+    setImageUrl('');
+    setHighlights('');
   };
 
   const isCurrentlyVigent = (p: { startsAt?: string | null; endsAt?: string | null }) => {
@@ -102,6 +108,32 @@ export const ServicePromotions: React.FC = () => {
           />
         </div>
         <div className="flex flex-wrap items-end gap-2">
+          <div className="flex-1 min-w-[220px]">
+            <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
+              Imagen (opcional) — ruta /images/promos/... o URL
+            </label>
+            <input
+              type="text"
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+              placeholder="/images/promos/camaras-cercos.jpg"
+              className="w-full text-xs px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg"
+            />
+          </div>
+          <div className="flex-1 min-w-[220px]">
+            <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
+              Bullets separados por "|" (opcional)
+            </label>
+            <input
+              type="text"
+              value={highlights}
+              onChange={(e) => setHighlights(e.target.value)}
+              placeholder="Más seguridad|Monitoreo 24/7|Técnicos certificados"
+              className="w-full text-xs px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg"
+            />
+          </div>
+        </div>
+        <div className="flex flex-wrap items-end gap-2">
           <div>
             <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">Desde (opcional)</label>
             <input
@@ -139,18 +171,32 @@ export const ServicePromotions: React.FC = () => {
             return (
               <div key={p.id} className="rounded-lg border border-slate-200 dark:border-slate-700 p-3">
                 <div className="flex flex-wrap items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <span className="inline-block text-[9px] font-bold uppercase tracking-wider text-teal-700 dark:text-teal-400 mb-1">
-                      {p.badgeLabel} · {p.rubro}
-                    </span>
-                    <b className="block text-xs text-slate-900 dark:text-slate-100">{p.title}</b>
-                    <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">{p.description}</p>
-                    {(p.startsAt || p.endsAt) && (
-                      <div className="flex items-center gap-1 mt-1 text-[10px] text-slate-500 dark:text-slate-400">
-                        <Calendar className="w-3 h-3" />
-                        {p.startsAt || '…'} → {p.endsAt || '…'}
-                      </div>
+                  <div className="min-w-0 flex items-start gap-2.5">
+                    {p.imageUrl && (
+                      <img
+                        src={p.imageUrl}
+                        alt=""
+                        className="w-14 h-14 rounded-lg object-cover border border-slate-200 dark:border-slate-700 shrink-0"
+                      />
                     )}
+                    <div className="min-w-0">
+                      <span className="inline-block text-[9px] font-bold uppercase tracking-wider text-teal-700 dark:text-teal-400 mb-1">
+                        {p.badgeLabel} · {p.rubro}
+                      </span>
+                      <b className="block text-xs text-slate-900 dark:text-slate-100">{p.title}</b>
+                      <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">{p.description}</p>
+                      {p.highlights && (
+                        <p className="text-[10px] text-teal-700 dark:text-teal-400 mt-0.5">
+                          {p.highlights.split('|').map((h) => h.trim()).filter(Boolean).join(' · ')}
+                        </p>
+                      )}
+                      {(p.startsAt || p.endsAt) && (
+                        <div className="flex items-center gap-1 mt-1 text-[10px] text-slate-500 dark:text-slate-400">
+                          <Calendar className="w-3 h-3" />
+                          {p.startsAt || '…'} → {p.endsAt || '…'}
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
                     <button

@@ -516,6 +516,8 @@ export async function persistCreateServicePromotion(
       badge_label: input.badgeLabel.trim(),
       title: input.title.trim(),
       description: input.description.trim(),
+      image_url: input.imageUrl?.trim() || null,
+      highlights: input.highlights?.trim() || null,
       starts_at: input.startsAt || null,
       ends_at: input.endsAt || null,
     })
