@@ -492,12 +492,15 @@ export type ProspectiveTechnicianInput = {
   specialty?: string;
 };
 
-/** Promo del mes gestionada por el admin, mostrada en el dashboard del
- * cliente (/customer) cuando no tiene un servicio en curso — ver
- * src/components/admin/ServicePromotions.tsx y
+/** Banner de publicidad del editor de página del admin, mostrado en el
+ * dashboard del cliente (/customer) cuando no tiene un servicio en curso —
+ * ver src/components/admin/HomePageEditor.tsx y
  * src/components/client/CustomerPromoBanner.tsx. Es contenido informativo,
- * no toca precios reales de servicios. */
-export interface ServicePromotion {
+ * no toca precios reales de servicios. Soporta imagen, gif o video (mp4)
+ * subidos desde el panel — ver pedido de Sandy del 16/9. */
+export type HomeBannerMediaType = 'image' | 'gif' | 'video';
+
+export interface HomeBanner {
   id: string;
   rubro: string;
   badgeLabel: string;
@@ -506,23 +509,56 @@ export interface ServicePromotion {
   isActive: boolean;
   startsAt?: string | null;
   endsAt?: string | null;
-  /** Ruta estática (/images/promos/...) o URL externa ya hosteada. Sin
-   * imagen, el banner cae al estilo solo-texto. */
-  imageUrl?: string | null;
+  /** Ruta subida a Storage (bucket home-banners) o URL externa ya
+   * hosteada. Sin media, el banner cae al estilo solo-texto. */
+  mediaUrl?: string | null;
+  mediaType: HomeBannerMediaType;
   /** Bullets cortos separados por "|" (ej. "Más seguridad|Monitoreo 24/7"). */
   highlights?: string | null;
+  /** Ruta a la que navega el botón. Si es null, se usa /customer/solicitar. */
+  linkPath?: string | null;
+  /** Texto del botón. Si es null, se usa "Ver servicios". */
+  ctaLabel?: string | null;
+  displayOrder: number;
   createdAt: string;
 }
 
-export type ServicePromotionInput = {
+export type HomeBannerInput = {
   rubro: string;
   badgeLabel: string;
   title: string;
   description: string;
-  imageUrl?: string;
+  mediaUrl?: string;
+  mediaType?: HomeBannerMediaType;
   highlights?: string;
+  linkPath?: string;
+  ctaLabel?: string;
   startsAt?: string;
   endsAt?: string;
+};
+
+/** Tarjeta linkeable del panel del cliente (ej. "Solicitar Servicio", "Mis
+ * Solicitudes", "Garantía", "Soporte") — 100% editable por el admin: puede
+ * agregar/quitar cualquiera y linkearla a donde quiera. Reemplazan las
+ * cápsulas hardcodeadas del header de CustomerView. Ver
+ * src/components/admin/HomePageEditor.tsx. */
+export interface HomeCard {
+  id: string;
+  /** Nombre de ícono de lucide-react elegido en la grilla del editor. */
+  icon: string;
+  title: string;
+  description?: string | null;
+  linkPath: string;
+  isActive: boolean;
+  displayOrder: number;
+  createdAt: string;
+}
+
+export type HomeCardInput = {
+  icon: string;
+  title: string;
+  description?: string;
+  linkPath: string;
 };
 
 export interface MaterialInventory {

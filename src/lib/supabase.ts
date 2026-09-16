@@ -151,7 +151,7 @@ export type DbProspectiveTechnician = {
   created_at: string;
 };
 
-export type DbServicePromotion = {
+export type DbHomeBanner = {
   id: string;
   rubro: string;
   badge_label: string;
@@ -160,8 +160,23 @@ export type DbServicePromotion = {
   is_active: boolean;
   starts_at: string | null;
   ends_at: string | null;
-  image_url: string | null;
+  media_url: string | null;
+  media_type: 'image' | 'gif' | 'video';
   highlights: string | null;
+  link_path: string | null;
+  cta_label: string | null;
+  display_order: number;
+  created_at: string;
+};
+
+export type DbHomeCard = {
+  id: string;
+  icon: string;
+  title: string;
+  description: string | null;
+  link_path: string;
+  is_active: boolean;
+  display_order: number;
   created_at: string;
 };
 

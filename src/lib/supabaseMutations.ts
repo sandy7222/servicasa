@@ -18,12 +18,15 @@ import type {
   ProspectiveTechnician,
   ProspectiveTechnicianInput,
   ProspectiveTechnicianStatus,
-  ServicePromotion,
-  ServicePromotionInput,
+  HomeBanner,
+  HomeBannerInput,
+  HomeBannerMediaType,
+  HomeCard,
+  HomeCardInput,
 } from '../types';
 import { supabase } from './supabase';
-import { mapCatalogCategory, mapCatalogSubcategory, mapCustomer, mapMaterial, mapOrder, mapService, mapTechnician, mapProspectiveTechnician, mapServicePromotion } from './supabaseData';
-import type { DbCategory, DbCustomer, DbMaterial, DbService, DbServiceOrder, DbSubcategory, DbTechnician, DbProspectiveTechnician, DbServicePromotion } from './supabase';
+import { mapCatalogCategory, mapCatalogSubcategory, mapCustomer, mapMaterial, mapOrder, mapService, mapTechnician, mapProspectiveTechnician, mapHomeBanner, mapHomeCard } from './supabaseData';
+import type { DbCategory, DbCustomer, DbMaterial, DbService, DbServiceOrder, DbSubcategory, DbTechnician, DbProspectiveTechnician, DbHomeBanner, DbHomeCard } from './supabase';
 
 function throwIfError(error: { message: string } | null) {
   if (error) throw new Error(error.message);
@@ -506,35 +509,171 @@ export async function persistDeleteProspectiveTechnician(id: string): Promise<vo
   throwIfError(error);
 }
 
-export async function persistCreateServicePromotion(
-  input: ServicePromotionInput
-): Promise<ServicePromotion> {
+/** Sube el archivo (jpg/png/gif/mp4) elegido en el editor de admin al
+ * bucket público `home-banners` (ver migración create_home_banners_storage_bucket
+ * — solo admin puede escribir, RLS de storage.objects) y devuelve la URL
+ * pública lista para guardar en media_url + el media_type detectado por
+ * MIME. Nombre de archivo random para evitar colisiones entre banners. */
+export async function uploadHomeBannerMedia(
+  file: File
+): Promise<{ url: string; mediaType: HomeBannerMediaType }> {
+  const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+  const path = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const { error } = await supabase.storage.from('home-banners').upload(path, file, {
+    cacheControl: '3600',
+    upsert: false,
+  });
+  throwIfError(error);
+  const { data } = supabase.storage.from('home-banners').getPublicUrl(path);
+  const mediaType: HomeBannerMediaType = file.type.startsWith('video/')
+    ? 'video'
+    : file.type === 'image/gif'
+    ? 'gif'
+    : 'image';
+  return { url: data.publicUrl, mediaType };
+}
+
+/** Editor de página del admin — banners (ver
+ * src/components/admin/HomePageEditor.tsx). `displayOrder` se calcula al
+ * crear (al final de la lista); para reordenar existentes se usa
+ * persistSwapHomeBannerOrder, igual que categories/subcategories. */
+export async function persistCreateHomeBanner(input: HomeBannerInput): Promise<HomeBanner> {
+  const { data: maxRow } = await supabase
+    .from('customer_home_banners')
+    .select('display_order')
+    .order('display_order', { ascending: false })
+    .limit(1)
+    .maybeSingle();
   const { data, error } = await supabase
-    .from('service_promotions')
+    .from('customer_home_banners')
     .insert({
       rubro: input.rubro.trim(),
       badge_label: input.badgeLabel.trim(),
       title: input.title.trim(),
       description: input.description.trim(),
-      image_url: input.imageUrl?.trim() || null,
+      media_url: input.mediaUrl?.trim() || null,
+      media_type: input.mediaType || 'image',
       highlights: input.highlights?.trim() || null,
+      link_path: input.linkPath?.trim() || null,
+      cta_label: input.ctaLabel?.trim() || null,
       starts_at: input.startsAt || null,
       ends_at: input.endsAt || null,
+      display_order: (maxRow?.display_order ?? -1) + 1,
     })
     .select('*')
     .single();
   throwIfError(error);
-  return mapServicePromotion(data as DbServicePromotion);
+  return mapHomeBanner(data as DbHomeBanner);
 }
 
-export async function persistUpdateServicePromotionActive(id: string, isActive: boolean): Promise<void> {
-  const { error } = await supabase.from('service_promotions').update({ is_active: isActive }).eq('id', id);
+export async function persistUpdateHomeBanner(id: string, input: HomeBannerInput): Promise<HomeBanner> {
+  const { data, error } = await supabase
+    .from('customer_home_banners')
+    .update({
+      rubro: input.rubro.trim(),
+      badge_label: input.badgeLabel.trim(),
+      title: input.title.trim(),
+      description: input.description.trim(),
+      media_url: input.mediaUrl?.trim() || null,
+      media_type: input.mediaType || 'image',
+      highlights: input.highlights?.trim() || null,
+      link_path: input.linkPath?.trim() || null,
+      cta_label: input.ctaLabel?.trim() || null,
+      starts_at: input.startsAt || null,
+      ends_at: input.endsAt || null,
+    })
+    .eq('id', id)
+    .select('*')
+    .single();
+  throwIfError(error);
+  return mapHomeBanner(data as DbHomeBanner);
+}
+
+export async function persistUpdateHomeBannerActive(id: string, isActive: boolean): Promise<void> {
+  const { error } = await supabase.from('customer_home_banners').update({ is_active: isActive }).eq('id', id);
   throwIfError(error);
 }
 
-export async function persistDeleteServicePromotion(id: string): Promise<void> {
-  const { error } = await supabase.from('service_promotions').delete().eq('id', id);
+export async function persistDeleteHomeBanner(id: string): Promise<void> {
+  const { error } = await supabase.from('customer_home_banners').delete().eq('id', id);
   throwIfError(error);
+}
+
+/** Swaps display_order between two banners (flechas subir/bajar del editor). */
+export async function persistSwapHomeBannerOrder(idA: string, idB: string): Promise<void> {
+  const { data: rows, error } = await supabase.from('customer_home_banners').select('id, display_order').in('id', [idA, idB]);
+  throwIfError(error);
+  const a = (rows ?? []).find((r) => r.id === idA);
+  const b = (rows ?? []).find((r) => r.id === idB);
+  if (!a || !b) throw new Error('No se encontraron los banners a reordenar.');
+  const { error: errorA } = await supabase.from('customer_home_banners').update({ display_order: b.display_order }).eq('id', a.id);
+  throwIfError(errorA);
+  const { error: errorB } = await supabase.from('customer_home_banners').update({ display_order: a.display_order }).eq('id', b.id);
+  throwIfError(errorB);
+}
+
+/** Editor de página del admin — tarjetas linkeables (ver
+ * src/components/admin/HomePageEditor.tsx). Reemplazan las cápsulas
+ * hardcodeadas del header del cliente. */
+export async function persistCreateHomeCard(input: HomeCardInput): Promise<HomeCard> {
+  const { data: maxRow } = await supabase
+    .from('customer_home_cards')
+    .select('display_order')
+    .order('display_order', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const { data, error } = await supabase
+    .from('customer_home_cards')
+    .insert({
+      icon: input.icon,
+      title: input.title.trim(),
+      description: input.description?.trim() || null,
+      link_path: input.linkPath.trim(),
+      display_order: (maxRow?.display_order ?? -1) + 1,
+    })
+    .select('*')
+    .single();
+  throwIfError(error);
+  return mapHomeCard(data as DbHomeCard);
+}
+
+export async function persistUpdateHomeCard(id: string, input: HomeCardInput): Promise<HomeCard> {
+  const { data, error } = await supabase
+    .from('customer_home_cards')
+    .update({
+      icon: input.icon,
+      title: input.title.trim(),
+      description: input.description?.trim() || null,
+      link_path: input.linkPath.trim(),
+    })
+    .eq('id', id)
+    .select('*')
+    .single();
+  throwIfError(error);
+  return mapHomeCard(data as DbHomeCard);
+}
+
+export async function persistUpdateHomeCardActive(id: string, isActive: boolean): Promise<void> {
+  const { error } = await supabase.from('customer_home_cards').update({ is_active: isActive }).eq('id', id);
+  throwIfError(error);
+}
+
+export async function persistDeleteHomeCard(id: string): Promise<void> {
+  const { error } = await supabase.from('customer_home_cards').delete().eq('id', id);
+  throwIfError(error);
+}
+
+/** Swaps display_order between two cards (flechas subir/bajar del editor). */
+export async function persistSwapHomeCardOrder(idA: string, idB: string): Promise<void> {
+  const { data: rows, error } = await supabase.from('customer_home_cards').select('id, display_order').in('id', [idA, idB]);
+  throwIfError(error);
+  const a = (rows ?? []).find((r) => r.id === idA);
+  const b = (rows ?? []).find((r) => r.id === idB);
+  if (!a || !b) throw new Error('No se encontraron las tarjetas a reordenar.');
+  const { error: errorA } = await supabase.from('customer_home_cards').update({ display_order: b.display_order }).eq('id', a.id);
+  throwIfError(errorA);
+  const { error: errorB } = await supabase.from('customer_home_cards').update({ display_order: a.display_order }).eq('id', b.id);
+  throwIfError(errorB);
 }
 
 export async function persistCreateMaterial(

@@ -18,7 +18,6 @@ import {
   ArrowLeft,
   Trash2,
   MessageCircle,
-  ShieldAlert,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useApp } from '../context/AppContext';
@@ -36,6 +35,7 @@ import { AssignedTechnicianCard } from '../components/client/AssignedTechnicianC
 import { OrderRatingCard } from '../components/client/OrderRatingCard';
 import { ConversationsPanel } from '../components/common/ConversationsPanel';
 import { CustomerPromoBanner } from '../components/client/CustomerPromoBanner';
+import { CustomerHomeCards } from '../components/client/CustomerHomeCards';
 import { startOrderConversation } from '../lib/conversations';
 import { fetchPendingDraft, retryDraftPayment, type PendingCustomerDraft } from '../lib/paymentClient';
 
@@ -168,37 +168,6 @@ export const CustomerView: React.FC = () => {
               </div>
             </div>
 
-            {/* Cápsulas a páginas dedicadas — mismo patrón que las de
-                TechnicianView.tsx (Ganancias, Historial, etc.). "Mi Perfil" y
-                "Mis direcciones" NO van acá: se acceden desde Ajustes, igual
-                que "Mi perfil"/"Zona de trabajo" del técnico. */}
-            <div className="hidden sm:flex items-center gap-2">
-              <button onClick={() => navigate('/customer/solicitar')} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-bold text-slate-200 hover:border-teal-500/60 hover:text-teal-300">
-                <Wrench className="w-3.5 h-3.5" /> Solicitar un servicio
-              </button>
-              <button onClick={() => navigate('/customer/reclamos')} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-bold text-slate-200 hover:border-teal-500/60 hover:text-teal-300">
-                <ShieldAlert className="w-3.5 h-3.5" /> Reclamos y garantías
-              </button>
-            </div>
-          </div>
-
-          {/* Mobile-only quick access: las cápsulas de arriba están ocultas
-              debajo de sm, así que sin esta tira no hay forma de llegar a
-              estas sub-páginas desde el celular (mismo patrón que
-              TechnicianView.tsx). */}
-          <div className="flex sm:hidden items-center gap-1.5 overflow-x-auto pb-1 -mx-3 px-3 mt-2">
-            {[
-              { path: '/customer/solicitar', label: 'Solicitar un servicio', icon: Wrench },
-              { path: '/customer/reclamos', label: 'Reclamos y garantías', icon: ShieldAlert },
-            ].map(({ path, label, icon: Icon }) => (
-              <button
-                key={path}
-                onClick={() => navigate(path)}
-                className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1.5 text-[11px] font-bold text-slate-200 whitespace-nowrap"
-              >
-                <Icon className="w-3.5 h-3.5" /> {label}
-              </button>
-            ))}
           </div>
         </div>
       </div>
@@ -207,6 +176,8 @@ export const CustomerView: React.FC = () => {
         {!isDetailPage && (
           <>
             <CustomerPromoBanner orders={customerOrders} />
+            <div className="h-4" />
+            <CustomerHomeCards />
             <div className="h-4" />
           </>
         )}

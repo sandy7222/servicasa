@@ -13,7 +13,8 @@ import type {
   TechnicalNote,
   TechnicianApplication,
   ProspectiveTechnician,
-  ServicePromotion,
+  HomeBanner,
+  HomeCard,
   Technician,
   TimeLog,
   UsedMaterial,
@@ -32,7 +33,8 @@ import type {
   DbTechnician,
   DbTechnicianApplication,
   DbProspectiveTechnician,
-  DbServicePromotion,
+  DbHomeBanner,
+  DbHomeCard,
 } from './supabase';
 import { supabase } from './supabase';
 
@@ -354,7 +356,7 @@ export async function fetchProspectiveTechnicians(): Promise<ProspectiveTechnici
   return (data as DbProspectiveTechnician[]).map(mapProspectiveTechnician);
 }
 
-export function mapServicePromotion(row: DbServicePromotion): ServicePromotion {
+export function mapHomeBanner(row: DbHomeBanner): HomeBanner {
   return {
     id: row.id,
     rubro: row.rubro,
@@ -364,23 +366,53 @@ export function mapServicePromotion(row: DbServicePromotion): ServicePromotion {
     isActive: row.is_active,
     startsAt: row.starts_at ?? undefined,
     endsAt: row.ends_at ?? undefined,
-    imageUrl: row.image_url ?? undefined,
+    mediaUrl: row.media_url ?? undefined,
+    mediaType: row.media_type,
     highlights: row.highlights ?? undefined,
+    linkPath: row.link_path ?? undefined,
+    ctaLabel: row.cta_label ?? undefined,
+    displayOrder: row.display_order,
     createdAt: row.created_at,
   };
 }
 
-/** Promos del mes (ver src/components/admin/ServicePromotions.tsx). Se
- * traen todas (activas e inactivas) para cualquier usuario logueado —mismo
- * criterio que categories/services— y el cliente decide cuál mostrar según
- * is_active + vigencia (ver CustomerPromoBanner.tsx). */
-export async function fetchServicePromotions(): Promise<ServicePromotion[]> {
+/** Banners del editor de página del admin (ver
+ * src/components/admin/HomePageEditor.tsx). Se traen todos (activos e
+ * inactivos) para cualquier usuario logueado —mismo criterio que
+ * categories/services— y el cliente decide cuáles mostrar según is_active +
+ * vigencia (ver CustomerPromoBanner.tsx). Orden = display_order. */
+export async function fetchHomeBanners(): Promise<HomeBanner[]> {
   const { data, error } = await supabase
-    .from('service_promotions')
+    .from('customer_home_banners')
     .select('*')
-    .order('created_at', { ascending: false });
+    .order('display_order', { ascending: true });
   if (error) throw error;
-  return (data as DbServicePromotion[]).map(mapServicePromotion);
+  return (data as DbHomeBanner[]).map(mapHomeBanner);
+}
+
+export function mapHomeCard(row: DbHomeCard): HomeCard {
+  return {
+    id: row.id,
+    icon: row.icon,
+    title: row.title,
+    description: row.description ?? undefined,
+    linkPath: row.link_path,
+    isActive: row.is_active,
+    displayOrder: row.display_order,
+    createdAt: row.created_at,
+  };
+}
+
+/** Tarjetas linkeables del panel del cliente (ver
+ * src/components/admin/HomePageEditor.tsx). Mismo criterio que
+ * fetchHomeBanners: se traen todas, el cliente filtra por is_active. */
+export async function fetchHomeCards(): Promise<HomeCard[]> {
+  const { data, error } = await supabase
+    .from('customer_home_cards')
+    .select('*')
+    .order('display_order', { ascending: true });
+  if (error) throw error;
+  return (data as DbHomeCard[]).map(mapHomeCard);
 }
 
 // Columnas de `technicians` seguras para cualquier usuario autenticado que

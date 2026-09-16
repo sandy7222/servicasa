@@ -16,7 +16,8 @@ import {
   fetchPublicServices,
   fetchTechnicianApplications,
   fetchProspectiveTechnicians,
-  fetchServicePromotions,
+  fetchHomeBanners,
+  fetchHomeCards,
   fetchVisitDepositAmount,
   fetchVisitSettlementCommissionRate,
   profileToCurrentUser,
@@ -61,9 +62,16 @@ import {
   persistCreateProspectiveTechnician,
   persistUpdateProspectiveTechnicianStatus,
   persistDeleteProspectiveTechnician,
-  persistCreateServicePromotion,
-  persistUpdateServicePromotionActive,
-  persistDeleteServicePromotion,
+  persistCreateHomeBanner,
+  persistUpdateHomeBanner,
+  persistUpdateHomeBannerActive,
+  persistDeleteHomeBanner,
+  persistSwapHomeBannerOrder,
+  persistCreateHomeCard,
+  persistUpdateHomeCard,
+  persistUpdateHomeCardActive,
+  persistDeleteHomeCard,
+  persistSwapHomeCardOrder,
   persistSelfRegisterTechnician,
   persistDeleteCustomer,
   persistDeleteMaterial,
@@ -118,8 +126,10 @@ import {
   ProspectiveTechnician,
   ProspectiveTechnicianInput,
   ProspectiveTechnicianStatus,
-  ServicePromotion,
-  ServicePromotionInput,
+  HomeBanner,
+  HomeBannerInput,
+  HomeCard,
+  HomeCardInput,
   TechnicianRegistrationInput,
   TechnicianInput,
   UserRole,
@@ -174,10 +184,18 @@ interface AppContextType {
   addProspectiveTechnician: (input: ProspectiveTechnicianInput) => string;
   updateProspectiveTechnicianStatus: (id: string, status: ProspectiveTechnicianStatus) => void;
   deleteProspectiveTechnician: (id: string) => void;
-  servicePromotions: ServicePromotion[];
-  addServicePromotion: (input: ServicePromotionInput) => void;
-  updateServicePromotionActive: (id: string, isActive: boolean) => void;
-  deleteServicePromotion: (id: string) => void;
+  homeBanners: HomeBanner[];
+  addHomeBanner: (input: HomeBannerInput) => void;
+  updateHomeBanner: (id: string, input: HomeBannerInput) => void;
+  updateHomeBannerActive: (id: string, isActive: boolean) => void;
+  deleteHomeBanner: (id: string) => void;
+  swapHomeBannerOrder: (idA: string, idB: string) => void;
+  homeCards: HomeCard[];
+  addHomeCard: (input: HomeCardInput) => void;
+  updateHomeCard: (id: string, input: HomeCardInput) => void;
+  updateHomeCardActive: (id: string, isActive: boolean) => void;
+  deleteHomeCard: (id: string) => void;
+  swapHomeCardOrder: (idA: string, idB: string) => void;
   createAccountInviteLink: (kind: 'technician' | 'customer', targetId: string) => Promise<string>;
   logout: () => Promise<void>;
   refreshRemoteData: () => Promise<void>;
@@ -386,7 +404,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [visitSettlementCommissionRate, setVisitSettlementCommissionRate] = useState(0.15);
   const [technicianApplications, setTechnicianApplications] = useState<TechnicianApplication[]>([]);
   const [prospectiveTechnicians, setProspectiveTechnicians] = useState<ProspectiveTechnician[]>([]);
-  const [servicePromotions, setServicePromotions] = useState<ServicePromotion[]>([]);
+  const [homeBanners, setHomeBanners] = useState<HomeBanner[]>([]);
+  const [homeCards, setHomeCards] = useState<HomeCard[]>([]);
 
   // Real Supabase-backed categories/subcategories (plan-categorias-subcategorias.md
   // Fase 4 — replaces the old localStorage-only `serviceCategories`/
@@ -471,10 +490,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setCurrentUserState(profileToCurrentUser(profile));
       fetchVisitDepositAmount().then(setVisitDepositAmount).catch(() => {});
       fetchVisitSettlementCommissionRate().then(setVisitSettlementCommissionRate).catch(() => {});
-      // Promos del mes: se traen para cualquier rol logueado (admin las
-      // administra, cliente las ve en su dashboard) — mismo criterio que
-      // categories/services, no solo admin.
-      fetchServicePromotions().then(setServicePromotions).catch(() => {});
+      // Banners y tarjetas del editor de página: se traen para cualquier rol
+      // logueado (admin los administra, cliente los ve en su dashboard) —
+      // mismo criterio que categories/services, no solo admin.
+      fetchHomeBanners().then(setHomeBanners).catch(() => {});
+      fetchHomeCards().then(setHomeCards).catch(() => {});
       if (profile.role === 'admin') {
         fetchTechnicianApplications().then(setTechnicianApplications).catch(() => {});
         fetchProspectiveTechnicians().then(setProspectiveTechnicians).catch(() => {});
@@ -499,7 +519,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setMaterials(INITIAL_MATERIALS);
     setTechnicianApplications([]);
     setProspectiveTechnicians([]);
-    setServicePromotions([]);
+    setHomeBanners([]);
+    setHomeCards([]);
     void loadPublicServices();
   };
 
@@ -525,9 +546,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       console.warn('[TecniUrbano] No se pudo cargar categorías/subcategorías públicas', err);
     }
     try {
-      setServicePromotions(await fetchServicePromotions());
+      setHomeBanners(await fetchHomeBanners());
     } catch (err) {
-      console.warn('[TecniUrbano] No se pudo cargar promos públicas', err);
+      console.warn('[TecniUrbano] No se pudo cargar banners públicos', err);
+    }
+    try {
+      setHomeCards(await fetchHomeCards());
+    } catch (err) {
+      console.warn('[TecniUrbano] No se pudo cargar tarjetas públicas', err);
     }
   };
 
@@ -2520,14 +2546,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  // Promos del mes (ver src/components/admin/ServicePromotions.tsx y
-  // src/components/client/CustomerPromoBanner.tsx). El admin las carga y
-  // activa/desactiva; no tienen edición de texto post-creación en esta
-  // primera versión, solo alta, activar/desactivar y borrar.
-  const addServicePromotion = (input: ServicePromotionInput) => {
+  // Editor de página del admin: banners (ver
+  // src/components/admin/HomePageEditor.tsx y
+  // src/components/client/CustomerPromoBanner.tsx) y tarjetas linkeables
+  // que reemplazan las cápsulas hardcodeadas del header del cliente. El
+  // admin puede crear, editar texto/media/link, activar/desactivar,
+  // reordenar y borrar — sin tocar código. Ver pedido de Sandy del 16/9.
+  const addHomeBanner = (input: HomeBannerInput) => {
+    const maxOrder = homeBanners.reduce((max, b) => Math.max(max, b.displayOrder), -1);
     if (usingRemoteData) {
-      const tempId = `tmp-promo-${Date.now()}`;
-      const tempPromo: ServicePromotion = {
+      const tempId = `tmp-banner-${Date.now()}`;
+      const tempBanner: HomeBanner = {
         id: tempId,
         rubro: input.rubro,
         badgeLabel: input.badgeLabel,
@@ -2536,26 +2565,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         isActive: true,
         startsAt: input.startsAt,
         endsAt: input.endsAt,
-        imageUrl: input.imageUrl,
+        mediaUrl: input.mediaUrl,
+        mediaType: input.mediaType || 'image',
         highlights: input.highlights,
+        linkPath: input.linkPath,
+        ctaLabel: input.ctaLabel,
+        displayOrder: maxOrder + 1,
         createdAt: new Date().toISOString(),
       };
-      setServicePromotions((prev) => [tempPromo, ...prev]);
+      setHomeBanners((prev) => [...prev, tempBanner]);
       void withRemote(async () => {
         try {
-          const created = await persistCreateServicePromotion(input);
-          setServicePromotions((prev) => [created, ...prev.filter((p) => p.id !== tempId)]);
-          showToast('Promo creada', 'success');
+          const created = await persistCreateHomeBanner(input);
+          setHomeBanners((prev) => [...prev.filter((p) => p.id !== tempId), created]);
+          showToast('Banner creado', 'success');
         } catch (err) {
-          setServicePromotions((prev) => prev.filter((p) => p.id !== tempId));
-          showToast(friendlyErrorMessage(err, 'Error al crear la promo'), 'error');
+          setHomeBanners((prev) => prev.filter((p) => p.id !== tempId));
+          showToast(friendlyErrorMessage(err, 'Error al crear el banner'), 'error');
         }
       });
       return;
     }
 
-    const newPromo: ServicePromotion = {
-      id: `promo-${Math.random().toString(36).substring(2, 7)}`,
+    const newBanner: HomeBanner = {
+      id: `banner-${Math.random().toString(36).substring(2, 7)}`,
       rubro: input.rubro,
       badgeLabel: input.badgeLabel,
       title: input.title,
@@ -2563,28 +2596,171 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       isActive: true,
       startsAt: input.startsAt,
       endsAt: input.endsAt,
-      imageUrl: input.imageUrl,
+      mediaUrl: input.mediaUrl,
+      mediaType: input.mediaType || 'image',
       highlights: input.highlights,
+      linkPath: input.linkPath,
+      ctaLabel: input.ctaLabel,
+      displayOrder: maxOrder + 1,
       createdAt: new Date().toISOString(),
     };
-    setServicePromotions((prev) => [newPromo, ...prev]);
-    showToast('Promo creada', 'success');
+    setHomeBanners((prev) => [...prev, newBanner]);
+    showToast('Banner creado', 'success');
   };
 
-  const updateServicePromotionActive = (id: string, isActive: boolean) => {
-    setServicePromotions((prev) => prev.map((p) => (p.id === id ? { ...p, isActive } : p)));
-    if (usingRemoteData && !id.startsWith('tmp-promo-') && !id.startsWith('promo-')) {
-      void withRemote(() => persistUpdateServicePromotionActive(id, isActive)).catch((err) => {
-        showToast(friendlyErrorMessage(err, 'No se pudo actualizar la promo'), 'error');
+  const updateHomeBanner = (id: string, input: HomeBannerInput) => {
+    setHomeBanners((prev) =>
+      prev.map((b) =>
+        b.id === id
+          ? {
+              ...b,
+              rubro: input.rubro,
+              badgeLabel: input.badgeLabel,
+              title: input.title,
+              description: input.description,
+              startsAt: input.startsAt,
+              endsAt: input.endsAt,
+              mediaUrl: input.mediaUrl,
+              mediaType: input.mediaType || 'image',
+              highlights: input.highlights,
+              linkPath: input.linkPath,
+              ctaLabel: input.ctaLabel,
+            }
+          : b
+      )
+    );
+    if (usingRemoteData && !id.startsWith('tmp-banner-') && !id.startsWith('banner-')) {
+      void withRemote(() => persistUpdateHomeBanner(id, input)).catch((err) => {
+        showToast(friendlyErrorMessage(err, 'No se pudo actualizar el banner'), 'error');
       });
     }
   };
 
-  const deleteServicePromotion = (id: string) => {
-    setServicePromotions((prev) => prev.filter((p) => p.id !== id));
-    if (usingRemoteData && !id.startsWith('tmp-promo-') && !id.startsWith('promo-')) {
-      void withRemote(() => persistDeleteServicePromotion(id)).catch((err) => {
-        showToast(friendlyErrorMessage(err, 'No se pudo eliminar la promo'), 'error');
+  const updateHomeBannerActive = (id: string, isActive: boolean) => {
+    setHomeBanners((prev) => prev.map((p) => (p.id === id ? { ...p, isActive } : p)));
+    if (usingRemoteData && !id.startsWith('tmp-banner-') && !id.startsWith('banner-')) {
+      void withRemote(() => persistUpdateHomeBannerActive(id, isActive)).catch((err) => {
+        showToast(friendlyErrorMessage(err, 'No se pudo actualizar el banner'), 'error');
+      });
+    }
+  };
+
+  const deleteHomeBanner = (id: string) => {
+    setHomeBanners((prev) => prev.filter((p) => p.id !== id));
+    if (usingRemoteData && !id.startsWith('tmp-banner-') && !id.startsWith('banner-')) {
+      void withRemote(() => persistDeleteHomeBanner(id)).catch((err) => {
+        showToast(friendlyErrorMessage(err, 'No se pudo eliminar el banner'), 'error');
+      });
+    }
+  };
+
+  const swapHomeBannerOrder = (idA: string, idB: string) => {
+    setHomeBanners((prev) => {
+      const a = prev.find((p) => p.id === idA);
+      const b = prev.find((p) => p.id === idB);
+      if (!a || !b) return prev;
+      return prev.map((p) => {
+        if (p.id === idA) return { ...p, displayOrder: b.displayOrder };
+        if (p.id === idB) return { ...p, displayOrder: a.displayOrder };
+        return p;
+      });
+    });
+    if (usingRemoteData) {
+      void withRemote(() => persistSwapHomeBannerOrder(idA, idB)).catch((err) => {
+        showToast(friendlyErrorMessage(err, 'No se pudo reordenar'), 'error');
+      });
+    }
+  };
+
+  const addHomeCard = (input: HomeCardInput) => {
+    const maxOrder = homeCards.reduce((max, c) => Math.max(max, c.displayOrder), -1);
+    if (usingRemoteData) {
+      const tempId = `tmp-card-${Date.now()}`;
+      const tempCard: HomeCard = {
+        id: tempId,
+        icon: input.icon,
+        title: input.title,
+        description: input.description,
+        linkPath: input.linkPath,
+        isActive: true,
+        displayOrder: maxOrder + 1,
+        createdAt: new Date().toISOString(),
+      };
+      setHomeCards((prev) => [...prev, tempCard]);
+      void withRemote(async () => {
+        try {
+          const created = await persistCreateHomeCard(input);
+          setHomeCards((prev) => [...prev.filter((p) => p.id !== tempId), created]);
+          showToast('Tarjeta creada', 'success');
+        } catch (err) {
+          setHomeCards((prev) => prev.filter((p) => p.id !== tempId));
+          showToast(friendlyErrorMessage(err, 'Error al crear la tarjeta'), 'error');
+        }
+      });
+      return;
+    }
+
+    const newCard: HomeCard = {
+      id: `card-${Math.random().toString(36).substring(2, 7)}`,
+      icon: input.icon,
+      title: input.title,
+      description: input.description,
+      linkPath: input.linkPath,
+      isActive: true,
+      displayOrder: maxOrder + 1,
+      createdAt: new Date().toISOString(),
+    };
+    setHomeCards((prev) => [...prev, newCard]);
+    showToast('Tarjeta creada', 'success');
+  };
+
+  const updateHomeCard = (id: string, input: HomeCardInput) => {
+    setHomeCards((prev) =>
+      prev.map((c) =>
+        c.id === id
+          ? { ...c, icon: input.icon, title: input.title, description: input.description, linkPath: input.linkPath }
+          : c
+      )
+    );
+    if (usingRemoteData && !id.startsWith('tmp-card-') && !id.startsWith('card-')) {
+      void withRemote(() => persistUpdateHomeCard(id, input)).catch((err) => {
+        showToast(friendlyErrorMessage(err, 'No se pudo actualizar la tarjeta'), 'error');
+      });
+    }
+  };
+
+  const updateHomeCardActive = (id: string, isActive: boolean) => {
+    setHomeCards((prev) => prev.map((p) => (p.id === id ? { ...p, isActive } : p)));
+    if (usingRemoteData && !id.startsWith('tmp-card-') && !id.startsWith('card-')) {
+      void withRemote(() => persistUpdateHomeCardActive(id, isActive)).catch((err) => {
+        showToast(friendlyErrorMessage(err, 'No se pudo actualizar la tarjeta'), 'error');
+      });
+    }
+  };
+
+  const deleteHomeCard = (id: string) => {
+    setHomeCards((prev) => prev.filter((p) => p.id !== id));
+    if (usingRemoteData && !id.startsWith('tmp-card-') && !id.startsWith('card-')) {
+      void withRemote(() => persistDeleteHomeCard(id)).catch((err) => {
+        showToast(friendlyErrorMessage(err, 'No se pudo eliminar la tarjeta'), 'error');
+      });
+    }
+  };
+
+  const swapHomeCardOrder = (idA: string, idB: string) => {
+    setHomeCards((prev) => {
+      const a = prev.find((p) => p.id === idA);
+      const b = prev.find((p) => p.id === idB);
+      if (!a || !b) return prev;
+      return prev.map((p) => {
+        if (p.id === idA) return { ...p, displayOrder: b.displayOrder };
+        if (p.id === idB) return { ...p, displayOrder: a.displayOrder };
+        return p;
+      });
+    });
+    if (usingRemoteData) {
+      void withRemote(() => persistSwapHomeCardOrder(idA, idB)).catch((err) => {
+        showToast(friendlyErrorMessage(err, 'No se pudo reordenar'), 'error');
       });
     }
   };
@@ -3045,10 +3221,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addProspectiveTechnician,
         updateProspectiveTechnicianStatus,
         deleteProspectiveTechnician,
-        servicePromotions,
-        addServicePromotion,
-        updateServicePromotionActive,
-        deleteServicePromotion,
+        homeBanners,
+        addHomeBanner,
+        updateHomeBanner,
+        updateHomeBannerActive,
+        deleteHomeBanner,
+        swapHomeBannerOrder,
+        homeCards,
+        addHomeCard,
+        updateHomeCard,
+        updateHomeCardActive,
+        deleteHomeCard,
+        swapHomeCardOrder,
         createAccountInviteLink,
         logout,
         refreshRemoteData,

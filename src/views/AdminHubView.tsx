@@ -62,7 +62,7 @@ import { persistArchiveOrders } from '../lib/supabaseMutations';
 import { downloadArchivedOrdersExcel } from '../lib/exportOrdersExcel';
 import { TechnicianApplications } from '../components/admin/TechnicianApplications';
 import { ProspectiveTechnicians } from '../components/admin/ProspectiveTechnicians';
-import { ServicePromotions } from '../components/admin/ServicePromotions';
+import { HomePageEditor } from '../components/admin/HomePageEditor';
 import { SettlementsHub, usePendingPayoutRequestCount } from '../components/admin/SettlementsHub';
 import { TechnicianContractPanel } from '../components/admin/TechnicianContractPanel';
 import { canTechnicianReceiveOrders } from '../lib/technicianEligibility';
@@ -231,7 +231,8 @@ export const AdminHubView: React.FC = () => {
     updateTechnician,
     deleteTechnician,
     updateProspectiveTechnicianStatus,
-    servicePromotions,
+    homeBanners,
+    homeCards,
     addService,
     updateService,
     deleteService,
@@ -254,7 +255,7 @@ export const AdminHubView: React.FC = () => {
   } = useApp();
 
   // Navigation tab within hub
-  const [activeTab, setActiveTab] = useState<'orders' | 'pendingPayment' | 'customers' | 'technicians' | 'contracts' | 'settlements' | 'inventory' | 'services' | 'categories' | 'promos'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'pendingPayment' | 'customers' | 'technicians' | 'contracts' | 'settlements' | 'inventory' | 'services' | 'categories' | 'pageEditor'>('orders');
   const { count: pendingPayoutRequests, refresh: refreshPayoutQueue } = usePendingPayoutRequestCount(activeTab === 'settlements');
 
   // Filters & search
@@ -1934,16 +1935,16 @@ export const AdminHubView: React.FC = () => {
             </button>
 
             <button
-              onClick={() => setActiveTab('promos')}
+              onClick={() => setActiveTab('pageEditor')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
-                activeTab === 'promos'
+                activeTab === 'pageEditor'
                   ? 'bg-[#0F172A] text-teal-300 shadow-xs border border-slate-800'
                   : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
               }`}
-              id="tab-btn-promos"
+              id="tab-btn-page-editor"
             >
               <Megaphone className="w-3.5 h-3.5" />
-              <span>Promociones ({servicePromotions.length})</span>
+              <span>Página del cliente ({homeBanners.length + homeCards.length})</span>
             </button>
           </div>
         </div>
@@ -3328,10 +3329,10 @@ export const AdminHubView: React.FC = () => {
           </div>
         )}
 
-        {/* ================= TAB: PROMOCIONES ================= */}
-        {activeTab === 'promos' && (
-          <div className="space-y-4" id="admin-promos-tab-content">
-            <ServicePromotions />
+        {/* ================= TAB: PÁGINA DEL CLIENTE (editor) ================= */}
+        {activeTab === 'pageEditor' && (
+          <div className="space-y-4" id="admin-page-editor-tab-content">
+            <HomePageEditor />
           </div>
         )}
       </main>
