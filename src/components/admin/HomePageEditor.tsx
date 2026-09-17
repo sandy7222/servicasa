@@ -15,15 +15,13 @@ import {
 import { useApp } from '../../context/AppContext';
 import { uploadHomeBannerMedia } from '../../lib/supabaseMutations';
 import { HOME_ICON_OPTIONS, getHomeIcon } from '../../lib/homeIcons';
-import type { HomeBanner, HomeBannerInput, HomeBannerMediaType, HomeCard, HomeCardInput } from '../../types';
+import { combineHomeBlocks, isCurrentlyVigent } from '../../lib/homeBlocks';
+import type { HomeBanner, HomeBannerInput, HomeCard, HomeCardInput } from '../../types';
 
 /** Editor de página del admin para el panel del cliente (/customer):
- * banners de publicidad (imagen/gif/video, arriba y abajo) + tarjetas
- * linkeables (reemplazan las cápsulas "Solicitar un servicio"/"Reclamos y
- * garantías" del header). Todo editable sin tocar código — subida de
- * archivos, reordenar con flechas, activar/desactivar, borrar. Ver pedido
- * de Sandy del 16/9 ("editor de pagina" con banners + tarjetas + grilla de
- * íconos). Reemplaza a ServicePromotions.tsx. */
+ * banners y tarjetas en UNA sola secuencia (el admin decide el intercalado
+ * con flechas). Los formularios de alta/edición siguen siendo específicos
+ * de cada tipo. Ver pedido de Sandy del 16/9 y el orden unificado del 17/9. */
 
 type BannerDraft = HomeBannerInput & { id?: string };
 type CardDraft = HomeCardInput & { id?: string };
@@ -49,31 +47,40 @@ const EMPTY_CARD_DRAFT: CardDraft = {
   linkPath: '',
 };
 
-function isCurrentlyVigent(p: { startsAt?: string | null; endsAt?: string | null }): boolean {
-  const today = new Date().toISOString().slice(0, 10);
-  if (p.startsAt && p.startsAt > today) return false;
-  if (p.endsAt && p.endsAt < today) return false;
-  return true;
-}
-
 function statusPillClasses(isActive: boolean, vigent: boolean): string {
   if (!isActive) return 'bg-slate-50 text-slate-500 border-slate-200 dark:bg-slate-950 dark:text-slate-400 dark:border-slate-800';
   if (!vigent) return 'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800';
   return 'bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800';
 }
 
-const BannersSection: React.FC = () => {
-  const { homeBanners, addHomeBanner, updateHomeBanner, updateHomeBannerActive, deleteHomeBanner, swapHomeBannerOrder } =
-    useApp();
-  const [draft, setDraft] = useState<BannerDraft | null>(null);
+export const HomePageEditor: React.FC = () => {
+  const {
+    homeBanners,
+    addHomeBanner,
+    updateHomeBanner,
+    updateHomeBannerActive,
+    deleteHomeBanner,
+    homeCards,
+    addHomeCard,
+    updateHomeCard,
+    updateHomeCardActive,
+    deleteHomeCard,
+    swapHomeBlockOrder,
+  } = useApp();
+  const [bannerDraft, setBannerDraft] = useState<BannerDraft | null>(null);
+  const [cardDraft, setCardDraft] = useState<CardDraft | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const sorted = [...homeBanners].sort((a, b) => a.displayOrder - b.displayOrder);
+  const blocks = combineHomeBlocks(homeBanners, homeCards);
 
-  const openNew = () => setDraft({ ...EMPTY_BANNER_DRAFT });
-  const openEdit = (b: HomeBanner) =>
-    setDraft({
+  const openNewBanner = () => {
+    setCardDraft(null);
+    setBannerDraft({ ...EMPTY_BANNER_DRAFT });
+  };
+  const openEditBanner = (b: HomeBanner) => {
+    setCardDraft(null);
+    setBannerDraft({
       id: b.id,
       rubro: b.rubro,
       badgeLabel: b.badgeLabel,
@@ -87,18 +94,29 @@ const BannersSection: React.FC = () => {
       mediaUrl: b.mediaUrl || '',
       mediaType: b.mediaType,
     });
-  const closeForm = () => {
-    setDraft(null);
+  };
+  const closeBannerForm = () => {
+    setBannerDraft(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const openNewCard = () => {
+    setBannerDraft(null);
+    setCardDraft({ ...EMPTY_CARD_DRAFT });
+  };
+  const openEditCard = (c: HomeCard) => {
+    setBannerDraft(null);
+    setCardDraft({ id: c.id, icon: c.icon, title: c.title, description: c.description || '', linkPath: c.linkPath });
+  };
+  const closeCardForm = () => setCardDraft(null);
+
+  const handleBannerFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !draft) return;
+    if (!file || !bannerDraft) return;
     setUploading(true);
     try {
       const { url, mediaType } = await uploadHomeBannerMedia(file);
-      setDraft((prev) => (prev ? { ...prev, mediaUrl: url, mediaType } : prev));
+      setBannerDraft((prev) => (prev ? { ...prev, mediaUrl: url, mediaType } : prev));
     } catch (err) {
       window.alert(err instanceof Error ? err.message : 'No se pudo subir el archivo.');
     } finally {
@@ -106,64 +124,91 @@ const BannersSection: React.FC = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleBannerSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!draft || !draft.rubro.trim() || !draft.title.trim() || !draft.description.trim()) return;
+    if (!bannerDraft || !bannerDraft.rubro.trim() || !bannerDraft.title.trim() || !bannerDraft.description.trim()) return;
     const input: HomeBannerInput = {
-      rubro: draft.rubro.trim(),
-      badgeLabel: draft.badgeLabel.trim() || 'Promo del mes',
-      title: draft.title.trim(),
-      description: draft.description.trim(),
-      mediaUrl: draft.mediaUrl?.trim() || undefined,
-      mediaType: draft.mediaType,
-      highlights: draft.highlights?.trim() || undefined,
-      linkPath: draft.linkPath?.trim() || undefined,
-      ctaLabel: draft.ctaLabel?.trim() || undefined,
-      startsAt: draft.startsAt || undefined,
-      endsAt: draft.endsAt || undefined,
+      rubro: bannerDraft.rubro.trim(),
+      badgeLabel: bannerDraft.badgeLabel.trim() || 'Promo del mes',
+      title: bannerDraft.title.trim(),
+      description: bannerDraft.description.trim(),
+      mediaUrl: bannerDraft.mediaUrl?.trim() || undefined,
+      mediaType: bannerDraft.mediaType,
+      highlights: bannerDraft.highlights?.trim() || undefined,
+      linkPath: bannerDraft.linkPath?.trim() || undefined,
+      ctaLabel: bannerDraft.ctaLabel?.trim() || undefined,
+      startsAt: bannerDraft.startsAt || undefined,
+      endsAt: bannerDraft.endsAt || undefined,
     };
-    if (draft.id) {
-      updateHomeBanner(draft.id, input);
+    if (bannerDraft.id) {
+      updateHomeBanner(bannerDraft.id, input);
     } else {
       addHomeBanner(input);
     }
-    closeForm();
+    closeBannerForm();
+  };
+
+  const handleCardSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!cardDraft || !cardDraft.title.trim() || !cardDraft.linkPath.trim()) return;
+    const input: HomeCardInput = {
+      icon: cardDraft.icon,
+      title: cardDraft.title.trim(),
+      description: cardDraft.description?.trim() || undefined,
+      linkPath: cardDraft.linkPath.trim(),
+    };
+    if (cardDraft.id) {
+      updateHomeCard(cardDraft.id, input);
+    } else {
+      addHomeCard(input);
+    }
+    closeCardForm();
   };
 
   return (
     <section className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
       <div className="flex items-start justify-between gap-2 mb-3">
         <div className="flex items-start gap-2">
-          <Megaphone className="w-4 h-4 text-teal-600 mt-0.5 shrink-0" />
+          <LayoutGrid className="w-4 h-4 text-teal-600 mt-0.5 shrink-0" />
           <div>
-            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Banners de publicidad</h3>
+            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Página del cliente</h3>
             <p className="text-[11px] text-slate-500 dark:text-slate-400">
-              Se muestran apilados en el dashboard del cliente cuando no tiene un servicio en curso — ahí prioriza
-              mostrarle el estado de su servicio. Soportan foto, gif o video (mp4).
+              Banners y tarjetas comparten un solo orden. Las flechas mueven cada ítem respecto del vecino, del tipo
+              que sea. En el panel del cliente, las tarjetas consecutivas se ven como una grilla. Si el cliente tiene
+              un servicio en curso, este bloque se reemplaza por el seguimiento.
             </p>
           </div>
         </div>
-        {!draft && (
-          <button
-            type="button"
-            onClick={openNew}
-            className="shrink-0 inline-flex items-center gap-1 rounded-lg bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 text-xs font-bold"
-          >
-            <Plus className="w-3.5 h-3.5" /> Agregar banner
-          </button>
+        {!bannerDraft && !cardDraft && (
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={openNewBanner}
+              className="inline-flex items-center gap-1 rounded-lg bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 text-xs font-bold"
+            >
+              <Plus className="w-3.5 h-3.5" /> Agregar banner
+            </button>
+            <button
+              type="button"
+              onClick={openNewCard}
+              className="inline-flex items-center gap-1 rounded-lg bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 text-xs font-bold"
+            >
+              <Plus className="w-3.5 h-3.5" /> Agregar tarjeta
+            </button>
+          </div>
         )}
       </div>
 
-      {draft && (
+      {bannerDraft && (
         <form
-          onSubmit={handleSubmit}
+          onSubmit={handleBannerSubmit}
           className="space-y-2 mb-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800"
         >
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-              {draft.id ? 'Editar banner' : 'Nuevo banner'}
+              {bannerDraft.id ? 'Editar banner' : 'Nuevo banner'}
             </span>
-            <button type="button" onClick={closeForm} className="p-1 rounded-md text-slate-400 hover:text-slate-700">
+            <button type="button" onClick={closeBannerForm} className="p-1 rounded-md text-slate-400 hover:text-slate-700">
               <X className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -173,8 +218,8 @@ const BannersSection: React.FC = () => {
               <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">Rubro *</label>
               <input
                 type="text"
-                value={draft.rubro}
-                onChange={(e) => setDraft({ ...draft, rubro: e.target.value })}
+                value={bannerDraft.rubro}
+                onChange={(e) => setBannerDraft({ ...bannerDraft, rubro: e.target.value })}
                 placeholder="Ej: Cámaras de seguridad"
                 className="w-full text-xs px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg"
                 required
@@ -184,8 +229,8 @@ const BannersSection: React.FC = () => {
               <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">Etiqueta (opcional)</label>
               <input
                 type="text"
-                value={draft.badgeLabel}
-                onChange={(e) => setDraft({ ...draft, badgeLabel: e.target.value })}
+                value={bannerDraft.badgeLabel}
+                onChange={(e) => setBannerDraft({ ...bannerDraft, badgeLabel: e.target.value })}
                 placeholder="PROMO ESPECIAL · ESTE MES"
                 className="w-full text-xs px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg"
               />
@@ -196,8 +241,8 @@ const BannersSection: React.FC = () => {
             <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">Título *</label>
             <input
               type="text"
-              value={draft.title}
-              onChange={(e) => setDraft({ ...draft, title: e.target.value })}
+              value={bannerDraft.title}
+              onChange={(e) => setBannerDraft({ ...bannerDraft, title: e.target.value })}
               placeholder='Ej: "20% de descuento" o "Precio fijo $150.000"'
               className="w-full text-xs px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg"
               required
@@ -207,8 +252,8 @@ const BannersSection: React.FC = () => {
           <div>
             <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">Descripción *</label>
             <textarea
-              value={draft.description}
-              onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+              value={bannerDraft.description}
+              onChange={(e) => setBannerDraft({ ...bannerDraft, description: e.target.value })}
               placeholder="Ej: en instalaciones de aires acondicionados para el verano"
               rows={2}
               className="w-full text-xs px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg resize-none"
@@ -225,22 +270,22 @@ const BannersSection: React.FC = () => {
                 ref={fileInputRef}
                 type="file"
                 accept="image/jpeg,image/png,image/gif,video/mp4"
-                onChange={handleFileChange}
+                onChange={handleBannerFileChange}
                 disabled={uploading}
                 className="flex-1 text-xs text-slate-600 dark:text-slate-400"
               />
               {uploading && <Loader2 className="w-4 h-4 text-teal-600 animate-spin shrink-0" />}
             </div>
-            {draft.mediaUrl && !uploading && (
+            {bannerDraft.mediaUrl && !uploading && (
               <div className="mt-2 flex items-center gap-2">
-                {draft.mediaType === 'video' ? (
-                  <video src={draft.mediaUrl} className="w-20 h-14 rounded-lg object-cover border border-slate-200 dark:border-slate-700" muted />
+                {bannerDraft.mediaType === 'video' ? (
+                  <video src={bannerDraft.mediaUrl} className="w-20 h-14 rounded-lg object-cover border border-slate-200 dark:border-slate-700" muted />
                 ) : (
-                  <img src={draft.mediaUrl} alt="" className="w-20 h-14 rounded-lg object-cover border border-slate-200 dark:border-slate-700" />
+                  <img src={bannerDraft.mediaUrl} alt="" className="w-20 h-14 rounded-lg object-cover border border-slate-200 dark:border-slate-700" />
                 )}
                 <button
                   type="button"
-                  onClick={() => setDraft({ ...draft, mediaUrl: '' })}
+                  onClick={() => setBannerDraft({ ...bannerDraft, mediaUrl: '' })}
                   className="text-[10px] font-bold text-rose-600 hover:text-rose-700"
                 >
                   Quitar archivo
@@ -256,8 +301,8 @@ const BannersSection: React.FC = () => {
               </label>
               <input
                 type="text"
-                value={draft.highlights}
-                onChange={(e) => setDraft({ ...draft, highlights: e.target.value })}
+                value={bannerDraft.highlights}
+                onChange={(e) => setBannerDraft({ ...bannerDraft, highlights: e.target.value })}
                 placeholder="Más seguridad|Monitoreo 24/7|Técnicos certificados"
                 className="w-full text-xs px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg"
               />
@@ -271,8 +316,8 @@ const BannersSection: React.FC = () => {
               </label>
               <input
                 type="text"
-                value={draft.linkPath}
-                onChange={(e) => setDraft({ ...draft, linkPath: e.target.value })}
+                value={bannerDraft.linkPath}
+                onChange={(e) => setBannerDraft({ ...bannerDraft, linkPath: e.target.value })}
                 placeholder="/customer/solicitar"
                 className="w-full text-xs px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg"
               />
@@ -283,8 +328,8 @@ const BannersSection: React.FC = () => {
               </label>
               <input
                 type="text"
-                value={draft.ctaLabel}
-                onChange={(e) => setDraft({ ...draft, ctaLabel: e.target.value })}
+                value={bannerDraft.ctaLabel}
+                onChange={(e) => setBannerDraft({ ...bannerDraft, ctaLabel: e.target.value })}
                 placeholder="Ver servicios"
                 className="w-full text-xs px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg"
               />
@@ -296,8 +341,8 @@ const BannersSection: React.FC = () => {
               <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">Desde (opcional)</label>
               <input
                 type="date"
-                value={draft.startsAt}
-                onChange={(e) => setDraft({ ...draft, startsAt: e.target.value })}
+                value={bannerDraft.startsAt}
+                onChange={(e) => setBannerDraft({ ...bannerDraft, startsAt: e.target.value })}
                 className="text-xs px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg"
               />
             </div>
@@ -305,180 +350,32 @@ const BannersSection: React.FC = () => {
               <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">Hasta (opcional)</label>
               <input
                 type="date"
-                value={draft.endsAt}
-                onChange={(e) => setDraft({ ...draft, endsAt: e.target.value })}
+                value={bannerDraft.endsAt}
+                onChange={(e) => setBannerDraft({ ...bannerDraft, endsAt: e.target.value })}
                 className="text-xs px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg"
               />
             </div>
             <button
               type="submit"
-              disabled={!draft.rubro.trim() || !draft.title.trim() || !draft.description.trim() || uploading}
+              disabled={!bannerDraft.rubro.trim() || !bannerDraft.title.trim() || !bannerDraft.description.trim() || uploading}
               className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs font-bold disabled:opacity-50 shrink-0"
             >
-              {draft.id ? 'Guardar cambios' : 'Publicar banner'}
+              {bannerDraft.id ? 'Guardar cambios' : 'Publicar banner'}
             </button>
           </div>
         </form>
       )}
 
-      {sorted.length === 0 ? (
-        <p className="text-[11px] text-slate-400 dark:text-slate-500 italic">Todavía no cargaste ningún banner.</p>
-      ) : (
-        <div className="space-y-2">
-          {sorted.map((b, idx) => {
-            const vigent = isCurrentlyVigent(b);
-            return (
-              <div key={b.id} className="rounded-lg border border-slate-200 dark:border-slate-700 p-3">
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <div className="min-w-0 flex items-start gap-2.5">
-                    {b.mediaUrl &&
-                      (b.mediaType === 'video' ? (
-                        <div className="relative w-14 h-14 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 shrink-0 bg-slate-900 flex items-center justify-center">
-                          <video src={b.mediaUrl} className="w-full h-full object-cover" muted />
-                          <Film className="w-4 h-4 text-white absolute" />
-                        </div>
-                      ) : (
-                        <img
-                          src={b.mediaUrl}
-                          alt=""
-                          className="w-14 h-14 rounded-lg object-cover border border-slate-200 dark:border-slate-700 shrink-0"
-                        />
-                      ))}
-                    <div className="min-w-0">
-                      <span className="inline-block text-[9px] font-bold uppercase tracking-wider text-teal-700 dark:text-teal-400 mb-1">
-                        {b.badgeLabel} · {b.rubro}
-                      </span>
-                      <b className="block text-xs text-slate-900 dark:text-slate-100">{b.title}</b>
-                      <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">{b.description}</p>
-                      {b.highlights && (
-                        <p className="text-[10px] text-teal-700 dark:text-teal-400 mt-0.5">
-                          {b.highlights.split('|').map((h) => h.trim()).filter(Boolean).join(' · ')}
-                        </p>
-                      )}
-                      {(b.startsAt || b.endsAt) && (
-                        <div className="flex items-center gap-1 mt-1 text-[10px] text-slate-500 dark:text-slate-400">
-                          <Calendar className="w-3 h-3" />
-                          {b.startsAt || '…'} → {b.endsAt || '…'}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => idx > 0 && swapHomeBannerOrder(b.id, sorted[idx - 1].id)}
-                      disabled={idx === 0}
-                      title="Subir"
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent"
-                    >
-                      <ArrowUp className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => idx < sorted.length - 1 && swapHomeBannerOrder(b.id, sorted[idx + 1].id)}
-                      disabled={idx === sorted.length - 1}
-                      title="Bajar"
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent"
-                    >
-                      <ArrowDown className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => openEdit(b)}
-                      title="Editar"
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-950/40"
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => updateHomeBannerActive(b.id, !b.isActive)}
-                      className={`text-[10px] font-bold rounded-full px-2 py-1 border ${statusPillClasses(b.isActive, vigent)}`}
-                      title={b.isActive ? 'Click para desactivar' : 'Click para activar'}
-                    >
-                      {b.isActive ? (vigent ? 'Activo' : 'Activo (fuera de fecha)') : 'Inactivo'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => deleteHomeBanner(b.id)}
-                      title="Eliminar banner"
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </section>
-  );
-};
-
-const CardsSection: React.FC = () => {
-  const { homeCards, addHomeCard, updateHomeCard, updateHomeCardActive, deleteHomeCard, swapHomeCardOrder } = useApp();
-  const [draft, setDraft] = useState<CardDraft | null>(null);
-
-  const sorted = [...homeCards].sort((a, b) => a.displayOrder - b.displayOrder);
-
-  const openNew = () => setDraft({ ...EMPTY_CARD_DRAFT });
-  const openEdit = (c: HomeCard) =>
-    setDraft({ id: c.id, icon: c.icon, title: c.title, description: c.description || '', linkPath: c.linkPath });
-  const closeForm = () => setDraft(null);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!draft || !draft.title.trim() || !draft.linkPath.trim()) return;
-    const input: HomeCardInput = {
-      icon: draft.icon,
-      title: draft.title.trim(),
-      description: draft.description?.trim() || undefined,
-      linkPath: draft.linkPath.trim(),
-    };
-    if (draft.id) {
-      updateHomeCard(draft.id, input);
-    } else {
-      addHomeCard(input);
-    }
-    closeForm();
-  };
-
-  return (
-    <section className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
-      <div className="flex items-start justify-between gap-2 mb-3">
-        <div className="flex items-start gap-2">
-          <LayoutGrid className="w-4 h-4 text-teal-600 mt-0.5 shrink-0" />
-          <div>
-            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Tarjetas de acceso rápido</h3>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400">
-              Reemplazan las cápsulas fijas del header del cliente. Agregá, quitá o reordená las que quieras y
-              linkealas a donde quieras.
-            </p>
-          </div>
-        </div>
-        {!draft && (
-          <button
-            type="button"
-            onClick={openNew}
-            className="shrink-0 inline-flex items-center gap-1 rounded-lg bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 text-xs font-bold"
-          >
-            <Plus className="w-3.5 h-3.5" /> Agregar tarjeta
-          </button>
-        )}
-      </div>
-
-      {draft && (
+      {cardDraft && (
         <form
-          onSubmit={handleSubmit}
+          onSubmit={handleCardSubmit}
           className="space-y-2 mb-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800"
         >
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-              {draft.id ? 'Editar tarjeta' : 'Nueva tarjeta'}
+              {cardDraft.id ? 'Editar tarjeta' : 'Nueva tarjeta'}
             </span>
-            <button type="button" onClick={closeForm} className="p-1 rounded-md text-slate-400 hover:text-slate-700">
+            <button type="button" onClick={closeCardForm} className="p-1 rounded-md text-slate-400 hover:text-slate-700">
               <X className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -491,9 +388,9 @@ const CardsSection: React.FC = () => {
                   key={name}
                   type="button"
                   title={name}
-                  onClick={() => setDraft({ ...draft, icon: name })}
+                  onClick={() => setCardDraft({ ...cardDraft, icon: name })}
                   className={`aspect-square flex items-center justify-center rounded-lg border ${
-                    draft.icon === name
+                    cardDraft.icon === name
                       ? 'bg-teal-600 border-teal-600 text-white'
                       : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-teal-400 hover:text-teal-600'
                   }`}
@@ -508,8 +405,8 @@ const CardsSection: React.FC = () => {
             <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">Título *</label>
             <input
               type="text"
-              value={draft.title}
-              onChange={(e) => setDraft({ ...draft, title: e.target.value })}
+              value={cardDraft.title}
+              onChange={(e) => setCardDraft({ ...cardDraft, title: e.target.value })}
               placeholder='Ej: "Solicitar Servicio"'
               className="w-full text-xs px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg"
               required
@@ -520,8 +417,8 @@ const CardsSection: React.FC = () => {
             <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">Descripción (opcional)</label>
             <input
               type="text"
-              value={draft.description}
-              onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+              value={cardDraft.description}
+              onChange={(e) => setCardDraft({ ...cardDraft, description: e.target.value })}
               placeholder="Ej: Pedí un técnico a domicilio"
               className="w-full text-xs px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg"
             />
@@ -532,8 +429,8 @@ const CardsSection: React.FC = () => {
               <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">Link *</label>
               <input
                 type="text"
-                value={draft.linkPath}
-                onChange={(e) => setDraft({ ...draft, linkPath: e.target.value })}
+                value={cardDraft.linkPath}
+                onChange={(e) => setCardDraft({ ...cardDraft, linkPath: e.target.value })}
                 placeholder="/customer/solicitar"
                 className="w-full text-xs px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg"
                 required
@@ -541,29 +438,124 @@ const CardsSection: React.FC = () => {
             </div>
             <button
               type="submit"
-              disabled={!draft.title.trim() || !draft.linkPath.trim()}
+              disabled={!cardDraft.title.trim() || !cardDraft.linkPath.trim()}
               className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs font-bold disabled:opacity-50 shrink-0"
             >
-              {draft.id ? 'Guardar cambios' : 'Publicar tarjeta'}
+              {cardDraft.id ? 'Guardar cambios' : 'Publicar tarjeta'}
             </button>
           </div>
         </form>
       )}
 
-      {sorted.length === 0 ? (
-        <p className="text-[11px] text-slate-400 dark:text-slate-500 italic">Todavía no cargaste ninguna tarjeta.</p>
+      {blocks.length === 0 ? (
+        <p className="text-[11px] text-slate-400 dark:text-slate-500 italic">Todavía no cargaste banners ni tarjetas.</p>
       ) : (
         <div className="space-y-2">
-          {sorted.map((c, idx) => {
+          {blocks.map((block, idx) => {
+            const neighborUp = idx > 0 ? blocks[idx - 1] : null;
+            const neighborDown = idx < blocks.length - 1 ? blocks[idx + 1] : null;
+            const currentRef = { id: block.item.id, type: block.type };
+            if (block.type === 'banner') {
+              const b = block.item;
+              const vigent = isCurrentlyVigent(b);
+              return (
+                <div key={`banner-${b.id}`} className="rounded-lg border border-slate-200 dark:border-slate-700 p-3">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div className="min-w-0 flex items-start gap-2.5">
+                      {b.mediaUrl &&
+                        (b.mediaType === 'video' ? (
+                          <div className="relative w-14 h-14 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 shrink-0 bg-slate-900 flex items-center justify-center">
+                            <video src={b.mediaUrl} className="w-full h-full object-cover" muted />
+                            <Film className="w-4 h-4 text-white absolute" />
+                          </div>
+                        ) : (
+                          <img
+                            src={b.mediaUrl}
+                            alt=""
+                            className="w-14 h-14 rounded-lg object-cover border border-slate-200 dark:border-slate-700 shrink-0"
+                          />
+                        ))}
+                      <div className="min-w-0">
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-950/40 border border-teal-100 dark:border-teal-900 rounded-full px-2 py-0.5 mb-1">
+                          <Megaphone className="w-3 h-3" /> Banner
+                        </span>
+                        <b className="block text-xs text-slate-900 dark:text-slate-100">{b.title}</b>
+                        <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">{b.description}</p>
+                        {b.highlights && (
+                          <p className="text-[10px] text-teal-700 dark:text-teal-400 mt-0.5">
+                            {b.highlights.split('|').map((h) => h.trim()).filter(Boolean).join(' · ')}
+                          </p>
+                        )}
+                        {(b.startsAt || b.endsAt) && (
+                          <div className="flex items-center gap-1 mt-1 text-[10px] text-slate-500 dark:text-slate-400">
+                            <Calendar className="w-3 h-3" />
+                            {b.startsAt || '…'} → {b.endsAt || '…'}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => neighborUp && swapHomeBlockOrder(currentRef, { id: neighborUp.item.id, type: neighborUp.type })}
+                        disabled={!neighborUp}
+                        title="Subir"
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent"
+                      >
+                        <ArrowUp className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => neighborDown && swapHomeBlockOrder(currentRef, { id: neighborDown.item.id, type: neighborDown.type })}
+                        disabled={!neighborDown}
+                        title="Bajar"
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent"
+                      >
+                        <ArrowDown className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => openEditBanner(b)}
+                        title="Editar"
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-950/40"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => updateHomeBannerActive(b.id, !b.isActive)}
+                        className={`text-[10px] font-bold rounded-full px-2 py-1 border ${statusPillClasses(b.isActive, vigent)}`}
+                        title={b.isActive ? 'Click para desactivar' : 'Click para activar'}
+                      >
+                        {b.isActive ? (vigent ? 'Activo' : 'Activo (fuera de fecha)') : 'Inactivo'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => deleteHomeBanner(b.id)}
+                        title="Eliminar banner"
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
+            const c = block.item;
             const Icon = getHomeIcon(c.icon);
             return (
-              <div key={c.id} className="rounded-lg border border-slate-200 dark:border-slate-700 p-3">
+              <div key={`card-${c.id}`} className="rounded-lg border border-slate-200 dark:border-slate-700 p-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="min-w-0 flex items-center gap-2.5">
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-teal-50 dark:bg-teal-950/40 text-teal-600 border border-teal-100 dark:border-teal-900">
                       <Icon className="w-4 h-4" />
                     </div>
                     <div className="min-w-0">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full px-2 py-0.5 mb-1">
+                        <LayoutGrid className="w-3 h-3" /> Tarjeta
+                      </span>
                       <b className="block text-xs text-slate-900 dark:text-slate-100">{c.title}</b>
                       {c.description && <p className="text-[11px] text-slate-500 dark:text-slate-400">{c.description}</p>}
                       <span className="text-[10px] font-mono text-slate-400">{c.linkPath}</span>
@@ -572,8 +564,8 @@ const CardsSection: React.FC = () => {
                   <div className="flex items-center gap-1 shrink-0">
                     <button
                       type="button"
-                      onClick={() => idx > 0 && swapHomeCardOrder(c.id, sorted[idx - 1].id)}
-                      disabled={idx === 0}
+                      onClick={() => neighborUp && swapHomeBlockOrder(currentRef, { id: neighborUp.item.id, type: neighborUp.type })}
+                      disabled={!neighborUp}
                       title="Subir"
                       className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent"
                     >
@@ -581,8 +573,8 @@ const CardsSection: React.FC = () => {
                     </button>
                     <button
                       type="button"
-                      onClick={() => idx < sorted.length - 1 && swapHomeCardOrder(c.id, sorted[idx + 1].id)}
-                      disabled={idx === sorted.length - 1}
+                      onClick={() => neighborDown && swapHomeBlockOrder(currentRef, { id: neighborDown.item.id, type: neighborDown.type })}
+                      disabled={!neighborDown}
                       title="Bajar"
                       className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent"
                     >
@@ -590,7 +582,7 @@ const CardsSection: React.FC = () => {
                     </button>
                     <button
                       type="button"
-                      onClick={() => openEdit(c)}
+                      onClick={() => openEditCard(c)}
                       title="Editar"
                       className="p-1.5 rounded-lg text-slate-400 hover:text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-950/40"
                     >
@@ -624,14 +616,5 @@ const CardsSection: React.FC = () => {
         </div>
       )}
     </section>
-  );
-};
-
-export const HomePageEditor: React.FC = () => {
-  return (
-    <div className="space-y-4">
-      <BannersSection />
-      <CardsSection />
-    </div>
   );
 };

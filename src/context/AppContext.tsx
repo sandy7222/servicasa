@@ -68,12 +68,11 @@ import {
   persistUpdateHomeBanner,
   persistUpdateHomeBannerActive,
   persistDeleteHomeBanner,
-  persistSwapHomeBannerOrder,
   persistCreateHomeCard,
   persistUpdateHomeCard,
   persistUpdateHomeCardActive,
   persistDeleteHomeCard,
-  persistSwapHomeCardOrder,
+  persistSwapHomeBlockOrder,
   persistSelfRegisterTechnician,
   persistDeleteCustomer,
   persistDeleteMaterial,
@@ -137,6 +136,7 @@ import {
   TechnicianInput,
   UserRole,
 } from '../types';
+import { combinedMaxDisplayOrder, type HomeBlockRef } from '../lib/homeBlocks';
 
 interface ToastNotification {
   id: string;
@@ -192,13 +192,12 @@ interface AppContextType {
   updateHomeBanner: (id: string, input: HomeBannerInput) => void;
   updateHomeBannerActive: (id: string, isActive: boolean) => void;
   deleteHomeBanner: (id: string) => void;
-  swapHomeBannerOrder: (idA: string, idB: string) => void;
   homeCards: HomeCard[];
   addHomeCard: (input: HomeCardInput) => void;
   updateHomeCard: (id: string, input: HomeCardInput) => void;
   updateHomeCardActive: (id: string, isActive: boolean) => void;
   deleteHomeCard: (id: string) => void;
-  swapHomeCardOrder: (idA: string, idB: string) => void;
+  swapHomeBlockOrder: (a: HomeBlockRef, b: HomeBlockRef) => void;
   createAccountInviteLink: (kind: 'technician' | 'customer', targetId: string) => Promise<string>;
   logout: () => Promise<void>;
   refreshRemoteData: () => Promise<void>;
@@ -2682,7 +2681,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // admin puede crear, editar texto/media/link, activar/desactivar,
   // reordenar y borrar — sin tocar código. Ver pedido de Sandy del 16/9.
   const addHomeBanner = (input: HomeBannerInput) => {
-    const maxOrder = homeBanners.reduce((max, b) => Math.max(max, b.displayOrder), -1);
+    const maxOrder = combinedMaxDisplayOrder(homeBanners, homeCards);
     if (usingRemoteData) {
       const tempId = `tmp-banner-${Date.now()}`;
       const tempBanner: HomeBanner = {
@@ -2783,26 +2782,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const swapHomeBannerOrder = (idA: string, idB: string) => {
-    setHomeBanners((prev) => {
-      const a = prev.find((p) => p.id === idA);
-      const b = prev.find((p) => p.id === idB);
-      if (!a || !b) return prev;
-      return prev.map((p) => {
-        if (p.id === idA) return { ...p, displayOrder: b.displayOrder };
-        if (p.id === idB) return { ...p, displayOrder: a.displayOrder };
-        return p;
-      });
-    });
-    if (usingRemoteData) {
-      void withRemote(() => persistSwapHomeBannerOrder(idA, idB)).catch((err) => {
-        showToast(friendlyErrorMessage(err, 'No se pudo reordenar'), 'error');
-      });
-    }
-  };
-
   const addHomeCard = (input: HomeCardInput) => {
-    const maxOrder = homeCards.reduce((max, c) => Math.max(max, c.displayOrder), -1);
+    const maxOrder = combinedMaxDisplayOrder(homeBanners, homeCards);
     if (usingRemoteData) {
       const tempId = `tmp-card-${Date.now()}`;
       const tempCard: HomeCard = {
@@ -2876,19 +2857,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const swapHomeCardOrder = (idA: string, idB: string) => {
+  const swapHomeBlockOrder = (a: HomeBlockRef, b: HomeBlockRef) => {
+    const orderOf = (ref: HomeBlockRef): number | undefined =>
+      ref.type === 'banner'
+        ? homeBanners.find((item) => item.id === ref.id)?.displayOrder
+        : homeCards.find((item) => item.id === ref.id)?.displayOrder;
+    const orderA = orderOf(a);
+    const orderB = orderOf(b);
+    if (orderA === undefined || orderB === undefined) return;
+
+    setHomeBanners((prev) => {
+      let next = prev;
+      if (a.type === 'banner') next = next.map((item) => (item.id === a.id ? { ...item, displayOrder: orderB } : item));
+      if (b.type === 'banner') next = next.map((item) => (item.id === b.id ? { ...item, displayOrder: orderA } : item));
+      return next;
+    });
     setHomeCards((prev) => {
-      const a = prev.find((p) => p.id === idA);
-      const b = prev.find((p) => p.id === idB);
-      if (!a || !b) return prev;
-      return prev.map((p) => {
-        if (p.id === idA) return { ...p, displayOrder: b.displayOrder };
-        if (p.id === idB) return { ...p, displayOrder: a.displayOrder };
-        return p;
-      });
+      let next = prev;
+      if (a.type === 'card') next = next.map((item) => (item.id === a.id ? { ...item, displayOrder: orderB } : item));
+      if (b.type === 'card') next = next.map((item) => (item.id === b.id ? { ...item, displayOrder: orderA } : item));
+      return next;
     });
     if (usingRemoteData) {
-      void withRemote(() => persistSwapHomeCardOrder(idA, idB)).catch((err) => {
+      void withRemote(() => persistSwapHomeBlockOrder(a, b)).catch((err) => {
         showToast(friendlyErrorMessage(err, 'No se pudo reordenar'), 'error');
       });
     }
@@ -3355,13 +3346,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updateHomeBanner,
         updateHomeBannerActive,
         deleteHomeBanner,
-        swapHomeBannerOrder,
         homeCards,
         addHomeCard,
         updateHomeCard,
         updateHomeCardActive,
         deleteHomeCard,
-        swapHomeCardOrder,
+        swapHomeBlockOrder,
         createAccountInviteLink,
         logout,
         refreshRemoteData,

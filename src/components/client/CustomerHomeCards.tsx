@@ -1,18 +1,20 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
 import { getHomeIcon } from '../../lib/homeIcons';
+import type { HomeCard } from '../../types';
 
 /** Grilla de tarjetas de acceso rápido del panel del cliente — reemplaza
  * las cápsulas hardcodeadas del header ("Solicitar un servicio", "Reclamos
  * y garantías"). 100% editable desde el editor de página del admin (ver
  * src/components/admin/HomePageEditor.tsx): el admin decide cuántas,
  * cuáles, con qué ícono y a dónde linkean, sin tocar código. Ver pedido de
- * Sandy del 16/9. */
-export const CustomerHomeCards: React.FC = () => {
+ * Sandy del 16/9. Si se pasa `cards`, renderiza ese tramo (orden unificado
+ * intercalado con banners); si no, todas las tarjetas activas. */
+export const CustomerHomeCards: React.FC<{ cards?: HomeCard[] }> = ({ cards }) => {
   const { homeCards, navigate } = useApp();
-  const activeCards = homeCards
-    .filter((c) => c.isActive)
-    .sort((a, b) => a.displayOrder - b.displayOrder);
+  const activeCards = cards
+    ? cards
+    : homeCards.filter((c) => c.isActive).sort((a, b) => a.displayOrder - b.displayOrder);
 
   if (activeCards.length === 0) return null;
 

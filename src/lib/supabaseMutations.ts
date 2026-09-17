@@ -27,6 +27,7 @@ import type {
 import { supabase } from './supabase';
 import { mapCatalogCategory, mapCatalogSubcategory, mapCustomer, mapMaterial, mapOrder, mapService, mapTechnician, mapProspectiveTechnician, mapHomeBanner, mapHomeCard } from './supabaseData';
 import type { DbCategory, DbCustomer, DbMaterial, DbService, DbServiceOrder, DbSubcategory, DbTechnician, DbProspectiveTechnician, DbHomeBanner, DbHomeCard } from './supabase';
+import { combinedMaxDisplayOrder, type HomeBlockRef } from './homeBlocks';
 
 function throwIfError(error: { message: string } | null) {
   if (error) throw new Error(error.message);
@@ -533,17 +534,48 @@ export async function uploadHomeBannerMedia(
   return { url: data.publicUrl, mediaType };
 }
 
+async function fetchCombinedHomeDisplayOrderMax(): Promise<number> {
+  const [bannerMax, cardMax] = await Promise.all([
+    supabase.from('customer_home_banners').select('display_order').order('display_order', { ascending: false }).limit(1).maybeSingle(),
+    supabase.from('customer_home_cards').select('display_order').order('display_order', { ascending: false }).limit(1).maybeSingle(),
+  ]);
+  throwIfError(bannerMax.error);
+  throwIfError(cardMax.error);
+  return combinedMaxDisplayOrder(
+    [{ displayOrder: bannerMax.data?.display_order ?? -1 }],
+    [{ displayOrder: cardMax.data?.display_order ?? -1 }]
+  );
+}
+
+async function fetchHomeBlockOrder(ref: HomeBlockRef): Promise<number> {
+  if (ref.type === 'banner') {
+    const { data, error } = await supabase.from('customer_home_banners').select('id, display_order').eq('id', ref.id).maybeSingle();
+    throwIfError(error);
+    if (!data) throw new Error('No se encontró el bloque a reordenar.');
+    return data.display_order;
+  }
+  const { data, error } = await supabase.from('customer_home_cards').select('id, display_order').eq('id', ref.id).maybeSingle();
+  throwIfError(error);
+  if (!data) throw new Error('No se encontró el bloque a reordenar.');
+  return data.display_order;
+}
+
+async function updateHomeBlockOrder(ref: HomeBlockRef, displayOrder: number): Promise<void> {
+  if (ref.type === 'banner') {
+    const { error } = await supabase.from('customer_home_banners').update({ display_order: displayOrder }).eq('id', ref.id);
+    throwIfError(error);
+    return;
+  }
+  const { error } = await supabase.from('customer_home_cards').update({ display_order: displayOrder }).eq('id', ref.id);
+  throwIfError(error);
+}
+
 /** Editor de página del admin — banners (ver
  * src/components/admin/HomePageEditor.tsx). `displayOrder` se calcula al
- * crear (al final de la lista); para reordenar existentes se usa
- * persistSwapHomeBannerOrder, igual que categories/subcategories. */
+ * crear (al final de la lista unificada banners+tarjetas); para reordenar
+ * existentes se usa persistSwapHomeBlockOrder. */
 export async function persistCreateHomeBanner(input: HomeBannerInput): Promise<HomeBanner> {
-  const { data: maxRow } = await supabase
-    .from('customer_home_banners')
-    .select('display_order')
-    .order('display_order', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const maxOrder = await fetchCombinedHomeDisplayOrderMax();
   const { data, error } = await supabase
     .from('customer_home_banners')
     .insert({
@@ -558,7 +590,7 @@ export async function persistCreateHomeBanner(input: HomeBannerInput): Promise<H
       cta_label: input.ctaLabel?.trim() || null,
       starts_at: input.startsAt || null,
       ends_at: input.endsAt || null,
-      display_order: (maxRow?.display_order ?? -1) + 1,
+      display_order: maxOrder + 1,
     })
     .select('*')
     .single();
@@ -601,27 +633,14 @@ export async function persistDeleteHomeBanner(id: string): Promise<void> {
 
 /** Swaps display_order between two banners (flechas subir/bajar del editor). */
 export async function persistSwapHomeBannerOrder(idA: string, idB: string): Promise<void> {
-  const { data: rows, error } = await supabase.from('customer_home_banners').select('id, display_order').in('id', [idA, idB]);
-  throwIfError(error);
-  const a = (rows ?? []).find((r) => r.id === idA);
-  const b = (rows ?? []).find((r) => r.id === idB);
-  if (!a || !b) throw new Error('No se encontraron los banners a reordenar.');
-  const { error: errorA } = await supabase.from('customer_home_banners').update({ display_order: b.display_order }).eq('id', a.id);
-  throwIfError(errorA);
-  const { error: errorB } = await supabase.from('customer_home_banners').update({ display_order: a.display_order }).eq('id', b.id);
-  throwIfError(errorB);
+  await persistSwapHomeBlockOrder({ id: idA, type: 'banner' }, { id: idB, type: 'banner' });
 }
 
 /** Editor de página del admin — tarjetas linkeables (ver
  * src/components/admin/HomePageEditor.tsx). Reemplazan las cápsulas
  * hardcodeadas del header del cliente. */
 export async function persistCreateHomeCard(input: HomeCardInput): Promise<HomeCard> {
-  const { data: maxRow } = await supabase
-    .from('customer_home_cards')
-    .select('display_order')
-    .order('display_order', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const maxOrder = await fetchCombinedHomeDisplayOrderMax();
   const { data, error } = await supabase
     .from('customer_home_cards')
     .insert({
@@ -629,7 +648,7 @@ export async function persistCreateHomeCard(input: HomeCardInput): Promise<HomeC
       title: input.title.trim(),
       description: input.description?.trim() || null,
       link_path: input.linkPath.trim(),
-      display_order: (maxRow?.display_order ?? -1) + 1,
+      display_order: maxOrder + 1,
     })
     .select('*')
     .single();
@@ -665,15 +684,14 @@ export async function persistDeleteHomeCard(id: string): Promise<void> {
 
 /** Swaps display_order between two cards (flechas subir/bajar del editor). */
 export async function persistSwapHomeCardOrder(idA: string, idB: string): Promise<void> {
-  const { data: rows, error } = await supabase.from('customer_home_cards').select('id, display_order').in('id', [idA, idB]);
-  throwIfError(error);
-  const a = (rows ?? []).find((r) => r.id === idA);
-  const b = (rows ?? []).find((r) => r.id === idB);
-  if (!a || !b) throw new Error('No se encontraron las tarjetas a reordenar.');
-  const { error: errorA } = await supabase.from('customer_home_cards').update({ display_order: b.display_order }).eq('id', a.id);
-  throwIfError(errorA);
-  const { error: errorB } = await supabase.from('customer_home_cards').update({ display_order: a.display_order }).eq('id', b.id);
-  throwIfError(errorB);
+  await persistSwapHomeBlockOrder({ id: idA, type: 'card' }, { id: idB, type: 'card' });
+}
+
+/** Intercambia display_order entre dos ítems del home, del mismo tipo o cruzados. */
+export async function persistSwapHomeBlockOrder(a: HomeBlockRef, b: HomeBlockRef): Promise<void> {
+  const [orderA, orderB] = await Promise.all([fetchHomeBlockOrder(a), fetchHomeBlockOrder(b)]);
+  await updateHomeBlockOrder(a, orderB);
+  await updateHomeBlockOrder(b, orderA);
 }
 
 export async function persistCreateMaterial(
