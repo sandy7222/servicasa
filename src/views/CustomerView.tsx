@@ -428,7 +428,7 @@ export const CustomerView: React.FC = () => {
                           <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Estamos buscando un técnico para tu pedido</h3>
                           <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
                             {activeOrder.workMode === 'diagnosis'
-                              ? 'Tu pago de visita por presupuesto ya está confirmado. Estamos buscando un técnico disponible para tu zona y franja horaria — en cuanto se asigne vas a poder ver su nombre y coordinar la visita acá mismo.'
+                              ? 'Tu pago de vista de presupuesto ya está confirmado. Estamos buscando un técnico disponible para tu zona y franja horaria — en cuanto se asigne vas a poder ver su nombre y coordinar la visita acá mismo.'
                               : 'Ya recibimos tu pedido. Estamos buscando un técnico disponible para tu zona y franja horaria — en cuanto se asigne vas a poder ver su nombre y coordinar la visita acá mismo.'}
                           </p>
                         </div>
