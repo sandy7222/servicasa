@@ -382,20 +382,20 @@ export const HomePageEditor: React.FC = () => {
 
           <div>
             <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1.5">Ícono</label>
-            <div className="grid grid-cols-8 sm:grid-cols-11 gap-1.5">
+            <div className="grid grid-cols-6 sm:grid-cols-8 gap-2">
               {HOME_ICON_OPTIONS.map(({ name, Icon }) => (
                 <button
                   key={name}
                   type="button"
                   title={name}
                   onClick={() => setCardDraft({ ...cardDraft, icon: name })}
-                  className={`aspect-square flex items-center justify-center rounded-lg border ${
+                  className={`h-12 sm:h-14 flex items-center justify-center rounded-xl border ${
                     cardDraft.icon === name
                       ? 'bg-teal-600 border-teal-600 text-white'
-                      : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-teal-400 hover:text-teal-600'
+                      : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-teal-600 hover:border-teal-400'
                   }`}
                 >
-                  <Icon className="w-4 h-4" />
+                  <Icon className="w-6 h-6 sm:w-7 sm:h-7" strokeWidth={1.6} />
                 </button>
               ))}
             </div>
@@ -549,8 +549,8 @@ export const HomePageEditor: React.FC = () => {
               <div key={`card-${c.id}`} className="rounded-lg border border-slate-200 dark:border-slate-700 p-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="min-w-0 flex items-center gap-2.5">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-teal-50 dark:bg-teal-950/40 text-teal-600 border border-teal-100 dark:border-teal-900">
-                      <Icon className="w-4 h-4" />
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-teal-50 dark:bg-teal-950/40 text-teal-500">
+                      <Icon className="w-7 h-7" strokeWidth={1.6} />
                     </div>
                     <div className="min-w-0">
                       <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full px-2 py-0.5 mb-1">
