@@ -18,6 +18,7 @@ import type {
   Technician,
   TimeLog,
   UsedMaterial,
+  MaterialExpense,
   CurrentUserData,
   UserRole,
 } from '../types';
@@ -181,6 +182,7 @@ export function mapOrder(
     timeLogs?: TimeLog[];
     technicalNotes?: TechnicalNote[];
     usedMaterials?: UsedMaterial[];
+    materialExpenses?: MaterialExpense[];
   customerSignature?: ServiceOrder['customerSignature'];
     events?: OrderEvent[];
     quotes?: ServiceOrder['quotes'];
@@ -238,6 +240,7 @@ export function mapOrder(
     timeLogs: extras?.timeLogs ?? [],
     technicalNotes: extras?.technicalNotes ?? [],
     usedMaterials: extras?.usedMaterials ?? [],
+    materialExpenses: extras?.materialExpenses ?? [],
     customerSignature: extras?.customerSignature ?? null,
     events: extras?.events ?? [],
     quotes: extras?.quotes ?? [],
@@ -493,6 +496,7 @@ export async function fetchCatalog(isAdmin: boolean) {
     timeLogs: [] as Array<Record<string, unknown>>,
     notes: [] as Array<Record<string, unknown>>,
     materials: [] as Array<Record<string, unknown>>,
+    materialExpenses: [] as Array<Record<string, unknown>>,
     events: [] as Array<Record<string, unknown>>,
     signatures: [] as Array<Record<string, unknown>>,
     quotes: [] as DbOrderQuote[],
@@ -502,11 +506,15 @@ export async function fetchCatalog(isAdmin: boolean) {
 
   let kids = emptyKids;
   if (orderIds.length > 0) {
-    const [checklist, timeLogs, notes, materials, events, signatures, quotes, diagnosisPhotos] = await Promise.all([
+    const [checklist, timeLogs, notes, materials, materialExpenses, events, signatures, quotes, diagnosisPhotos] = await Promise.all([
       supabase.from('order_checklist_items').select('*').in('order_id', orderIds).order('sort_order'),
       supabase.from('order_time_logs').select('*').in('order_id', orderIds).order('created_at', { ascending: false }),
       supabase.from('order_notes').select('*').in('order_id', orderIds).order('created_at', { ascending: false }),
       supabase.from('order_materials_used').select('*').in('order_id', orderIds).order('added_at', { ascending: false }),
+      // order_material_expenses reemplaza a order_materials_used para pedidos
+      // nuevos — ver MaterialExpense en types/index.ts. No depende de
+      // order_quotes, así que funciona igual en diagnóstico y directo.
+      supabase.from('order_material_expenses').select('*').in('order_id', orderIds).order('added_at', { ascending: false }),
       supabase.from('order_events').select('*').in('order_id', orderIds).order('created_at', { ascending: false }),
       supabase.from('order_signatures').select('*').in('order_id', orderIds),
       supabase.from('order_quotes').select('*').in('order_id', orderIds).order('version', { ascending: false }),
@@ -516,6 +524,7 @@ export async function fetchCatalog(isAdmin: boolean) {
     if (timeLogs.error) throw timeLogs.error;
     if (notes.error) throw notes.error;
     if (materials.error) throw materials.error;
+    if (materialExpenses.error) throw materialExpenses.error;
     if (events.error) throw events.error;
     if (signatures.error) throw signatures.error;
     if (quotes.error) throw quotes.error;
@@ -533,6 +542,7 @@ export async function fetchCatalog(isAdmin: boolean) {
       timeLogs: (timeLogs.data ?? []) as Array<Record<string, unknown>>,
       notes: (notes.data ?? []) as Array<Record<string, unknown>>,
       materials: (materials.data ?? []) as Array<Record<string, unknown>>,
+      materialExpenses: (materialExpenses.data ?? []) as Array<Record<string, unknown>>,
       events: (events.data ?? []) as Array<Record<string, unknown>>,
       signatures: (signatures.data ?? []) as Array<Record<string, unknown>>,
       quotes: quoteRows,
@@ -546,6 +556,7 @@ export async function fetchCatalog(isAdmin: boolean) {
     const timeRows = kids.timeLogs.filter((r) => r.order_id === row.id);
     const noteRows = kids.notes.filter((r) => r.order_id === row.id);
     const matRows = kids.materials.filter((r) => r.order_id === row.id);
+    const matExpenseRows = kids.materialExpenses.filter((r) => r.order_id === row.id);
     const eventRows = kids.events.filter((r) => r.order_id === row.id);
     const sig = kids.signatures.find((s) => s.order_id === row.id);
     const quoteRows = kids.quotes.filter((quote) => quote.order_id === row.id);
@@ -578,6 +589,17 @@ export async function fetchCatalog(isAdmin: boolean) {
         quantity: Number(r.quantity),
         unit: String(r.unit ?? 'u'),
         note: (r.note as string | null) ?? undefined,
+        addedAt: String(r.added_at),
+      })),
+      materialExpenses: matExpenseRows.map((r) => ({
+        id: String(r.id),
+        description: String(r.description),
+        unit: String(r.unit),
+        quantity: Number(r.quantity),
+        unitPrice: Number(r.unit_price),
+        subtotal: Number(r.quantity) * Number(r.unit_price),
+        notes: (r.notes as string | null) ?? undefined,
+        addedByName: (r.added_by_name as string | null) ?? undefined,
         addedAt: String(r.added_at),
       })),
       events: eventRows.map((r) => ({

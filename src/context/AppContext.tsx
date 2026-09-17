@@ -47,6 +47,8 @@ import {
   persistAddNote,
   persistAddTimeLog,
   persistAddUsedMaterial,
+  persistAddMaterialExpense,
+  persistRemoveMaterialExpense,
   persistAdminCancelOrder,
   persistAdminExceptionalClose,
   persistAdminIncident,
@@ -113,6 +115,7 @@ import {
   Customer,
   CustomerRegistrationInput,
   MaterialInventory,
+  MaterialExpense,
   OrderEventType,
   OrderStatus,
   OrderPriority,
@@ -254,6 +257,15 @@ interface AppContextType {
     quantity: number,
     note?: string
   ) => boolean;
+  /** Gasto de material declarado por el técnico — reemplaza a addUsedMaterial
+   * para pedidos nuevos, ver MaterialExpense en types/index.ts. No hay
+   * catálogo ni stock: el técnico compró el material por su cuenta y esto
+   * solo registra ese gasto para sumarlo al presupuesto/factura del cliente. */
+  addMaterialExpense: (
+    orderId: string,
+    input: { description: string; unit: string; quantity: number; unitPrice: number; notes?: string }
+  ) => boolean;
+  removeMaterialExpense: (orderId: string, expenseId: string) => void;
   saveCustomerSignature: (
     orderId: string,
     signature: { signerName: string; signatureDataUrl: string; comments?: string }
@@ -685,6 +697,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         .on('postgres_changes', { event: '*', schema: 'public', table: 'order_checklist_items' }, refreshCatalog)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'order_time_logs' }, refreshCatalog)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'order_materials_used' }, refreshCatalog)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'order_material_expenses' }, refreshCatalog)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'order_events' }, refreshCatalog)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'order_signatures' }, refreshCatalog)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'order_quotes' }, refreshCatalog)
@@ -1760,6 +1773,122 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     showToast(`Material registrado: ${quantity} ${mat.unit} de ${mat.name}`, 'success', 'Inventario descontado');
     return true;
+  };
+
+  const addMaterialExpense = (
+    orderId: string,
+    input: { description: string; unit: string; quantity: number; unitPrice: number; notes?: string }
+  ): boolean => {
+    const order = orders.find((o) => o.id === orderId);
+    try {
+      validateOrderModificationAccess(currentUser, order);
+      validateOrderId(orderId);
+    } catch (err) {
+      const msg = err instanceof SecurityError ? err.message : 'No autorizado';
+      showToast(msg, 'error', 'Seguridad');
+      return false;
+    }
+
+    if (order?.status === 'completed') {
+      showToast('La orden está cerrada; no se pueden sumar gastos de materiales.', 'warning');
+      return false;
+    }
+
+    const description = input.description.trim();
+    if (!description) {
+      showToast('Describí qué material compraste.', 'warning');
+      return false;
+    }
+    if (input.quantity <= 0) {
+      showToast('La cantidad debe ser mayor a cero.', 'warning');
+      return false;
+    }
+    if (input.unitPrice < 0) {
+      showToast('El precio no puede ser negativo.', 'warning');
+      return false;
+    }
+
+    const tempId = `matexp-${Date.now()}`;
+    const newExpense: MaterialExpense = {
+      id: tempId,
+      description,
+      unit: input.unit,
+      quantity: input.quantity,
+      unitPrice: input.unitPrice,
+      subtotal: input.quantity * input.unitPrice,
+      notes: input.notes?.trim() || undefined,
+      addedByName: currentUser?.name,
+      addedAt: formatNow(),
+    };
+
+    setOrders((prev) =>
+      prev.map((o) => (o.id === orderId ? { ...o, materialExpenses: [newExpense, ...o.materialExpenses] } : o))
+    );
+
+    if (usingRemoteData) {
+      void withRemote(() =>
+        persistAddMaterialExpense({
+          orderId,
+          description,
+          unit: input.unit,
+          quantity: input.quantity,
+          unitPrice: input.unitPrice,
+          notes: input.notes?.trim(),
+          author: currentUser?.name ?? 'Sistema',
+        })
+      )
+        .then(() => {
+          showToast(`Gasto de material registrado: ${description}`, 'success');
+        })
+        .catch((err) => {
+          setOrders((prev) =>
+            prev.map((o) =>
+              o.id === orderId
+                ? { ...o, materialExpenses: o.materialExpenses.filter((m) => m.id !== tempId) }
+                : o
+            )
+          );
+          showToast(friendlyErrorMessage(err, 'Error al registrar el gasto'), 'error');
+        });
+      return true;
+    }
+
+    showToast(`Gasto de material registrado: ${description}`, 'success');
+    return true;
+  };
+
+  const removeMaterialExpense = (orderId: string, expenseId: string) => {
+    const order = orders.find((o) => o.id === orderId);
+    try {
+      validateOrderModificationAccess(currentUser, order);
+      validateOrderId(orderId);
+    } catch (err) {
+      const msg = err instanceof SecurityError ? err.message : 'No autorizado';
+      showToast(msg, 'error', 'Seguridad');
+      return;
+    }
+
+    const removed = order?.materialExpenses.find((m) => m.id === expenseId);
+    setOrders((prev) =>
+      prev.map((o) =>
+        o.id === orderId ? { ...o, materialExpenses: o.materialExpenses.filter((m) => m.id !== expenseId) } : o
+      )
+    );
+
+    if (usingRemoteData) {
+      void withRemote(() =>
+        persistRemoveMaterialExpense({ expenseId, orderId, author: currentUser?.name ?? 'Sistema' })
+      ).catch((err) => {
+        if (removed) {
+          setOrders((prev) =>
+            prev.map((o) =>
+              o.id === orderId ? { ...o, materialExpenses: [removed, ...o.materialExpenses] } : o
+            )
+          );
+        }
+        showToast(friendlyErrorMessage(err, 'Error al eliminar el gasto'), 'error');
+      });
+    }
   };
 
   const saveCustomerSignature = (
@@ -3256,6 +3385,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addTimeLog,
         addTechnicalNote,
         addUsedMaterial,
+        addMaterialExpense,
+        removeMaterialExpense,
         saveCustomerSignature,
         addCustomer,
         updateCustomer,

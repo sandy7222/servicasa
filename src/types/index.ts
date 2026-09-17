@@ -179,6 +179,25 @@ export interface UsedMaterial {
   addedAt: string;
 }
 
+/** Gasto de material declarado por el técnico — reemplaza el viejo modelo de
+ * "almacén" (UsedMaterial/materials.stock, que descontaba de un catálogo
+ * propio de TecniUrbano). El técnico compra el material por su cuenta y
+ * simplemente declara ese gasto para que se sume al presupuesto/factura del
+ * cliente; no implica que la empresa provea materiales. Independiente de
+ * order_quotes: funciona igual en modo diagnóstico y directo. Pedido de
+ * Sandy del 17/9. */
+export interface MaterialExpense {
+  id: string;
+  description: string;
+  unit: string;
+  quantity: number;
+  unitPrice: number;
+  subtotal: number;
+  notes?: string;
+  addedByName?: string;
+  addedAt: string;
+}
+
 export interface CustomerSignature {
   signerName: string;
   signatureDataUrl: string;
@@ -262,6 +281,10 @@ export interface ServiceOrder {
   timeLogs: TimeLog[];
   technicalNotes: TechnicalNote[];
   usedMaterials: UsedMaterial[];
+  /** Gastos de materiales declarados por el técnico, ver MaterialExpense.
+   * Reemplaza a usedMaterials para todo pedido nuevo — ese campo queda solo
+   * por compatibilidad con órdenes viejas, no se le agrega nada más. */
+  materialExpenses: MaterialExpense[];
   customerSignature: CustomerSignature | null;
   events: OrderEvent[];
   diagnosisPhotos: DiagnosisPhoto[];

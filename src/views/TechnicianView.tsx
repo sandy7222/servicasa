@@ -57,6 +57,12 @@ const directionsUrl = (order: ServiceOrder) => {
   return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}&travelmode=driving`;
 };
 
+// Unidades para el formulario de "Gastos de materiales" (ver MaterialExpense
+// en types/index.ts). No hace falta que coincidan con la tabla oficial de
+// ARCA/AFIP — este registro es interno para armar el presupuesto, no una
+// factura electrónica real, así que alcanza con nombres simples y claros.
+export const MATERIAL_EXPENSE_UNITS = ['unidades', 'metros', 'metros cuadrados', 'kilogramos', 'litros', 'docena', 'caja', 'rollo', 'par'];
+
 // Color por estado del cronómetro (ver getTimerStatusLabel en lib/workTimer):
 // teal para trabajo activo, ámbar para pausado, slate para los estados
 // previos a empezar (pendiente/en camino/presupuestando/asignada), verde
@@ -76,7 +82,6 @@ export const TechnicianView: React.FC = () => {
   const {
     orders,
     currentUser,
-    materials,
     updateOrderStatus,
     toggleChecklistItem,
     addChecklistItem,
@@ -85,7 +90,8 @@ export const TechnicianView: React.FC = () => {
     markArrived,
     addTimeLog,
     addTechnicalNote,
-    addUsedMaterial,
+    addMaterialExpense,
+    removeMaterialExpense,
     showToast,
     navigate,
     currentPath,
@@ -166,9 +172,14 @@ export const TechnicianView: React.FC = () => {
   const [timeMinutes, setTimeMinutes] = useState<number>(30);
   const [timeNote, setTimeNote] = useState('');
   const [techNoteText, setTechNoteText] = useState('');
-  const [selectedMaterialId, setSelectedMaterialId] = useState(materials[0]?.id || '');
-  const [materialQty, setMaterialQty] = useState<number>(1);
-  const [materialNote, setMaterialNote] = useState('');
+  // Gasto de material declarado por el técnico (reemplaza al viejo catálogo
+  // con stock — ver MaterialExpense en types/index.ts). Pedido de Sandy del
+  // 17/9: no hay catálogo, el técnico escribe qué compró y cuánto pagó.
+  const [expenseDescription, setExpenseDescription] = useState('');
+  const [expenseUnit, setExpenseUnit] = useState(MATERIAL_EXPENSE_UNITS[0]);
+  const [expenseQty, setExpenseQty] = useState<number>(1);
+  const [expensePrice, setExpensePrice] = useState<number>(0);
+  const [expenseNotes, setExpenseNotes] = useState('');
 
   // Pause Reason Modal
   const [isPauseModalOpen, setIsPauseModalOpen] = useState(false);
@@ -254,14 +265,22 @@ export const TechnicianView: React.FC = () => {
     }
   };
 
-  const handleAddMaterialSubmit = (e: React.FormEvent) => {
+  const handleAddMaterialExpenseSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!activeOrder || !selectedMaterialId) return;
+    if (!activeOrder || !expenseDescription.trim()) return;
 
-    const ok = addUsedMaterial(activeOrder.id, selectedMaterialId, materialQty, materialNote);
+    const ok = addMaterialExpense(activeOrder.id, {
+      description: expenseDescription,
+      unit: expenseUnit,
+      quantity: expenseQty,
+      unitPrice: expensePrice,
+      notes: expenseNotes,
+    });
     if (ok) {
-      setMaterialQty(1);
-      setMaterialNote('');
+      setExpenseDescription('');
+      setExpenseQty(1);
+      setExpensePrice(0);
+      setExpenseNotes('');
     }
   };
 
@@ -799,7 +818,7 @@ export const TechnicianView: React.FC = () => {
                       }`}
                     >
                       <Package className="w-3.5 h-3.5" />
-                      <span>Materiales ({activeOrder.usedMaterials.length})</span>
+                      <span>Materiales ({activeOrder.materialExpenses.length})</span>
                     </button>
 
                     <button
@@ -987,30 +1006,52 @@ export const TechnicianView: React.FC = () => {
                       </div>
                     )}
 
-                    {/* 3. MATERIALS USAGE */}
+                    {/* 3. GASTOS DE MATERIALES — el técnico declara lo que compró de su
+                        bolsillo (sin catálogo ni stock, ver MaterialExpense en
+                        types/index.ts) para que se sume al presupuesto/factura
+                        del cliente. Si el cliente ya tenía los materiales, esta
+                        lista simplemente queda vacía. */}
                     {activeTab === 'materials' && (
                       <div className="space-y-3">
                         {activeOrder.status !== 'completed' && (
                           <form
-                            onSubmit={handleAddMaterialSubmit}
+                            onSubmit={handleAddMaterialExpenseSubmit}
                             className="bg-slate-50 dark:bg-slate-950 p-3 rounded-lg border border-slate-200 dark:border-slate-700 space-y-2"
                           >
                             <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                              Cargar Material Utilizado en Campo
+                              Cargar Gasto de Material
                             </h4>
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                            <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                              Cargá acá lo que compraste de tu bolsillo para este trabajo. Si el
+                              cliente ya tenía los materiales, no cargues nada.
+                            </p>
+                            <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
                               <div className="sm:col-span-2">
                                 <label className="block text-[10px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5">
-                                  Seleccionar insumo de inventario
+                                  Material comprado
+                                </label>
+                                <input
+                                  type="text"
+                                  value={expenseDescription}
+                                  onChange={(e) => setExpenseDescription(e.target.value)}
+                                  placeholder="Ej: Cable 2.5mm rojo"
+                                  className="w-full text-xs px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-1 focus:ring-teal-500"
+                                  required
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-[10px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5">
+                                  Unidad
                                 </label>
                                 <select
-                                  value={selectedMaterialId}
-                                  onChange={(e) => setSelectedMaterialId(e.target.value)}
+                                  value={expenseUnit}
+                                  onChange={(e) => setExpenseUnit(e.target.value)}
                                   className="w-full text-xs px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-1 focus:ring-teal-500 font-medium"
                                 >
-                                  {materials.map((m) => (
-                                    <option key={m.id} value={m.id}>
-                                      {m.name} (Stock: {m.stock} {m.unit})
+                                  {MATERIAL_EXPENSE_UNITS.map((u) => (
+                                    <option key={u} value={u}>
+                                      {u}
                                     </option>
                                   ))}
                                 </select>
@@ -1018,38 +1059,56 @@ export const TechnicianView: React.FC = () => {
 
                               <div>
                                 <label className="block text-[10px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5">
-                                  Cantidad utilizada
+                                  Cantidad
                                 </label>
                                 <input
                                   type="number"
-                                  value={materialQty}
-                                  onChange={(e) => setMaterialQty(Number(e.target.value))}
-                                  min={1}
+                                  value={expenseQty}
+                                  onChange={(e) => setExpenseQty(Number(e.target.value))}
+                                  min={0.01}
+                                  step="any"
                                   className="w-full text-xs px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-1 focus:ring-teal-500 font-mono font-bold"
                                   required
                                 />
                               </div>
                             </div>
 
-                            <div>
-                              <label className="block text-[10px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5">
-                                Nota u observación del material (opcional)
-                              </label>
-                              <input
-                                type="text"
-                                value={materialNote}
-                                onChange={(e) => setMaterialNote(e.target.value)}
-                                placeholder="Ej: Tramo de reemplazo en baño principal"
-                                className="w-full text-xs px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-1 focus:ring-teal-500"
-                              />
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                              <div>
+                                <label className="block text-[10px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5">
+                                  Precio que pagaste (total)
+                                </label>
+                                <input
+                                  type="number"
+                                  value={expensePrice}
+                                  onChange={(e) => setExpensePrice(Number(e.target.value))}
+                                  min={0}
+                                  step="any"
+                                  className="w-full text-xs px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-1 focus:ring-teal-500 font-mono font-bold"
+                                  required
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5">
+                                  Nota (opcional)
+                                </label>
+                                <input
+                                  type="text"
+                                  value={expenseNotes}
+                                  onChange={(e) => setExpenseNotes(e.target.value)}
+                                  placeholder="Ej: Comprado en ferretería del barrio"
+                                  className="w-full text-xs px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-1 focus:ring-teal-500"
+                                />
+                              </div>
                             </div>
 
                             <div className="flex justify-end">
                               <button
                                 type="submit"
-                                className="px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-md transition-colors shadow-xs"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-md transition-colors shadow-xs"
                               >
-                                Registrar y Descontar Stock
+                                <Plus className="w-3.5 h-3.5" />
+                                Agregar gasto
                               </button>
                             </div>
                           </form>
@@ -1057,33 +1116,49 @@ export const TechnicianView: React.FC = () => {
 
                         <div className="space-y-1.5">
                           <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 font-mono">
-                            Materiales Cargados a esta Orden ({activeOrder.usedMaterials.length})
+                            Gastos Cargados a esta Orden ({activeOrder.materialExpenses.length})
                           </h4>
-                          {activeOrder.usedMaterials.length === 0 ? (
+                          {activeOrder.materialExpenses.length === 0 ? (
                             <p className="text-xs text-slate-400 italic">
-                              No se han registrado materiales aún.
+                              No se cargaron gastos de materiales aún.
                             </p>
                           ) : (
-                            <div className="divide-y divide-slate-100 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden bg-slate-50 dark:bg-slate-950">
-                              {activeOrder.usedMaterials.map((um) => (
-                                <div
-                                  key={um.id}
-                                  className="p-2.5 flex items-center justify-between text-xs"
-                                >
-                                  <div>
-                                    <span className="font-semibold text-slate-800 dark:text-slate-200">
-                                      {um.materialName}
-                                    </span>
-                                    {um.note && (
-                                      <div className="text-[10px] text-slate-500 dark:text-slate-400">{um.note}</div>
-                                    )}
+                            <>
+                              <div className="divide-y divide-slate-100 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden bg-slate-50 dark:bg-slate-950">
+                                {activeOrder.materialExpenses.map((me) => (
+                                  <div key={me.id} className="p-2.5 flex items-center justify-between gap-2 text-xs">
+                                    <div className="min-w-0">
+                                      <span className="font-semibold text-slate-800 dark:text-slate-200">
+                                        {me.description}
+                                      </span>
+                                      <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                                        {me.quantity} {me.unit} × {formatArs(me.unitPrice)}
+                                        {me.notes ? ` · ${me.notes}` : ''}
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 shrink-0">
+                                      <span className="font-mono font-bold text-teal-800 bg-teal-50 dark:bg-teal-950/40 px-2 py-0.5 rounded border border-teal-200 dark:border-teal-800 text-xs">
+                                        {formatArs(me.subtotal)}
+                                      </span>
+                                      {activeOrder.status !== 'completed' && (
+                                        <button
+                                          type="button"
+                                          onClick={() => removeMaterialExpense(activeOrder.id, me.id)}
+                                          className="text-slate-400 hover:text-rose-600"
+                                          aria-label="Eliminar gasto"
+                                        >
+                                          <X className="w-3.5 h-3.5" />
+                                        </button>
+                                      )}
+                                    </div>
                                   </div>
-                                  <span className="font-mono font-bold text-teal-800 bg-teal-50 dark:bg-teal-950/40 px-2 py-0.5 rounded border border-teal-200 dark:border-teal-800 text-xs">
-                                    {um.quantity} {um.unit}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
+                                ))}
+                              </div>
+                              <div className="flex justify-end text-xs font-bold text-slate-700 dark:text-slate-300">
+                                Total materiales:{' '}
+                                {formatArs(activeOrder.materialExpenses.reduce((sum, me) => sum + me.subtotal, 0))}
+                              </div>
+                            </>
                           )}
                         </div>
                       </div>

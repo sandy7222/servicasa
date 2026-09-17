@@ -21,7 +21,7 @@ const slugForServiceType = (serviceType: string) => {
 };
 
 export const QuoteBuilder: React.FC<Props> = ({ order }) => {
-  const { currentUser, materials, catalogSubcategories, refreshRemoteData, showToast } = useApp();
+  const { currentUser, catalogSubcategories, refreshRemoteData, showToast } = useApp();
   const quote = order.quotes?.[0] as OrderQuote | undefined;
   const [rubros, setRubros] = useState<ServiceRubro[]>([]);
   const [categories, setCategories] = useState<CatalogCategory[]>([]);
@@ -32,8 +32,6 @@ export const QuoteBuilder: React.FC<Props> = ({ order }) => {
   const [busy, setBusy] = useState(false);
   const [loadingCatalog, setLoadingCatalog] = useState(true);
   const [loadingTarifario, setLoadingTarifario] = useState(false);
-  const [selectedMaterialId, setSelectedMaterialId] = useState(materials[0]?.id ?? '');
-  const [materialQty, setMaterialQty] = useState(1);
 
   // Habilitado desde que se paga la seña de visita, y se mantiene habilitado
   // aunque el pago avance a 'paid_in_full' (presupuesto ya aceptado y
@@ -161,31 +159,6 @@ export const QuoteBuilder: React.FC<Props> = ({ order }) => {
     finally { setBusy(false); }
   };
 
-  const addMaterial = async () => {
-    if (!isDraft) return;
-    const material = materials.find((m) => m.id === selectedMaterialId);
-    if (!material) return showToast('Elegí un repuesto del inventario.', 'warning');
-    if (materialQty <= 0) return showToast('La cantidad debe ser mayor a cero.', 'warning');
-    setBusy(true);
-    try {
-      const existing = quote?.items.find((item) => item.itemType === 'material' && item.description === material.name);
-      if (existing) {
-        const { error } = await supabase.from('order_quote_items').update({ quantity: existing.quantity + materialQty }).eq('id', existing.id);
-        if (error) throw error;
-      } else {
-        const quoteId = await ensureDraft();
-        const { error } = await supabase.from('order_quote_items').insert({
-          quote_id: quoteId, item_type: 'material', description: material.name,
-          quantity: materialQty, unit: material.unit, unit_price: material.costEstimate, sort_order: quote?.items.length ?? 0,
-        });
-        if (error) throw error;
-      }
-      await refreshRemoteData();
-      setMaterialQty(1);
-    } catch (error) { showToast(error instanceof Error ? error.message : 'No se pudo agregar el repuesto.', 'error'); }
-    finally { setBusy(false); }
-  };
-
   const updateItem = async (itemId: string, values: Record<string, unknown>) => {
     setBusy(true);
     try {
@@ -262,7 +235,11 @@ export const QuoteBuilder: React.FC<Props> = ({ order }) => {
         </div>}
       </div>}
 
-      <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 space-y-3"><h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">Repuestos a comprar</h4>{materials.length === 0 ? <p className="text-xs text-slate-500 dark:text-slate-400">No hay repuestos cargados en el inventario.</p> : <div className="flex flex-wrap items-end gap-2"><label className="min-w-0 flex-1 text-[11px] font-semibold text-slate-600 dark:text-slate-400">Repuesto<select value={selectedMaterialId} onChange={(event) => setSelectedMaterialId(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-700 px-2 py-1.5 text-xs">{materials.map((m) => <option key={m.id} value={m.id}>{m.name} · {formatArs(m.costEstimate)}/{m.unit}</option>)}</select></label><label className="w-20 text-[11px] font-semibold text-slate-600 dark:text-slate-400">Cantidad<input type="number" min={1} value={materialQty} onChange={(event) => setMaterialQty(Math.max(1, Number(event.target.value) || 1))} className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-700 px-2 py-1.5 text-xs" /></label><button type="button" disabled={busy || !isDraft} onClick={() => void addMaterial()} className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-bold text-white disabled:opacity-50">Agregar repuesto</button></div>}</div>
+      {/* Los materiales/repuestos ya no se cargan acá con precio fijo de
+          catálogo — ver pestaña "Materiales" del técnico (MaterialExpense en
+          types/index.ts): el técnico declara ahí lo que compró de su
+          bolsillo y ese gasto se suma aparte al total del cliente. */}
+      <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 p-3 text-[11px] text-slate-600 dark:text-slate-400">Los materiales que compres para este trabajo se cargan en la pestaña <strong>Materiales</strong>, no acá.</div>
 
       <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 space-y-2"><label className="block text-xs font-bold text-slate-700 dark:text-slate-300">Hallazgos y notas para el cliente<textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={3} className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs" placeholder="Explicá el diagnóstico y la solución propuesta." /></label><button type="button" disabled={!quote || busy} onClick={() => void saveNotes()} className="rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs font-bold disabled:opacity-50">Guardar borrador</button></div>
     </>}

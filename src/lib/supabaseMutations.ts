@@ -1301,6 +1301,60 @@ export async function persistAddUsedMaterial(input: {
   });
 }
 
+/** Gasto de material declarado por el técnico (reemplaza a
+ * persistAddUsedMaterial/register_material_usage para pedidos nuevos — ver
+ * MaterialExpense en types/index.ts y la migración
+ * create_order_material_expenses). No descuenta nada de ningún catálogo: es
+ * simplemente el técnico anotando lo que compró de su bolsillo, con el
+ * precio que pagó, para que se sume al presupuesto/factura del cliente.
+ * Funciona igual en workMode 'diagnosis' o 'direct', no depende de
+ * order_quotes. */
+export async function persistAddMaterialExpense(input: {
+  orderId: string;
+  description: string;
+  unit: string;
+  quantity: number;
+  unitPrice: number;
+  notes?: string;
+  author: string;
+}) {
+  const { data, error } = await supabase
+    .from('order_material_expenses')
+    .insert({
+      order_id: input.orderId,
+      description: input.description,
+      unit: input.unit,
+      quantity: input.quantity,
+      unit_price: input.unitPrice,
+      notes: input.notes ?? null,
+      added_by_name: input.author,
+    })
+    .select('*')
+    .single();
+  throwIfError(error);
+
+  await supabase.from('order_events').insert({
+    order_id: input.orderId,
+    type: 'material_added',
+    description: `Gasto de material: ${input.description} x${input.quantity} ${input.unit}.`,
+    author: input.author,
+  });
+
+  return data;
+}
+
+export async function persistRemoveMaterialExpense(input: { expenseId: string; orderId: string; author: string }) {
+  const { error } = await supabase.from('order_material_expenses').delete().eq('id', input.expenseId);
+  throwIfError(error);
+
+  await supabase.from('order_events').insert({
+    order_id: input.orderId,
+    type: 'material_added',
+    description: 'Se eliminó un gasto de material cargado por error.',
+    author: input.author,
+  });
+}
+
 export async function persistSignature(input: {
   orderId: string;
   signerName: string;
