@@ -16,6 +16,13 @@ import { useApp } from '../../context/AppContext';
 import { uploadHomeBannerMedia } from '../../lib/supabaseMutations';
 import { HOME_ICON_OPTIONS, getHomeIcon } from '../../lib/homeIcons';
 import { combineHomeBlocks, isCurrentlyVigent } from '../../lib/homeBlocks';
+import {
+  BANNER_BACKGROUND_PRESETS,
+  DEFAULT_BANNER_BACKGROUND,
+  DEFAULT_BANNER_MEDIA_FADE,
+  clampBannerMediaFade,
+  normalizeBannerBackground,
+} from '../../lib/homeBannerStyle';
 import type { HomeBanner, HomeBannerInput, HomeCard, HomeCardInput } from '../../types';
 
 /** Editor de página del admin para el panel del cliente (/customer):
@@ -38,6 +45,8 @@ const EMPTY_BANNER_DRAFT: BannerDraft = {
   ctaLabel: '',
   mediaUrl: '',
   mediaType: 'image',
+  backgroundColor: DEFAULT_BANNER_BACKGROUND,
+  mediaFade: DEFAULT_BANNER_MEDIA_FADE,
 };
 
 const EMPTY_CARD_DRAFT: CardDraft = {
@@ -93,6 +102,8 @@ export const HomePageEditor: React.FC = () => {
       ctaLabel: b.ctaLabel || '',
       mediaUrl: b.mediaUrl || '',
       mediaType: b.mediaType,
+      backgroundColor: normalizeBannerBackground(b.backgroundColor),
+      mediaFade: clampBannerMediaFade(b.mediaFade),
     });
   };
   const closeBannerForm = () => {
@@ -139,6 +150,8 @@ export const HomePageEditor: React.FC = () => {
       ctaLabel: bannerDraft.ctaLabel?.trim() || undefined,
       startsAt: bannerDraft.startsAt || undefined,
       endsAt: bannerDraft.endsAt || undefined,
+      backgroundColor: normalizeBannerBackground(bannerDraft.backgroundColor),
+      mediaFade: clampBannerMediaFade(bannerDraft.mediaFade),
     };
     if (bannerDraft.id) {
       updateHomeBanner(bannerDraft.id, input);
@@ -292,6 +305,66 @@ export const HomePageEditor: React.FC = () => {
                 </button>
               </div>
             )}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
+                Color de fondo
+              </label>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-2">
+                Lo elegís acá: no hace falta diseñarlo en la foto. El texto se adapta si el fondo es claro u oscuro.
+              </p>
+              <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                {BANNER_BACKGROUND_PRESETS.map((preset) => {
+                  const selected = normalizeBannerBackground(bannerDraft.backgroundColor) === preset.value;
+                  return (
+                    <button
+                      key={preset.value}
+                      type="button"
+                      onClick={() => setBannerDraft({ ...bannerDraft, backgroundColor: preset.value })}
+                      className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-[10px] font-bold ${
+                        selected
+                          ? 'border-teal-500 text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-950/40'
+                          : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
+                      }`}
+                    >
+                      <span className="h-3.5 w-3.5 rounded-full border border-black/10" style={{ backgroundColor: preset.value }} />
+                      {preset.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <label className="inline-flex items-center gap-2 text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                Personalizado
+                <input
+                  type="color"
+                  value={normalizeBannerBackground(bannerDraft.backgroundColor)}
+                  onChange={(e) => setBannerDraft({ ...bannerDraft, backgroundColor: e.target.value })}
+                  className="h-8 w-12 cursor-pointer rounded border border-slate-300 dark:border-slate-700 bg-transparent"
+                />
+              </label>
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
+                Fusión foto / fondo ({clampBannerMediaFade(bannerDraft.mediaFade)}%)
+              </label>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-2">
+                Suaviza el recorte de la foto para que se diluya en el color de fondo, como en el boceto.
+              </p>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={clampBannerMediaFade(bannerDraft.mediaFade)}
+                onChange={(e) => setBannerDraft({ ...bannerDraft, mediaFade: Number(e.target.value) })}
+                className="w-full accent-teal-600"
+              />
+              <div className="flex justify-between text-[10px] text-slate-400 mt-1">
+                <span>Recorte seco</span>
+                <span>Fusión fuerte</span>
+              </div>
+            </div>
           </div>
 
           <div className="flex flex-wrap items-end gap-2">

@@ -2698,6 +2698,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         highlights: input.highlights,
         linkPath: input.linkPath,
         ctaLabel: input.ctaLabel,
+        backgroundColor: input.backgroundColor,
+        mediaFade: input.mediaFade,
         displayOrder: maxOrder + 1,
         createdAt: new Date().toISOString(),
       };
@@ -2729,6 +2731,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       highlights: input.highlights,
       linkPath: input.linkPath,
       ctaLabel: input.ctaLabel,
+      backgroundColor: input.backgroundColor,
+      mediaFade: input.mediaFade,
       displayOrder: maxOrder + 1,
       createdAt: new Date().toISOString(),
     };
@@ -2753,6 +2757,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               highlights: input.highlights,
               linkPath: input.linkPath,
               ctaLabel: input.ctaLabel,
+              backgroundColor: input.backgroundColor,
+              mediaFade: input.mediaFade,
             }
           : b
       )

@@ -165,6 +165,8 @@ export type DbHomeBanner = {
   highlights: string | null;
   link_path: string | null;
   cta_label: string | null;
+  background_color?: string | null;
+  media_fade?: number | null;
   display_order: number;
   created_at: string;
 };

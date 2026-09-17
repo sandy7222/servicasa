@@ -3,6 +3,12 @@ import { Megaphone, Wrench, ChevronRight, Calendar, UserCheck, CheckCircle2 } fr
 import { useApp } from '../../context/AppContext';
 import { StatusBadge } from '../common/Badge';
 import type { ServiceOrder, HomeBanner } from '../../types';
+import {
+  bannerMediaFadeGradient,
+  clampBannerMediaFade,
+  isLightBannerBackground,
+  normalizeBannerBackground,
+} from '../../lib/homeBannerStyle';
 
 /** Ese espacio arriba del todo en /customer que antes quedaba vacío
  * (rediseño del 13/9): si el cliente tiene un servicio en curso, ahí se
@@ -29,6 +35,9 @@ const BannerCard: React.FC<{ banner: HomeBanner }> = ({ banner }) => {
     .filter(Boolean);
   const linkPath = banner.linkPath || '/customer/solicitar';
   const ctaLabel = banner.ctaLabel || 'Ver servicios';
+  const backgroundColor = normalizeBannerBackground(banner.backgroundColor);
+  const mediaFade = clampBannerMediaFade(banner.mediaFade);
+  const light = isLightBannerBackground(backgroundColor);
 
   const media = banner.mediaUrl ? (
     banner.mediaType === 'video' ? (
@@ -45,62 +54,81 @@ const BannerCard: React.FC<{ banner: HomeBanner }> = ({ banner }) => {
     )
   ) : null;
 
-  // Con foto/gif/video: layout tipo hero de marketing (texto + bullets a la
-  // izquierda, media a la derecha) — calcado del boceto que pidió Sandy.
-  // Sin media: cae a la versión compacta solo-texto (banner cargado sin
-  // archivo todavía).
+  const badgeClass = light
+    ? 'text-teal-700 bg-teal-500/10 border-teal-600/25'
+    : 'text-teal-300 bg-teal-500/10 border-teal-500/30';
+  const titleClass = light ? 'text-slate-900' : 'text-white';
+  const descriptionClass = light ? 'text-slate-600' : 'text-slate-300';
+  const highlightClass = light ? 'text-slate-700' : 'text-slate-200';
+  const checkClass = light ? 'text-teal-600' : 'text-teal-400';
+  const borderClass = light ? 'border-slate-200' : 'border-teal-800/40';
+
+  // Con foto/gif/video: layout tipo hero de marketing (texto a la izquierda,
+  // media a la derecha fundida con el color de fondo — efecto del boceto).
+  // Sin media: cae a la versión compacta solo-texto.
   if (media) {
     return (
-      <div className="rounded-xl overflow-hidden border border-teal-800/40 bg-[#0F172A] text-white">
-        <div className="flex flex-col md:flex-row">
-          <div className="flex-1 p-5 sm:p-6 flex flex-col justify-center gap-3 min-w-0">
-            <span className="inline-block w-fit text-[10px] font-bold uppercase tracking-wider text-teal-300 bg-teal-500/10 border border-teal-500/30 rounded-full px-2.5 py-1">
-              {banner.badgeLabel}
-            </span>
-            <div>
-              <h2 className="font-black text-2xl sm:text-3xl text-white leading-tight">{banner.title}</h2>
-              <p className="text-sm text-slate-300 mt-1.5 max-w-md">{banner.description}</p>
-            </div>
-            {highlights.length > 0 && (
-              <div className="flex flex-wrap gap-x-4 gap-y-1.5">
-                {highlights.map((h) => (
-                  <span key={h} className="inline-flex items-center gap-1.5 text-xs text-slate-200">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-teal-400 shrink-0" /> {h}
-                  </span>
-                ))}
-              </div>
-            )}
-            <button
-              type="button"
-              onClick={() => navigate(linkPath)}
-              className="mt-1 w-fit inline-flex items-center justify-center gap-1.5 rounded-lg bg-teal-600 hover:bg-teal-500 px-4 py-2.5 text-sm font-bold text-white"
-            >
-              <Wrench className="w-4 h-4" /> {ctaLabel}
-            </button>
+      <div
+        className={`relative rounded-xl overflow-hidden border ${borderClass} min-h-[200px] md:min-h-[240px] flex flex-col md:block`}
+        style={{ backgroundColor }}
+      >
+        <div className="relative z-10 md:w-[55%] p-5 sm:p-6 flex flex-col justify-center gap-3 min-w-0">
+          <span className={`inline-block w-fit text-[10px] font-bold uppercase tracking-wider border rounded-full px-2.5 py-1 ${badgeClass}`}>
+            {banner.badgeLabel}
+          </span>
+          <div>
+            <h2 className={`font-black text-2xl sm:text-3xl leading-tight ${titleClass}`}>{banner.title}</h2>
+            <p className={`text-sm mt-1.5 max-w-md ${descriptionClass}`}>{banner.description}</p>
           </div>
-          <div className="md:w-[42%] shrink-0 h-40 md:h-auto">{media}</div>
+          {highlights.length > 0 && (
+            <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+              {highlights.map((h) => (
+                <span key={h} className={`inline-flex items-center gap-1.5 text-xs ${highlightClass}`}>
+                  <CheckCircle2 className={`w-3.5 h-3.5 shrink-0 ${checkClass}`} /> {h}
+                </span>
+              ))}
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => navigate(linkPath)}
+            className="mt-1 w-fit inline-flex items-center justify-center gap-1.5 rounded-lg bg-teal-600 hover:bg-teal-500 px-4 py-2.5 text-sm font-bold text-white"
+          >
+            <Wrench className="w-4 h-4" /> {ctaLabel}
+          </button>
+        </div>
+        <div className="relative md:absolute md:inset-y-0 md:right-0 w-full md:w-[58%] h-44 md:h-full overflow-hidden">
+          {media}
+          <div
+            className="absolute inset-0 hidden md:block pointer-events-none"
+            style={{ background: bannerMediaFadeGradient(backgroundColor, mediaFade, 'right') }}
+          />
+          <div
+            className="absolute inset-0 md:hidden pointer-events-none"
+            style={{ background: bannerMediaFadeGradient(backgroundColor, mediaFade, 'bottom') }}
+          />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl border border-teal-800/40 bg-gradient-to-br from-[#0F172A] via-[#0F172A] to-teal-950 text-white p-4 sm:p-5">
+    <div className={`rounded-xl border p-4 sm:p-5 ${borderClass}`} style={{ backgroundColor }}>
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-500/15 text-teal-300">
+        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${light ? 'bg-teal-500/15 text-teal-700' : 'bg-teal-500/15 text-teal-300'}`}>
           <Megaphone className="w-5 h-5" />
         </div>
         <div className="min-w-0 flex-1">
-          <span className="inline-block text-[10px] font-bold uppercase tracking-wider text-teal-300 mb-1">
+          <span className={`inline-block text-[10px] font-bold uppercase tracking-wider mb-1 ${light ? 'text-teal-700' : 'text-teal-300'}`}>
             {banner.badgeLabel}
           </span>
-          <h3 className="font-black text-lg sm:text-xl text-white leading-tight">{banner.title}</h3>
-          <p className="text-xs sm:text-sm text-slate-300 mt-0.5">{banner.description}</p>
+          <h3 className={`font-black text-lg sm:text-xl leading-tight ${titleClass}`}>{banner.title}</h3>
+          <p className={`text-xs sm:text-sm mt-0.5 ${descriptionClass}`}>{banner.description}</p>
           {highlights.length > 0 && (
             <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5">
               {highlights.map((h) => (
-                <span key={h} className="inline-flex items-center gap-1 text-[11px] text-slate-200">
-                  <CheckCircle2 className="w-3 h-3 text-teal-400 shrink-0" /> {h}
+                <span key={h} className={`inline-flex items-center gap-1 text-[11px] ${highlightClass}`}>
+                  <CheckCircle2 className={`w-3 h-3 shrink-0 ${checkClass}`} /> {h}
                 </span>
               ))}
             </div>

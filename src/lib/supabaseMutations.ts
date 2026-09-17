@@ -28,6 +28,7 @@ import { supabase } from './supabase';
 import { mapCatalogCategory, mapCatalogSubcategory, mapCustomer, mapMaterial, mapOrder, mapService, mapTechnician, mapProspectiveTechnician, mapHomeBanner, mapHomeCard } from './supabaseData';
 import type { DbCategory, DbCustomer, DbMaterial, DbService, DbServiceOrder, DbSubcategory, DbTechnician, DbProspectiveTechnician, DbHomeBanner, DbHomeCard } from './supabase';
 import { combinedMaxDisplayOrder, type HomeBlockRef } from './homeBlocks';
+import { clampBannerMediaFade, normalizeBannerBackground } from './homeBannerStyle';
 
 function throwIfError(error: { message: string } | null) {
   if (error) throw new Error(error.message);
@@ -590,6 +591,8 @@ export async function persistCreateHomeBanner(input: HomeBannerInput): Promise<H
       cta_label: input.ctaLabel?.trim() || null,
       starts_at: input.startsAt || null,
       ends_at: input.endsAt || null,
+      background_color: normalizeBannerBackground(input.backgroundColor),
+      media_fade: clampBannerMediaFade(input.mediaFade),
       display_order: maxOrder + 1,
     })
     .select('*')
@@ -613,6 +616,8 @@ export async function persistUpdateHomeBanner(id: string, input: HomeBannerInput
       cta_label: input.ctaLabel?.trim() || null,
       starts_at: input.startsAt || null,
       ends_at: input.endsAt || null,
+      background_color: normalizeBannerBackground(input.backgroundColor),
+      media_fade: clampBannerMediaFade(input.mediaFade),
     })
     .eq('id', id)
     .select('*')

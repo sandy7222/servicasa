@@ -542,6 +542,10 @@ export interface HomeBanner {
   linkPath?: string | null;
   /** Texto del botón. Si es null, se usa "Ver servicios". */
   ctaLabel?: string | null;
+  /** Color de fondo del banner (hex). La foto se funde con este tono. */
+  backgroundColor?: string;
+  /** 0 = recorte seco; 100 = fusión fuerte foto/fondo. */
+  mediaFade?: number;
   displayOrder: number;
   createdAt: string;
 }
@@ -558,6 +562,8 @@ export type HomeBannerInput = {
   ctaLabel?: string;
   startsAt?: string;
   endsAt?: string;
+  backgroundColor?: string;
+  mediaFade?: number;
 };
 
 /** Tarjeta linkeable del panel del cliente (ej. "Solicitar Servicio", "Mis

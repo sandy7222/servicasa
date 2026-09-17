@@ -374,6 +374,8 @@ export function mapHomeBanner(row: DbHomeBanner): HomeBanner {
     highlights: row.highlights ?? undefined,
     linkPath: row.link_path ?? undefined,
     ctaLabel: row.cta_label ?? undefined,
+    backgroundColor: row.background_color ?? undefined,
+    mediaFade: row.media_fade ?? undefined,
     displayOrder: row.display_order,
     createdAt: row.created_at,
   };
