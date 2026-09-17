@@ -395,17 +395,17 @@ export const CustomerView: React.FC = () => {
                 )}
 
                 {awaitingWorkStart ? (
-                  <div className="space-y-3">
-                    {hasConfirmedTechnician ? (
-                      <>
-                        <div className="rounded-xl border border-teal-200 dark:border-teal-800 bg-teal-50/60 dark:bg-teal-950/30 p-3 text-xs text-teal-900 dark:text-teal-200">
-                          Te presentamos a tu técnico asignado. Podés coordinar los detalles de la visita
-                          escribiéndole directamente desde el botón de Mensajes.
-                        </div>
-                        <AssignedTechnicianCard
-                          key={`${activeOrder.assignedTechnicianId ?? 'none'}-${ratingNonce}`}
-                          technicianId={activeOrder.assignedTechnicianId}
-                        />
+                  hasConfirmedTechnician ? (
+                    <>
+                      <div className="rounded-xl border border-teal-200 dark:border-teal-800 bg-teal-50/70 dark:bg-teal-950/30 p-3 text-xs text-teal-900 dark:text-teal-200">
+                        Te presentamos a tu técnico asignado. Podés escribirle con el botón de abajo para coordinar el
+                        horario o cualquier consulta antes de la visita.
+                      </div>
+                      <AssignedTechnicianCard
+                        key={`${activeOrder.assignedTechnicianId ?? 'none'}-${ratingNonce}`}
+                        technicianId={activeOrder.assignedTechnicianId}
+                      />
+                      {activeOrder.assignedTechnicianId && (
                         <button
                           onClick={async () => {
                             try {
@@ -419,276 +419,286 @@ export const CustomerView: React.FC = () => {
                         >
                           <MessageCircle className="w-3.5 h-3.5" />Escribir al técnico
                         </button>
-                      </>
-                    ) : (
-                      <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 text-xs text-slate-600 dark:text-slate-400">
-                        {activeOrder.workMode === 'diagnosis'
-                          ? 'Tu seña de visita ya está confirmada. Estamos buscando un técnico disponible para tu zona y franja horaria — en cuanto se asigne vas a poder ver su nombre y coordinar la visita acá mismo.'
-                          : 'Estamos buscando un técnico disponible para tu zona y franja horaria. En cuanto se asigne vas a poder ver su nombre y el resto del seguimiento acá mismo.'}
+                      )}
+                    </>
+                  ) : (
+                    <div className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-700 shadow-xs">
+                      <div className="flex items-start gap-2.5">
+                        <div className="w-8 h-8 shrink-0 rounded-lg bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800 text-teal-700 flex items-center justify-center">
+                          <Wrench className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Estamos buscando un técnico para tu pedido</h3>
+                          <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+                            {activeOrder.workMode === 'diagnosis'
+                              ? 'Tu pago de visita por presupuesto ya está confirmado. Estamos buscando un técnico disponible para tu zona y franja horaria — en cuanto se asigne vas a poder ver su nombre y coordinar la visita acá mismo.'
+                              : 'Ya recibimos tu pedido. Estamos buscando un técnico disponible para tu zona y franja horaria — en cuanto se asigne vas a poder ver su nombre y coordinar la visita acá mismo.'}
+                          </p>
+                        </div>
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )
                 ) : (
                   <>
-                <AssignedTechnicianCard
-                  key={`${activeOrder.assignedTechnicianId ?? 'none'}-${ratingNonce}`}
-                  technicianId={activeOrder.assignedTechnicianId}
-                />
+                    <AssignedTechnicianCard
+                      key={`${activeOrder.assignedTechnicianId ?? 'none'}-${ratingNonce}`}
+                      technicianId={activeOrder.assignedTechnicianId}
+                    />
 
-                {activeOrder.assignedTechnicianId && (
-                  <button
-                    onClick={async () => {
-                      try {
-                        const conversationId = await startOrderConversation(activeOrder.id);
-                        window.location.hash = `#/customer/conversaciones/${conversationId}`;
-                      } catch {
-                        showToast('No se pudo abrir la conversación.', 'error');
-                      }
-                    }}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 px-3 py-2 text-xs font-bold"
-                  >
-                    <MessageCircle className="w-3.5 h-3.5" />Escribir al técnico
-                  </button>
-                )}
-
-                <QuoteViewer order={activeOrder} />
-
-                {/* Read-only work progress: lets the customer follow the agreed service transparently. */}
-                <section className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-700 shadow-xs space-y-3" aria-label="Progreso del trabajo técnico">
-                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
-                    <div className="flex items-start gap-2.5">
-                      <div className="w-8 h-8 shrink-0 rounded-lg bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800 text-teal-700 flex items-center justify-center">
-                        <Wrench className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Progreso del trabajo</h3>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400">Podés seguir las tareas acordadas a medida que el técnico las completa.</p>
-                      </div>
-                    </div>
-                    <span className="font-mono text-xs font-black text-teal-800 bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800 px-2.5 py-1 rounded-lg shrink-0">
-                      {completedChecklistCount}/{checklistTotal} completadas
-                    </span>
-                  </div>
-
-                  <div className="h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden" aria-label={`${checklistProgress}% completado`}>
-                    <div className="h-full bg-teal-500 rounded-full transition-all duration-500" style={{ width: `${checklistProgress}%` }} />
-                  </div>
-
-                  {nextChecklistItem ? (
-                    <div className="text-[11px] text-sky-800 bg-sky-50 border border-sky-200 rounded-lg px-3 py-2">
-                      <strong>Siguiente paso:</strong> {nextChecklistItem.label}
-                    </div>
-                  ) : checklistTotal > 0 ? (
-                    <div className="text-[11px] text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 font-medium">
-                      El técnico completó todas las tareas previstas. Falta tu conformidad para cerrar el servicio.
-                    </div>
-                  ) : (
-                    <div className="text-[11px] text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2">
-                      El checklist técnico se actualizará cuando el profesional inicie el trabajo.
-                    </div>
-                  )}
-
-                  <div className="space-y-1.5">
-                    {activeOrder.checklist.map((item) => (
-                      <div
-                        key={item.id}
-                        className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-xs ${
-                          item.completed ? 'bg-emerald-50/70 border-emerald-200' : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-700'
-                        }`}
+                    {activeOrder.assignedTechnicianId && (
+                      <button
+                        onClick={async () => {
+                          try {
+                            const conversationId = await startOrderConversation(activeOrder.id);
+                            window.location.hash = `#/customer/conversaciones/${conversationId}`;
+                          } catch {
+                            showToast('No se pudo abrir la conversación.', 'error');
+                          }
+                        }}
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 px-3 py-2 text-xs font-bold"
                       >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <CheckCircle2 className={`w-4 h-4 shrink-0 ${item.completed ? 'text-emerald-600' : 'text-slate-300'}`} />
-                          <span className={item.completed ? 'font-medium text-slate-800 dark:text-slate-200' : 'text-slate-600 dark:text-slate-400'}>{item.label}</span>
+                        <MessageCircle className="w-3.5 h-3.5" />Escribir al técnico
+                      </button>
+                    )}
+
+                    <QuoteViewer order={activeOrder} />
+
+                    {/* Read-only work progress: lets the customer follow the agreed service transparently. */}
+                    <section className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-700 shadow-xs space-y-3" aria-label="Progreso del trabajo técnico">
+                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                        <div className="flex items-start gap-2.5">
+                          <div className="w-8 h-8 shrink-0 rounded-lg bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800 text-teal-700 flex items-center justify-center">
+                            <Wrench className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Progreso del trabajo</h3>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400">Podés seguir las tareas acordadas a medida que el técnico las completa.</p>
+                          </div>
                         </div>
-                        <span className={`shrink-0 text-[10px] font-bold ${item.completed ? 'text-emerald-700' : 'text-slate-400'}`}>
-                          {item.completed ? 'Completada' : 'Pendiente'}
+                        <span className="font-mono text-xs font-black text-teal-800 bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800 px-2.5 py-1 rounded-lg shrink-0">
+                          {completedChecklistCount}/{checklistTotal} completadas
                         </span>
                       </div>
-                    ))}
-                  </div>
 
-                  <p className="text-[10px] text-slate-400 flex items-center gap-1.5">
-                    <Lock className="w-3 h-3" />
-                    Este seguimiento es informativo; la ejecución y actualización corresponden al técnico.
-                  </p>
-                </section>
-
-                {/* Breakdown: Time, Materials & Notes */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {/* Time Logs */}
-                  <div className="bg-white dark:bg-slate-900 rounded-xl p-3.5 border border-slate-200 dark:border-slate-700 shadow-xs space-y-2">
-                    <div className="flex items-center justify-between pb-1.5 border-b border-slate-100 dark:border-slate-800">
-                      <div className="flex items-center gap-1.5">
-                        <Clock className="w-3.5 h-3.5 text-teal-600" />
-                        <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 font-mono">
-                          Tiempo Registrado
-                        </h3>
+                      <div className="h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden" aria-label={`${checklistProgress}% completado`}>
+                        <div className="h-full bg-teal-500 rounded-full transition-all duration-500" style={{ width: `${checklistProgress}%` }} />
                       </div>
-                      <span className="font-mono text-xs font-bold text-teal-700">
-                        {formatElapsedTime(getOrderElapsedSeconds(activeOrder, clockNow))}
-                      </span>
-                    </div>
 
-                    <p className="text-[10px] text-teal-700 font-medium">
-                      {activeOrder.status === 'in_progress' ? 'El técnico se encuentra trabajando en este momento.' : 'Tiempo acumulado del servicio.'}
-                    </p>
+                      {nextChecklistItem ? (
+                        <div className="text-[11px] text-sky-800 bg-sky-50 border border-sky-200 rounded-lg px-3 py-2">
+                          <strong>Siguiente paso:</strong> {nextChecklistItem.label}
+                        </div>
+                      ) : checklistTotal > 0 ? (
+                        <div className="text-[11px] text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 font-medium">
+                          El técnico completó todas las tareas previstas. Falta tu conformidad para cerrar el servicio.
+                        </div>
+                      ) : (
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2">
+                          El checklist técnico se actualizará cuando el profesional inicie el trabajo.
+                        </div>
+                      )}
 
-                    {activeOrder.timeLogs.length === 0 ? (
-                      <p className="text-xs text-slate-400 italic py-1">
-                        {getOrderElapsedSeconds(activeOrder, clockNow) > 0
-                          ? 'El cronómetro del servicio se actualiza automáticamente.'
-                          : 'El técnico aún no inició el cronómetro del servicio.'}
-                      </p>
-                    ) : (
                       <div className="space-y-1.5">
-                        {activeOrder.timeLogs.map((tl) => (
+                        {activeOrder.checklist.map((item) => (
                           <div
-                            key={tl.id}
-                            className="p-2 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs"
+                            key={item.id}
+                            className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-xs ${
+                              item.completed ? 'bg-emerald-50/70 border-emerald-200' : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-700'
+                            }`}
                           >
-                            <span className="text-slate-700 dark:text-slate-300 text-[11px]">{tl.note}</span>
-                            <span className="font-mono font-bold text-teal-800 bg-teal-50 dark:bg-teal-950/40 px-1.5 py-0.2 rounded text-[11px] border border-teal-200 dark:border-teal-800">
-                              {tl.minutes} min
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Materials Used */}
-                  <div className="bg-white dark:bg-slate-900 rounded-xl p-3.5 border border-slate-200 dark:border-slate-700 shadow-xs space-y-2">
-                    <div className="flex items-center justify-between pb-1.5 border-b border-slate-100 dark:border-slate-800">
-                      <div className="flex items-center gap-1.5">
-                        <Package className="w-3.5 h-3.5 text-slate-700 dark:text-slate-300" />
-                        <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 font-mono">
-                          Materiales Usados
-                        </h3>
-                      </div>
-                      <span className="font-mono text-xs font-bold text-slate-700 dark:text-slate-300">
-                        {activeOrder.usedMaterials.length} ítems
-                      </span>
-                    </div>
-
-                    {activeOrder.usedMaterials.length === 0 ? (
-                      <p className="text-xs text-slate-400 italic py-1">
-                        No se han utilizado repuestos adicionales en este trabajo.
-                      </p>
-                    ) : (
-                      <div className="space-y-1.5">
-                        {activeOrder.usedMaterials.map((um) => (
-                          <div
-                            key={um.id}
-                            className="p-2 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs"
-                          >
-                            <div>
-                              <span className="font-semibold text-slate-800 dark:text-slate-200 text-[11px]">{um.materialName}</span>
-                              {um.note && (
-                                <div className="text-[10px] text-slate-500 dark:text-slate-400">{um.note}</div>
-                              )}
+                            <div className="flex items-center gap-2 min-w-0">
+                              <CheckCircle2 className={`w-4 h-4 shrink-0 ${item.completed ? 'text-emerald-600' : 'text-slate-300'}`} />
+                              <span className={item.completed ? 'font-medium text-slate-800 dark:text-slate-200' : 'text-slate-600 dark:text-slate-400'}>{item.label}</span>
                             </div>
-                            <span className="font-mono font-bold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.2 rounded shrink-0 text-[11px] border border-slate-200 dark:border-slate-700">
-                              {um.quantity} {um.unit}
+                            <span className={`shrink-0 text-[10px] font-bold ${item.completed ? 'text-emerald-700' : 'text-slate-400'}`}>
+                              {item.completed ? 'Completada' : 'Pendiente'}
                             </span>
                           </div>
                         ))}
                       </div>
-                    )}
-                  </div>
-                </div>
 
-                {/* Technician Notes */}
-                {activeOrder.technicalNotes.length > 0 && (
-                  <div className="bg-white dark:bg-slate-900 rounded-xl p-3.5 border border-slate-200 dark:border-slate-700 shadow-xs space-y-2">
-                    <div className="flex items-center gap-1.5 pb-1.5 border-b border-slate-100 dark:border-slate-800">
-                      <FileText className="w-3.5 h-3.5 text-teal-600" />
-                      <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 font-mono">
-                        Notas y Recomendaciones del Técnico
-                      </h3>
-                    </div>
+                      <p className="text-[10px] text-slate-400 flex items-center gap-1.5">
+                        <Lock className="w-3 h-3" />
+                        Este seguimiento es informativo; la ejecución y actualización corresponden al técnico.
+                      </p>
+                    </section>
 
-                    <div className="space-y-1.5">
-                      {activeOrder.technicalNotes.map((note) => (
-                        <div
-                          key={note.id}
-                          className="p-2.5 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-700 text-xs"
-                        >
-                          <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 mb-0.5">
-                            <span className="font-bold text-slate-700 dark:text-slate-300">{note.author}</span>
-                            <span className="font-mono">{note.timestamp} hs</span>
+                    {/* Breakdown: Time, Materials & Notes */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {/* Time Logs */}
+                      <div className="bg-white dark:bg-slate-900 rounded-xl p-3.5 border border-slate-200 dark:border-slate-700 shadow-xs space-y-2">
+                        <div className="flex items-center justify-between pb-1.5 border-b border-slate-100 dark:border-slate-800">
+                          <div className="flex items-center gap-1.5">
+                            <Clock className="w-3.5 h-3.5 text-teal-600" />
+                            <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 font-mono">
+                              Tiempo Registrado
+                            </h3>
                           </div>
-                          <p className="text-slate-800 dark:text-slate-200 leading-relaxed text-[11px]">{note.text}</p>
+                          <span className="font-mono text-xs font-bold text-teal-700">
+                            {formatElapsedTime(getOrderElapsedSeconds(activeOrder, clockNow))}
+                          </span>
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
 
-                {/* Digital Signature & Conformity Section */}
-                <div className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-700 shadow-xs space-y-3">
-                  <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
-                    <div className="flex items-center gap-2">
-                      <FileSignature className="w-4 h-4 text-teal-600" />
-                      <div>
-                        <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100">
-                          Firma Digital de Conformidad
-                        </h3>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                          Tu firma avala la recepción y correcta finalización del trabajo a domicilio.
+                        <p className="text-[10px] text-teal-700 font-medium">
+                          {activeOrder.status === 'in_progress' ? 'El técnico se encuentra trabajando en este momento.' : 'Tiempo acumulado del servicio.'}
                         </p>
-                      </div>
-                    </div>
-                  </div>
 
-                  {activeOrder.customerSignature ? (
-                    <div className="p-3.5 bg-emerald-50/80 border border-emerald-200 rounded-xl space-y-2">
-                      <div className="flex items-center gap-2 text-emerald-900 font-bold text-xs">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                        <span>¡Conformidad Otorgada con Éxito!</span>
+                        {activeOrder.timeLogs.length === 0 ? (
+                          <p className="text-xs text-slate-400 italic py-1">
+                            {getOrderElapsedSeconds(activeOrder, clockNow) > 0
+                              ? 'El cronómetro del servicio se actualiza automáticamente.'
+                              : 'El técnico aún no inició el cronómetro del servicio.'}
+                          </p>
+                        ) : (
+                          <div className="space-y-1.5">
+                            {activeOrder.timeLogs.map((tl) => (
+                              <div
+                                key={tl.id}
+                                className="p-2 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs"
+                              >
+                                <span className="text-slate-700 dark:text-slate-300 text-[11px]">{tl.note}</span>
+                                <span className="font-mono font-bold text-teal-800 bg-teal-50 dark:bg-teal-950/40 px-1.5 py-0.2 rounded text-[11px] border border-teal-200 dark:border-teal-800">
+                                  {tl.minutes} min
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
 
-                      <div className="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-emerald-200 inline-block shadow-2xs">
-                        <img
-                          src={activeOrder.customerSignature.signatureDataUrl}
-                          alt="Firma del cliente"
-                          className="h-14 max-w-xs object-contain"
-                        />
-                      </div>
-
-                      <div className="text-xs text-slate-700 dark:text-slate-300 space-y-0.5">
-                        <div>
-                          Firmado por: <strong>{activeOrder.customerSignature.signerName}</strong>
+                      {/* Materials Used */}
+                      <div className="bg-white dark:bg-slate-900 rounded-xl p-3.5 border border-slate-200 dark:border-slate-700 shadow-xs space-y-2">
+                        <div className="flex items-center justify-between pb-1.5 border-b border-slate-100 dark:border-slate-800">
+                          <div className="flex items-center gap-1.5">
+                            <Package className="w-3.5 h-3.5 text-slate-700 dark:text-slate-300" />
+                            <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 font-mono">
+                              Materiales
+                            </h3>
+                          </div>
+                          <span className="font-mono text-xs font-bold text-slate-700 dark:text-slate-300">
+                            {activeOrder.materialExpenses.length} ítems
+                          </span>
                         </div>
-                        <div className="text-slate-500 dark:text-slate-400 font-mono text-[10px]">
-                          Fecha y hora certificada: {activeOrder.customerSignature.signedAt}
-                        </div>
-                        {activeOrder.customerSignature.comments && (
-                          <div className="italic text-slate-600 dark:text-slate-400 text-[11px]">
-                            Comentario: "{activeOrder.customerSignature.comments}"
+
+                        {activeOrder.materialExpenses.length === 0 ? (
+                          <p className="text-xs text-slate-400 italic py-1">
+                            No se cargaron gastos de materiales en este trabajo.
+                          </p>
+                        ) : (
+                          <div className="space-y-1.5">
+                            {activeOrder.materialExpenses.map((me) => (
+                              <div
+                                key={me.id}
+                                className="p-2 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs"
+                              >
+                                <div>
+                                  <span className="font-semibold text-slate-800 dark:text-slate-200 text-[11px]">{me.description}</span>
+                                  {me.notes && (
+                                    <div className="text-[10px] text-slate-500 dark:text-slate-400">{me.notes}</div>
+                                  )}
+                                </div>
+                                <span className="font-mono font-bold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.2 rounded shrink-0 text-[11px] border border-slate-200 dark:border-slate-700">
+                                  {me.quantity} {me.unit}
+                                </span>
+                              </div>
+                            ))}
                           </div>
                         )}
                       </div>
                     </div>
-                  ) : activeOrder.status === 'completed' ? (
-                    <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-lg text-xs text-slate-600 dark:text-slate-400">
-                      Este servicio se encuentra cerrado.
-                    </div>
-                  ) : (
-                    <div>
-                      <div className="p-2.5 bg-teal-50/60 border border-teal-200 dark:border-teal-800 rounded-lg text-xs text-teal-900 dark:text-teal-200 mb-3 flex items-center gap-2">
-                        <Sparkles className="w-3.5 h-3.5 shrink-0 text-teal-600" />
-                        <span>
-                          Al firmar a continuación, confirmás que el servicio fue realizado a tu entera
-                          satisfacción.
-                        </span>
+
+                    {/* Technician Notes */}
+                    {activeOrder.technicalNotes.length > 0 && (
+                      <div className="bg-white dark:bg-slate-900 rounded-xl p-3.5 border border-slate-200 dark:border-slate-700 shadow-xs space-y-2">
+                        <div className="flex items-center gap-1.5 pb-1.5 border-b border-slate-100 dark:border-slate-800">
+                          <FileText className="w-3.5 h-3.5 text-teal-600" />
+                          <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 font-mono">
+                            Notas y Recomendaciones del Técnico
+                          </h3>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          {activeOrder.technicalNotes.map((note) => (
+                            <div
+                              key={note.id}
+                              className="p-2.5 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-700 text-xs"
+                            >
+                              <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 mb-0.5">
+                                <span className="font-bold text-slate-700 dark:text-slate-300">{note.author}</span>
+                                <span className="font-mono">{note.timestamp} hs</span>
+                              </div>
+                              <p className="text-slate-800 dark:text-slate-200 leading-relaxed text-[11px]">{note.text}</p>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                      <SignaturePad
-                        initialSignerName={activeOrder.clientName}
-                        onSave={handleSaveSignature}
-                      />
+                    )}
+
+                    {/* Digital Signature & Conformity Section */}
+                    <div className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-700 shadow-xs space-y-3">
+                      <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+                        <div className="flex items-center gap-2">
+                          <FileSignature className="w-4 h-4 text-teal-600" />
+                          <div>
+                            <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100">
+                              Firma Digital de Conformidad
+                            </h3>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                              Tu firma avala la recepción y correcta finalización del trabajo a domicilio.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {activeOrder.customerSignature ? (
+                        <div className="p-3.5 bg-emerald-50/80 border border-emerald-200 rounded-xl space-y-2">
+                          <div className="flex items-center gap-2 text-emerald-900 font-bold text-xs">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                            <span>¡Conformidad Otorgada con Éxito!</span>
+                          </div>
+
+                          <div className="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-emerald-200 inline-block shadow-2xs">
+                            <img
+                              src={activeOrder.customerSignature.signatureDataUrl}
+                              alt="Firma del cliente"
+                              className="h-14 max-w-xs object-contain"
+                            />
+                          </div>
+
+                          <div className="text-xs text-slate-700 dark:text-slate-300 space-y-0.5">
+                            <div>
+                              Firmado por: <strong>{activeOrder.customerSignature.signerName}</strong>
+                            </div>
+                            <div className="text-slate-500 dark:text-slate-400 font-mono text-[10px]">
+                              Fecha y hora certificada: {activeOrder.customerSignature.signedAt}
+                            </div>
+                            {activeOrder.customerSignature.comments && (
+                              <div className="italic text-slate-600 dark:text-slate-400 text-[11px]">
+                                Comentario: "{activeOrder.customerSignature.comments}"
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ) : activeOrder.status === 'completed' ? (
+                        <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-lg text-xs text-slate-600 dark:text-slate-400">
+                          Este servicio se encuentra cerrado.
+                        </div>
+                      ) : (
+                        <div>
+                          <div className="p-2.5 bg-teal-50/60 border border-teal-200 dark:border-teal-800 rounded-lg text-xs text-teal-900 dark:text-teal-200 mb-3 flex items-center gap-2">
+                            <Sparkles className="w-3.5 h-3.5 shrink-0 text-teal-600" />
+                            <span>
+                              Al firmar a continuación, confirmás que el servicio fue realizado a tu entera
+                              satisfacción.
+                            </span>
+                          </div>
+                          <SignaturePad
+                            initialSignerName={activeOrder.clientName}
+                            onSave={handleSaveSignature}
+                          />
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
                   </>
                 )}
 
