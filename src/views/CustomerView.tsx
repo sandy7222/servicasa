@@ -85,6 +85,21 @@ export const CustomerView: React.FC = () => {
     ? customerOrders.find((order) => order.id === orderIdFromPath)
     : customerOrders.find((order) => order.id === selectedOrderId) || customerOrders[0];
 
+  // 'assigned' es el estado inicial del pedido (todavía no arrancó el
+  // trabajo, ver types/index.ts). Mientras dure, progreso/tiempo/materiales/
+  // firma están vacíos y solo confunden al cliente, así que se ocultan y en
+  // su lugar se muestra un mensaje de estado acorde: "buscando técnico" (sin
+  // confirmar todavía) o la presentación del técnico ya confirmado. Un
+  // técnico "ofrecido" pero que todavía no aceptó (technicianResponseStatus
+  // === 'pending') cuenta como no confirmado, para no ilusionar al cliente
+  // con alguien que puede rechazar el trabajo. Pedido de Sandy del 17/9.
+  const hasConfirmedTechnician = Boolean(
+    activeOrder?.assignedTechnicianId &&
+      activeOrder.technicianResponseStatus !== 'pending' &&
+      activeOrder.technicianResponseStatus !== 'rejected'
+  );
+  const awaitingWorkStart = activeOrder?.status === 'assigned';
+
   // Un aviso de tipo 'payment' puede apuntar a un borrador que todavía no es
   // una orden real (ver api/orders/request-service.ts) — si el id de la ruta
   // no matchea ninguna orden propia, antes de decir "no encontramos ese
@@ -379,6 +394,42 @@ export const CustomerView: React.FC = () => {
                   </div>
                 )}
 
+                {awaitingWorkStart ? (
+                  <div className="space-y-3">
+                    {hasConfirmedTechnician ? (
+                      <>
+                        <div className="rounded-xl border border-teal-200 dark:border-teal-800 bg-teal-50/60 dark:bg-teal-950/30 p-3 text-xs text-teal-900 dark:text-teal-200">
+                          Te presentamos a tu técnico asignado. Podés coordinar los detalles de la visita
+                          escribiéndole directamente desde el botón de Mensajes.
+                        </div>
+                        <AssignedTechnicianCard
+                          key={`${activeOrder.assignedTechnicianId ?? 'none'}-${ratingNonce}`}
+                          technicianId={activeOrder.assignedTechnicianId}
+                        />
+                        <button
+                          onClick={async () => {
+                            try {
+                              const conversationId = await startOrderConversation(activeOrder.id);
+                              window.location.hash = `#/customer/conversaciones/${conversationId}`;
+                            } catch {
+                              showToast('No se pudo abrir la conversación.', 'error');
+                            }
+                          }}
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 px-3 py-2 text-xs font-bold"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5" />Escribir al técnico
+                        </button>
+                      </>
+                    ) : (
+                      <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 text-xs text-slate-600 dark:text-slate-400">
+                        {activeOrder.workMode === 'diagnosis'
+                          ? 'Tu seña de visita ya está confirmada. Estamos buscando un técnico disponible para tu zona y franja horaria — en cuanto se asigne vas a poder ver su nombre y coordinar la visita acá mismo.'
+                          : 'Estamos buscando un técnico disponible para tu zona y franja horaria. En cuanto se asigne vas a poder ver su nombre y el resto del seguimiento acá mismo.'}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <>
                 <AssignedTechnicianCard
                   key={`${activeOrder.assignedTechnicianId ?? 'none'}-${ratingNonce}`}
                   technicianId={activeOrder.assignedTechnicianId}
@@ -638,6 +689,8 @@ export const CustomerView: React.FC = () => {
                     </div>
                   )}
                 </div>
+                  </>
+                )}
 
                 {activeOrder.status === 'completed' && (
                   <OrderRatingCard
