@@ -78,3 +78,60 @@ TecniUrbano puede actualizar estos Términos y Condiciones. Los cambios se publi
 
 9. Jurisdicción y contacto
 Estos Términos se rigen por las leyes de la República Argentina. Ante cualquier duda, el Técnico puede escribir a hola@tecniurbano.online.`;
+
+// Política de Privacidad — texto público en /politica-de-privacidad. Distinta
+// de los Términos y Condiciones de arriba: los Términos son el contrato del
+// servicio, esto es la declaración de qué datos personales recolectamos, para
+// qué y con quién los compartimos (lo que pide Play Console en su formulario
+// de "Seguridad de los datos", y lo que exige la Ley 25.326 de Protección de
+// Datos Personales). No lleva mecanismo de aceptación con hash como los
+// Términos: es información, no una cláusula contractual que haga falta
+// probar que alguien aceptó puntualmente.
+export const PRIVACY_POLICY_VERSION = '2026-09-19';
+
+export const PRIVACY_POLICY_TEXT = `Última actualización: 19 de septiembre de 2026.
+
+Esta Política de Privacidad describe qué datos personales recolecta TecniUrbano ("la Plataforma") a través del sitio tecniurbano.online y de la aplicación para Android, para qué los usamos, con quién los compartimos y qué derechos tenés sobre ellos. Aplica a clientes, técnicos independientes y visitantes del sitio.
+
+1. Qué datos recolectamos
+Datos de cuenta: nombre, correo electrónico, teléfono y contraseña (esta última nunca queda visible para nosotros: la protege nuestro proveedor de autenticación).
+Datos de perfil del Técnico: dirección o zona de trabajo declarada, rubros, documentación de validación (por ejemplo DNI o CUIT) y datos bancarios (CBU, CVU o alias) para poder liquidarle sus pagos.
+Datos del pedido: dirección del domicilio donde se presta el servicio, descripción del problema, fotos que se suben al asistente de diagnóstico, y el historial de mensajes dentro de la conversación de ese pedido.
+Datos de ubicación: la localidad y la zona de cobertura que el Técnico configura manualmente en su perfil. No rastreamos la ubicación de nadie en segundo plano ni de forma continua.
+Datos de pago: los pagos se procesan a través de Mercado Pago. TecniUrbano no almacena números de tarjeta; solo recibe la confirmación y el estado del pago.
+Datos técnicos: dirección IP, tipo de dispositivo y navegador, y la fecha y hora en que se aceptaron los Términos y Condiciones (esto se guarda como evidencia técnica de esa aceptación).
+Preferencias locales: ajustes como el modo claro u oscuro se guardan en tu propio dispositivo, nunca en nuestros servidores.
+
+2. Para qué usamos estos datos
+Para coordinar el servicio entre el Cliente y el Técnico: asignación, presupuesto, seguimiento del trabajo y firma de conformidad.
+Para procesar pagos y liquidaciones.
+Para validar la identidad e idoneidad de los técnicos antes de habilitarlos en la Plataforma.
+Para atender reclamos, garantías e incidencias.
+Para enviar notificaciones relacionadas con tus propios pedidos (nunca publicidad de terceros).
+Para cumplir obligaciones legales, impositivas y contables.
+Para prevenir fraude y uso indebido de la Plataforma.
+
+3. Con quién compartimos tus datos
+No vendemos datos personales a nadie. Los compartimos únicamente con los proveedores que necesitamos para operar la Plataforma:
+Supabase, que aloja la base de datos, la autenticación y el almacenamiento de archivos.
+Mercado Pago, para procesar cobros y pagos.
+Vercel, para el hosting del sitio web.
+También se comparten entre las partes de un mismo pedido: el Cliente ve el nombre y los datos de contacto del Técnico asignado, y viceversa, en la medida necesaria para coordinar el servicio. Y, cuando la ley lo exige, con autoridades competentes.
+
+4. Cuánto tiempo conservamos tus datos
+Conservamos los datos mientras la cuenta esté activa, y el tiempo adicional que exijan las obligaciones legales, impositivas o de defensa ante reclamos que correspondan. Si pedís la baja de tu cuenta, te informamos qué información podemos eliminar y cuál debemos conservar por esas obligaciones.
+
+5. Tus derechos
+De acuerdo a la Ley 25.326 de Protección de Datos Personales de la República Argentina, tenés derecho a acceder, rectificar, actualizar y solicitar la supresión de tus datos personales. La Agencia de Acceso a la Información Pública (AAIP), como órgano de control de esa ley, tiene la facultad de atender denuncias y reclamos por su incumplimiento. Para ejercer cualquiera de estos derechos, escribinos a hola@tecniurbano.online.
+
+6. Seguridad
+Usamos conexiones cifradas (HTTPS) y reglas de acceso a nivel de base de datos para que cada usuario solo pueda ver la información que le corresponde. Ningún sistema es infalible, pero trabajamos activamente para proteger tu información.
+
+7. Menores de edad
+La Plataforma está destinada a personas con capacidad legal para contratar. No dirigimos el servicio a menores de edad ni recolectamos deliberadamente datos de menores.
+
+8. Cambios a esta política
+Podemos actualizar esta Política de Privacidad. Cuando el cambio sea significativo, lo vamos a anunciar en la Plataforma. La fecha de la última actualización figura al principio de este documento.
+
+9. Contacto
+Ante cualquier consulta sobre esta política o sobre tus datos personales, escribinos a hola@tecniurbano.online.`;

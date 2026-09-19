@@ -12,6 +12,7 @@ import { AboutView } from './views/AboutView';
 import { TermsView } from './views/TermsView';
 import { TermsClienteView } from './views/TermsClienteView';
 import { TermsTecnicoView } from './views/TermsTecnicoView';
+import { PrivacyPolicyView } from './views/PrivacyPolicyView';
 import { AuthView } from './views/AuthView';
 import { AdminHubView } from './views/AdminHubView';
 import { TechnicianView } from './views/TechnicianView';
@@ -98,7 +99,8 @@ const AppContent: React.FC = () => {
     pathOnly === '/quienes-somos' ||
     pathOnly === '/terminos' ||
     pathOnly === '/terminos_y_condiciones/cliente' ||
-    pathOnly === '/terminos_y_condiciones/tecnico';
+    pathOnly === '/terminos_y_condiciones/tecnico' ||
+    pathOnly === '/politica-de-privacidad';
   // La instalación (TWA en Android, o "Agregar a pantalla de inicio" como
   // PWA) se abre en su propia ventana sin barra de navegador — el mismo
   // "display-mode: standalone" que usa el manifest.webmanifest. Alguien que
@@ -151,6 +153,8 @@ const AppContent: React.FC = () => {
         return <TermsClienteView />;
       case '/terminos_y_condiciones/tecnico':
         return <TermsTecnicoView />;
+      case '/politica-de-privacidad':
+        return <PrivacyPolicyView />;
       case '/auth':
         return <AuthView />;
       case '/home':

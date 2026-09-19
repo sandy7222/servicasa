@@ -41,6 +41,7 @@ export const LandingFooter: React.FC = () => {
         { label: 'Garantía', href: '#garantia' },
         { label: 'Términos y condiciones (clientes)', href: '/terminos_y_condiciones/cliente' },
         { label: 'Términos y condiciones (técnicos)', href: '/terminos_y_condiciones/tecnico' },
+        { label: 'Política de Privacidad', href: '/politica-de-privacidad' },
         { label: 'Trabajá con nosotros', href: '/auth?mode=apply' },
       ],
     },
@@ -52,7 +53,7 @@ export const LandingFooter: React.FC = () => {
       title: 'Contacto',
       links: [
         { label: 'Empresas', href: '#contacto' },
-        { label: 'Contacto', href: 'mailto:hola@tecniurbano.online' },
+        { label: 'hola@tecniurbano.online', href: 'mailto:hola@tecniurbano.online' },
       ],
     },
   ];
