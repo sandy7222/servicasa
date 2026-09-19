@@ -34,8 +34,7 @@ import { QuoteViewer } from '../components/client/QuoteViewer';
 import { AssignedTechnicianCard } from '../components/client/AssignedTechnicianCard';
 import { OrderRatingCard } from '../components/client/OrderRatingCard';
 import { ConversationsPanel } from '../components/common/ConversationsPanel';
-import { CustomerPromoBanner } from '../components/client/CustomerPromoBanner';
-import { CustomerHomeCards } from '../components/client/CustomerHomeCards';
+import { CustomerHomeBlocks } from '../components/client/CustomerHomeBlocks';
 import { startOrderConversation } from '../lib/conversations';
 import { fetchPendingDraft, retryDraftPayment, type PendingCustomerDraft } from '../lib/paymentClient';
 
@@ -190,9 +189,7 @@ export const CustomerView: React.FC = () => {
       <main className="max-w-7xl mx-auto px-3 sm:px-5 lg:px-6 pt-4">
         {!isDetailPage && (
           <>
-            <CustomerPromoBanner orders={customerOrders} />
-            <div className="h-4" />
-            <CustomerHomeCards />
+            <CustomerHomeBlocks orders={customerOrders} />
             <div className="h-4" />
           </>
         )}
