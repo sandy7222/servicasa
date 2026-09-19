@@ -179,13 +179,8 @@ export interface UsedMaterial {
   addedAt: string;
 }
 
-/** Gasto de material declarado por el técnico — reemplaza el viejo modelo de
- * "almacén" (UsedMaterial/materials.stock, que descontaba de un catálogo
- * propio de TecniUrbano). El técnico compra el material por su cuenta y
- * simplemente declara ese gasto para que se sume al presupuesto/factura del
- * cliente; no implica que la empresa provea materiales. Independiente de
- * order_quotes: funciona igual en modo diagnóstico y directo. Pedido de
- * Sandy del 17/9. */
+/** Lista de materiales para que el cliente compre (ferretería). No es un
+ * gasto del técnico ni un renglón de factura: unitPrice queda en 0. */
 export interface MaterialExpense {
   id: string;
   description: string;

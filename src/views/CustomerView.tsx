@@ -34,7 +34,8 @@ import { QuoteViewer } from '../components/client/QuoteViewer';
 import { AssignedTechnicianCard } from '../components/client/AssignedTechnicianCard';
 import { OrderRatingCard } from '../components/client/OrderRatingCard';
 import { ConversationsPanel } from '../components/common/ConversationsPanel';
-import { CustomerHomeBlocks } from '../components/client/CustomerHomeBlocks';
+import { CustomerPromoBanner } from '../components/client/CustomerPromoBanner';
+import { CustomerHomeCards } from '../components/client/CustomerHomeCards';
 import { startOrderConversation } from '../lib/conversations';
 import { fetchPendingDraft, retryDraftPayment, type PendingCustomerDraft } from '../lib/paymentClient';
 
@@ -189,7 +190,9 @@ export const CustomerView: React.FC = () => {
       <main className="max-w-7xl mx-auto px-3 sm:px-5 lg:px-6 pt-4">
         {!isDetailPage && (
           <>
-            <CustomerHomeBlocks orders={customerOrders} />
+            <CustomerPromoBanner orders={customerOrders} />
+            <div className="h-4" />
+            <CustomerHomeCards />
             <div className="h-4" />
           </>
         )}
@@ -428,7 +431,7 @@ export const CustomerView: React.FC = () => {
                           <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Estamos buscando un técnico para tu pedido</h3>
                           <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
                             {activeOrder.workMode === 'diagnosis'
-                              ? 'Tu pago de vista de presupuesto ya está confirmado. Estamos buscando un técnico disponible para tu zona y franja horaria — en cuanto se asigne vas a poder ver su nombre y coordinar la visita acá mismo.'
+                              ? 'Tu pago de visita por presupuesto ya está confirmado. Estamos buscando un técnico disponible para tu zona y franja horaria — en cuanto se asigne vas a poder ver su nombre y coordinar la visita acá mismo.'
                               : 'Ya recibimos tu pedido. Estamos buscando un técnico disponible para tu zona y franja horaria — en cuanto se asigne vas a poder ver su nombre y coordinar la visita acá mismo.'}
                           </p>
                         </div>

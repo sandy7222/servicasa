@@ -27,6 +27,8 @@ import { ClaimsTable } from './components/admin/ClaimsTable';
 import { ClaimDetail } from './components/common/ClaimDetail';
 import { ConversationsPanel } from './components/common/ConversationsPanel';
 import { ConversationThread } from './components/common/ConversationThread';
+import { AdminModuleChrome } from './components/admin/AdminModuleChrome';
+import { isAdminWorkspacePath } from './lib/adminNav';
 import type { UserRole } from './types';
 
 const Protected: React.FC<{ children: React.ReactNode; roles?: UserRole[] }> = ({
@@ -297,6 +299,9 @@ const AppContent: React.FC = () => {
     }
   };
 
+  const view = renderView();
+  const adminWorkspace = Boolean(currentUser?.role === 'admin' && isAdminWorkspacePath(currentPath));
+
   return (
     <div className="min-h-screen bg-tu-bg flex flex-col font-sans text-tu-fg-muted antialiased selection:bg-teal-500 selection:text-white">
       {showSharedHeader && <Header />}
@@ -306,7 +311,7 @@ const AppContent: React.FC = () => {
       ) : passwordRecoveryMode ? (
         <ResetPasswordView />
       ) : (
-        <div className="flex-1">{renderView()}</div>
+        <div className="flex-1">{adminWorkspace ? <AdminModuleChrome>{view}</AdminModuleChrome> : view}</div>
       )}
       <Toast />
       {!passwordRecoveryMode && <DiagnosisAssistant />}

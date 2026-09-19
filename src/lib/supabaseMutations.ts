@@ -1324,14 +1324,8 @@ export async function persistAddUsedMaterial(input: {
   });
 }
 
-/** Gasto de material declarado por el técnico (reemplaza a
- * persistAddUsedMaterial/register_material_usage para pedidos nuevos — ver
- * MaterialExpense en types/index.ts y la migración
- * create_order_material_expenses). No descuenta nada de ningún catálogo: es
- * simplemente el técnico anotando lo que compró de su bolsillo, con el
- * precio que pagó, para que se sume al presupuesto/factura del cliente.
- * Funciona igual en workMode 'diagnosis' o 'direct', no depende de
- * order_quotes. */
+/** Lista de compras para el cliente (ferretería). No descuenta stock ni
+ * se suma al presupuesto: unitPrice viaja en 0. */
 export async function persistAddMaterialExpense(input: {
   orderId: string;
   description: string;
@@ -1359,7 +1353,7 @@ export async function persistAddMaterialExpense(input: {
   await supabase.from('order_events').insert({
     order_id: input.orderId,
     type: 'material_added',
-    description: `Gasto de material: ${input.description} x${input.quantity} ${input.unit}.`,
+    description: `Lista de compras: ${input.description} x${input.quantity} ${input.unit}.`,
     author: input.author,
   });
 
@@ -1373,7 +1367,7 @@ export async function persistRemoveMaterialExpense(input: { expenseId: string; o
   await supabase.from('order_events').insert({
     order_id: input.orderId,
     type: 'material_added',
-    description: 'Se eliminó un gasto de material cargado por error.',
+    description: 'Se sacó un material de la lista de compras.',
     author: input.author,
   });
 }

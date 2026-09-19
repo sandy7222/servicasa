@@ -1,4 +1,4 @@
-import type { OrderStatus, PaymentStatus, ServiceOrder, WorkMode } from '../types';
+import type { OrderStatus, PaymentStatus, QuoteStatus, ServiceOrder, WorkMode } from '../types';
 
 type OrderPaymentShape = { workMode?: WorkMode; paymentStatus?: PaymentStatus };
 
@@ -66,6 +66,102 @@ export function isOrderPaymentSettled(order: OrderPaymentShape): boolean {
     return order.paymentStatus === 'deposit_paid' || order.paymentStatus === 'paid_in_full';
   }
   return true;
+}
+
+/**
+ * Etapa que el cliente realmente está transitando. El portal no debe
+ * mostrar bloques de etapas futuras (progreso vacío, firma, etc.) apenas
+ * el técnico acepta la visita.
+ *
+ * No reutiliza isOrderPaymentSettled: esa función da true con la seña de
+ * diagnóstico, y acá el seguimiento de obra pide el pago del presupuesto.
+ * Tampoco usa workStartedAt: puede quedar sucio si se rebobina el status.
+ */
+export type CustomerOrderStage =
+  | 'searching_technician'
+  | 'technician_assigned'
+  | 'quote_awaiting_payment'
+  | 'work_in_progress'
+  | 'awaiting_signature'
+  | 'completed'
+  | 'cancelled';
+
+type CustomerOrderStageShape = {
+  status: OrderStatus;
+  workMode?: WorkMode;
+  paymentStatus?: PaymentStatus;
+  quoteStatus?: QuoteStatus;
+  assignedTechnicianId?: string | null;
+  technicianResponseStatus?: 'pending' | 'accepted' | 'rejected';
+  checklist?: Array<{ completed: boolean }>;
+  customerSignature?: { signatureDataUrl?: string } | null;
+  quotes?: Array<{ status: string }>;
+  materialExpenses?: Array<unknown>;
+};
+
+function hasConfirmedTechnician(order: CustomerOrderStageShape): boolean {
+  return Boolean(
+    order.assignedTechnicianId &&
+      order.technicianResponseStatus !== 'pending' &&
+      order.technicianResponseStatus !== 'rejected'
+  );
+}
+
+function quoteRecordStatus(order: CustomerOrderStageShape): string | undefined {
+  return order.quotes?.[0]?.status ?? order.quoteStatus;
+}
+
+function isDiagnosisQuotePaid(order: CustomerOrderStageShape): boolean {
+  return quoteRecordStatus(order) === 'accepted' && order.paymentStatus === 'paid_in_full';
+}
+
+function isWorkUnderway(order: CustomerOrderStageShape): boolean {
+  return order.status === 'in_progress' || order.status === 'paused' || order.status === 'completed';
+}
+
+function isChecklistReadyForSignature(order: CustomerOrderStageShape): boolean {
+  const list = order.checklist ?? [];
+  return list.length > 0 && list.every((item) => item.completed);
+}
+
+export function canCustomerSeeQuote(order: CustomerOrderStageShape): boolean {
+  const status = quoteRecordStatus(order);
+  return status === 'sent' || status === 'rejected' || status === 'accepted';
+}
+
+export function canCustomerSeeWorkTracking(order: CustomerOrderStageShape): boolean {
+  if (order.status === 'cancelled' || order.status === 'assigned') return false;
+  if (!isWorkUnderway(order)) return false;
+  if (order.workMode === 'diagnosis') return isDiagnosisQuotePaid(order);
+  return true;
+}
+
+/** Lista de ferretería: no es factura. Recién cuando el presupuesto está pago y hay obra. */
+export function canCustomerSeeShoppingList(order: CustomerOrderStageShape): boolean {
+  if (order.status === 'cancelled') return false;
+  if (!(order.materialExpenses && order.materialExpenses.length > 0)) return false;
+  return canCustomerSeeWorkTracking(order);
+}
+
+export function canCustomerSeeSignature(order: CustomerOrderStageShape): boolean {
+  if (!canCustomerSeeWorkTracking(order)) return false;
+  if (order.customerSignature?.signatureDataUrl) return true;
+  if (order.status === 'completed') return true;
+  return isChecklistReadyForSignature(order);
+}
+
+export function getCustomerOrderStage(order: CustomerOrderStageShape): CustomerOrderStage {
+  if (order.status === 'cancelled') return 'cancelled';
+  if (order.status === 'completed') return 'completed';
+  if (!hasConfirmedTechnician(order)) return 'searching_technician';
+  if (canCustomerSeeSignature(order)) return 'awaiting_signature';
+  if (canCustomerSeeWorkTracking(order)) return 'work_in_progress';
+
+  const quoteStatus = quoteRecordStatus(order);
+  if (order.workMode === 'diagnosis' && (quoteStatus === 'sent' || quoteStatus === 'rejected' || isDiagnosisQuotePaid(order))) {
+    return 'quote_awaiting_payment';
+  }
+  return 'technician_assigned';
 }
 
 /**

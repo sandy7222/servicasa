@@ -674,17 +674,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     let cancelled = false;
     let refreshTimeout: number | undefined;
+    let inFlight = false;
+    const LIVE_POLL_MS = 8000;
     const refreshCatalog = () => {
       if (refreshTimeout) window.clearTimeout(refreshTimeout);
       refreshTimeout = window.setTimeout(() => {
-        void withRemote(async () => {
-          const catalog = await fetchCatalog(currentUser?.role === 'admin');
-          setTechnicians(catalog.technicians);
-          setCustomers(catalog.customers);
-          setMaterials(catalog.materials);
-          setServices(catalog.services);
-          setOrders(catalog.orders);
-        }).catch((err) => console.error('[TecniUrbano] Realtime refresh failed', err));
+        if (cancelled || inFlight) return;
+        inFlight = true;
+        fetchCatalog(currentUser?.role === 'admin')
+          .then((catalog) => {
+            if (cancelled) return;
+            setTechnicians(catalog.technicians);
+            setCustomers(catalog.customers);
+            setMaterials(catalog.materials);
+            setServices(catalog.services);
+            setOrders(catalog.orders);
+          })
+          .catch((err) => console.error('[TecniUrbano] Realtime refresh failed', err))
+          .finally(() => {
+            inFlight = false;
+          });
       }, 250);
     };
 
@@ -697,6 +706,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         .on('postgres_changes', { event: '*', schema: 'public', table: 'order_time_logs' }, refreshCatalog)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'order_materials_used' }, refreshCatalog)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'order_material_expenses' }, refreshCatalog)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'order_notes' }, refreshCatalog)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'order_events' }, refreshCatalog)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'order_signatures' }, refreshCatalog)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'order_quotes' }, refreshCatalog)
@@ -731,12 +741,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') refreshCatalog();
     };
+    const pollLive = window.setInterval(() => {
+      if (document.visibilityState === 'visible') refreshCatalog();
+    }, LIVE_POLL_MS);
     window.addEventListener('online', handleBackOnline);
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       cancelled = true;
       if (refreshTimeout) window.clearTimeout(refreshTimeout);
+      window.clearInterval(pollLive);
       window.removeEventListener('online', handleBackOnline);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       void supabase.removeChannel(channel);
@@ -755,6 +769,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   const navigate = (path: string, options?: { scroll?: boolean }) => {
+    const trimmed = path.trim();
+    if (/^(mailto|tel|https?):/i.test(trimmed)) {
+      window.location.assign(trimmed);
+      return;
+    }
+
+    const hashFromAbsolute = trimmed.match(/^https?:\/\/[^#]+#(.+)$/i);
+    if (hashFromAbsolute) {
+      path = hashFromAbsolute[1].startsWith('/') ? hashFromAbsolute[1] : `/${hashFromAbsolute[1]}`;
+    }
+
     // Handle home redirect
     if (path === '/home') {
       if (currentUser?.role === 'admin') path = '/hub';
@@ -1789,13 +1814,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     if (order?.status === 'completed') {
-      showToast('La orden está cerrada; no se pueden sumar gastos de materiales.', 'warning');
+      showToast('La orden está cerrada; no se puede modificar la lista de compras.', 'warning');
       return false;
     }
 
     const description = input.description.trim();
     if (!description) {
-      showToast('Describí qué material compraste.', 'warning');
+      showToast('Anotá qué material tiene que comprar el cliente.', 'warning');
       return false;
     }
     if (input.quantity <= 0) {
@@ -1837,7 +1862,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         })
       )
         .then(() => {
-          showToast(`Gasto de material registrado: ${description}`, 'success');
+          showToast(`Agregado a la lista: ${description}`, 'success');
         })
         .catch((err) => {
           setOrders((prev) =>
@@ -1847,12 +1872,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 : o
             )
           );
-          showToast(friendlyErrorMessage(err, 'Error al registrar el gasto'), 'error');
+          showToast(friendlyErrorMessage(err, 'No se pudo agregar a la lista'), 'error');
         });
       return true;
     }
 
-    showToast(`Gasto de material registrado: ${description}`, 'success');
+    showToast(`Agregado a la lista: ${description}`, 'success');
     return true;
   };
 
@@ -1885,7 +1910,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             )
           );
         }
-        showToast(friendlyErrorMessage(err, 'Error al eliminar el gasto'), 'error');
+        showToast(friendlyErrorMessage(err, 'No se pudo sacar de la lista'), 'error');
       });
     }
   };

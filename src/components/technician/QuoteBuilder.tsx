@@ -235,11 +235,7 @@ export const QuoteBuilder: React.FC<Props> = ({ order }) => {
         </div>}
       </div>}
 
-      {/* Los materiales/repuestos ya no se cargan acá con precio fijo de
-          catálogo — ver pestaña "Materiales" del técnico (MaterialExpense en
-          types/index.ts): el técnico declara ahí lo que compró de su
-          bolsillo y ese gasto se suma aparte al total del cliente. */}
-      <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 p-3 text-[11px] text-slate-600 dark:text-slate-400">Los materiales que compres para este trabajo se cargan en la pestaña <strong>Materiales</strong>, no acá.</div>
+      <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 p-3 text-[11px] text-slate-600 dark:text-slate-400">La lista de lo que hay que comprar va en <strong>Materiales</strong>. No se cobra acá.</div>
 
       <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 space-y-2"><label className="block text-xs font-bold text-slate-700 dark:text-slate-300">Hallazgos y notas para el cliente<textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={3} className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs" placeholder="Explicá el diagnóstico y la solución propuesta." /></label><button type="button" disabled={!quote || busy} onClick={() => void saveNotes()} className="rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs font-bold disabled:opacity-50">Guardar borrador</button></div>
     </>}

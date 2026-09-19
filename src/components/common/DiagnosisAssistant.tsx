@@ -16,6 +16,7 @@ import {
   type AssistantSession,
 } from '../../lib/diagnosisAssistant';
 import { saveAssistantDraft } from '../../lib/diagnosisDraft';
+import { isAdminWorkspacePath } from '../../lib/adminNav';
 import { uploadDiagnosisPhoto } from '../../lib/diagnosisPhotoUpload';
 import type { CatalogSubcategory, ServiceItem } from '../../types';
 import assistantBody from '../../assets/landing/asistente-cuerpo.png';
@@ -29,7 +30,7 @@ function slugMap(subcategories: readonly CatalogSubcategory[]) {
 }
 
 export const DiagnosisAssistant: React.FC = () => {
-  const { services, catalogSubcategories, currentUser, navigate, showToast } = useApp();
+  const { services, catalogSubcategories, currentUser, currentPath, navigate, showToast } = useApp();
   const [open, setOpen] = useState(false);
   const [session, setSession] = useState<AssistantSession>(() => startAssistant());
   const [freeText, setFreeText] = useState('');
@@ -116,8 +117,10 @@ export const DiagnosisAssistant: React.FC = () => {
     showToast('Revisá el pedido armado y confirmalo cuando esté bien.', 'success', 'Asistente de diagnóstico');
   };
 
+  const adminMobileNav = currentUser?.role === 'admin' && isAdminWorkspacePath(currentPath);
+
   return (
-    <div className="fixed bottom-4 right-4 z-[70] pointer-events-none">
+    <div className={`fixed right-4 z-[70] pointer-events-none ${adminMobileNav ? 'bottom-20 md:bottom-4' : 'bottom-4'}`}>
       <div className={open ? 'relative' : 'flex flex-col items-end'}>
         {open && (
         <section

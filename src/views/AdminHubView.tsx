@@ -5,7 +5,6 @@ import {
   Search,
   Filter,
   Users,
-  Boxes,
   UserCheck,
   Clock,
   AlertTriangle,
@@ -42,10 +41,7 @@ import {
   Droplets,
   Lightbulb,
   EyeOff,
-  ShieldAlert,
   MessageCircle,
-  Landmark,
-  Megaphone,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { startOrderConversation } from '../lib/conversations';
@@ -54,6 +50,7 @@ import { DiagnosisPhotoCard } from '../components/common/DiagnosisPhotoCard';
 import { Timeline } from '../components/common/Timeline';
 import { EntityActionsMenu } from '../components/common/EntityActionsMenu';
 import { formatElapsedTime, getOrderElapsedSeconds, isOrderPaymentSettled, orderRequiresPaymentGate } from '../lib/workTimer';
+import { hubPathForTab, rememberDestination, tabFromPath, type AdminHubTab } from '../lib/adminNav';
 import { ARGENTINA_PROVINCES } from '../lib/argentina';
 import { formatCustomerCode, formatTechnicianCode } from '../lib/codes';
 import { TechnicianValidation } from '../components/admin/TechnicianValidation';
@@ -252,11 +249,16 @@ export const AdminHubView: React.FC = () => {
     showToast,
     refreshRemoteData,
     currentPath,
+    navigate,
   } = useApp();
 
   // Navigation tab within hub
-  const [activeTab, setActiveTab] = useState<'orders' | 'pendingPayment' | 'customers' | 'technicians' | 'contracts' | 'settlements' | 'inventory' | 'services' | 'categories' | 'pageEditor'>('orders');
-  const { count: pendingPayoutRequests, refresh: refreshPayoutQueue } = usePendingPayoutRequestCount(activeTab === 'settlements');
+  const activeTab: AdminHubTab = tabFromPath(currentPath) ?? 'orders';
+  const { refresh: refreshPayoutQueue } = usePendingPayoutRequestCount(activeTab === 'settlements');
+
+  useEffect(() => {
+    rememberDestination(activeTab);
+  }, [activeTab]);
 
   // Filters & search
   const [searchQuery, setSearchQuery] = useState('');
@@ -433,7 +435,6 @@ export const AdminHubView: React.FC = () => {
     if (!queryString) return;
     const orderId = new URLSearchParams(queryString).get('order');
     if (orderId && orders.some((o) => o.id === orderId)) {
-      setActiveTab('orders');
       setSelectedOrderId(orderId);
     }
   }, [currentPath, orders]);
@@ -860,7 +861,10 @@ export const AdminHubView: React.FC = () => {
 
   const applyQuickFilter = (filter: Exclude<OrderQuickFilter, 'all'>) => {
     const shouldClear = quickFilter === filter;
-    setActiveTab('orders');
+    if (activeTab !== 'orders') {
+      rememberDestination('orders');
+      navigate(hubPathForTab('orders'), { scroll: false });
+    }
     setQuickFilter(shouldClear ? 'all' : filter);
     setSearchQuery('');
     setStatusFilter('all');
@@ -1644,7 +1648,7 @@ export const AdminHubView: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100/70 dark:bg-slate-900/80 pb-16" id="admin-hub-container">
+    <div className="min-h-screen bg-slate-100/70 dark:bg-slate-900/80 pb-4" id="admin-hub-container">
       {/* Top Banner / Header */}
       <div className="bg-white dark:bg-slate-900 border-b border-slate-200/90 dark:border-slate-700 shadow-2xs">
         <div className="max-w-7xl mx-auto px-3 sm:px-5 lg:px-6 py-4">
@@ -1661,7 +1665,7 @@ export const AdminHubView: React.FC = () => {
                   LIVE OPERATIONS
                 </span>
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              <p className="hidden sm:block text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                 Despacho y monitoreo continuo de órdenes técnicas, inventario y asignación de campo.
               </p>
             </div>
@@ -1680,6 +1684,7 @@ export const AdminHubView: React.FC = () => {
           </div>
 
           {/* Metric Cards Row - High Density compact cards */}
+          {activeTab === 'orders' && (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 mt-4">
             {/* Activas */}
             <button
@@ -1796,157 +1801,8 @@ export const AdminHubView: React.FC = () => {
               <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 truncate">Con firma digital</div>
             </button>
           </div>
+          )}
 
-          {/* Sub Navigation Tabs - High density */}
-          <div className="flex flex-wrap items-center gap-1.5 mt-4 pt-3 border-t border-slate-100 dark:border-slate-800">
-            <button
-              onClick={() => setActiveTab('orders')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
-                activeTab === 'orders'
-                  ? 'bg-[#0F172A] text-teal-300 shadow-xs border border-slate-800'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
-              }`}
-            >
-              <LayoutDashboard className="w-3.5 h-3.5" />
-              <span>Órdenes ({operationalOrders.length})</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('pendingPayment')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
-                activeTab === 'pendingPayment'
-                  ? 'bg-[#0F172A] text-teal-300 shadow-xs border border-slate-800'
-                  : pendingPaymentOrders.length > 0
-                    ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-800 hover:bg-amber-100 border border-amber-200 dark:border-amber-800'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
-              }`}
-              title="Órdenes que requieren pago antes de poder asignar técnico"
-            >
-              <DollarSign className="w-3.5 h-3.5" />
-              <span>Pendientes de pago ({pendingPaymentOrders.length})</span>
-            </button>
-
-            <button
-              onClick={() => { window.location.hash = '#/admin/clientes'; }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200"
-              title="Abrir planilla completa de clientes"
-            >
-              <Users className="w-3.5 h-3.5" />
-              <span>Clientes · planilla ({customers.length})</span>
-            </button>
-
-            <button
-              onClick={() => { window.location.hash = '#/admin/reclamos'; }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200"
-              title="Reclamos y garantías"
-            >
-              <ShieldAlert className="w-3.5 h-3.5" />
-              <span>Reclamos y garantías</span>
-            </button>
-
-            <button
-              onClick={() => { window.location.hash = '#/admin/conversaciones'; }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200"
-              title="Conversaciones"
-            >
-              <MessageCircle className="w-3.5 h-3.5" />
-              <span>Conversaciones</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('technicians')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
-                activeTab === 'technicians'
-                  ? 'bg-[#0F172A] text-teal-300 shadow-xs border border-slate-800'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
-              }`}
-            >
-              <Wrench className="w-3.5 h-3.5" />
-              <span>Técnicos ({technicians.length})</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('contracts')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
-                activeTab === 'contracts'
-                  ? 'bg-[#0F172A] text-teal-300 shadow-xs border border-slate-800'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
-              }`}
-            >
-              <FileSignature className="w-3.5 h-3.5" />
-              <span>Contratos</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('settlements')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
-                activeTab === 'settlements'
-                  ? 'bg-[#0F172A] text-teal-300 shadow-xs border border-slate-800'
-                  : pendingPayoutRequests > 0
-                    ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-800 hover:bg-amber-100 border border-amber-200 dark:border-amber-800'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
-              }`}
-            >
-              <Landmark className="w-3.5 h-3.5" />
-              <span>Liquidaciones</span>
-              {pendingPayoutRequests > 0 && (
-                <span className="min-w-4 h-4 px-1 rounded-full bg-amber-600 text-white text-[10px] font-black leading-4 text-center">
-                  {pendingPayoutRequests}
-                </span>
-              )}
-            </button>
-
-            <button
-              onClick={() => setActiveTab('inventory')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
-                activeTab === 'inventory'
-                  ? 'bg-[#0F172A] text-teal-300 shadow-xs border border-slate-800'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
-              }`}
-            >
-              <Boxes className="w-3.5 h-3.5" />
-              <span>Inventario ({materials.length})</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('services')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
-                activeTab === 'services'
-                  ? 'bg-[#0F172A] text-teal-300 shadow-xs border border-slate-800'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
-              }`}
-              id="tab-btn-services"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Servicios ({services.length})</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('categories')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
-                activeTab === 'categories'
-                  ? 'bg-[#0F172A] text-teal-300 shadow-xs border border-slate-800'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
-              }`}
-              id="tab-btn-categories"
-            >
-              <Layers className="w-3.5 h-3.5" />
-              <span>Categorías ({catalogCategories.length})</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('pageEditor')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
-                activeTab === 'pageEditor'
-                  ? 'bg-[#0F172A] text-teal-300 shadow-xs border border-slate-800'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
-              }`}
-              id="tab-btn-page-editor"
-            >
-              <Megaphone className="w-3.5 h-3.5" />
-              <span>Página del cliente ({homeBanners.length + homeCards.length})</span>
-            </button>
-          </div>
         </div>
       </div>
 
@@ -2233,8 +2089,8 @@ export const AdminHubView: React.FC = () => {
           </div>
         )}
 
-        {/* ================= TAB 2: CUSTOMERS ================= */}
-        {activeTab === 'customers' && (
+        {/* Clientes vive en #/admin/clientes; este directorio interno ya no tiene pestaña. */}
+        {false && (
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div>

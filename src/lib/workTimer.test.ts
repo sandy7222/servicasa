@@ -1,5 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { formatElapsedTime, getOrderElapsedSeconds, getTimerStatusLabel, isOrderPaymentSettled, orderRequiresPaymentGate } from './workTimer';
+import {
+  canCustomerSeeQuote,
+  canCustomerSeeShoppingList,
+  canCustomerSeeSignature,
+  canCustomerSeeWorkTracking,
+  formatElapsedTime,
+  getCustomerOrderStage,
+  getOrderElapsedSeconds,
+  getTimerStatusLabel,
+  isOrderPaymentSettled,
+  orderRequiresPaymentGate,
+} from './workTimer';
 import type { ServiceOrder } from '../types';
 
 function baseOrder(overrides: Partial<ServiceOrder> = {}): ServiceOrder {
@@ -99,6 +110,177 @@ describe('getOrderElapsedSeconds', () => {
   it('work_started_at inválido no rompe el cálculo — devuelve el acumulado', () => {
     const order = baseOrder({ status: 'in_progress', workElapsedSeconds: 50, workStartedAt: 'fecha-invalida' });
     expect(getOrderElapsedSeconds(order)).toBe(50);
+  });
+});
+
+describe('etapas del portal del cliente — no mostrar bloques de etapas que todavía no ocurrieron', () => {
+  it('Julián / directo assigned paid_in_full: técnico asignado, sin obra ni firma (ignora workStartedAt sucio)', () => {
+    const order = baseOrder({
+      workMode: 'direct',
+      status: 'assigned',
+      paymentStatus: 'paid_in_full',
+      quoteStatus: 'none',
+      assignedTechnicianId: 'tech-1',
+      technicianResponseStatus: 'accepted',
+      travelStartedAt: '2026-09-06T04:22:57.969Z',
+      workStartedAt: '2026-09-06T04:23:01.47Z',
+      checklist: [{ id: 'c1', label: 'Tarea', completed: false }],
+    });
+    expect(getCustomerOrderStage(order)).toBe('technician_assigned');
+    expect(canCustomerSeeWorkTracking(order)).toBe(false);
+    expect(canCustomerSeeSignature(order)).toBe(false);
+  });
+
+  it('directo in_progress: seguimiento de obra, firma recién con checklist completo', () => {
+    const working = baseOrder({
+      workMode: 'direct',
+      status: 'in_progress',
+      paymentStatus: 'paid_in_full',
+      assignedTechnicianId: 'tech-1',
+      technicianResponseStatus: 'accepted',
+      checklist: [{ id: 'c1', label: 'Tarea', completed: false }],
+    });
+    expect(getCustomerOrderStage(working)).toBe('work_in_progress');
+    expect(canCustomerSeeWorkTracking(working)).toBe(true);
+    expect(canCustomerSeeSignature(working)).toBe(false);
+
+    const readyToSign = baseOrder({
+      ...working,
+      checklist: [{ id: 'c1', label: 'Tarea', completed: true }],
+    });
+    expect(getCustomerOrderStage(readyToSign)).toBe('awaiting_signature');
+    expect(canCustomerSeeSignature(readyToSign)).toBe(true);
+  });
+
+  it('diagnóstico con seña y técnico aceptado, sin presupuesto: sigue en técnico asignado', () => {
+    const order = baseOrder({
+      workMode: 'diagnosis',
+      status: 'assigned',
+      paymentStatus: 'deposit_paid',
+      quoteStatus: 'none',
+      assignedTechnicianId: 'tech-1',
+      technicianResponseStatus: 'accepted',
+    });
+    expect(getCustomerOrderStage(order)).toBe('technician_assigned');
+    expect(canCustomerSeeWorkTracking(order)).toBe(false);
+  });
+
+  it('diagnóstico con presupuesto enviado: etapa de pago, todavía sin obra ni firma', () => {
+    const order = baseOrder({
+      workMode: 'diagnosis',
+      status: 'assigned',
+      paymentStatus: 'deposit_paid',
+      quoteStatus: 'sent',
+      assignedTechnicianId: 'tech-1',
+      technicianResponseStatus: 'accepted',
+    });
+    expect(getCustomerOrderStage(order)).toBe('quote_awaiting_payment');
+    expect(canCustomerSeeWorkTracking(order)).toBe(false);
+    expect(canCustomerSeeSignature(order)).toBe(false);
+  });
+
+  it('diagnóstico in_progress solo con seña: no alcanza, el presupuesto del servicio no está pago', () => {
+    const order = baseOrder({
+      workMode: 'diagnosis',
+      status: 'in_progress',
+      paymentStatus: 'deposit_paid',
+      quoteStatus: 'sent',
+      assignedTechnicianId: 'tech-1',
+      technicianResponseStatus: 'accepted',
+    });
+    expect(canCustomerSeeWorkTracking(order)).toBe(false);
+    expect(getCustomerOrderStage(order)).toBe('quote_awaiting_payment');
+  });
+
+  it('diagnóstico presupuesto aceptado y paid_in_full + in_progress: obra visible', () => {
+    const order = baseOrder({
+      workMode: 'diagnosis',
+      status: 'in_progress',
+      paymentStatus: 'paid_in_full',
+      quoteStatus: 'accepted',
+      assignedTechnicianId: 'tech-1',
+      technicianResponseStatus: 'accepted',
+      checklist: [{ id: 'c1', label: 'Tarea', completed: false }],
+    });
+    expect(getCustomerOrderStage(order)).toBe('work_in_progress');
+    expect(canCustomerSeeWorkTracking(order)).toBe(true);
+    expect(canCustomerSeeSignature(order)).toBe(false);
+  });
+
+  it('checklist vacío no abre la firma — every([]) sería true y mostraría el pad demasiado pronto', () => {
+    const order = baseOrder({
+      workMode: 'direct',
+      status: 'in_progress',
+      paymentStatus: 'paid_in_full',
+      assignedTechnicianId: 'tech-1',
+      technicianResponseStatus: 'accepted',
+      checklist: [],
+    });
+    expect(getCustomerOrderStage(order)).toBe('work_in_progress');
+    expect(canCustomerSeeSignature(order)).toBe(false);
+  });
+
+  it('sin técnico confirmado: buscando técnico', () => {
+    expect(getCustomerOrderStage(baseOrder({ status: 'assigned', technicianResponseStatus: 'pending' }))).toBe(
+      'searching_technician'
+    );
+  });
+
+  it('legacy sin workMode: al dejar assigned muestra obra, no pide presupuesto', () => {
+    const assigned = baseOrder({
+      status: 'assigned',
+      assignedTechnicianId: 'tech-1',
+      technicianResponseStatus: 'accepted',
+    });
+    expect(getCustomerOrderStage(assigned)).toBe('technician_assigned');
+    expect(canCustomerSeeWorkTracking(assigned)).toBe(false);
+    expect(canCustomerSeeQuote(assigned)).toBe(false);
+
+    const inProgress = baseOrder({
+      status: 'in_progress',
+      assignedTechnicianId: 'tech-1',
+      technicianResponseStatus: 'accepted',
+      checklist: [{ id: 'c1', label: 'Tarea', completed: false }],
+    });
+    expect(getCustomerOrderStage(inProgress)).toBe('work_in_progress');
+    expect(canCustomerSeeWorkTracking(inProgress)).toBe(true);
+  });
+
+  it('presupuesto sent/accepted/rejected se puede mostrar; draft o none no', () => {
+    expect(canCustomerSeeQuote(baseOrder({ quoteStatus: 'sent' }))).toBe(true);
+    expect(canCustomerSeeQuote(baseOrder({ quoteStatus: 'accepted' }))).toBe(true);
+    expect(canCustomerSeeQuote(baseOrder({ quoteStatus: 'rejected' }))).toBe(true);
+    expect(canCustomerSeeQuote(baseOrder({ quoteStatus: 'draft' }))).toBe(false);
+    expect(canCustomerSeeQuote(baseOrder({ quoteStatus: 'none' }))).toBe(false);
+  });
+
+  it('lista de ferretería: oculta hasta que el presupuesto está pago y hay obra', () => {
+    const items = [{ id: 'm1', description: 'Visagras', unit: 'unidades', quantity: 4, unitPrice: 0, subtotal: 0, addedAt: '2026-09-17T12:00:00Z' }];
+    expect(canCustomerSeeShoppingList(baseOrder({ materialExpenses: [] }))).toBe(false);
+    expect(
+      canCustomerSeeShoppingList(
+        baseOrder({
+          workMode: 'diagnosis',
+          status: 'assigned',
+          quoteStatus: 'sent',
+          paymentStatus: 'deposit_paid',
+          materialExpenses: items,
+        }),
+      ),
+    ).toBe(false);
+    expect(
+      canCustomerSeeShoppingList(
+        baseOrder({
+          workMode: 'diagnosis',
+          status: 'in_progress',
+          quoteStatus: 'accepted',
+          paymentStatus: 'paid_in_full',
+          assignedTechnicianId: 'tech-1',
+          technicianResponseStatus: 'accepted',
+          materialExpenses: items,
+        }),
+      ),
+    ).toBe(true);
   });
 });
 

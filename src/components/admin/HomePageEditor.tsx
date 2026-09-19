@@ -179,13 +179,13 @@ export const HomePageEditor: React.FC = () => {
   };
 
   return (
-    <section className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
-      <div className="flex items-start justify-between gap-2 mb-3">
-        <div className="flex items-start gap-2">
+    <section className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 sm:p-4 overflow-hidden">
+      <div className="flex flex-col gap-3 mb-3">
+        <div className="flex items-start gap-2 min-w-0">
           <LayoutGrid className="w-4 h-4 text-teal-600 mt-0.5 shrink-0" />
-          <div>
+          <div className="min-w-0 flex-1">
             <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Página del cliente</h3>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+            <p className="text-[11px] leading-relaxed text-slate-500 dark:text-slate-400 mt-1">
               Banners y tarjetas comparten un solo orden. Las flechas mueven cada ítem respecto del vecino, del tipo
               que sea. En el panel del cliente, las tarjetas consecutivas se ven como una grilla. Si el cliente tiene
               un servicio en curso, este bloque se reemplaza por el seguimiento.
@@ -193,20 +193,20 @@ export const HomePageEditor: React.FC = () => {
           </div>
         </div>
         {!bannerDraft && !cardDraft && (
-          <div className="flex items-center gap-1.5 shrink-0">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
             <button
               type="button"
               onClick={openNewBanner}
-              className="inline-flex items-center gap-1 rounded-lg bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 text-xs font-bold"
+              className="inline-flex items-center justify-center gap-1 rounded-lg bg-teal-600 hover:bg-teal-700 text-white px-3 py-2 sm:py-1.5 text-xs font-bold"
             >
-              <Plus className="w-3.5 h-3.5" /> Agregar banner
+              <Plus className="w-3.5 h-3.5 shrink-0" /> Agregar banner
             </button>
             <button
               type="button"
               onClick={openNewCard}
-              className="inline-flex items-center gap-1 rounded-lg bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 text-xs font-bold"
+              className="inline-flex items-center justify-center gap-1 rounded-lg bg-teal-600 hover:bg-teal-700 text-white px-3 py-2 sm:py-1.5 text-xs font-bold"
             >
-              <Plus className="w-3.5 h-3.5" /> Agregar tarjeta
+              <Plus className="w-3.5 h-3.5 shrink-0" /> Agregar tarjeta
             </button>
           </div>
         )}
@@ -278,14 +278,14 @@ export const HomePageEditor: React.FC = () => {
             <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
               Foto, gif o video (opcional) — jpg, png, gif o mp4
             </label>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 min-w-0">
               <input
                 ref={fileInputRef}
                 type="file"
                 accept="image/jpeg,image/png,image/gif,video/mp4"
                 onChange={handleBannerFileChange}
                 disabled={uploading}
-                className="flex-1 text-xs text-slate-600 dark:text-slate-400"
+                className="w-full min-w-0 text-xs text-slate-600 dark:text-slate-400"
               />
               {uploading && <Loader2 className="w-4 h-4 text-teal-600 animate-spin shrink-0" />}
             </div>
@@ -409,29 +409,29 @@ export const HomePageEditor: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-end gap-2">
-            <div>
+          <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-2">
+            <div className="w-full sm:w-auto">
               <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">Desde (opcional)</label>
               <input
                 type="date"
                 value={bannerDraft.startsAt}
                 onChange={(e) => setBannerDraft({ ...bannerDraft, startsAt: e.target.value })}
-                className="text-xs px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg"
+                className="w-full sm:w-auto text-xs px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg"
               />
             </div>
-            <div>
+            <div className="w-full sm:w-auto">
               <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">Hasta (opcional)</label>
               <input
                 type="date"
                 value={bannerDraft.endsAt}
                 onChange={(e) => setBannerDraft({ ...bannerDraft, endsAt: e.target.value })}
-                className="text-xs px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg"
+                className="w-full sm:w-auto text-xs px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg"
               />
             </div>
             <button
               type="submit"
               disabled={!bannerDraft.rubro.trim() || !bannerDraft.title.trim() || !bannerDraft.description.trim() || uploading}
-              className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs font-bold disabled:opacity-50 shrink-0"
+              className="w-full sm:w-auto px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs font-bold disabled:opacity-50 shrink-0"
             >
               {bannerDraft.id ? 'Guardar cambios' : 'Publicar banner'}
             </button>
@@ -504,7 +504,7 @@ export const HomePageEditor: React.FC = () => {
                 type="text"
                 value={cardDraft.linkPath}
                 onChange={(e) => setCardDraft({ ...cardDraft, linkPath: e.target.value })}
-                placeholder="/customer/solicitar"
+                placeholder="/customer/solicitar o mailto:hola@tecniurbano.online"
                 className="w-full text-xs px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg"
                 required
               />
@@ -512,7 +512,7 @@ export const HomePageEditor: React.FC = () => {
             <button
               type="submit"
               disabled={!cardDraft.title.trim() || !cardDraft.linkPath.trim()}
-              className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs font-bold disabled:opacity-50 shrink-0"
+              className="w-full sm:w-auto px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs font-bold disabled:opacity-50 shrink-0"
             >
               {cardDraft.id ? 'Guardar cambios' : 'Publicar tarjeta'}
             </button>
@@ -533,7 +533,7 @@ export const HomePageEditor: React.FC = () => {
               const vigent = isCurrentlyVigent(b);
               return (
                 <div key={`banner-${b.id}`} className="rounded-lg border border-slate-200 dark:border-slate-700 p-3">
-                  <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-start sm:justify-between gap-2">
                     <div className="min-w-0 flex items-start gap-2.5">
                       {b.mediaUrl &&
                         (b.mediaType === 'video' ? (
@@ -552,8 +552,8 @@ export const HomePageEditor: React.FC = () => {
                         <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-950/40 border border-teal-100 dark:border-teal-900 rounded-full px-2 py-0.5 mb-1">
                           <Megaphone className="w-3 h-3" /> Banner
                         </span>
-                        <b className="block text-xs text-slate-900 dark:text-slate-100">{b.title}</b>
-                        <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">{b.description}</p>
+                        <b className="block text-xs text-slate-900 dark:text-slate-100 break-words">{b.title}</b>
+                        <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5 break-words">{b.description}</p>
                         {b.highlights && (
                           <p className="text-[10px] text-teal-700 dark:text-teal-400 mt-0.5">
                             {b.highlights.split('|').map((h) => h.trim()).filter(Boolean).join(' · ')}
@@ -567,7 +567,7 @@ export const HomePageEditor: React.FC = () => {
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 shrink-0">
+                    <div className="flex flex-wrap items-center gap-1 w-full sm:w-auto sm:shrink-0">
                       <button
                         type="button"
                         onClick={() => neighborUp && swapHomeBlockOrder(currentRef, { id: neighborUp.item.id, type: neighborUp.type })}
@@ -620,7 +620,7 @@ export const HomePageEditor: React.FC = () => {
             const Icon = getHomeIcon(c.icon);
             return (
               <div key={`card-${c.id}`} className="rounded-lg border border-slate-200 dark:border-slate-700 p-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-2">
                   <div className="min-w-0 flex items-center gap-2.5">
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-teal-50 dark:bg-teal-950/40 text-teal-500">
                       <Icon className="w-7 h-7" strokeWidth={1.6} />
@@ -629,12 +629,12 @@ export const HomePageEditor: React.FC = () => {
                       <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full px-2 py-0.5 mb-1">
                         <LayoutGrid className="w-3 h-3" /> Tarjeta
                       </span>
-                      <b className="block text-xs text-slate-900 dark:text-slate-100">{c.title}</b>
-                      {c.description && <p className="text-[11px] text-slate-500 dark:text-slate-400">{c.description}</p>}
+                      <b className="block text-xs text-slate-900 dark:text-slate-100 break-words">{c.title}</b>
+                      {c.description && <p className="text-[11px] text-slate-500 dark:text-slate-400 break-words">{c.description}</p>}
                       <span className="text-[10px] font-mono text-slate-400">{c.linkPath}</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1 shrink-0">
+                  <div className="flex flex-wrap items-center gap-1 w-full sm:w-auto sm:shrink-0">
                     <button
                       type="button"
                       onClick={() => neighborUp && swapHomeBlockOrder(currentRef, { id: neighborUp.item.id, type: neighborUp.type })}
