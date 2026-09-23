@@ -3,6 +3,8 @@ import { FileSignature, Printer, Save, Search } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { fetchSettings, getSettingValue, updateSetting } from '../../lib/settings';
 import { buildTechnicianContractText } from '../../lib/contractDocument';
+import { supabase } from '../../lib/supabase';
+import { sha256Hex } from '../../lib/legalAcceptance';
 
 /**
  * Módulo "Contratos" del Hub de Admin (charla con Sandy, 13/9): elegís un
@@ -15,7 +17,7 @@ import { buildTechnicianContractText } from '../../lib/contractDocument';
  * criterio que src/lib/legalTerms.ts. Ver plan-contrato-tecnico.md.
  */
 export const TechnicianContractPanel: React.FC = () => {
-  const { technicians, updateTechnician, showToast } = useApp();
+  const { technicians, updateTechnician, showToast, currentUser } = useApp();
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -114,6 +116,16 @@ export const TechnicianContractPanel: React.FC = () => {
   const handlePrint = () => {
     document.body.classList.add('printing-contract');
     window.print();
+    if (selectedTechnician && contractText) {
+      void sha256Hex(contractText).then((documentHash) =>
+        supabase.from('technician_contracts').insert({
+          technician_id: selectedTechnician.id,
+          generated_by: currentUser?.id ?? null,
+          document_hash: documentHash,
+          document_version: new Date().toISOString().slice(0, 10),
+        })
+      );
+    }
   };
 
   const contractText = selectedTechnician

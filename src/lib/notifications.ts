@@ -66,7 +66,9 @@ export function getNotificationLink(notification: AppNotification, role: UserRol
     case 'order':
     case 'quote':
     case 'payment':
-      return role === 'admin' ? '/hub' : role === 'technician' ? '/technician' : `/customer/orders/${entityId}`;
+      return role === 'admin' ? `/hub?order=${entityId}` : role === 'technician' ? `/technician?order=${entityId}` : `/customer/orders/${entityId}`;
+    case 'business_lead':
+      return role === 'admin' ? '/hub?tab=leads' : null;
     case 'settlement':
       return role === 'technician' ? '/technician/earnings' : '/hub';
     case 'technician_validation':

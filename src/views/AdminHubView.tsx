@@ -67,6 +67,8 @@ import { sortByDisplayOrder, UNGROUPED_SUBCATEGORY_LABEL } from '../lib/catalogO
 import { compareTechniciansByRating, isNewTechnicianRating } from '../lib/orderRatings';
 import { distanceToOrderKm, isWithinWorkZone } from '../lib/technicianDistance';
 import { findConflictingOrder, isTechnicianAvailable } from '../lib/technicianSchedule';
+import { bestEligibleTechnician, countTechniciansInZone, sortTechniciansSuggested } from '../lib/technicianRanking';
+import { BusinessLeadsPanel } from '../components/admin/BusinessLeadsPanel';
 import {
   AppointmentBlock,
   OrderPriority,
@@ -303,7 +305,7 @@ export const AdminHubView: React.FC = () => {
   const [assignModalReviewingTechId, setAssignModalReviewingTechId] = useState<string | null>(null);
   const [assignEligibility, setAssignEligibility] = useState<Record<string, { canReceive: boolean; missingRequirements: string[] }>>({});
   const [assignEligibilityLoading, setAssignEligibilityLoading] = useState(false);
-  const [assignSort, setAssignSort] = useState<'name' | 'rating' | 'distance'>('name');
+  const [assignSort, setAssignSort] = useState<'suggested' | 'name' | 'rating' | 'distance'>('suggested');
   const [assignOnlyRated, setAssignOnlyRated] = useState(false);
   // Ver plan-zona-trabajo-agenda.md, Fase 5: disponibilidad declarada del
   // técnico (horario semanal + excepciones) para la fecha/bloque de esta
@@ -322,6 +324,14 @@ export const AdminHubView: React.FC = () => {
     const filtered = assignOnlyRated
       ? technicians.filter((t) => !isNewTechnicianRating(t.totalRatingsCount))
       : technicians;
+    if (assignSort === 'suggested' && orderToAssign) {
+      return sortTechniciansSuggested(filtered, {
+        order: orderToAssign,
+        orders,
+        availability: assignAvailability,
+        eligibility: assignEligibility,
+      });
+    }
     if (assignSort === 'rating') return [...filtered].sort(compareTechniciansByRating);
     if (assignSort === 'distance' && orderToAssign) {
       return [...filtered].sort((a, b) => {
@@ -336,7 +346,7 @@ export const AdminHubView: React.FC = () => {
       });
     }
     return filtered;
-  }, [technicians, assignSort, assignOnlyRated, orderToAssign]);
+  }, [technicians, assignSort, assignOnlyRated, orderToAssign, orders, assignAvailability, assignEligibility]);
 
   // Única fuente de verdad de elegibilidad (src/lib/technicianEligibility.ts) —
   // antes este modal decidía con un chequeo propio (solo validation_status +
@@ -2389,6 +2399,7 @@ export const AdminHubView: React.FC = () => {
         )}
 
         {activeTab === 'contracts' && <TechnicianContractPanel />}
+        {activeTab === 'leads' && <BusinessLeadsPanel />}
 
         {activeTab === 'settlements' && (
           <SettlementsHub onQueueChange={() => void refreshPayoutQueue()} />
@@ -3894,8 +3905,50 @@ export const AdminHubView: React.FC = () => {
                   </div>
                 )}
 
+                {countTechniciansInZone(technicians, orderToAssign) === 0 && (
+                  <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/40 p-3 text-[11px] text-amber-900 dark:text-amber-200">
+                    Ningún técnico tiene esta dirección dentro de su zona declarada. Podés ofrecerlo igual — la lista de abajo incluye a todos.
+                  </div>
+                )}
+
+                <div className="mb-3 flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const best = bestEligibleTechnician(assignModalTechnicians, {
+                        order: orderToAssign,
+                        orders,
+                        availability: assignAvailability,
+                        eligibility: assignEligibility,
+                      });
+                      if (!best || assignEligibilityLoading) {
+                        showToast('No hay un técnico habilitado para ofrecer ahora.', 'warning');
+                        return;
+                      }
+                      assignTechnician(orderToAssign.id, best.id);
+                      setIsAssignModalOpen(false);
+                      setOrderToAssign(null);
+                    }}
+                    disabled={assignEligibilityLoading}
+                    className="inline-flex items-center rounded-lg bg-teal-600 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-teal-700 disabled:opacity-60"
+                  >
+                    Ofrecer al mejor disponible
+                  </button>
+                </div>
+
                 <div className="mb-4 flex flex-wrap items-center gap-2">
                   <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setAssignSort('suggested')}
+                      className={`px-2.5 py-1 text-[11px] font-semibold ${
+                        assignSort === 'suggested'
+                          ? 'bg-slate-900 text-white'
+                          : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400'
+                      }`}
+                    >
+                      Sugeridos
+                    </button>
                     <button
                       type="button"
                       onClick={() => setAssignSort('name')}
@@ -3986,7 +4039,16 @@ export const AdminHubView: React.FC = () => {
                             {t.name.substring(0, 2).toUpperCase()}
                           </div>
                           <div>
-                            <div className="text-xs font-bold text-slate-900 dark:text-slate-100">{t.name}</div>
+                            <div className="text-xs font-bold text-slate-900 dark:text-slate-100">
+                              {t.name}
+                              {assignSort === 'suggested' &&
+                                isEligible &&
+                                assignModalTechnicians.find((item) => assignEligibility[item.id]?.canReceive)?.id === t.id && (
+                                  <span className="ml-1.5 rounded-full bg-teal-100 px-1.5 py-0.5 text-[9px] font-black uppercase text-teal-800">
+                                    Recomendado
+                                  </span>
+                                )}
+                            </div>
                             <div className="text-[11px] text-slate-500 dark:text-slate-400">{t.specialty}</div>
                             <div className="mt-0.5">
                               <TechnicianRatingBadge technician={t} />

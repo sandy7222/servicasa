@@ -356,6 +356,8 @@ export type GuestServiceRequestInput = CustomerServiceRequestInput & {
   fullName: string;
   email: string;
   phone: string;
+  acceptedTermsVersion: string;
+  acceptedTermsHash: string;
 };
 
 export interface Technician {
@@ -469,6 +471,8 @@ export type TechnicianRegistrationInput = {
   phone: string;
   specialtyIds: string[];
   message?: string;
+  dni?: string;
+  cuit?: string;
   // Evidencia de aceptación de T&C (charla con Sandy, 12/9): versión y hash
   // SHA-256 del texto exacto mostrado en el checkbox del formulario de alta
   // de técnico. Ver src/lib/legalTerms.ts y src/lib/legalAcceptance.ts.
@@ -730,9 +734,10 @@ export type NotificationType =
   | 'claim_opened' | 'claim_message' | 'claim_resolved'
   | 'message_new'
   | 'settlement_scheduled' | 'settlement_released' | 'settlement_paid'
-  | 'technician_validation';
+  | 'technician_validation'
+  | 'business_lead';
 
-export type NotificationEntityType = 'order' | 'quote' | 'payment' | 'claim' | 'conversation' | 'settlement' | 'technician_validation';
+export type NotificationEntityType = 'order' | 'quote' | 'payment' | 'claim' | 'conversation' | 'settlement' | 'technician_validation' | 'business_lead';
 
 export interface AppNotification {
   id: string;

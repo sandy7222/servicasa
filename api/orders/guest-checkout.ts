@@ -25,6 +25,8 @@ type GuestCheckoutBody = {
   fixedPriceServiceId?: string;
   quantity?: number;
   photoStoragePath?: string;
+  acceptedTermsVersion?: string;
+  acceptedTermsHash?: string;
 };
 
 const MAX_TEXT = 500;
@@ -77,9 +79,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const quantity = Math.max(1, Math.min(20, Math.floor(Number(body.quantity) || 1)));
   const requestedPhotoPath = trimmed(body.photoStoragePath, 200);
   const photoStoragePath = PENDING_PHOTO_PATH_RE.test(requestedPhotoPath) ? requestedPhotoPath : null;
+  const acceptedTermsVersion = trimmed(body.acceptedTermsVersion, 40);
+  const acceptedTermsHash = trimmed(body.acceptedTermsHash, 64).toLowerCase();
 
   if (!fullName || !EMAIL_RE.test(email) || !phone || !address || !city || !province || !title || !description) {
     return res.status(400).json({ error: 'Completá todos los campos obligatorios con datos válidos.' });
+  }
+  if (!acceptedTermsVersion || !/^[0-9a-f]{64}$/.test(acceptedTermsHash)) {
+    return res.status(400).json({ error: 'Tenés que aceptar los Términos y Condiciones para continuar.' });
   }
   // Nunca confiar en la validación del cliente: mismo chequeo que
   // validateAddressDraft() en src/lib/address.ts, para el caso real de un
@@ -165,6 +172,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     fixedPriceServiceId: workMode === 'direct' ? fixedPriceServiceId : null,
     fixedPriceQuantity: workMode === 'direct' ? quantity : null,
     photoStoragePath,
+    acceptedTermsVersion,
+    acceptedTermsHash,
   };
 
   const { data: draft, error: draftError } = await supabaseAdmin
@@ -175,6 +184,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (draftError || !draft) {
     console.error('[orders/guest-checkout] Error creando borrador', draftError);
     return res.status(500).json({ error: 'No se pudo procesar la solicitud.' });
+  }
+
+  const forwardedFor = req.headers['x-forwarded-for'];
+  const firstForwarded = Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor;
+  const ipAddress = firstForwarded?.split(',')[0]?.trim() || req.socket?.remoteAddress || null;
+  const userAgent = (req.headers['user-agent'] as string | undefined)?.slice(0, 300) || null;
+  const { error: termsError } = await supabaseAdmin.from('guest_legal_acceptances').insert({
+    email,
+    document_slug: 'terminos_cliente',
+    document_version: acceptedTermsVersion,
+    document_hash: acceptedTermsHash,
+    ip_address: ipAddress,
+    user_agent: userAgent,
+    draft_id: draft.id,
+  });
+  if (termsError) {
+    console.error('[orders/guest-checkout] Error registrando T&C', termsError);
+    await supabaseAdmin.from('guest_checkout_drafts').update({ status: 'cancelled' }).eq('id', draft.id);
+    return res.status(500).json({ error: 'No se pudo registrar la aceptación de los Términos.' });
   }
 
   const origin = `https://${req.headers.host}`;

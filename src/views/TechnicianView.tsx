@@ -86,6 +86,7 @@ export const TechnicianView: React.FC = () => {
     showToast,
     navigate,
     currentPath,
+    technicians,
   } = useApp();
 
   if (currentPath.split('?')[0] === '/technician/profile') {
@@ -114,6 +115,7 @@ export const TechnicianView: React.FC = () => {
   }
 
   const techId = currentUser?.technicianId || '';
+  const currentTechnician = technicians.find((item) => item.id === techId);
   const allAssignedOrders = orders.filter((o) => o.assignedTechnicianId === techId);
   // Panel principal ("Terminal de Campo"): solo lo que todavía requiere accion del
   // tecnico hoy. Lo finalizado/cancelado se consulta en /technician/history -- antes
@@ -125,15 +127,22 @@ export const TechnicianView: React.FC = () => {
 
   // Selected active order for operational work
   const [selectedOrderId, setSelectedOrderId] = useState<string>(() => {
+    const fromLink = new URLSearchParams(currentPath.split('?')[1] ?? '').get('order');
+    if (fromLink && assignedOrders.some((order) => order.id === fromLink)) return fromLink;
     return assignedOrders[0]?.id || '';
   });
 
-  // Keep selected order in sync if list changes
+  // Keep selected order in sync if list changes or a deep link arrives.
   useEffect(() => {
+    const fromLink = new URLSearchParams(currentPath.split('?')[1] ?? '').get('order');
+    if (fromLink && assignedOrders.some((order) => order.id === fromLink)) {
+      setSelectedOrderId(fromLink);
+      return;
+    }
     if (!selectedOrderId && assignedOrders.length > 0) {
       setSelectedOrderId(assignedOrders[0].id);
     }
-  }, [assignedOrders, selectedOrderId]);
+  }, [assignedOrders, selectedOrderId, currentPath]);
 
   const activeOrder = orders.find((o) => o.id === selectedOrderId) || assignedOrders[0];
 
@@ -342,6 +351,19 @@ export const TechnicianView: React.FC = () => {
       </div>
 
       <main className="max-w-7xl mx-auto px-3 sm:px-5 lg:px-6 pt-4">
+        {currentTechnician && !currentTechnician.workZoneCity && (
+          <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/40 px-3 py-2.5 text-xs text-amber-900 dark:text-amber-200 flex flex-wrap items-center justify-between gap-2">
+            <span>Declará tu zona de trabajo y tu disponibilidad para que administración te ofrezca pedidos más cerca.</span>
+            <span className="flex gap-2">
+              <button type="button" onClick={() => navigate('/technician/zona-trabajo')} className="font-bold underline">
+                Zona de trabajo
+              </button>
+              <button type="button" onClick={() => navigate('/technician/disponibilidad')} className="font-bold underline">
+                Disponibilidad
+              </button>
+            </span>
+          </div>
+        )}
         {assignedOrders.length === 0 ? (
           <div className="max-w-5xl mx-auto mt-4 space-y-4">
             <div className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-700 text-center shadow-xs">

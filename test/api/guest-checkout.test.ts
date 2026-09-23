@@ -33,6 +33,8 @@ const validBody = {
   description: 'Necesito instalar una luminaria en el comedor.',
   serviceType: 'Electricidad',
   scheduledDate: '2026-09-05',
+  acceptedTermsVersion: '2026-09-12',
+  acceptedTermsHash: 'a'.repeat(64),
 };
 
 let insertedDraft: Record<string, unknown> | undefined;
@@ -46,6 +48,7 @@ function configureDatabase() {
     if (table === 'customers') return query({ data: existingCustomer, error: null });
     if (table === 'system_settings') return query({ data: { value: settingValue }, error: null });
     if (table === 'services') return query({ data: { price: servicePrice }, error: null });
+    if (table === 'guest_legal_acceptances') return query({ data: { id: 'terms-1' }, error: null });
     if (table === 'guest_checkout_drafts') {
       return query(
         { data: { id: 'draft-1', guest_access_token: 'opaque-token' }, error: null },
@@ -71,6 +74,13 @@ beforeEach(() => {
 });
 
 describe('POST /api/orders/guest-checkout — monto confiable', () => {
+  it('exige aceptación de Términos y Condiciones', async () => {
+    const res = response();
+    await handler(request('POST', { body: { ...validBody, acceptedTermsHash: undefined } }), res);
+    expect(res.statusCode).toBe(400);
+    expect(insertedDraft).toBeUndefined();
+  });
+
   it('rechaza datos obligatorios incompletos sin escribir un borrador', async () => {
     const res = response();
     await handler(request('POST', { body: { ...validBody, email: 'invalido' } }), res);

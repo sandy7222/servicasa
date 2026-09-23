@@ -10,6 +10,8 @@ import { AddressFields, type AddressFieldsValue } from '../common/AddressFields'
 import { ASSISTANT_DRAFT_EVENT, readAssistantDraft, clearAssistantDraft } from '../../lib/diagnosisDraft';
 import type { AssistantDraft } from '../../lib/diagnosisAssistant';
 import type { OrderPriority, ServiceItem, ServiceType, WorkMode } from '../../types';
+import { TERMS_CLIENTE_TEXT, TERMS_CLIENTE_VERSION } from '../../lib/legalTerms';
+import { sha256Hex } from '../../lib/legalAcceptance';
 
 const DATE_TODAY = new Date().toISOString().slice(0, 10);
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -41,6 +43,7 @@ export const GuestServiceRequestForm: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [fromAssistant, setFromAssistant] = useState(false);
   const [photoStoragePath, setPhotoStoragePath] = useState<string | undefined>();
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const categories = useMemo(() => {
     const values = new Set<string>(['Electricidad']);
@@ -132,9 +135,14 @@ export const GuestServiceRequestForm: React.FC = () => {
       showToast('Completá qué necesitás y una breve descripción.', 'warning');
       return;
     }
+    if (!acceptedTerms) {
+      showToast('Tenés que aceptar los Términos y Condiciones para continuar.', 'warning');
+      return;
+    }
 
     setSubmitting(true);
     try {
+      const acceptedTermsHash = await sha256Hex(TERMS_CLIENTE_TEXT);
       await redirectToGuestPayment({
         fullName: fullName.trim(),
         email: email.trim(),
@@ -154,6 +162,8 @@ export const GuestServiceRequestForm: React.FC = () => {
         fixedPriceServiceId: mode === 'direct' ? selectedService!.id : undefined,
         quantity: mode === 'direct' ? quantity : undefined,
         photoStoragePath,
+        acceptedTermsVersion: TERMS_CLIENTE_VERSION,
+        acceptedTermsHash,
       });
       // redirectToGuestPayment navigates away on success — nothing else to do here.
     } catch (error) {
@@ -254,7 +264,17 @@ export const GuestServiceRequestForm: React.FC = () => {
           <div className="grid sm:grid-cols-2 gap-2"><label className="text-xs text-slate-600 dark:text-slate-400"><CalendarDays className="inline w-3.5 h-3.5 mr-1" />Fecha<input type="date" min={DATE_TODAY} value={scheduledDate} onChange={(event) => setScheduledDate(event.target.value)} className="mt-1 block w-full rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm" /></label><label className="text-xs text-slate-600 dark:text-slate-400">Franja para este pedido<select value={appointmentWindow} onChange={(event) => setAppointmentWindow(event.target.value)} className="mt-1 block w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"><option>A coordinar</option><option>Mañana (08–12 h)</option><option>Mediodía (12–15 h)</option><option>Tarde (15–19 h)</option></select></label></div>
         </div>
 
-        <button type="submit" disabled={submitting} className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-lg bg-teal-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-teal-700 disabled:opacity-50"><CreditCard className="w-4 h-4" />{submitting ? 'Enviando solicitud…' : mode === 'diagnosis' ? 'Pedir diagnóstico y pagar seña' : 'Pedir trabajo y pagar'}</button>
+        <label className="flex items-start gap-2 text-xs text-slate-600 dark:text-slate-400">
+          <input type="checkbox" checked={acceptedTerms} onChange={(event) => setAcceptedTerms(event.target.checked)} className="mt-0.5" />
+          <span>
+            Leí y acepto los{' '}
+            <a href="#/terminos_y_condiciones/cliente" target="_blank" rel="noreferrer" className="font-bold text-teal-700 hover:underline">
+              Términos y Condiciones para clientes
+            </a>
+            .
+          </span>
+        </label>
+        <button type="submit" disabled={submitting || !acceptedTerms} className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-lg bg-teal-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-teal-700 disabled:opacity-50"><CreditCard className="w-4 h-4" />{submitting ? 'Enviando solicitud…' : mode === 'diagnosis' ? 'Pedir diagnóstico y pagar seña' : 'Pedir trabajo y pagar'}</button>
       </form>
     </section>
   );

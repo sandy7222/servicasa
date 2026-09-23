@@ -4,6 +4,7 @@ import { useApp } from '../../context/AppContext';
 import { supabase } from '../../lib/supabase';
 import { isOrderPaymentSettled } from '../../lib/workTimer';
 import type { ServiceOrder } from '../../types';
+import { getAyudanteEnabled } from '../../lib/ayudanteTecnico';
 
 type Props = { order: ServiceOrder | undefined };
 
@@ -169,7 +170,7 @@ export const TechnicianAssistant: React.FC<Props> = ({ order }) => {
     };
   }, [activeTip, phase]);
 
-  if (!activeTip || !order) return null;
+  if (!getAyudanteEnabled() || !activeTip || !order) return null;
 
   return (
     <div className="fixed bottom-4 left-4 z-40 flex flex-col items-start gap-1.5 pointer-events-none">

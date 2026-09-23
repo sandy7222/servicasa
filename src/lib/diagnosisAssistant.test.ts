@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
   answer,
+  CERRAJERIA_SLUGS,
   ELECTRICIDAD_SLUGS,
   matchesVoltage,
   pickCatalogItem,
+  PLOMERIA_SLUGS,
+  REFRIGERACION_SLUGS,
   skipItemPick,
   startAssistant,
   submitPlaceholder,
@@ -158,17 +161,75 @@ describe('árbol de Electricidad', () => {
   });
 });
 
-describe('placeholders de otros rubros', () => {
-  it('Plomería va a texto libre + foto sin triaje de electricidad', () => {
+describe('árbol de Plomería', () => {
+  it('usa triaje propio y no el de electricidad', () => {
     const session = walk(['Plomería']);
-    expect(visiblePrompt(session).kind).toBe('placeholder');
-    const done = submitPlaceholder(session, 'Se me inundó el baño', 'foto.jpg');
-    const prompt = visiblePrompt(done);
+    const prompt = visiblePrompt(session);
+    expect(prompt.kind).toBe('buttons');
+    if (prompt.kind !== 'buttons') return;
+    expect(prompt.question).toMatch(/pérdida de agua/i);
+    expect(prompt.question).not.toMatch(/quemado/);
+  });
+
+  it('pérdida activa corta sin armar pedido', () => {
+    const session = walk(['Plomería', 'yes']);
+    const prompt = visiblePrompt(session);
+    expect(prompt.kind).toBe('safety-stop');
+    expect(session.draft).toBeUndefined();
+    if (prompt.kind !== 'safety-stop') return;
+    expect(prompt.message).toMatch(/llave de paso/i);
+    expect(prompt.message).toMatch(/horario comercial/i);
+  });
+
+  it('destapación ofrece ítems de esa subcategoría', () => {
+    const session = walk(['Plomería', 'no', 'clog']);
+    const prompt = visiblePrompt(session);
+    expect(prompt.kind).toBe('pick-items');
+    if (prompt.kind !== 'pick-items') return;
+    expect(prompt.slugs).toEqual([PLOMERIA_SLUGS.destapaciones]);
+  });
+
+  it('pérdida en baño va a grifería y skip arma diagnóstico', () => {
+    const skipped = skipItemPick(walk(['Plomería', 'no', 'leak', 'bath']));
+    const prompt = visiblePrompt(skipped);
     expect(prompt.kind).toBe('summary');
     if (prompt.kind !== 'summary') return;
     expect(prompt.draft.serviceType).toBe('Plomería');
-    expect(prompt.draft.workMode).toBe('diagnosis');
-    expect(prompt.draft.description).toMatch(/inundó/);
+    expect(prompt.draft.subcategorySlugs).toContain(PLOMERIA_SLUGS.griferia);
+  });
+});
+
+describe('árboles de los demás rubros', () => {
+  it('Cerrajería con persona trabada corta sin pedido', () => {
+    const session = walk(['Cerrajería', 'yes']);
+    expect(visiblePrompt(session).kind).toBe('safety-stop');
+    expect(session.draft).toBeUndefined();
+  });
+
+  it('Cerrajería — abrir puerta ofrece aperturas', () => {
+    const session = walk(['Cerrajería', 'no', 'open']);
+    const prompt = visiblePrompt(session);
+    expect(prompt.kind).toBe('pick-items');
+    if (prompt.kind !== 'pick-items') return;
+    expect(prompt.slugs).toEqual([CERRAJERIA_SLUGS.aperturas]);
+  });
+
+  it('Refrigeración — equipo que no enfría ofrece visita técnica', () => {
+    const session = walk(['Refrigeración', 'no', 'broken']);
+    const prompt = visiblePrompt(session);
+    expect(prompt.kind).toBe('pick-items');
+    if (prompt.kind !== 'pick-items') return;
+    expect(prompt.slugs).toContain(REFRIGERACION_SLUGS.visita);
+  });
+
+  it('Soldadura y Reparaciones tienen triaje propio', () => {
+    expect(visiblePrompt(walk(['Soldadura'])).kind).toBe('buttons');
+    expect(visiblePrompt(walk(['Reparaciones del hogar'])).kind).toBe('buttons');
+    const paint = skipItemPick(walk(['Reparaciones del hogar', 'no', 'paint-in']));
+    const prompt = visiblePrompt(paint);
+    expect(prompt.kind).toBe('summary');
+    if (prompt.kind !== 'summary') return;
+    expect(prompt.draft.serviceType).toBe('Reparaciones del hogar');
   });
 
   it('No estoy seguro deriva a diagnóstico general', () => {

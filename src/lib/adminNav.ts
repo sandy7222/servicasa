@@ -7,7 +7,8 @@ export type AdminHubTab =
   | 'inventory'
   | 'services'
   | 'categories'
-  | 'pageEditor';
+  | 'pageEditor'
+  | 'leads';
 
 export type AdminNavGroupId = 'operacion' | 'personas' | 'catalogo' | 'plataforma';
 
@@ -39,6 +40,7 @@ const HUB_TABS: AdminHubTab[] = [
   'services',
   'categories',
   'pageEditor',
+  'leads',
 ];
 
 const LAST_DEST_KEY = 'tecniurbano_admin_last_dest';
@@ -77,6 +79,7 @@ export const ADMIN_NAV_DESTINATIONS: AdminNavDestination[] = [
     badgeKey: 'payouts',
   },
   { id: 'pageEditor', label: 'Página del cliente', groupId: 'plataforma', kind: 'tab', tab: 'pageEditor' },
+  { id: 'leads', label: 'Empresas', groupId: 'plataforma', kind: 'tab', tab: 'leads' },
 ];
 
 export function isAdminHubTab(value: string): value is AdminHubTab {

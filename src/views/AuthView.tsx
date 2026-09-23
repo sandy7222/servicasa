@@ -31,6 +31,7 @@ import {
   TERMS_TECNICO_VERSION,
 } from '../lib/legalTerms';
 import { sha256Hex } from '../lib/legalAcceptance';
+import confetti from 'canvas-confetti';
 
 function readInviteToken() {
   const hash = window.location.hash.replace(/^#/, '');
@@ -122,6 +123,8 @@ export const AuthView: React.FC = () => {
   const [appPassword, setAppPassword] = useState('');
   const [appPhone, setAppPhone] = useState('');
   const [appSpecialtyIds, setAppSpecialtyIds] = useState<string[]>([]);
+  const [appDni, setAppDni] = useState('');
+  const [appCuit, setAppCuit] = useState('');
   const [appMessage, setAppMessage] = useState('');
   const [appAcceptedTerms, setAppAcceptedTerms] = useState(false);
   const [applySubmitted, setApplySubmitted] = useState(false);
@@ -212,6 +215,9 @@ export const AuthView: React.FC = () => {
         acceptedTermsVersion: isTechnicianInvite ? TERMS_TECNICO_VERSION : TERMS_CLIENTE_VERSION,
         acceptedTermsHash,
       });
+      try {
+        confetti({ particleCount: 120, spread: 80, origin: { y: 0.55 } });
+      } catch {}
     } catch (err) {
       const message = friendlyErrorMessage(err, 'No se pudo crear la cuenta');
       setError(message);
@@ -246,6 +252,9 @@ export const AuthView: React.FC = () => {
         acceptedTermsVersion: TERMS_CLIENTE_VERSION,
         acceptedTermsHash,
       });
+      try {
+        confetti({ particleCount: 100, spread: 75, origin: { y: 0.6 } });
+      } catch {}
       setRegisterSubmitted(true);
     } catch (err) {
       const message = friendlyErrorMessage(err, 'No se pudo crear la cuenta');
@@ -277,10 +286,15 @@ export const AuthView: React.FC = () => {
         password: appPassword,
         phone: appPhone,
         specialtyIds: appSpecialtyIds,
+        dni: appDni.trim() || undefined,
+        cuit: appCuit.trim() || undefined,
         message: appMessage.trim() || undefined,
         acceptedTermsVersion: TERMS_TECNICO_VERSION,
         acceptedTermsHash,
       });
+      try {
+        confetti({ particleCount: 90, spread: 65, origin: { y: 0.65 }, shapes: ['star'] });
+      } catch {}
       setApplySubmitted(true);
     } catch (err) {
       const message = friendlyErrorMessage(err, 'No se pudo crear la cuenta');
@@ -908,6 +922,31 @@ export const AuthView: React.FC = () => {
                     disabled={authLoading}
                     className={inputWithIconClass}
                     required
+                  />
+                </div>
+              </div>
+
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div>
+                  <label className={labelClass}>DNI</label>
+                  <input
+                    type="text"
+                    value={appDni}
+                    onChange={(e) => setAppDni(e.target.value)}
+                    disabled={authLoading}
+                    className={inputClass}
+                    placeholder="Sin puntos"
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>CUIT / monotributo</label>
+                  <input
+                    type="text"
+                    value={appCuit}
+                    onChange={(e) => setAppCuit(e.target.value)}
+                    disabled={authLoading}
+                    className={inputClass}
+                    placeholder="20-XXXXXXXX-X"
                   />
                 </div>
               </div>

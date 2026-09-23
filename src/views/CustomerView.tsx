@@ -37,6 +37,8 @@ import { ConversationsPanel } from '../components/common/ConversationsPanel';
 import { CustomerHomeBlocks } from '../components/client/CustomerHomeBlocks';
 import { startOrderConversation } from '../lib/conversations';
 import { fetchPendingDraft, retryDraftPayment, type PendingCustomerDraft } from '../lib/paymentClient';
+import { saveAssistantDraft } from '../lib/diagnosisDraft';
+import { draftFromCompletedOrder } from '../lib/rebooking';
 
 export const CustomerView: React.FC = () => {
   const { orders, currentUser, saveCustomerSignature, showToast, currentPath, navigate, deleteCustomerOrder } = useApp();
@@ -700,13 +702,25 @@ export const CustomerView: React.FC = () => {
                 )}
 
                 {activeOrder.status === 'completed' && (
-                  <OrderRatingCard
-                    orderId={activeOrder.id}
-                    technicianId={activeOrder.assignedTechnicianId}
-                    customerId={customerId}
-                    completedAt={activeOrder.completedAt}
-                    onSaved={() => setRatingNonce((n) => n + 1)}
-                  />
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        saveAssistantDraft(draftFromCompletedOrder(activeOrder));
+                        navigate('/solicitar');
+                      }}
+                      className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-teal-600 px-3 py-2 text-xs font-bold text-white hover:bg-teal-700"
+                    >
+                      Pedir de nuevo este servicio
+                    </button>
+                    <OrderRatingCard
+                      orderId={activeOrder.id}
+                      technicianId={activeOrder.assignedTechnicianId}
+                      customerId={customerId}
+                      completedAt={activeOrder.completedAt}
+                      onSaved={() => setRatingNonce((n) => n + 1)}
+                    />
+                  </>
                 )}
               </div>
             )}

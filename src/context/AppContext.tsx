@@ -1065,6 +1065,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       await persistSelfRegisterTechnician(input);
+      if (input.dni?.trim() || input.cuit?.trim()) {
+        await supabase.from('technicians').update({
+          dni: input.dni?.trim() || null,
+          cuit: input.cuit?.trim() || null,
+        }).eq('profile_id', user.id);
+      }
       await applyRemoteSession(user.id);
       navigate('/technician');
       showToast(`Cuenta creada. Bienvenido/a ${input.fullName}`, 'success', 'Listo');

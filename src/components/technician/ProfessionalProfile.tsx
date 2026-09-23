@@ -3,10 +3,11 @@ import { ArrowLeft, BadgeCheck, Building2, Camera, CircleAlert, CreditCard, File
 import { useApp } from '../../context/AppContext';
 import { isSupabaseConfigured, supabase } from '../../lib/supabase';
 import { ValidationStatusView } from './ValidationStatusView';
+import { getAyudanteEnabled, setAyudanteEnabled } from '../../lib/ayudanteTecnico';
 
 type Professional = {
   name: string; work_phone: string; bio: string; education_level: string; degree_title: string;
-  institution_name: string; address: string; email: string;
+  institution_name: string; address: string; email: string; dni: string; cuit: string;
   public_avatar_path: string | null; validation_status: string; validation_notes: string | null;
 };
 type Checklist = { profile_complete: boolean; identity_verified: boolean; tax_document_approved: boolean; payment_account_valid: boolean; professional_license_valid: boolean; is_ready: boolean };
@@ -28,11 +29,12 @@ export const ProfessionalProfile: React.FC = () => {
   const [account, setAccount] = useState<Account>({ account_holder: '', cbu_cvu: '', alias: '', provider: 'bank', validation_status: 'pending' });
   const [avatarUrl, setAvatarUrl] = useState<string>();
   const [saving, setSaving] = useState(false);
+  const [ayudanteOn, setAyudanteOn] = useState(() => getAyudanteEnabled());
 
   const load = async () => {
     if (!technician || !isSupabaseConfigured) return;
     const [profileRes, checklistRes, documentsRes, accountRes] = await Promise.all([
-      supabase.from('technicians').select('name, work_phone, bio, education_level, degree_title, institution_name, address, email, public_avatar_path, validation_status, validation_notes').eq('id', technician.id).single(),
+      supabase.from('technicians').select('name, work_phone, bio, education_level, degree_title, institution_name, address, email, dni, cuit, public_avatar_path, validation_status, validation_notes').eq('id', technician.id).single(),
       supabase.from('technician_enablement_checklist').select('*').eq('technician_id', technician.id).maybeSingle(),
       supabase.from('technician_documents').select('id, document_type, label, storage_path, validation_status, validation_notes, created_at').eq('technician_id', technician.id).eq('is_current', true).order('created_at', { ascending: false }),
       supabase.from('technician_payment_accounts').select('account_holder, cbu_cvu, alias, provider, validation_status').eq('technician_id', technician.id).maybeSingle(),
@@ -49,6 +51,8 @@ export const ProfessionalProfile: React.FC = () => {
       institution_name: profileRes.data.institution_name ?? '',
       address: profileRes.data.address ?? '',
       email: profileRes.data.email ?? technician.email,
+      dni: profileRes.data.dni ?? '',
+      cuit: profileRes.data.cuit ?? '',
       public_avatar_path: profileRes.data.public_avatar_path ?? null,
       validation_status: profileRes.data.validation_status ?? 'pending',
       validation_notes: profileRes.data.validation_notes ?? null,
@@ -79,6 +83,8 @@ export const ProfessionalProfile: React.FC = () => {
         education_level: profile.education_level || null,
         degree_title: profile.degree_title.trim() || null,
         institution_name: profile.institution_name.trim() || null,
+        dni: profile.dni.trim() || null,
+        cuit: profile.cuit.trim() || null,
         address: profile.address.trim(),
         email: profile.email.trim(),
       }).eq('id', technician.id).select('id').single();
@@ -157,6 +163,8 @@ export const ProfessionalProfile: React.FC = () => {
           </select>
         </label>
         <Field label="Título / certificación" value={profile.degree_title} onChange={(value) => setProfile({ ...profile, degree_title: value })} />
+        <Field label="DNI" value={profile.dni} onChange={(value) => setProfile({ ...profile, dni: value })} />
+        <Field label="CUIT / monotributo" value={profile.cuit} onChange={(value) => setProfile({ ...profile, cuit: value })} />
         <Field label="Institución emisora" value={profile.institution_name} onChange={(value) => setProfile({ ...profile, institution_name: value })} />
       </div>
       <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
@@ -168,6 +176,20 @@ export const ProfessionalProfile: React.FC = () => {
     <section className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-4 space-y-3"><div className="flex items-center gap-2"><FileText className="w-4 text-teal-600" /><div><h2 className="font-bold text-sm">Documentación privada</h2><p className="text-[11px] text-slate-500 dark:text-slate-400">Sólo vos y la administración pueden ver estos PDFs.</p></div></div><div className="grid sm:grid-cols-2 gap-2">{[['monotributo', 'Constancia de monotributo'], ['identity', 'Documento de identidad'], ['degree', 'Título o certificación']].map(([type, label]) => { const row = documents.find((doc) => doc.document_type === type); return <label key={type} className="rounded-lg border border-slate-200 dark:border-slate-700 p-3 cursor-pointer hover:border-teal-300"><span className="block text-xs font-bold text-slate-800 dark:text-slate-200">{label}</span><span className="block mt-1 text-[11px] text-slate-500 dark:text-slate-400">{row ? `${row.label} · ${statusCopy[row.validation_status] ?? row.validation_status}` : 'Adjuntar PDF, JPG o PNG (máx. 10 MB)'}</span>{row?.validation_notes && <span className="block mt-1 text-[11px] text-amber-700">{row.validation_notes}</span>}<input type="file" accept="application/pdf,image/jpeg,image/png" className="hidden" onChange={(e) => void uploadDocument(type, e.target.files?.[0])} /></label>; })}</div></section>
     <section className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-4 space-y-3"><div className="flex items-center gap-2"><Landmark className="w-4 text-teal-600" /><div><h2 className="font-bold text-sm">Cuenta para liquidaciones</h2><p className="text-[11px] text-slate-500 dark:text-slate-400">Sólo vos y los administradores ven estos datos.</p></div></div><div className="grid sm:grid-cols-2 gap-3"><Field label="Titular de la cuenta" value={account.account_holder} onChange={(value) => setAccount({ ...account, account_holder: value })} /><Field label="CBU o CVU (22 dígitos)" value={account.cbu_cvu} onChange={(value) => setAccount({ ...account, cbu_cvu: value.replace(/\D/g, '').slice(0, 22) })} /><Field label="Alias (opcional)" value={account.alias ?? ''} onChange={(value) => setAccount({ ...account, alias: value })} /><label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Entidad<select value={account.provider} onChange={(e) => setAccount({ ...account, provider: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-700 p-2 text-sm"><option value="bank">Banco</option><option value="mercadopago">Mercado Pago</option><option value="other">Otra billetera</option></select></label></div><p className="text-[11px] text-slate-500 dark:text-slate-400"><ShieldCheck className="inline w-3.5 mr-1 text-teal-600" />Estado de cuenta: {statusCopy[account.validation_status] ?? 'Pendiente'}</p><button onClick={() => void saveAccount()} disabled={saving} className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-2 text-xs font-bold text-white disabled:opacity-60"><CreditCard className="w-3.5" />Guardar datos de cobro</button></section>
     <section className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-4"><div className="flex items-center gap-2 mb-3"><BadgeCheck className="w-4 text-teal-600" /><h2 className="font-bold text-sm">Habilitación para recibir trabajos</h2></div>{checklist ? <div className="space-y-2">{requirements.map(([label, done]) => <div key={String(label)} className="flex justify-between rounded-lg bg-slate-50 dark:bg-slate-950 px-3 py-2 text-xs"><span>{label}</span><span className={done ? 'text-emerald-700 font-bold' : 'text-amber-700 font-bold'}>{done ? 'Listo' : 'Pendiente'}</span></div>)}<p className={`mt-3 text-xs font-bold ${checklist.is_ready ? 'text-emerald-700' : 'text-slate-500 dark:text-slate-400'}`}>{checklist.is_ready ? 'Tu perfil está habilitado para recibir trabajos.' : 'Completá los requisitos y administración revisará tu perfil.'}</p></div> : <p className="text-xs text-slate-500 dark:text-slate-400">El checklist se generará al guardar los primeros datos.</p>}</section>
+    <section className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-4 space-y-3">
+      <h2 className="font-bold text-sm">Ayudante técnico</h2>
+      <label className="flex items-center justify-between gap-3 text-xs">
+        <span>Mostrar la mascota guía en la Terminal de Campo</span>
+        <input
+          type="checkbox"
+          checked={ayudanteOn}
+          onChange={(event) => {
+            setAyudanteOn(event.target.checked);
+            setAyudanteEnabled(event.target.checked);
+          }}
+        />
+      </label>
+    </section>
   </div>;
 };
 

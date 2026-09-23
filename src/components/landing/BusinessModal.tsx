@@ -31,6 +31,8 @@ const FIELD_CLASS =
 export const BusinessModal: React.FC<BusinessModalProps> = ({ isOpen, onClose }) => {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const handleClose = () => {
     onClose();
@@ -38,17 +40,33 @@ export const BusinessModal: React.FC<BusinessModalProps> = ({ isOpen, onClose })
     window.setTimeout(() => {
       setForm(EMPTY_FORM);
       setSubmitted(false);
+      setSubmitError(null);
     }, 200);
   };
 
   const set = (field: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm((f) => ({ ...f, [field]: e.target.value }));
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: conectar a un backend/API de formularios real cuando exista
-    // (spec sección 12 — deliberadamente no se resuelve con `mailto:`).
-    setSubmitted(true);
+    setSubmitting(true);
+    setSubmitError(null);
+    try {
+      const response = await fetch('/api/leads/business', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      const body = (await response.json().catch(() => ({}))) as { error?: string };
+      if (!response.ok) {
+        throw new Error(body.error || 'No se pudo enviar la consulta.');
+      }
+      setSubmitted(true);
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : 'No se pudo enviar la consulta.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -108,11 +126,13 @@ export const BusinessModal: React.FC<BusinessModalProps> = ({ isOpen, onClose })
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Descripción del proyecto</label>
             <textarea required rows={3} value={form.description} onChange={set('description')} className={FIELD_CLASS} />
           </div>
+          {submitError && <p className="text-xs font-semibold text-rose-600">{submitError}</p>}
           <button
             type="submit"
-            className="w-full mt-1 px-5 py-3 rounded-xl bg-teal-400 hover:bg-teal-300 text-[#00203d] font-bold text-sm transition-colors duration-200"
+            disabled={submitting}
+            className="w-full mt-1 px-5 py-3 rounded-xl bg-teal-400 hover:bg-teal-300 text-[#00203d] font-bold text-sm transition-colors duration-200 disabled:opacity-60"
           >
-            Enviar consulta
+            {submitting ? 'Enviando…' : 'Enviar consulta'}
           </button>
         </form>
       )}
