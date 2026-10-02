@@ -111,6 +111,12 @@ vi.mock('../_lib/supabaseAdmin.js', () => ({
   },
 }));
 
+// Sin red real: el aviso a Telegram se espía y la geocodificación (Nominatim)
+// devuelve "sin resultado", que es el camino best-effort de siempre.
+const telegramMock = vi.hoisted(() => vi.fn());
+vi.mock('../_lib/telegram.js', () => ({ sendTelegramMessage: telegramMock }));
+vi.mock('../_lib/geocoding.js', () => ({ geocodeLocality: async () => null }));
+
 describe('api/payments/webhook idempotency', () => {
   beforeEach(() => {
     tables = {
@@ -213,5 +219,240 @@ describe('api/payments/webhook idempotency', () => {
 
     expect(tables.service_orders[0].total_paid_amount).toBe(80000);
     expect(tables.payment_transactions[0].status).toBe('approved');
+  });
+});
+
+/**
+ * Aviso al administrador cuando se confirma el pago de una visita de
+ * presupuesto (plan-avisos-telegram-y-chat.md, Fase 1): una sola vez por pago,
+ * solo para visitas, y sin poder romper nunca la creación de la orden.
+ */
+describe('api/payments/webhook — aviso de visita pagada', () => {
+  const visitPayload = {
+    title: 'Cambio de tablero',
+    description: 'desc',
+    serviceType: 'Electricidad',
+    priority: 'alta',
+    scheduledDate: '2026-10-05',
+    appointmentBlock: 'morning',
+    workMode: 'diagnosis',
+    address: 'Av. Corrientes 3421',
+    neighborhood: 'Centro',
+    city: 'Quilmes',
+    province: 'Buenos Aires',
+    visitDepositAmount: 30000,
+    totalQuotedAmount: 0,
+    fixedPriceServiceId: null,
+    fixedPriceQuantity: null,
+  };
+  const directPayload = {
+    ...visitPayload,
+    workMode: 'direct',
+    visitDepositAmount: 0,
+    totalQuotedAmount: 80000,
+    fixedPriceServiceId: 'svc-1',
+    fixedPriceQuantity: 1,
+  };
+
+  function approvedPayment(externalReference: string, extra: Record<string, unknown> = {}) {
+    return {
+      id: 5550001,
+      status: 'approved',
+      external_reference: externalReference,
+      transaction_amount: 30000,
+      date_approved: '2026-10-02T21:00:00.000Z',
+      fee_details: [],
+      payment_method_id: 'master',
+      installments: 1,
+      ...extra,
+    };
+  }
+  const req = { method: 'GET', query: { topic: 'payment', id: '5550001' } } as never;
+  function makeRes() {
+    const res: { statusCode?: number; status: (c: number) => typeof res; json: (b: unknown) => typeof res; end: () => typeof res; setHeader: () => void } = {
+      status(code: number) {
+        res.statusCode = code;
+        return res;
+      },
+      json() {
+        return res;
+      },
+      end() {
+        return res;
+      },
+      setHeader() {},
+    };
+    return res;
+  }
+  const visitNotifications = () => tables.notifications.filter((n) => n.type === 'visit_paid');
+
+  beforeEach(() => {
+    tables = {
+      customer_order_drafts: [
+        { id: 'draft-v', customer_id: 'cust-1', status: 'pending', payment_type: 'visit_deposit', amount: 30000, payload: visitPayload },
+      ],
+      guest_checkout_drafts: [],
+      payment_transactions: [],
+      service_orders: [],
+      customers: [{ id: 'cust-1', name: 'Julián Albarracín', phone: '1122334455', profile_id: 'profile-1' }],
+      notifications: [],
+      profiles: [
+        { id: 'admin-1', role: 'admin' },
+        { id: 'profile-1', role: 'customer' },
+      ],
+    };
+    telegramMock.mockReset();
+    telegramMock.mockResolvedValue(true);
+    mpGetMock.mockReset();
+    mpGetMock.mockResolvedValue(approvedPayment('draft-v'));
+  });
+
+  it('cliente logueado: avisa una sola vez aunque Mercado Pago repita la notificación', async () => {
+    const { default: handler } = await import('./webhook');
+
+    await handler(req, makeRes() as never);
+    await handler(req, makeRes() as never);
+
+    expect(tables.service_orders).toHaveLength(1);
+    expect(telegramMock).toHaveBeenCalledTimes(1);
+    const [text, button] = telegramMock.mock.calls[0];
+    expect(text).toContain('VISITA DE PRESUPUESTO PAGADA');
+    expect(text).toContain('Sin técnico asignado');
+    expect(text).toContain('Quilmes');
+    expect(text).not.toContain('Corrientes');
+    expect(text).not.toContain('1122334455');
+    expect(button.url).toBe(`https://tecniurbano.online/#/hub?order=${tables.service_orders[0].id}`);
+
+    expect(visitNotifications()).toHaveLength(1);
+    expect(visitNotifications()[0]).toMatchObject({
+      recipient_profile_id: 'admin-1',
+      entity_type: 'order',
+      entity_id: tables.service_orders[0].id,
+      priority: 'high',
+    });
+  });
+
+  it('invitado: también avisa, una sola vez', async () => {
+    tables.customer_order_drafts = [];
+    tables.guest_checkout_drafts = [
+      {
+        id: 'guest-v',
+        status: 'pending',
+        payment_type: 'visit_deposit',
+        amount: 30000,
+        guest_access_token: 'tok-1',
+        payload: { ...visitPayload, fullName: 'Ana Invitada', email: 'ana@example.com', phone: '1155556666', appointmentBlock: 'afternoon' },
+      },
+    ];
+    mpGetMock.mockResolvedValue(approvedPayment('guest-v'));
+    const { default: handler } = await import('./webhook');
+
+    await handler(req, makeRes() as never);
+    await handler(req, makeRes() as never);
+
+    expect(tables.service_orders).toHaveLength(1);
+    expect(telegramMock).toHaveBeenCalledTimes(1);
+    expect(telegramMock.mock.calls[0][0]).toContain('Tarde (15–19 h)');
+    expect(telegramMock.mock.calls[0][0]).not.toContain('1155556666');
+    expect(visitNotifications()).toHaveLength(1);
+  });
+
+  it('pago directo (no es una visita): no avisa', async () => {
+    tables.customer_order_drafts[0].payload = directPayload;
+    tables.customer_order_drafts[0].payment_type = 'full_advance';
+    const { default: handler } = await import('./webhook');
+
+    await handler(req, makeRes() as never);
+
+    expect(tables.service_orders).toHaveLength(1);
+    expect(telegramMock).not.toHaveBeenCalled();
+    expect(visitNotifications()).toHaveLength(0);
+  });
+
+  it('pago rechazado: no crea orden ni avisa', async () => {
+    mpGetMock.mockResolvedValue(approvedPayment('draft-v', { status: 'rejected' }));
+    const { default: handler } = await import('./webhook');
+
+    await handler(req, makeRes() as never);
+
+    expect(tables.service_orders).toHaveLength(0);
+    expect(telegramMock).not.toHaveBeenCalled();
+    expect(visitNotifications()).toHaveLength(0);
+  });
+
+  it('orden que ya existía y recibe la seña: avisa una sola vez y dice que falta técnico', async () => {
+    tables.customer_order_drafts = [];
+    tables.service_orders = [
+      {
+        id: 'order-9',
+        customer_id: 'cust-1',
+        title: 'Revisar térmica',
+        service_type: 'Electricidad',
+        client_city: 'Berazategui',
+        client_neighborhood: '',
+        scheduled_date: '2026-10-06',
+        appointment_block: 'midday',
+        priority: 'media',
+        assigned_technician_name: null,
+        total_paid_amount: 0,
+        payment_status: 'pending',
+      },
+    ];
+    tables.payment_transactions = [{ id: 'txn-v9', order_id: 'order-9', quote_id: null, payment_type: 'visit_deposit', status: 'pending' }];
+    mpGetMock.mockResolvedValue(approvedPayment('txn-v9'));
+    const { default: handler } = await import('./webhook');
+
+    await handler(req, makeRes() as never);
+    await handler(req, makeRes() as never);
+
+    expect(telegramMock).toHaveBeenCalledTimes(1);
+    const [text, button] = telegramMock.mock.calls[0];
+    expect(text).toContain('Sin técnico asignado');
+    expect(text).toContain('Berazategui');
+    expect(text).toContain('Mediodía (12–15 h)');
+    expect(button.url).toBe('https://tecniurbano.online/#/hub?order=order-9');
+    expect(visitNotifications()).toHaveLength(1);
+  });
+
+  it('orden existente que ya tiene técnico: el aviso lo dice', async () => {
+    tables.customer_order_drafts = [];
+    tables.service_orders = [
+      { id: 'order-10', customer_id: 'cust-1', title: 'Revisar térmica', service_type: 'Electricidad', client_city: 'Quilmes', scheduled_date: '2026-10-06', appointment_block: 'morning', priority: 'media', assigned_technician_name: 'María Rodríguez', total_paid_amount: 0 },
+    ];
+    tables.payment_transactions = [{ id: 'txn-v10', order_id: 'order-10', quote_id: null, payment_type: 'visit_deposit', status: 'pending' }];
+    mpGetMock.mockResolvedValue(approvedPayment('txn-v10'));
+    const { default: handler } = await import('./webhook');
+
+    await handler(req, makeRes() as never);
+
+    expect(telegramMock.mock.calls[0][0]).toContain('Técnico asignado: María Rodríguez.');
+    expect(telegramMock.mock.calls[0][0]).not.toContain('Sin técnico');
+  });
+
+  it('pago del saldo de un presupuesto (balance_payment): no avisa', async () => {
+    tables.customer_order_drafts = [];
+    tables.service_orders = [{ id: 'order-11', customer_id: 'cust-1', total_paid_amount: 30000, payment_status: 'deposit_paid', quote_status: 'pending' }];
+    tables.payment_transactions = [{ id: 'txn-b11', order_id: 'order-11', quote_id: null, payment_type: 'balance_payment', status: 'pending' }];
+    mpGetMock.mockResolvedValue(approvedPayment('txn-b11'));
+    const { default: handler } = await import('./webhook');
+
+    await handler(req, makeRes() as never);
+
+    expect(telegramMock).not.toHaveBeenCalled();
+    expect(visitNotifications()).toHaveLength(0);
+  });
+
+  it('si el aviso falla, la orden se crea igual y el webhook responde 200', async () => {
+    telegramMock.mockRejectedValue(new Error('Telegram caído'));
+    const res = makeRes();
+    const { default: handler } = await import('./webhook');
+
+    await handler(req, res as never);
+
+    expect(res.statusCode).toBe(200);
+    expect(tables.service_orders).toHaveLength(1);
+    expect(tables.payment_transactions).toHaveLength(1);
+    expect(tables.customer_order_drafts[0].status).toBe('approved');
+    expect(visitNotifications()).toHaveLength(1);
   });
 });

@@ -3,6 +3,7 @@ import { MPNotFoundError, Payment } from 'mercadopago';
 import { mpClient } from '../_lib/mercadopago.js';
 import { geocodeLocality } from '../_lib/geocoding.js';
 import { supabaseAdmin } from '../_lib/supabaseAdmin.js';
+import { notifyAdminsVisitPaid } from '../_lib/visitPaidAlert.js';
 import type { AppointmentBlock } from '../_lib/appointmentBlock.js';
 
 /**
@@ -285,6 +286,20 @@ async function createOrderFromApprovedGuestDraft(
     console.error('[payments/webhook] Error creando payment_transaction para orden confirmada', txError);
   }
 
+  if (payload.workMode === 'diagnosis') {
+    await notifyAdminsVisitPaid({
+      orderId: order.id,
+      title: payload.title,
+      serviceType: payload.serviceType,
+      city: payload.city,
+      neighborhood: payload.neighborhood,
+      scheduledDate: payload.scheduledDate,
+      appointmentBlock: payload.appointmentBlock ?? null,
+      priority: payload.priority,
+      assignedTechnicianName: null,
+    });
+  }
+
   await ensureAccountInviteForGuestCustomer(customerId);
 }
 
@@ -380,6 +395,20 @@ async function createOrderFromApprovedCustomerDraft(
     console.error('[payments/webhook] Error creando payment_transaction (cliente)', txError);
   }
 
+  if (payload.workMode === 'diagnosis') {
+    await notifyAdminsVisitPaid({
+      orderId: order.id,
+      title: payload.title,
+      serviceType: payload.serviceType,
+      city: payload.city,
+      neighborhood: payload.neighborhood,
+      scheduledDate: payload.scheduledDate,
+      appointmentBlock: payload.appointmentBlock ?? null,
+      priority: payload.priority,
+      assignedTechnicianName: null,
+    });
+  }
+
   if (customer.profile_id) {
     await supabaseAdmin.from('notifications').insert({
       recipient_profile_id: customer.profile_id,
@@ -401,7 +430,7 @@ async function syncOrderAfterApprovedPayment(
 ) {
   const { data: order, error: orderError } = await supabaseAdmin
     .from('service_orders')
-    .select('total_paid_amount, customer_id')
+    .select('id, title, service_type, client_city, client_neighborhood, scheduled_date, appointment_block, priority, assigned_technician_name, total_paid_amount, customer_id')
     .eq('id', orderId)
     .maybeSingle();
   if (orderError || !order) {
@@ -427,6 +456,23 @@ async function syncOrderAfterApprovedPayment(
   const { error: updateError } = await supabaseAdmin.from('service_orders').update(patch).eq('id', orderId);
   if (updateError) {
     console.error('[payments/webhook] Error sincronizando service_orders', updateError);
+  }
+
+  // Orden que ya existía (p. ej. armada por el admin) y recién recibe la
+  // seña de la visita: también es una "visita pagada". El aviso dice si ya
+  // tiene técnico o si falta asignarlo.
+  if (paymentType === 'visit_deposit' && !updateError) {
+    await notifyAdminsVisitPaid({
+      orderId,
+      title: String(order.title ?? ''),
+      serviceType: String(order.service_type ?? ''),
+      city: order.client_city as string | null,
+      neighborhood: order.client_neighborhood as string | null,
+      scheduledDate: order.scheduled_date as string | null,
+      appointmentBlock: order.appointment_block as string | null,
+      priority: order.priority as string | null,
+      assignedTechnicianName: (order.assigned_technician_name as string | null) ?? null,
+    });
   }
 
   // balance_payment finalizes the quote the customer was paying for — this is

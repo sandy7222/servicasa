@@ -735,7 +735,9 @@ export type NotificationType =
   | 'message_new'
   | 'settlement_scheduled' | 'settlement_released' | 'settlement_paid'
   | 'technician_validation'
-  | 'business_lead';
+  | 'cron_failure' | 'technician_en_route'
+  | 'business_lead'
+  | 'visit_paid';
 
 export type NotificationEntityType = 'order' | 'quote' | 'payment' | 'claim' | 'conversation' | 'settlement' | 'technician_validation' | 'business_lead';
 
