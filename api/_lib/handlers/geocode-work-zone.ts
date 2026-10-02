@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getAuthenticatedCaller } from '../_lib/auth.js';
-import { geocodeLocality } from '../_lib/geocoding.js';
+import { getAuthenticatedCaller } from '../auth.js';
+import { geocodeLocality } from '../geocoding.js';
 
 type Body = { city?: string; province?: string };
 

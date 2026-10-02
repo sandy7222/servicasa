@@ -14,6 +14,14 @@
       ]
     }
   ],
+  "rewrites": [
+    { "source": "/api/leads/business", "destination": "/api/gateway?action=leads-business" },
+    { "source": "/api/legal/accept-terms", "destination": "/api/gateway?action=legal-accept-terms" },
+    { "source": "/api/orders/guest-status", "destination": "/api/gateway?action=guest-status" },
+    { "source": "/api/orders/pending-draft", "destination": "/api/gateway?action=pending-draft" },
+    { "source": "/api/payments/retry-draft", "destination": "/api/gateway?action=retry-draft" },
+    { "source": "/api/technicians/geocode-work-zone", "destination": "/api/gateway?action=geocode-work-zone" }
+  ],
   "crons": [
     {
       "path": "/api/cron/cleanup-diagnosis-photos",

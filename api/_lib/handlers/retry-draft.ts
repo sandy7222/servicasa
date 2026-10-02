@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { Preference } from 'mercadopago';
-import { mpClient } from '../_lib/mercadopago.js';
-import { supabaseAdmin } from '../_lib/supabaseAdmin.js';
-import { getAuthenticatedCaller } from '../_lib/auth.js';
+import { mpClient } from '../mercadopago.js';
+import { supabaseAdmin } from '../supabaseAdmin.js';
+import { getAuthenticatedCaller } from '../auth.js';
 
 /**
  * "Continuar pago" for a draft the customer already filled out

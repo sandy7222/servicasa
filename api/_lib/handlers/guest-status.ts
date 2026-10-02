@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { supabaseAdmin } from '../_lib/supabaseAdmin.js';
+import { supabaseAdmin } from '../supabaseAdmin.js';
 
 /**
  * Public, unauthenticated endpoint: lets a guest poll the status of the
