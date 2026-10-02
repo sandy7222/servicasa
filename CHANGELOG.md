@@ -4,6 +4,31 @@ Registro de cambios funcionales relevantes de TecniUrbano. No reemplaza `git log
 (los detalles de implementación están en los commits y las migraciones) — es un
 resumen de qué cambió para el negocio y qué evidencia lo respalda.
 
+## 2026-10-02 (cont.) — Aviso al administrador cuando se paga una visita de presupuesto
+
+Commit: `4aaf180`.
+
+Hasta hoy, una visita pagada nacía sin técnico y el administrador solo se
+enteraba si abría el panel: no había ningún aviso (en toda la base solo había
+2 notificaciones de admin). Fase 1 de `plan-avisos-telegram-y-chat.md`.
+
+- Al confirmarse el pago de una visita (orden nueva de invitado, de cliente
+  logueado, u orden existente que recibe la seña) se avisa por **Telegram** y
+  por la **campanita** de cada admin. Mensaje mínimo a propósito: servicio,
+  localidad, turno, prioridad y si falta técnico; **sin teléfono ni dirección**
+  (Telegram no cifra de punta a punta). Botón "Abrir panel de admin" que abre
+  `#/hub?order=<id>`.
+- No avisa por pagos directos, saldos de presupuestos, pagos rechazados ni
+  pedidos sin pagar. Una sola vez por pago aunque Mercado Pago repita la
+  notificación.
+- Un aviso nunca puede romper el webhook de pago: sin variables
+  (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`) no hace nada, nunca lanza, timeout
+  de 5 s y el token no se loguea.
+- Migración aditiva ya aplicada: `'visit_paid'` en `notifications_type_check`.
+- No suma funciones a Vercel (siguen 8). 23 tests nuevos.
+- **Pendiente para que funcione en producción:** crear el bot, cargar las dos
+  variables en Vercel y hacer la prueba real (pasos 1.1, 1.3, 1.9 y 1.10 del plan).
+
 ## 2026-10-02 — Fix: el deploy se trabó otra vez por el límite de funciones de Vercel Hobby
 
 Commit: `63e2526`.

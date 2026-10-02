@@ -33,8 +33,8 @@
 
 - [x] 0.1 🤖 Consolidar endpoints chicos en `api/gateway.ts` (14 → 8 funciones). Commit `63e2526`. Verificado con un deploy Preview en **Ready** y los endpoints respondiendo por sus URLs de siempre.
 - [x] 0.2 👤 OK para pushear (dado por Sandy el 2/10).
-- [ ] 0.3 🔄 🤖 Pushear a `main` **y** a `master` (Vercel despliega desde `master`; el CI de GitHub corre solo en `main`). Esto lleva a producción lo del 23/9 (asistente multi-rubro, leads B2B, ranking, T&C de invitado), que nunca se vio online.
-- [ ] 0.4 🤖 Confirmar con `vercel ls` que el deploy de producción queda **Ready** y probar `/api/health` y un endpoint movido (p. ej. `/api/orders/guest-status?token=x` debe dar 404 con su mensaje).
+- [x] 0.3 🤖 Pusheado a `main` **y** a `master` el 2/10 (ambas en `fc11209`, avance limpio, sin `force`) (Vercel despliega desde `master`; el CI de GitHub corre solo en `main`). Esto lleva a producción lo del 23/9 (asistente multi-rubro, leads B2B, ranking, T&C de invitado), que nunca se vio online.
+- [x] 0.4 🤖 Producción **Ready** el 2/10 (deploy de `fc11209`, el primero desde el 19/9) y `tecniurbano.online` apunta a él. Probados en el dominio real: `/api/health` 200, `guest-status` 404 con su mensaje, `pending-draft` 401, `gateway?action=nope` 404, `leads/business` con body vacío 400, cron sin secreto 401, `assetlinks.json` 200. La landing carga con los elementos nuevos del 23/9 (Política de Privacidad, T&C, "Solicitar propuesta" B2B).
 - [ ] 0.5 👤 Vercel → Settings → Git → **Production Branch = `main`**. Recién después, 🤖 borrar `master` del remoto.
 - [ ] 0.6 👤 Cargar `CRON_SECRET` en Vercel (valor largo al azar). Sigue pendiente desde el 3/9: sin esto el borrado de fotos a los 30 días devuelve 401 todos los días.
 
@@ -66,15 +66,15 @@
 
 Pasos:
 - [ ] 1.1 👤 Crear el bot: en Telegram buscar **@BotFather** → `/newbot` → nombre y usuario → copiar el **token**. Abrir el chat con el bot nuevo y mandarle cualquier mensaje (el bot no puede escribirte antes).
-- [ ] 1.2 🤖 `scripts/telegram-setup.mjs`: lee `TELEGRAM_BOT_TOKEN` de `.env.local` (sin imprimirlo), muestra el **chat id** (vía `getUpdates`) y con `--test` manda un mensaje de prueba. Así nadie pega URLs con el token.
+- [x] 1.2 🤖 `scripts/telegram-setup.mjs`: lee `TELEGRAM_BOT_TOKEN` de `.env.local` (sin imprimirlo), muestra el **chat id** (vía `getUpdates`) y con `--test` manda un mensaje de prueba. Así nadie pega URLs con el token.
   - ⚠️ `getUpdates` falla (409) si hay un webhook activo. Descubrir el chat id **antes** de la Fase 3.
 - [ ] 1.3 👤 Cargar `TELEGRAM_BOT_TOKEN` y `TELEGRAM_CHAT_ID` en Vercel (Production + Preview) y en `.env.local`. Cambiar variables exige un redeploy.
-- [ ] 1.4 🤖 `api/_lib/telegram.ts`: `sendTelegramMessage(text, { buttonUrl })` con `fetch`, timeout de 5 s, **no hace nada si faltan las variables y nunca lanza** (el webhook de Mercado Pago jamás debe romperse por un aviso).
-- [ ] 1.5 🤖 `api/_lib/visitPaidAlert.ts`: arma el texto mínimo + botón "Abrir panel" (`https://tecniurbano.online/#/hub`) y crea la notificación para cada admin (service role), con `dedupe_key = visit_paid:{orderId}:{adminId}`.
-- [ ] 1.6 🤖 Migración SQL aditiva: agregar `'visit_paid'` al `CHECK` de `notifications.type` (hoy es una lista cerrada). Actualizar `NotificationType` en `src/types/index.ts` y ver cómo `NotificationBell.tsx` muestra cada tipo. (Detalle: la base ya acepta `cron_failure` y `technician_en_route`, que no están en el tipo de TypeScript.)
-- [ ] 1.7 🤖 Enchufar `notifyAdminsVisitPaid(...)` en los tres puntos de arriba, **envuelto en try/catch** y después de que la orden ya existe.
-- [ ] 1.8 🤖 Tests: formato del mensaje; no-op sin variables; no lanza ante error de red; en `webhook.test.ts`, que la alerta salga **una sola vez** aunque la notificación de Mercado Pago llegue dos veces, y que **no** salga para `full_advance`/pago directo ni para pagos rechazados.
-- [ ] 1.9 🤖 `vercel build` + deploy Preview; probar con `scripts/telegram-setup.mjs --test`.
+- [x] 1.4 🤖 `api/_lib/telegram.ts`: `sendTelegramMessage(text, { buttonUrl })` con `fetch`, timeout de 5 s, **no hace nada si faltan las variables y nunca lanza** (el webhook de Mercado Pago jamás debe romperse por un aviso).
+- [x] 1.5 🤖 `api/_lib/visitPaidAlert.ts`: arma el texto mínimo + botón "Abrir panel" (`https://tecniurbano.online/#/hub`) y crea la notificación para cada admin (service role), con `dedupe_key = visit_paid:{orderId}:{adminId}`.
+- [x] 1.6 🤖 Migración SQL aditiva (**aplicada a producción el 2/10**, versión `20261002211003`; `NotificationBell` no necesitó cambios: muestra título/cuerpo genéricos y el link de una notificación de orden ya abre `#/hub?order=<id>`): agregar `'visit_paid'` al `CHECK` de `notifications.type` (hoy es una lista cerrada). Actualizar `NotificationType` en `src/types/index.ts` y ver cómo `NotificationBell.tsx` muestra cada tipo. (Detalle: la base ya acepta `cron_failure` y `technician_en_route`, que no están en el tipo de TypeScript.)
+- [x] 1.7 🤖 Enchufar `notifyAdminsVisitPaid(...)` en los tres puntos de arriba, **envuelto en try/catch** y después de que la orden ya existe.
+- [x] 1.8 🤖 Tests (23 nuevos, todos verdes): formato del mensaje; no-op sin variables; no lanza ante error de red; en `webhook.test.ts`, que la alerta salga **una sola vez** aunque la notificación de Mercado Pago llegue dos veces, y que **no** salga para `full_advance`/pago directo ni para pagos rechazados.
+- [ ] 1.9 🔄 🤖 `vercel build` OK (8 funciones, sin nuevas). Falta: probar con `node scripts/telegram-setup.mjs --test` cuando exista el bot.
 - [ ] 1.10 👤🤖 Prueba real en producción: pedir una visita con la cuenta cliente demo y pagar con tarjeta de prueba de Mercado Pago → debe llegar el Telegram **y** la campanita. (Verificar antes si el webhook se dispara con el checkout de prueba; el 23/8 se probó en vivo con tarjeta y wallet.)
 
 **Definición de terminado:** una visita pagada de verdad (o de prueba) dispara exactamente un Telegram y una notificación por admin; un pago directo o rechazado no dispara nada; con las variables borradas el webhook sigue funcionando igual.
@@ -185,7 +185,7 @@ Las Fases 3, 4 y 5 de abajo describen el chat completo con tablas, consola de ad
 
 ## Backlog del diagnóstico del 2/10 (fuera de este plan, pendiente)
 
-Monitoreo mínimo (alerta de deploy fallido, Sentry gratis + `ErrorBoundary`, chequeo externo a `/api/health`); revocar `EXECUTE` a usuarios sin sesión en funciones `SECURITY DEFINER` que no lo necesitan (ej. `offer_to_next_eligible_technician`); activar la protección de contraseñas filtradas; `npm audit fix`; backups automáticos (el último dump manual es del 2/9); `robots.txt`, `sitemap.xml` y metadatos; partir el bundle de 2,1 MB; smoke test real en producción y piloto con usuarios reales.
+**CSP bloquea el script inline del tema oscuro** (hallado el 2/10 en la consola de producción: "Executing inline script violates … script-src 'self'"). El script de `index.html` que aplica la clase `dark` antes de pintar no corre, así que puede haber un parpadeo de tema claro al cargar. No es una regresión de hoy (ya estaba en el deploy del 19/9). Arreglo chico: moverlo a un archivo externo en `public/` (`script-src 'self'` lo permite) o agregar su hash al CSP de `vercel.json`. Monitoreo mínimo (alerta de deploy fallido, Sentry gratis + `ErrorBoundary`, chequeo externo a `/api/health`); revocar `EXECUTE` a usuarios sin sesión en funciones `SECURITY DEFINER` que no lo necesitan (ej. `offer_to_next_eligible_technician`); activar la protección de contraseñas filtradas; `npm audit fix`; backups automáticos (el último dump manual es del 2/9); `robots.txt`, `sitemap.xml` y metadatos; partir el bundle de 2,1 MB; smoke test real en producción y piloto con usuarios reales.
 
 ---
 
@@ -194,4 +194,6 @@ Monitoreo mínimo (alerta de deploy fallido, Sentry gratis + `ErrorBoundary`, ch
 | Fecha | Qué se hizo | Commit |
 |---|---|---|
 | 2/10/2026 | Diagnóstico de madurez. Fase 0.1 hecha: consolidación en `api/gateway.ts`, 14 → 8 funciones, Preview Ready. Creado este plan. | `63e2526` |
-| 2/10/2026 | Sandy elige la **variante B** (IA primero) y da el OK para pushear a `main` y `master`. Se agrega la Fase B y la variante A queda pospuesta. | (este commit) |
+| 2/10/2026 | Sandy elige la **variante B** (IA primero) y da el OK para pushear a `main` y `master`. Se agrega la Fase B y la variante A queda pospuesta. | `fc11209` |
+| 2/10/2026 | Fase 1, parte de código lista (1.2, 1.4 a 1.8): módulo de Telegram, aviso, migración aplicada, enchufe en el webhook en 3 puntos, 23 tests. Sin variables de Telegram el aviso es no-op. Faltan 1.1 y 1.3 (bot y variables, de Sandy), 1.9 (prueba) y 1.10 (prueba real). | `4aaf180` |
+| 2/10/2026 | Fase 0.3 y 0.4 hechas: push a `main` y `master`, producción Ready y verificada en el dominio real. Quedan 0.5 y 0.6 (acciones de Sandy en Vercel). | (sin commit todavía) |
