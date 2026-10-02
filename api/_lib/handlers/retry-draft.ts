@@ -57,7 +57,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         items: [
           {
             id: draft.payment_type,
-            title: payload?.workMode === 'diagnosis' ? `Seña de visita — ${title}` : `Pago del servicio — ${title}`,
+            title: payload?.workMode === 'diagnosis' ? `Visita de Presupuesto — ${title}` : `Pago del servicio — ${title}`,
             quantity: 1,
             unit_price: Number(draft.amount),
             currency_id: 'ARS',

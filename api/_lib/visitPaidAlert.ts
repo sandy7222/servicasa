@@ -77,7 +77,7 @@ async function notifyInApp(info: VisitPaidInfo): Promise<void> {
     const { error: insertError } = await supabaseAdmin.from('notifications').insert({
       recipient_profile_id: admin.id,
       type: 'visit_paid',
-      title: 'Visita de presupuesto pagada',
+      title: 'Visita de Presupuesto pagada',
       body: `${clean(info.title, 120)}${zone(info) ? ` — ${zone(info)}` : ''}${unassigned ? '. Sin técnico: asignalo.' : ''}`,
       entity_type: 'order',
       entity_id: info.orderId,

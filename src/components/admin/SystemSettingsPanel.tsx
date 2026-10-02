@@ -140,7 +140,7 @@ export const SystemSettingsPanel: React.FC = () => {
         <div>
           <h3 className="text-sm font-bold">Configuración central</h3>
           <p className="text-[11px] text-slate-500 dark:text-slate-400">
-            La seña de diagnóstico tiene su propio panel arriba. Estos valores quedan auditados: cada cambio registra quién, cuándo y el valor anterior.
+            El monto de la Visita de Presupuesto tiene su propio panel arriba. Estos valores quedan auditados: cada cambio registra quién, cuándo y el valor anterior.
           </p>
         </div>
       </div>

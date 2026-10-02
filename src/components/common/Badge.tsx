@@ -196,7 +196,7 @@ export const PaymentStatusBadge: React.FC<{
     );
   }
 
-  const label = order.workMode === 'direct' ? 'Sin pagar' : 'Seña pendiente';
+  const label = order.workMode === 'direct' ? 'Sin pagar' : 'Visita de Presupuesto pendiente';
 
   return (
     <span

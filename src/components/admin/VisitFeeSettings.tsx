@@ -53,13 +53,13 @@ export const VisitFeeSettings: React.FC = () => {
         </span>
         <div>
           <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider font-mono">Visita de diagnóstico</h3>
-          <p className="text-[11px] text-slate-500 dark:text-slate-400">Monto de la seña y comisión de la plataforma sobre esa liquidación al técnico.</p>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400">Monto de la Visita de Presupuesto y comisión de la plataforma sobre esa liquidación al técnico.</p>
         </div>
       </div>
 
       <div className="flex flex-col sm:flex-row sm:items-end gap-2">
         <label className="flex-1 text-xs font-semibold text-slate-700 dark:text-slate-300">
-          Monto de la seña ($ ARS)
+          Monto de la Visita de Presupuesto ($ ARS)
           <input
             type="number"
             min="0"
@@ -80,7 +80,7 @@ export const VisitFeeSettings: React.FC = () => {
         </button>
       </div>
       <p className="text-[11px] text-slate-500 dark:text-slate-400">
-        Seña actual: <strong>{formatArs(visitDepositAmount)}</strong>. Se cobra aparte del presupuesto final, sin descuento entre ambos.
+        Visita de Presupuesto actual: <strong>{formatArs(visitDepositAmount)}</strong>. Se cobra aparte del presupuesto final, sin descuento entre ambos.
       </p>
 
       <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-end gap-2">

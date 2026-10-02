@@ -301,7 +301,7 @@ export const ServiceRequestForm: React.FC = () => {
       <div className="grid sm:grid-cols-2 gap-2">
         <button type="button" onClick={() => chooseMode('diagnosis')} className={`text-left rounded-xl border p-3 transition ${mode === 'diagnosis' ? 'border-teal-500 bg-teal-50/60 ring-1 ring-teal-500/20' : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'}`}>
           <span className="inline-flex items-center gap-1 text-xs font-bold text-slate-900 dark:text-slate-100"><Search className="w-3.5 h-3.5 text-teal-700" />No sé exactamente qué necesito</span>
-          <span className="block mt-1 text-[11px] text-slate-600 dark:text-slate-400">Visita de presupuesto: {formatArs(visitDepositAmount)}. Este monto corresponde a la visita y se cobra de forma independiente del valor del trabajo.</span>
+          <span className="block mt-1 text-[11px] text-slate-600 dark:text-slate-400">Visita de Presupuesto: {formatArs(visitDepositAmount)}. Este monto corresponde a la visita y se cobra de forma independiente del valor del trabajo.</span>
         </button>
         <button type="button" onClick={() => chooseMode('direct')} className={`text-left rounded-xl border p-3 transition ${mode === 'direct' ? 'border-teal-500 bg-teal-50/60 ring-1 ring-teal-500/20' : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'}`}>
           <span className="inline-flex items-center gap-1 text-xs font-bold text-slate-900 dark:text-slate-100"><Wrench className="w-3.5 h-3.5 text-teal-700" />Sé qué trabajo necesito</span>
@@ -383,7 +383,7 @@ export const ServiceRequestForm: React.FC = () => {
           <div className="grid sm:grid-cols-2 gap-2"><label className="text-xs text-slate-600 dark:text-slate-400"><CalendarDays className="inline w-3.5 h-3.5 mr-1" />Fecha<input type="date" min={DATE_TODAY} value={scheduledDate} onChange={(event) => setScheduledDate(event.target.value)} className="mt-1 block w-full rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm" /></label><label className="text-xs text-slate-600 dark:text-slate-400">Franja para este pedido<select value={appointmentWindow} onChange={(event) => setAppointmentWindow(event.target.value)} className="mt-1 block w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"><option>A coordinar</option><option>Mañana (08–12 h)</option><option>Mediodía (12–15 h)</option><option>Tarde (15–19 h)</option></select></label></div>
         </div>
 
-        <button type="submit" disabled={submitting} className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-lg bg-teal-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-teal-700 disabled:opacity-50"><CreditCard className="w-4 h-4" />{submitting ? 'Enviando solicitud…' : mode === 'diagnosis' ? 'Solicitar diagnóstico' : 'Solicitar trabajo de precio fijo'}</button>
+        <button type="submit" disabled={submitting} className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-lg bg-teal-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-teal-700 disabled:opacity-50"><CreditCard className="w-4 h-4" />{submitting ? 'Enviando solicitud…' : mode === 'diagnosis' ? 'Solicitar Visita de Presupuesto' : 'Solicitar trabajo de precio fijo'}</button>
       </form>
     </section>
   );

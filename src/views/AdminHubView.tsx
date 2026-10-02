@@ -997,7 +997,7 @@ export const AdminHubView: React.FC = () => {
             <StatusBadge status={order.status} size="sm" />
             {quoteRejected && (
               <span className="rounded border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 text-[10px] font-bold text-amber-800">
-                Presupuesto rechazado · seña en revisión
+                Presupuesto rechazado · Visita de Presupuesto en revisión
               </span>
             )}
             {isOverdueNoDeparture && (
@@ -2072,7 +2072,7 @@ export const AdminHubView: React.FC = () => {
             <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl p-3 flex items-start gap-2 text-xs text-amber-900 dark:text-amber-200">
               <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
               <p>
-                Estas órdenes son de precio fijo o requieren seña de visita y todavía no tienen el pago confirmado.
+                Estas órdenes son de precio fijo o requieren una Visita de Presupuesto y todavía no tienen el pago confirmado.
                 No aparecen en la lista principal de Órdenes ni en los contadores para evitar que se les asigne un
                 técnico por error — apenas se confirme el pago, pasan solas a la lista principal.
               </p>
@@ -3897,11 +3897,11 @@ export const AdminHubView: React.FC = () => {
                 {orderRequiresPaymentGate(orderToAssign) && !isOrderPaymentSettled(orderToAssign) && (
                   <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/40 p-3 text-xs text-amber-950">
                     <strong className="block">
-                      {orderToAssign.workMode === 'direct' ? 'Pago pendiente' : 'Seña pendiente'}
+                      {orderToAssign.workMode === 'direct' ? 'Pago pendiente' : 'Visita de Presupuesto pendiente'}
                     </strong>
                     {orderToAssign.workMode === 'direct'
                       ? 'Esta orden es de precio fijo y el cliente todavía no completó el pago. No se puede asignar un técnico hasta que Mercado Pago confirme el cobro.'
-                      : 'El cliente todavía no pagó la seña de la visita de diagnóstico. No se puede asignar un técnico hasta que Mercado Pago confirme el cobro.'}
+                      : 'El cliente todavía no pagó la Visita de Presupuesto. No se puede asignar un técnico hasta que Mercado Pago confirme el cobro.'}
                   </div>
                 )}
 

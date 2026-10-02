@@ -199,7 +199,7 @@ export const TechnicianView: React.FC = () => {
     if (!isOrderPaymentSettled(order)) {
       showToast(
         order.workMode === 'diagnosis'
-          ? 'El trabajo se iniciará automáticamente al confirmarse el pago de la seña.'
+          ? 'El trabajo se iniciará automáticamente al confirmarse el pago de la Visita de Presupuesto.'
           : 'El trabajo se iniciará automáticamente al confirmarse el pago completo.',
         'info',
         'Esperando pago'
@@ -526,7 +526,7 @@ export const TechnicianView: React.FC = () => {
 
                       {activeOrder.status === 'assigned' && activeOrder.technicianResponseStatus === 'accepted' && !isOrderPaymentSettled(activeOrder) && activeOrder.quoteStatus !== 'rejected' && (
                         <span className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 px-3 py-1.5 text-xs font-bold text-amber-900 dark:text-amber-200">
-                          {activeOrder.workMode === 'diagnosis' ? 'Esperando pago de la seña' : 'Esperando pago confirmado'}
+                          {activeOrder.workMode === 'diagnosis' ? 'Esperando pago de la Visita de Presupuesto' : 'Esperando pago confirmado'}
                         </span>
                       )}
 

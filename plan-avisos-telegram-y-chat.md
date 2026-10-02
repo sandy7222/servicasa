@@ -104,6 +104,14 @@ Pasos:
 
 ## Fase B — IA primero: widget de consultas con contestador de IA  ← **elegida el 2/10, va después de la Fase 1**
 
+> **⚠️ Actualización del 2/10 (tarde): Sandy pidió que la IA sea GRATIS** (Claude le pareció caro). Lo de Claude/Anthropic de abajo (B.1, B.2, precios) queda como **alternativa de pago**, no como camino elegido. Se evalúan proveedores gratuitos, **sin decisión final todavía**:
+> - **Groq** con `qwen/qwen3.8-27b` (preview): 30 consultas/min, 1.000/día, 8.000 tokens/min y **200.000 tokens/día** (≈ 70–130 consultas/día). No entrena con los datos por contrato. Riesgo: es "preview".
+> - **Cloudflare Workers AI** con `Qwen3-30B-A3B`: 10.000 neuronas/día (≈ 500 consultas/día, estimado; falta confirmar que entre en el plan gratis). Cloudflare ya retiró modelos (mayo) y pasó otros al plan pago (28/7): hay que esperar cambios.
+> - **Gemini Flash**: ≈ 1.000–1.500/día, pero en el plan gratis los mensajes pueden usarse para mejorar productos de Google.
+> - Qwen 3.8 / DeepSeek V4 por las APIs oficiales **no son gratis permanentes** (créditos únicos: 1M tokens/90 días y 5M/30 días) y los datos viajarían a servidores de esas empresas.
+> - Ninguna IA gratuita es "instalar y olvidar". **Diseño propuesto para minimizar mantenimiento:** (1) la IA es un extra: el chat arranca con botones de preguntas frecuentes y la IA solo responde texto libre; (2) cadena de proveedores configurable por variables de entorno (Groq → Cloudflare → botón de WhatsApp); (3) chequeo diario que avisa por Telegram si la IA falla. Integración con el asistente actual: **mismo botón y mismo panel, motores separados** (ver B.8).
+> - Pendiente de Sandy: confirmar el diseño, crear cuenta gratuita en Groq (y luego Cloudflare) y pasar el número de WhatsApp.
+
 **Meta:** un widget en la web oficial donde una IA contesta preguntas de interés general sobre TecniUrbano y el hogar, sin relevo humano. Si el visitante pide una persona, se le ofrece WhatsApp o dejar un contacto, y a Sandy le llega un aviso por Telegram.
 
 **Diferencia con la variante A:** no hay tablas de chat ni consola ni webhook de Telegram entrante. El historial viaja desde el navegador en cada pedido (el servidor no lo guarda). Solo se necesita una tabla chica de contadores para el límite de uso.
@@ -124,6 +132,31 @@ Pasos:
 **Definición de terminado:** la IA responde bien las preguntas frecuentes, deriva lo que no sabe, no promete precios ni plazos, resiste los intentos de inyección del set de evals, y el límite de uso corta a un visitante abusivo sin afectar a los demás.
 **Rollback:** sacar el lanzador del widget y borrar `ANTHROPIC_API_KEY`; la tabla de contadores es aditiva.
 **No suma funciones a Vercel** (va por el gateway).
+
+---
+
+## Fase C (futura, después de la B) — Centro de ayuda: estado de visitas, reclamos y garantía
+
+**Idea de Sandy (2/10):** usar la IA como centro de ayuda ubicado en una página enlazada desde el **pie** de la web y de la app, que ubique el estado de las visitas, tome reclamos y gestione problemas de garantía. Telegram queda solo para emergencias (visita pagada sin técnico).
+
+**Principio de diseño: la IA orienta; el sistema decide y ejecuta.** La IA nunca escribe en la base por su cuenta ni decide reembolsos o compensaciones.
+
+- [ ] C.1 Página **Centro de ayuda** (`#/ayuda`), enlazada desde el pie de la landing y de la app: preguntas frecuentes + consultas con la IA de la Fase B + accesos directos a "Mis visitas" y "Abrir reclamo". Sin datos privados (funciona sin iniciar sesión).
+- [ ] C.2 **Estado de visitas para clientes con sesión**: el servidor lee SUS órdenes con la sesión del usuario (nunca por un id que mande la IA); herramientas de solo lectura. Ojo: la app ya muestra el estado de las órdenes; la IA solo lo resume, así que se puede dejar sin IA si el cupo gratis no alcanza (cada herramienta suma tokens).
+- [ ] C.3 **Reclamos y garantía**: la IA orienta y prepara un borrador; el reclamo lo crea el cliente con el flujo existente (`NewClaimModal`, ya en `MyClaimsPanel`) **después de confirmar**. Si corresponde (30 días de garantía / 48 hs para reclamar) lo calcula el código con `completed_at`, no la IA.
+- [ ] C.4 **Invitados** (sin cuenta): estado solo con el link de seguimiento (`#/pedido/<token>`); nunca por nombre o teléfono.
+- [ ] C.5 **Avisos**: un reclamo abierto ya genera notificación al admin (`claim_opened`); decidir con Sandy si también va por Telegram (el plazo de 48 hs es sensible).
+- [ ] C.7 ⚠️ **Vocabulario: "seña" → "Visita de Presupuesto"** (hallado el 2/10). **Término exacto definido por Sandy: "Visita de Presupuesto"** (con esas mayúsculas; nunca "seña", "anticipo", "depósito" ni "adelanto"). Política confirmada: la Visita de Presupuesto no es una seña, es un cobro por adelantado para que un técnico pueda visitar; el trabajo (reparación, instalación) es un cobro distinto y aparte.
+  - **Textos propuestos (sin aplicar todavía):** cobro en Mercado Pago `Visita de Presupuesto — {título}`; botón del invitado "Pedir Visita de Presupuesto y pagar" (hoy: "Pedir diagnóstico y pagar seña"; el del cliente logueado dice "Solicitar diagnóstico": unificar); etiqueta "Visita de Presupuesto pendiente" (hoy "Seña pendiente"); tarjeta del formulario: hoy dice "Visita de presupuesto: $X" (con "p" minúscula) → "Visita de Presupuesto: $X".
+  - **Dos textos que NO se tocan sin decisión de Sandy:** el diálogo de rechazo del presupuesto (hay que definir qué pasa con la visita) y los T&C (legal + versión).
+  - Hoy la app todavía dice "seña" en estos lugares:
+  - **Lo que lee el cliente:** título del cobro en Mercado Pago `Seña de visita — …` (`api/orders/guest-checkout.ts:217`, `api/orders/request-service.ts:182`, `api/payments/create.ts:50`, `api/_lib/handlers/retry-draft.ts:60`); botón del invitado "Pedir diagnóstico y pagar seña" (`GuestServiceRequestForm.tsx:277`); aviso al rechazar un presupuesto "La seña se gestionará según las condiciones…" (`QuoteViewer.tsx:19`); etiqueta "Seña pendiente" (`Badge.tsx:199`).
+  - **Texto legal:** `src/lib/legalTerms.ts:42` (T&C del cliente, cancelaciones/reembolsos: "si ya se abonó una seña de visita de diagnóstico"). Los términos están **versionados por fecha** (`TERMS_CLIENTE_VERSION = '2026-09-12'`) y cada aceptación se guarda con su versión: si se cambia el texto hay que subir la versión y la fecha de "Última actualización"; conviene que lo revise un abogado, y verificar si la app obliga a aceptar de nuevo.
+  - **Interno (admin/técnico):** toasts y etiquetas en `AppContext.tsx`, `AdminHubView.tsx`, `TechnicianView.tsx`, `VisitFeeSettings.tsx`, `SystemSettingsPanel.tsx`, `QuoteBuilder.tsx`. Los nombres técnicos (`visit_deposit`, `deposit_paid`, `visit_deposit_amount`) **no se renombran**: son internos y cambiarlos en la base es riesgoso sin ningún beneficio para el cliente.
+  - Antes de tocar el título de Mercado Pago o el diálogo de rechazo hay que definir con Sandy qué pasa con la visita cuando el cliente rechaza el presupuesto (pregunta 5 del documento de base de conocimiento).
+- [ ] C.6 ⚠️ **Texto vs. realidad del seguimiento** (hallado el 2/10): en el código **no hay ubicación GPS en vivo del técnico** (no se usa `navigator.geolocation` ni existe una tabla de ubicaciones; las únicas coordenadas son estáticas: zona de trabajo del técnico y domicilio del cliente). Lo que sí hay es seguimiento **por estados** en tiempo real: `travel_started_at` (salió), `arrived_at` (llegó), `work_started_at`, `order_events`, con Supabase Realtime y el aviso `technician_en_route` al cliente. Pero la landing dice "Ves el estado del servicio y la ubicación del técnico" y "Seguí al técnico en tiempo real". Decidir con Sandy: (a) ajustar el texto de la landing a lo que existe, o (b) construir ubicación en vivo (proyecto grande, con consentimiento del técnico y datos sensibles). La IA y las FAQ **no deben prometer ubicación**: solo "te avisamos cuando sale, llega y termina".
+
+**Reglas:** datos personales solo con sesión o token; no inventar plazos ni promesas; siempre ofrecer hablar con una persona (WhatsApp); la IA identificada como asistente virtual.
 
 ---
 

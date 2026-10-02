@@ -47,7 +47,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (paymentType === 'visit_deposit') {
     amount = Number(order.visit_deposit_amount ?? 0);
-    title = `Seña de visita — ${order.title}`;
+    title = `Visita de Presupuesto — ${order.title}`;
   } else if (paymentType === 'balance_payment') {
     if (!quoteId) return res.status(400).json({ error: 'Falta el presupuesto a pagar.' });
     const { data: quote, error: quoteError } = await supabaseAdmin

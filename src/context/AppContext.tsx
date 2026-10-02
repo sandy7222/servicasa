@@ -571,15 +571,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const updateVisitDepositAmount = async (amount: number): Promise<void> => {
     if (!usingRemoteData) {
       setVisitDepositAmount(amount);
-      showToast('Seña actualizada (modo demo, no persiste en Supabase)', 'info');
+      showToast('Monto de la Visita de Presupuesto actualizado (modo demo, no persiste en Supabase)', 'info');
       return;
     }
     try {
       await persistUpdateVisitDepositAmount(amount);
       setVisitDepositAmount(amount);
-      showToast('Seña de diagnóstico actualizada', 'success', 'Configuración guardada');
+      showToast('Monto de la Visita de Presupuesto actualizado', 'success', 'Configuración guardada');
     } catch (err) {
-      showToast(friendlyErrorMessage(err, 'No se pudo actualizar la seña'), 'error');
+      showToast(friendlyErrorMessage(err, 'No se pudo actualizar el monto de la Visita de Presupuesto'), 'error');
       throw err;
     }
   };
@@ -1195,7 +1195,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     if (newStatus === 'in_progress' && !isOrderPaymentSettled(order)) {
       const msg = order.workMode === 'diagnosis'
-        ? 'El cronómetro se habilita cuando se confirme el pago de la seña.'
+        ? 'El cronómetro se habilita cuando se confirme el pago de la Visita de Presupuesto.'
         : 'El cronómetro se habilita cuando se confirme el pago completo.';
       showToast(msg, 'warning', 'Pago pendiente');
       return { success: false, message: msg };
@@ -1348,9 +1348,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       showToast(
         order.workMode === 'direct'
           ? 'Esta orden es de precio fijo y el cliente todavía no completó el pago. No se puede asignar un técnico hasta que el cobro se confirme.'
-          : 'El cliente todavía no pagó la seña de la visita de diagnóstico. No se puede asignar un técnico hasta que el cobro se confirme.',
+          : 'El cliente todavía no pagó la Visita de Presupuesto. No se puede asignar un técnico hasta que el cobro se confirme.',
         'warning',
-        order.workMode === 'direct' ? 'Pago pendiente' : 'Seña pendiente'
+        order.workMode === 'direct' ? 'Pago pendiente' : 'Visita de Presupuesto pendiente'
       );
       return;
     }

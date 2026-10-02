@@ -51,7 +51,7 @@ export const QuoteBuilder: React.FC<Props> = ({ order }) => {
   const wasAbleToDiagnose = useRef(canDiagnose);
   useEffect(() => {
     if (!wasAbleToDiagnose.current && canDiagnose) {
-      showToast('Seña confirmada por Mercado Pago. Ya podés cargar el diagnóstico y el presupuesto.', 'success', 'Pago confirmado');
+      showToast('Visita de Presupuesto confirmada por Mercado Pago. Ya podés cargar el diagnóstico y el presupuesto.', 'success', 'Pago confirmado');
     }
     wasAbleToDiagnose.current = canDiagnose;
   }, [canDiagnose, showToast]);
@@ -212,7 +212,7 @@ export const QuoteBuilder: React.FC<Props> = ({ order }) => {
           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-500 opacity-75" />
           <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-600" />
         </span>
-        <strong>Esperando la seña de visita.</strong>
+        <strong>Esperando el pago de la Visita de Presupuesto.</strong>
       </div>
       <p className="mt-1">El diagnóstico se habilita solo cuando Mercado Pago confirma el pago. Esta pantalla se actualiza sola en cuanto eso pasa — no hace falta refrescar.</p>
     </div>
