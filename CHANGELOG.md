@@ -4,6 +4,30 @@ Registro de cambios funcionales relevantes de TecniUrbano. No reemplaza `git log
 (los detalles de implementación están en los commits y las migraciones) — es un
 resumen de qué cambió para el negocio y qué evidencia lo respalda.
 
+## 2026-10-02 — Fix: el deploy se trabó otra vez por el límite de funciones de Vercel Hobby
+
+Commit: `63e2526`.
+
+> Nota: este changelog no tiene entradas entre el 3/9 y hoy (hubo commits hasta
+> el 23/9: editor de página del admin, gastos declarados por el técnico,
+> política de privacidad, asistente multi-rubro, leads B2B, ranking, T&C de
+> invitado). Esas entradas no se reconstruyeron acá; ver `git log`.
+
+El deploy de producción del 23/9 falló en "Deploying outputs..." con el mismo
+síntoma del 3/9. Causa: 14 funciones serverless contra un límite de 12 del
+plan Hobby. Producción quedó congelada en el commit `a3225fb` (19/9) y todo lo
+posterior no se vio online durante 9 días.
+
+- Se eliminó `api/notifications/assignment-email.ts` (suspendido y sin
+  llamadores).
+- Seis endpoints chicos pasaron a `api/_lib/handlers/` y se sirven desde un
+  único `api/gateway.ts`; las URLs de siempre se mantienen con rewrites en
+  `vercel.json`, sin tocar el frontend. 14 → 8 funciones.
+- Verificado con un deploy Preview en Ready y los endpoints respondiendo por
+  sus URLs originales (200/400/401/404 esperados, sin escribir en la base).
+- Plan de lo que sigue (aviso por Telegram de visitas pagadas y chat con IA):
+  `plan-avisos-telegram-y-chat.md`.
+
 ## 2026-09-03 (cont. 7) — Fix: el deploy se rompía por el límite de funciones de Vercel Hobby
 
 Commit: `382d252`.
