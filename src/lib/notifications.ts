@@ -71,6 +71,8 @@ export function getNotificationLink(notification: AppNotification, role: UserRol
       return role === 'admin' ? '/hub?tab=leads' : null;
     case 'settlement':
       return role === 'technician' ? '/technician/earnings' : '/hub';
+    case 'technician':
+      return role === 'admin' ? '/hub?tab=technicians' : null;
     case 'technician_validation':
       return '/technician';
     default:

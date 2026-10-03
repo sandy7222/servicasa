@@ -737,9 +737,10 @@ export type NotificationType =
   | 'technician_validation'
   | 'cron_failure' | 'technician_en_route'
   | 'business_lead'
-  | 'visit_paid';
+  | 'visit_paid'
+  | 'technician_registered' | 'technician_documents';
 
-export type NotificationEntityType = 'order' | 'quote' | 'payment' | 'claim' | 'conversation' | 'settlement' | 'technician_validation' | 'business_lead';
+export type NotificationEntityType = 'order' | 'quote' | 'payment' | 'claim' | 'conversation' | 'settlement' | 'technician_validation' | 'business_lead' | 'technician';
 
 export interface AppNotification {
   id: string;

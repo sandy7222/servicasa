@@ -25,7 +25,7 @@ const BLOCK_LABELS: Record<string, string> = {
 
 /** Texto del cliente: una sola línea, sin links (podrían ser phishing en el
  * chat del admin) y con largo acotado. */
-function clean(value: string | null | undefined, max: number): string {
+export function clean(value: string | null | undefined, max: number): string {
   return String(value ?? '')
     .replace(/https?:\/\/\S+/gi, '[link]')
     .replace(/\s+/g, ' ')
