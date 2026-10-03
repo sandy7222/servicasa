@@ -5,6 +5,7 @@ import guestStatus from './_lib/handlers/guest-status.js';
 import pendingDraft from './_lib/handlers/pending-draft.js';
 import retryDraft from './_lib/handlers/retry-draft.js';
 import geocodeWorkZone from './_lib/handlers/geocode-work-zone.js';
+import aiChat from './_lib/handlers/ai-chat.js';
 
 type Handler = (req: VercelRequest, res: VercelResponse) => unknown;
 
@@ -30,6 +31,7 @@ const ROUTES = new Map<string, Handler>([
   ['pending-draft', pendingDraft],
   ['retry-draft', retryDraft],
   ['geocode-work-zone', geocodeWorkZone],
+  ['ai-chat', aiChat],
 ]);
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {

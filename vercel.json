@@ -20,7 +20,8 @@
     { "source": "/api/orders/guest-status", "destination": "/api/gateway?action=guest-status" },
     { "source": "/api/orders/pending-draft", "destination": "/api/gateway?action=pending-draft" },
     { "source": "/api/payments/retry-draft", "destination": "/api/gateway?action=retry-draft" },
-    { "source": "/api/technicians/geocode-work-zone", "destination": "/api/gateway?action=geocode-work-zone" }
+    { "source": "/api/technicians/geocode-work-zone", "destination": "/api/gateway?action=geocode-work-zone" },
+    { "source": "/api/ai/chat", "destination": "/api/gateway?action=ai-chat" }
   ],
   "crons": [
     {

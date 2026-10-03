@@ -111,6 +111,14 @@ Pasos:
 > - Qwen 3.8 / DeepSeek V4 por las APIs oficiales **no son gratis permanentes** (créditos únicos: 1M tokens/90 días y 5M/30 días) y los datos viajarían a servidores de esas empresas.
 > - Ninguna IA gratuita es "instalar y olvidar". **Diseño propuesto para minimizar mantenimiento:** (1) la IA es un extra: el chat arranca con botones de preguntas frecuentes y la IA solo responde texto libre; (2) cadena de proveedores configurable por variables de entorno (Groq → Cloudflare → botón de WhatsApp); (3) chequeo diario que avisa por Telegram si la IA falla. Integración con el asistente actual: **mismo botón y mismo panel, motores separados** (ver B.8).
 > - Pendiente de Sandy: confirmar el diseño, crear cuenta gratuita en Groq (y luego Cloudflare) y pasar el número de WhatsApp.
+>
+> **Avance al 3/10 — motor del chat (backend) hecho y probado con tests, sin probar todavía con una IA real (falta la clave):**
+> - ✅ Migración `20261003145946` (aplicada): tabla `ai_chat_usage` + función `ai_chat_bump` (contador diario atómico; solo el servidor puede ejecutarla; RLS sin políticas).
+> - ✅ `api/_lib/aiChat/safety.ts`: avisos de seguridad con texto fijo (electricidad, gas, plomería, cerrajería) detectados antes de llamar a la IA; pedido de "hablar con una persona". Los textos replican los de `diagnosisAssistant.ts` (si cambian allá, cambiarlos acá).
+> - ✅ `api/_lib/aiChat/knowledge.ts`: prompt con SOLO hechos confirmados + precio de la Visita de Presupuesto leído en vivo; lo ❓ del documento de base de conocimiento queda afuera ("no sé, hablá con una persona").
+> - ✅ `api/_lib/aiChat/providers.ts`: cadena configurable `AI_PROVIDERS` (por defecto `groq,cloudflare`); modelos por `AI_GROQ_MODEL` / `AI_CLOUDFLARE_MODEL`; pasa al siguiente ante 429/error/respuesta vacía; reintenta sin `reasoning_effort` si el modelo lo rechaza.
+> - ✅ `api/_lib/handlers/ai-chat.ts` + gateway + rewrite `POST /api/ai/chat`: respuesta `{kind: ai|safety|handoff|limit|unavailable, reply, whatsapp}`; tope de 15 consultas por visitante y 150 globales por día; historial acotado (6 mensajes de 500 caracteres); alerta a Telegram (máx. 5/día, sin datos del visitante) cuando salta un aviso de seguridad. Sigue habiendo 8 funciones.
+> - ⏳ Falta: variables `GROQ_API_KEY` (y `PUBLIC_WHATSAPP`) en `.env.local` y Vercel; **prueba real** (confirmar que `qwen/qwen3.8-27b` acepta `reasoning_effort: none` y cuántos tokens gasta); widget y lanzador con 3 opciones (B.8); preguntas frecuentes con botones; chequeo diario a Telegram si la IA falla; evals (B.11).
 
 **Meta:** un widget en la web oficial donde una IA contesta preguntas de interés general sobre TecniUrbano y el hogar, sin relevo humano. Si el visitante pide una persona, se le ofrece WhatsApp o dejar un contacto, y a Sandy le llega un aviso por Telegram.
 
