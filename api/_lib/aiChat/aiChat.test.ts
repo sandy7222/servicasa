@@ -52,6 +52,12 @@ describe('buildSystemPrompt', () => {
     expect(prompt).toMatch(/NO resolvés problemas técnicos/);
     expect(prompt).toMatch(/ofrecé pedir una Visita de Presupuesto/);
   });
+  it('tono empático pero sin soluciones ni promesas', () => {
+    const prompt = buildSystemPrompt(50000);
+    expect(prompt).toMatch(/comprensivo y casi empático/);
+    expect(prompt).toMatch(/NO des soluciones/);
+    expect(prompt).toMatch(/Nunca prometas que se va a solucionar/);
+  });
   it('incluye la guía de uso: formulario, escribirle al técnico, reclamos y calificación', () => {
     const prompt = buildSystemPrompt(50000);
     for (const s of ['Formulario del pedido', 'Escribirle al técnico', 'Abrir reclamo', 'Calificá este servicio']) expect(prompt).toContain(s);
