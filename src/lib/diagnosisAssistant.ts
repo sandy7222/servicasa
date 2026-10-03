@@ -638,7 +638,7 @@ function goDiagnosis(session: AssistantSession, title: string, slugs: string[], 
   return goSummary(
     session,
     diagnosisDraft(session.answers, title, slugs, extra),
-    'Queda como visita de diagnóstico. El técnico confirma el detalle en el lugar.'
+    'Queda como Visita de Presupuesto. El técnico confirma el detalle en el lugar.'
   );
 }
 
@@ -667,7 +667,7 @@ function afterVoltage(session: AssistantSession): AssistantSession {
         'Pedido armado con el asistente (instalación de cableado). El detalle de canalización lo define el técnico en la cotización.',
         voltageLabel(session.answers.voltage) ? `Tensión declarada: ${voltageLabel(session.answers.voltage)}.` : '',
       ]),
-      'Queda como visita de diagnóstico de cableado. El tipo de canalización lo resuelve el técnico, no hace falta que lo elijas vos.'
+      'Queda como Visita de Presupuesto de cableado. El tipo de canalización lo resuelve el técnico, no hace falta que lo elijas vos.'
     );
   }
   if (voltageContext === 'proyecto' || installKind === 'proyecto') {
@@ -725,7 +725,7 @@ export function answer(session: AssistantSession, optionId: string, optionLabel:
           diagnosisDraft(next.answers, 'Pérdida parcial de energía', [ELECTRICIDAD_SLUGS.cableado, ELECTRICIDAD_SLUGS.canalizacion], [
             ...repairContextLines({ ...next.answers, energy: 'partial' }),
           ]),
-          'Con energía parcial conviene una visita de diagnóstico de cableado/canalización. El técnico ve el detalle en el lugar.'
+          'Con energía parcial conviene una Visita de Presupuesto de cableado/canalización. El técnico ve el detalle en el lugar.'
         );
       }
       if (optionId === 'none') {
@@ -992,7 +992,7 @@ export function skipItemPick(session: AssistantSession): AssistantSession {
       [ELECTRICIDAD_SLUGS.tablero],
       repairContextLines(next.answers)
     ),
-    'Queda como visita de diagnóstico de tablero. El técnico confirma en el lugar.'
+    'Queda como Visita de Presupuesto de tablero. El técnico confirma en el lugar.'
   );
 }
 
