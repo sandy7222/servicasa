@@ -5,7 +5,7 @@ export const AboutView: React.FC = () => (
   <MarketingDocPage title="Quiénes somos">
     <p>
       TecniUrbano conecta tu hogar con técnicos de oficios —plomería, electricidad, refrigeración y más—
-      para que pidas un servicio, sigas el trabajo en tiempo real y tengas respaldo cuando algo no queda bien.
+      para que pidas un servicio, sigas el trabajo paso a paso y tengas respaldo cuando algo no queda bien.
     </p>
     <p>
       Pedís desde la web o la app, te asignamos un profesional disponible y ves el estado del servicio de

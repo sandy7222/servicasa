@@ -7,7 +7,7 @@ import { ANDROID_APK_URL, APP_STORE_URL } from '../../lib/appLinks';
 
 const BENEFITS = [
   'Solicitá servicios en segundos',
-  'Seguí al técnico en tiempo real',
+  'Seguí cada paso de la visita',
   'Recibí notificaciones',
   '30 días de garantía',
   'Reclamos en 48 hs',

@@ -9,7 +9,7 @@ interface HeroSectionProps {
 }
 
 const BENEFITS = [
-  { icon: <Clock className="w-4 h-4" strokeWidth={1.75} />, label: 'Seguimiento en tiempo real' },
+  { icon: <Clock className="w-4 h-4" strokeWidth={1.75} />, label: 'Seguimiento paso a paso' },
   { icon: <ShieldCheck className="w-4 h-4" strokeWidth={1.75} />, label: 'Garantía de 30 días' },
   { icon: <MessageCircle className="w-4 h-4" strokeWidth={1.75} />, label: 'Apertura de reclamo 48 hs' },
 ];
@@ -60,7 +60,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onDownloadClick, onHow
             <span className="block text-teal-400">tu hogar</span>
           </h1>
           <p className="mt-6 text-blue-100/85 text-base leading-relaxed max-w-xl lg:max-w-none mx-auto lg:mx-0">
-            Pedí un técnico, seguí el trabajo en tiempo real y disfrutá la tranquilidad de un
+            Pedí un técnico, seguí el trabajo paso a paso y disfrutá la tranquilidad de un
             servicio garantizado.
           </p>
 

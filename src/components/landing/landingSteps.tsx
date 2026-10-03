@@ -24,8 +24,8 @@ export const LANDING_STEPS: LandingStep[] = [
   },
   {
     step: '3',
-    title: 'Seguimiento en tiempo real',
-    desc: 'Ves el estado del servicio y la ubicación del técnico.',
+    title: 'Seguimiento paso a paso',
+    desc: 'Te avisamos cuando el técnico sale, llega y termina, y ves cada paso en la app.',
     icon: <MapPin className="w-5 h-5" />,
   },
   {

@@ -64,7 +64,7 @@ export const LandingFooter: React.FC = () => {
         <div className="lg:col-span-1">
           <Logo size="md" variant="white" showTagline />
           <p className="text-[13px] text-slate-400 mt-4 leading-relaxed max-w-[16rem]">
-            Servicios técnicos a domicilio con seguimiento en tiempo real, de principio a fin.
+            Servicios técnicos a domicilio con seguimiento paso a paso, de principio a fin.
           </p>
         </div>
 
