@@ -127,7 +127,7 @@ export const DiagnosisAssistant: React.FC = () => {
     <div className={`fixed right-4 z-[70] pointer-events-none ${adminMobileNav ? 'bottom-20 md:bottom-4' : 'bottom-4'}`}>
       <div className={open ? 'relative' : 'flex flex-col items-end'}>
         {open && mode !== 'order' && (
-          <HelpHub mode={mode} onModeChange={setMode} onStartOrder={() => setMode('order')} onClose={() => setOpen(false)} visitPrice={visitDepositAmount} />
+          <HelpHub mode={mode} onModeChange={setMode} onStartOrder={() => setMode('order')} onClose={() => setOpen(false)} visitPrice={visitDepositAmount} role={currentUser?.role ?? null} onNavigate={navigate} />
         )}
         {open && mode === 'order' && (
         <section

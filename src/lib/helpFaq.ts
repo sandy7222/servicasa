@@ -4,7 +4,7 @@
  * marcado con ❓ ahí (reembolsos, cancelaciones, zonas, horarios) NO va acá.
  * Término oficial: "Visita de Presupuesto" (nunca "seña").
  */
-export type FaqCta = 'order' | 'whatsapp';
+export type FaqCta = 'order' | 'whatsapp' | 'claims' | 'account';
 
 export type FaqItem = {
   id: string;
@@ -52,24 +52,28 @@ export const FAQ_ITEMS: FaqItem[] = [
     question: '¿Cómo sigo el estado de mi visita?',
     answer: () =>
       'Entrando a tu cuenta ves el estado, el técnico y el presupuesto, y te llegan avisos en la campanita (técnico asignado, en camino, presupuesto enviado). Si pediste sin cuenta, usá el link de seguimiento que recibís al pagar. Te avisamos cuando el técnico sale, llega y termina; no hay mapa en vivo.',
+    cta: 'account',
   },
   {
     id: 'tecnico',
     question: '¿Cuándo puedo escribirle al técnico?',
     answer: () =>
       'Cuando el técnico acepta tu pedido, en tu orden aparece su presentación con un botón para escribirle y coordinar la visita. Mientras seguimos buscando técnico todavía no hay a quién escribirle; si no ves el botón, es porque aún no hay técnico confirmado.',
+    cta: 'account',
   },
   {
     id: 'reclamo',
     question: '¿Cómo abro un reclamo?',
     answer: () =>
       'Desde "Reclamos y garantías" tocá "Abrir reclamo". Tenés hasta 48 horas después del servicio y la garantía es de 30 días. Para que te entiendan rápido, contá qué pasó, cuándo y qué solución esperás.',
+    cta: 'claims',
   },
   {
     id: 'calificar',
     question: '¿Cómo califico al técnico?',
     answer: () =>
       'Cuando termina el servicio, en tu pedido aparece "Calificá este servicio". Tu opinión nos ayuda a mejorar.',
+    cta: 'account',
   },
   {
     id: 'pagos',

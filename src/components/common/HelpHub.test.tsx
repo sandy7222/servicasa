@@ -5,9 +5,9 @@ import { HelpHub, type HelpMode } from './HelpHub';
 import { FAQ_ITEMS, formatPrice } from '../../lib/helpFaq';
 import { whatsappUrl } from '../../lib/appLinks';
 
-function Harness({ onStartOrder = () => {}, initial = 'home' as HelpMode }) {
+function Harness({ onStartOrder = () => {}, initial = 'home' as HelpMode, role = null as string | null, onNavigate = () => {} }) {
   const [mode, setMode] = useState<HelpMode>(initial);
-  return <HelpHub mode={mode} onModeChange={setMode} onStartOrder={onStartOrder} onClose={() => {}} visitPrice={50000} />;
+  return <HelpHub mode={mode} onModeChange={setMode} onStartOrder={onStartOrder} onClose={() => {}} visitPrice={50000} role={role} onNavigate={onNavigate} />;
 }
 
 describe('preguntas frecuentes (contenido)', () => {
@@ -62,6 +62,24 @@ describe('HelpHub', () => {
     expect(screen.getByText('¿Qué es la Visita de Presupuesto?')).toBeTruthy();
     fireEvent.click(screen.getByLabelText('Volver al menú'));
     expect(screen.getByText('Escribir una consulta')).toBeTruthy();
+  });
+
+  it('reclamos: el cliente con cuenta va directo a Reclamos y garantías', () => {
+    const onNavigate = vi.fn();
+    render(<Harness role="customer" onNavigate={onNavigate} />);
+    fireEvent.click(screen.getByText('Preguntas frecuentes'));
+    fireEvent.click(screen.getByText('¿Cómo abro un reclamo?'));
+    fireEvent.click(screen.getByText('Ir a Reclamos y garantías'));
+    expect(onNavigate).toHaveBeenCalledWith('/customer/reclamos');
+  });
+
+  it('reclamos: el visitante sin cuenta recibe la opción de ingresar', () => {
+    const onNavigate = vi.fn();
+    render(<Harness onNavigate={onNavigate} />);
+    fireEvent.click(screen.getByText('Preguntas frecuentes'));
+    fireEvent.click(screen.getByText('¿Cómo abro un reclamo?'));
+    fireEvent.click(screen.getByText('Ingresar para abrir un reclamo'));
+    expect(onNavigate).toHaveBeenCalledWith('/auth');
   });
 
   it('consulta con IA: manda el historial y muestra la respuesta, con aviso de que es una IA', async () => {

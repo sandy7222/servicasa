@@ -12,6 +12,9 @@ type Props = {
   onStartOrder: () => void;
   onClose: () => void;
   visitPrice: number;
+  /** Rol de quien mira (null = visitante sin cuenta): decide qué atajos a la cuenta se ofrecen. */
+  role?: string | null;
+  onNavigate?: (path: string) => void;
 };
 
 type ChatLine = { role: 'user' | 'assistant'; content: string; kind?: string };
@@ -37,6 +40,22 @@ function WhatsAppButton({ number }: { number?: string | null }) {
   );
 }
 
+function Shortcuts({ cta, role, go }: { cta: 'claims' | 'account' | 'all'; role?: string | null; go: (path: string) => void }) {
+  const btn = 'inline-flex items-center gap-1.5 rounded-xl border border-teal-600 px-3 py-1.5 text-[11px] font-bold text-teal-700 dark:text-teal-300 hover:bg-teal-50 dark:hover:bg-teal-950/30';
+  if (role === 'customer') {
+    return (
+      <>
+        {cta !== 'claims' && <button type="button" onClick={() => go('/customer')} className={btn}>Ir a mis servicios</button>}
+        {cta !== 'account' && <button type="button" onClick={() => go('/customer/reclamos')} className={btn}>Ir a Reclamos y garantías</button>}
+      </>
+    );
+  }
+  if (!role) {
+    return <button type="button" onClick={() => go('/auth')} className={btn}>{cta === 'claims' ? 'Ingresar para abrir un reclamo' : 'Ingresar a mi cuenta'}</button>;
+  }
+  return null;
+}
+
 function Bubble({ line }: { line: ChatLine }) {
   const mine = line.role === 'user';
   return (
@@ -57,7 +76,7 @@ function Bubble({ line }: { line: ChatLine }) {
   );
 }
 
-function Faq({ visitPrice, onStartOrder }: Pick<Props, 'visitPrice' | 'onStartOrder'>) {
+function Faq({ visitPrice, onStartOrder, role, go }: Pick<Props, 'visitPrice' | 'onStartOrder' | 'role'> & { go: (path: string) => void }) {
   const [openId, setOpenId] = useState<string | null>(null);
   const item = FAQ_ITEMS.find((i) => i.id === openId);
   if (item) {
@@ -71,6 +90,7 @@ function Faq({ visitPrice, onStartOrder }: Pick<Props, 'visitPrice' | 'onStartOr
               <Wrench className="w-3.5 h-3.5" /> Armar mi pedido
             </button>
           )}
+          {(item.cta === 'claims' || item.cta === 'account') && <Shortcuts cta={item.cta} role={role} go={go} />}
           <button type="button" onClick={() => setOpenId(null)} className="rounded-xl border border-slate-300 dark:border-slate-600 px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-200">
             Otra pregunta
           </button>
@@ -92,12 +112,12 @@ function Faq({ visitPrice, onStartOrder }: Pick<Props, 'visitPrice' | 'onStartOr
   );
 }
 
-function AiChat({ onStartOrder }: Pick<Props, 'onStartOrder'>) {
+function AiChat({ onStartOrder, role, go }: Pick<Props, 'onStartOrder' | 'role'> & { go: (path: string) => void }) {
   const [lines, setLines] = useState<ChatLine[]>([
     {
       role: 'assistant',
       content:
-        'Hola, soy el asistente virtual de TecniUrbano (una IA). Te oriento sobre cómo usar el servicio: pedir una visita, seguir su estado, escribirle al técnico, reclamos y más. No resuelvo problemas técnicos: para eso están nuestros técnicos. Por favor no escribas datos personales ni de tarjeta.',
+        'Hola, soy el asistente virtual de TecniUrbano (una IA). Te explico cómo usar el servicio: cómo pedir una visita, dónde ver el estado de tu pedido, cómo escribirle al técnico, abrir un reclamo o calificar. No puedo ver tus pedidos ni resolver problemas técnicos: para eso están tu cuenta y nuestros técnicos. Por favor no escribas datos personales ni de tarjeta.',
     },
   ]);
   const [input, setInput] = useState('');
@@ -150,7 +170,8 @@ function AiChat({ onStartOrder }: Pick<Props, 'onStartOrder'>) {
           <WhatsAppButton number={whatsapp} />
         </div>
       )}
-      <div className="pl-9">
+      <div className="pl-9 flex flex-wrap gap-2">
+        <Shortcuts cta="all" role={role} go={go} />
         <button type="button" onClick={onStartOrder} className="inline-flex items-center gap-1.5 rounded-xl border border-teal-600 px-3 py-1.5 text-[11px] font-bold text-teal-700 dark:text-teal-300 hover:bg-teal-50 dark:hover:bg-teal-950/30">
           <Wrench className="w-3 h-3" /> Armar mi pedido
         </button>
@@ -190,7 +211,11 @@ function AiChat({ onStartOrder }: Pick<Props, 'onStartOrder'>) {
  * Escribir una consulta). "Armar mi pedido" es el asistente de diagnóstico de siempre,
  * que NO se toca: este panel solo lo lanza. Ver plan-avisos-telegram-y-chat.md, Fase B.
  */
-export const HelpHub: React.FC<Props> = ({ mode, onModeChange, onStartOrder, onClose, visitPrice }) => {
+export const HelpHub: React.FC<Props> = ({ mode, onModeChange, onStartOrder, onClose, visitPrice, role, onNavigate }) => {
+  const go = (path: string) => {
+    onNavigate?.(path);
+    onClose();
+  };
   const title = mode === 'faq' ? 'Preguntas frecuentes' : mode === 'ai' ? 'Consultas (asistente virtual)' : 'Ayuda de TecniUrbano';
   return (
     <section
@@ -235,8 +260,8 @@ export const HelpHub: React.FC<Props> = ({ mode, onModeChange, onStartOrder, onC
             <div className="pt-1"><WhatsAppButton /></div>
           </div>
         )}
-        {mode === 'faq' && <Faq visitPrice={visitPrice} onStartOrder={onStartOrder} />}
-        {mode === 'ai' && <AiChat onStartOrder={onStartOrder} />}
+        {mode === 'faq' && <Faq visitPrice={visitPrice} onStartOrder={onStartOrder} role={role} go={go} />}
+        {mode === 'ai' && <AiChat onStartOrder={onStartOrder} role={role} go={go} />}
       </div>
     </section>
   );
