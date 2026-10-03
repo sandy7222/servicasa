@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Camera, RotateCcw, Send, X } from 'lucide-react';
+import { ArrowLeft, Camera, RotateCcw, Send, X } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { formatArs } from '../../lib/pricing';
 import {
@@ -18,6 +18,7 @@ import {
 import { saveAssistantDraft } from '../../lib/diagnosisDraft';
 import { isAdminWorkspacePath } from '../../lib/adminNav';
 import { uploadDiagnosisPhoto } from '../../lib/diagnosisPhotoUpload';
+import { HelpHub, type HelpMode } from './HelpHub';
 import type { CatalogSubcategory, ServiceItem } from '../../types';
 import assistantBody from '../../assets/landing/asistente-cuerpo.png';
 
@@ -30,8 +31,10 @@ function slugMap(subcategories: readonly CatalogSubcategory[]) {
 }
 
 export const DiagnosisAssistant: React.FC = () => {
-  const { services, catalogSubcategories, currentUser, currentPath, navigate, showToast } = useApp();
+  const { services, catalogSubcategories, currentUser, currentPath, navigate, showToast, visitDepositAmount } = useApp();
   const [open, setOpen] = useState(false);
+  // 'order' = el asistente de diagnóstico de siempre; el resto es el menú de ayuda (HelpHub).
+  const [mode, setMode] = useState<'order' | HelpMode>('home');
   const [session, setSession] = useState<AssistantSession>(() => startAssistant());
   const [freeText, setFreeText] = useState('');
   const [photoName, setPhotoName] = useState<string | undefined>();
@@ -63,6 +66,7 @@ export const DiagnosisAssistant: React.FC = () => {
         setPhotoError(undefined);
         draftIdRef.current = crypto.randomUUID();
       }
+      setMode('order'); // los accesos directos de la app van derecho al armado del pedido
       setOpen(true);
     };
     window.addEventListener(OPEN_DIAGNOSIS_ASSISTANT_EVENT, onOpen);
@@ -122,7 +126,10 @@ export const DiagnosisAssistant: React.FC = () => {
   return (
     <div className={`fixed right-4 z-[70] pointer-events-none ${adminMobileNav ? 'bottom-20 md:bottom-4' : 'bottom-4'}`}>
       <div className={open ? 'relative' : 'flex flex-col items-end'}>
-        {open && (
+        {open && mode !== 'order' && (
+          <HelpHub mode={mode} onModeChange={setMode} onStartOrder={() => setMode('order')} onClose={() => setOpen(false)} visitPrice={visitDepositAmount} />
+        )}
+        {open && mode === 'order' && (
         <section
           className="pointer-events-auto w-[min(100vw-2rem,26rem)] max-h-[min(40rem,calc(100vh-6.5rem))] flex flex-col overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xl shadow-slate-900/20"
           aria-label="Asistente de diagnóstico guiado"
@@ -133,6 +140,9 @@ export const DiagnosisAssistant: React.FC = () => {
               <p className="text-xs font-bold leading-tight">Asistente de diagnóstico</p>
               <p className="text-[10px] text-slate-400">Preguntas con botones · Electricidad piloto</p>
             </div>
+            <button type="button" onClick={() => setMode('home')} className="p-1.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white" aria-label="Volver al menú de ayuda">
+              <ArrowLeft className="w-3.5 h-3.5" />
+            </button>
             <button type="button" onClick={restart} className="p-1.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white" aria-label="Empezar de nuevo">
               <RotateCcw className="w-3.5 h-3.5" />
             </button>
@@ -271,7 +281,7 @@ export const DiagnosisAssistant: React.FC = () => {
         {!open && (
           <button
             type="button"
-            onClick={() => setOpen(true)}
+            onClick={() => { setMode('home'); setOpen(true); }}
             className="pointer-events-auto w-16 h-16 rounded-full overflow-hidden border-2 border-white shadow-xl shadow-slate-900/25 ring-2 ring-teal-500/40 hover:ring-teal-500 transition-transform duration-200 motion-safe:hover:scale-[1.03] focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-400"
             aria-label="Abrir asistente de diagnóstico"
             aria-expanded={false}

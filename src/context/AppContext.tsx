@@ -540,6 +540,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // mockData.ts forever instead of the real Supabase catalog.
   const loadPublicServices = async () => {
     if (!isSupabaseConfigured) return;
+    // El valor de la Visita de Presupuesto es público (system_settings, visibility public). Sin esto, un
+    // visitante sin cuenta veía el valor de arranque del código (30000) en vez del real.
+    fetchVisitDepositAmount().then(setVisitDepositAmount).catch(() => {});
     try {
       const publicServices = await fetchPublicServices();
       setServices(publicServices);
