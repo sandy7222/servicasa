@@ -36,6 +36,8 @@ Si el cliente **rechaza el presupuesto**, la visita igual se cobra (el técnico 
 - **El término exacto es "Visita de Presupuesto"** (con esas mayúsculas, definido por Sandy el 2/10). **No se llama "seña"**, ni "anticipo", ni "depósito", ni "adelanto".
 - **La Visita de Presupuesto no es una seña.** Es el cobro, **por adelantado**, para que un técnico pueda ir a visitar al cliente, ver el problema y dar su punto de vista (reparación, instalación, etc.).
 - **La Visita de Presupuesto y el trabajo son dos cobros distintos.** Lo que el técnico proponga después (una reparación, una instalación) es un **servicio aparte, que se cobra aparte** de la visita. La visita ya pagada no se descuenta del trabajo (así lo dice hoy el cartel del presupuesto).
+- **Por qué se cobra de entrada (explicación de Sandy, 3/10):** en la visita, un técnico —un idóneo en la materia— asiste al domicilio, revisa el problema, da su diagnóstico, detecta qué pasa y presupuesta la solución. Eso es un **servicio profesional en sí mismo**, por eso se paga por adelantado. **"Visita de diagnóstico" y "Visita de Presupuesto" son la misma visita**; el término oficial es **"Visita de Presupuesto"**.
+- **Si el cliente rechaza el presupuesto, la Visita de Presupuesto no se devuelve ni se descuenta** (corresponde a la visita del técnico, que cobra siempre que la haya hecho). Si tuvo un problema con la visita, puede abrir un reclamo dentro de las 48 horas. *(Confirmado por Sandy el 3/10.)*
 
 **Otros datos confirmados:**
 

@@ -4,6 +4,35 @@ Registro de cambios funcionales relevantes de TecniUrbano. No reemplaza `git log
 (los detalles de implementación están en los commits y las migraciones) — es un
 resumen de qué cambió para el negocio y qué evidencia lo respalda.
 
+## 2026-10-03 — "Visita de Presupuesto" en lugar de "seña" (política de cobro de la visita)
+
+Commits: `f84fea7`, `9df5843`, `5d863c6`.
+
+Sandy definió la política: la **Visita de Presupuesto no es una seña**. Es el
+cobro por adelantado de un servicio profesional (un técnico idóneo va al
+domicilio, revisa, diagnostica, detecta el problema y presupuesta la solución),
+y el trabajo que se proponga después es un cobro aparte. El término oficial es
+**"Visita de Presupuesto"**. "Seña" era la definición del comienzo del proyecto.
+
+- Unificado el término en lo que ve el cliente: título del cobro en Mercado
+  Pago (`Visita de Presupuesto — …`; los pagos anteriores quedan registrados
+  como "Seña de visita" en Mercado Pago y no se pueden cambiar), botones y
+  tarjeta del formulario, etiquetas de las órdenes, aviso de pago confirmado,
+  paneles de admin y técnico, y los mensajes del asistente de diagnóstico.
+- **Al rechazar un presupuesto la Visita de Presupuesto no se devuelve ni se
+  descuenta** (el técnico la cobra siempre que haya hecho la visita, decisión
+  del 30/8 documentada en `docs/adr-liquidacion-visita.md`): el diálogo de
+  rechazo y la constancia ahora lo dicen claro.
+- Base de datos: el mensaje de error de `prevent_unpaid_execution_timer` decía
+  "…el pago de la seña"; migración `20261003143017`, solo cambia la frase, la
+  lógica es idéntica.
+- **Sin tocar, a propósito:** los Términos y Condiciones (texto legal
+  versionado: faltan decisiones de reembolso y revisión de un abogado), los
+  nombres técnicos internos (`visit_deposit`, `deposit_paid`…), y los
+  documentos históricos.
+- Hallazgo adicional: la landing promete "ubicación del técnico" y no existe
+  seguimiento por GPS (solo por estados); ver `plan-avisos-telegram-y-chat.md`, C.6.
+
 ## 2026-10-02 (cont.) — Aviso al administrador cuando se paga una visita de presupuesto
 
 Commit: `4aaf180`.
