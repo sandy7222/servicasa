@@ -46,6 +46,16 @@ describe('buildSystemPrompt', () => {
     expect(prompt).toContain('NO es una seña');
     expect(prompt.replace('NO es una seña ni un adelanto', '')).not.toMatch(/\bse(ñ|n)a\b/i);
   });
+  it('rol administrativo: no da consejos técnicos y deriva a la Visita de Presupuesto', () => {
+    const prompt = buildSystemPrompt(50000);
+    expect(prompt).toMatch(/ADMINISTRATIVO/);
+    expect(prompt).toMatch(/NO resolvés problemas técnicos/);
+    expect(prompt).toMatch(/ofrecé pedir una Visita de Presupuesto/);
+  });
+  it('incluye la guía de uso: formulario, escribirle al técnico, reclamos y calificación', () => {
+    const prompt = buildSystemPrompt(50000);
+    for (const s of ['Formulario del pedido', 'Escribirle al técnico', 'Abrir reclamo', 'Calificá este servicio']) expect(prompt).toContain(s);
+  });
   it('sin precio no inventa uno', () => {
     expect(buildSystemPrompt(null)).toContain('se informa antes de confirmar el pedido');
   });

@@ -104,6 +104,8 @@ Pasos:
 
 ## Fase B — IA primero: widget de consultas con contestador de IA  ← **elegida el 2/10, va después de la Fase 1**
 
+> **Rol de la IA (definido por Sandy el 3/10): es la PATA ADMINISTRATIVA, no la técnica.** Los técnicos son la pata principal del negocio; la IA **no** resuelve ni explica problemas técnicos (si le consultan uno, deriva a pedir una Visita de Presupuesto). Su trabajo: orientar en el uso de la app (cómo completar el formulario de la visita, cómo consultar el estado), explicar que una vez pagada la visita y con técnico asignado el cliente puede escribirle desde el botón de su presentación, ayudar a redactar la nota de un reclamo, incentivar la calificación del técnico tras la visita, y lo que vayamos viendo útil para la administración. Las respuestas con datos del cliente (estado de SU visita) requieren sesión: Fase C.
+
 > **⚠️ Actualización del 2/10 (tarde): Sandy pidió que la IA sea GRATIS** (Claude le pareció caro). Lo de Claude/Anthropic de abajo (B.1, B.2, precios) queda como **alternativa de pago**, no como camino elegido. Se evalúan proveedores gratuitos, **sin decisión final todavía**:
 > - **Groq** con `qwen/qwen3.8-27b` (preview): 30 consultas/min, 1.000/día, 8.000 tokens/min y **200.000 tokens/día** (≈ 70–130 consultas/día). No entrena con los datos por contrato. Riesgo: es "preview".
 > - **Cloudflare Workers AI** con `Qwen3-30B-A3B`: 10.000 neuronas/día (≈ 500 consultas/día, estimado; falta confirmar que entre en el plan gratis). Cloudflare ya retiró modelos (mayo) y pasó otros al plan pago (28/7): hay que esperar cambios.
