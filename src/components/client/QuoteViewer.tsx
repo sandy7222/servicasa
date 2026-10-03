@@ -16,7 +16,7 @@ export const QuoteViewer: React.FC<Props> = ({ order }) => {
   const isExpired = Boolean(quote?.validUntil && new Date(quote.validUntil).getTime() < Date.now());
 
   const reject = async () => {
-    if (!quote || !window.confirm('¿Confirmás que rechazás este presupuesto? La seña se gestionará según las condiciones aceptadas y el período de reclamo.')) return;
+    if (!quote || !window.confirm('¿Confirmás que rechazás este presupuesto? La Visita de Presupuesto que ya pagaste no se devuelve ni se descuenta: corresponde a la visita del técnico. Si tuviste algún problema con la visita, podés abrir un reclamo dentro de las 48 horas.')) return;
     setBusy(true);
     try {
       const { error } = await supabase.from('order_quotes').update({ status: 'rejected', rejected_at: new Date().toISOString() }).eq('id', quote.id);
