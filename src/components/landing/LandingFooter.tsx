@@ -16,7 +16,8 @@ export const LandingFooter: React.FC = () => {
 
   const handleLink = (link: FooterLink) => {
     if (link.action === 'assistant') {
-      window.dispatchEvent(new CustomEvent(OPEN_DIAGNOSIS_ASSISTANT_EVENT, { detail: { reset: true } }));
+      // "Asistencia" abre directo la consulta con el asistente virtual (IA).
+      window.dispatchEvent(new CustomEvent(OPEN_DIAGNOSIS_ASSISTANT_EVENT, { detail: { mode: 'ai' } }));
       return;
     }
     if (!link.href) return;

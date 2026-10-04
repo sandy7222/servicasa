@@ -66,7 +66,10 @@ export const DiagnosisAssistant: React.FC = () => {
         setPhotoError(undefined);
         draftIdRef.current = crypto.randomUUID();
       }
-      setMode('order'); // los accesos directos de la app van derecho al armado del pedido
+      // Quien dispara el evento puede pedir un panel de ayuda concreto (detail.mode); sin eso va
+      // derecho al armado del pedido, como los accesos directos de siempre.
+      const requested = event instanceof CustomEvent ? event.detail?.mode : undefined;
+      setMode(requested === 'ai' || requested === 'faq' || requested === 'home' ? requested : 'order');
       setOpen(true);
     };
     window.addEventListener(OPEN_DIAGNOSIS_ASSISTANT_EVENT, onOpen);
