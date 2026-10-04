@@ -6,13 +6,14 @@ resumen de qué cambió para el negocio y qué evidencia lo respalda.
 
 ## 2026-10-03 — Avisos al admin: técnico que se anota, legajo y cliente nuevo
 
-Commits: , . Migración: .
+Commits: `6658bee`, `79ab14c`. Migración: `20261003180326_admin_event_alerts`.
 
 Sandy recibe en Telegram (y en la campanita, en los de técnicos) tres avisos nuevos:
 se anotó un técnico, un técnico subió documentación para revisar (varios archivos
 seguidos = un solo aviso, ventana de 2 h) y se registró un cliente (tope de 10 avisos
 por día, hora Argentina; al llegar al tope avisa una vez y calla). Los avisos no llevan
-teléfono, email ni dirección. Triggers de base de datos → pg_net → con secreto compartido ( en Vercel,  en Vault).
+teléfono, email ni dirección. Triggers de base de datos → pg_net → `/api/gateway?action=admin-event`
+con secreto compartido (`ADMIN_EVENT_SECRET` en Vercel, `admin_event_secret` en Vault).
 Verificado: tests (10 nuevos) y un aviso de prueba de cliente que llegó al celular.
 Pendiente de verificar con un alta real: avisos de técnico y trigger sobre cuentas nuevas.
 Un técnico nuevo genera dos avisos (primero se registra como cliente).
