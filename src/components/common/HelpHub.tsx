@@ -23,7 +23,62 @@ const faceClass = 'object-cover object-[54%_16%] bg-white';
 const optionClass =
   'w-full text-left rounded-xl border border-slate-200 dark:border-slate-700 px-3 py-2.5 hover:border-teal-400 hover:bg-teal-50 dark:hover:bg-teal-950/30 transition';
 
-const UNAVAILABLE = 'Ahora mismo no puedo responder. Escribinos por WhatsApp y te contestamos a la brevedad.';
+const MASCOT_GAP = 10;
+
+/**
+ * La mascota del asistente (DiagnosisAssistant) está fija en la esquina inferior derecha
+ * del panel. En vez de dejar un margen permanente, cada elemento marcado con
+ * data-avoid-mascot se angosta SOLO si su altura coincide con la de la mascota: el texto
+ * salta de línea antes de llegar a ella y lo de más arriba usa todo el ancho.
+ */
+function useAvoidMascot(container: React.RefObject<HTMLElement>, resetKey: unknown) {
+  useEffect(() => {
+    const root = container.current;
+    if (!root) return;
+    let frame = 0;
+    const apply = () => {
+      frame = 0;
+      const items: HTMLElement[] = [];
+      root.querySelectorAll<HTMLElement>('[data-avoid-mascot]').forEach((el) => items.push(el));
+      for (const el of items) el.style.maxWidth = '';
+      const mascot = document.querySelector<HTMLElement>('[data-assistant-mascot]');
+      const zone = mascot?.getBoundingClientRect();
+      if (!zone || zone.width === 0) return;
+      // De arriba hacia abajo: al angostar uno, crece y mueve a los siguientes.
+      for (const el of items) {
+        const rect = el.getBoundingClientRect();
+        if (rect.bottom <= zone.top || rect.top >= zone.bottom) continue;
+        const max = zone.left - MASCOT_GAP - rect.left;
+        if (max >= 140 && max < rect.width) el.style.maxWidth = `${Math.floor(max)}px`;
+      }
+    };
+    const schedule = () => {
+      if (!frame) frame = requestAnimationFrame(apply);
+    };
+    schedule();
+    root.addEventListener('scroll', schedule, { passive: true });
+    window.addEventListener('resize', schedule);
+    const mutations = new MutationObserver(schedule);
+    mutations.observe(root, { childList: true, subtree: true, characterData: true });
+    const resizes = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(schedule) : null;
+    resizes?.observe(root);
+    const mascot = document.querySelector<HTMLElement>('[data-assistant-mascot]');
+    if (mascot) {
+      resizes?.observe(mascot);
+      mascot.addEventListener('load', schedule);
+    }
+    return () => {
+      if (frame) cancelAnimationFrame(frame);
+      root.removeEventListener('scroll', schedule);
+      window.removeEventListener('resize', schedule);
+      mutations.disconnect();
+      resizes?.disconnect();
+      mascot?.removeEventListener('load', schedule);
+    };
+  }, [container, resetKey]);
+}
+
+const UNAVAILABLE ='Ahora mismo no puedo responder. Escribinos por WhatsApp y te contestamos a la brevedad.';
 
 function WhatsAppButton({ number }: { number?: string | null }) {
   const url = whatsappUrl(number ?? WHATSAPP_NUMBER);
@@ -59,7 +114,7 @@ function Shortcuts({ cta, role, go }: { cta: 'claims' | 'account' | 'all'; role?
 function Bubble({ line }: { line: ChatLine }) {
   const mine = line.role === 'user';
   return (
-    <div className={`flex gap-2 ${mine ? 'justify-end' : 'justify-start'}`}>
+    <div data-avoid-mascot className={`flex gap-2 ${mine ? 'justify-end' : 'justify-start'}`}>
       {!mine && <img src={assistantBody} alt="" className={`w-7 h-7 rounded-full ${faceClass} border border-slate-200 dark:border-slate-700 shrink-0 mt-0.5`} />}
       <p
         className={`max-w-[85%] rounded-2xl px-3 py-2 text-xs leading-relaxed whitespace-pre-line ${
@@ -84,7 +139,7 @@ function Faq({ visitPrice, onStartOrder, role, go }: Pick<Props, 'visitPrice' | 
       <div className="space-y-2">
         <Bubble line={{ role: 'user', content: item.question }} />
         <Bubble line={{ role: 'assistant', content: item.answer(formatPrice(visitPrice)) }} />
-        <div className="flex flex-wrap gap-2 pt-1">
+        <div data-avoid-mascot className="flex flex-wrap gap-2 pt-1">
           {item.cta === 'order' && (
             <button type="button" onClick={onStartOrder} className="inline-flex items-center gap-1.5 rounded-xl bg-teal-600 px-3 py-2 text-xs font-bold text-white hover:bg-teal-700">
               <Wrench className="w-3.5 h-3.5" /> Armar mi pedido
@@ -103,7 +158,7 @@ function Faq({ visitPrice, onStartOrder, role, go }: Pick<Props, 'visitPrice' | 
       <Bubble line={{ role: 'assistant', content: '¿Sobre qué querés saber? Elegí una pregunta:' }} />
       <div className="grid gap-1.5">
         {FAQ_ITEMS.map((i) => (
-          <button key={i.id} type="button" onClick={() => setOpenId(i.id)} className={`${optionClass} text-xs font-semibold text-slate-800 dark:text-slate-200`}>
+          <button key={i.id} type="button" data-avoid-mascot onClick={() => setOpenId(i.id)} className={`${optionClass} text-xs font-semibold text-slate-800 dark:text-slate-200`}>
             {i.question}
           </button>
         ))}
@@ -164,13 +219,13 @@ function AiChat({ onStartOrder, role, go }: Pick<Props, 'onStartOrder' | 'role'>
           <Bubble line={line} />
         </React.Fragment>
       ))}
-      {loading && <p className="text-[11px] text-slate-500 dark:text-slate-400 pl-9">Escribiendo…</p>}
+      {loading && <p data-avoid-mascot className="text-[11px] text-slate-500 dark:text-slate-400 pl-9">Escribiendo…</p>}
       {showHandoff && (
-        <div className="flex flex-wrap gap-2 pl-9">
+        <div data-avoid-mascot className="flex flex-wrap gap-2 pl-9">
           <WhatsAppButton number={whatsapp} />
         </div>
       )}
-      <div className="pl-9 flex flex-wrap gap-2">
+      <div data-avoid-mascot className="pl-9 flex flex-wrap gap-2">
         <Shortcuts cta="all" role={role} go={go} />
         <button type="button" onClick={onStartOrder} className="inline-flex items-center gap-1.5 rounded-xl border border-teal-600 px-3 py-1.5 text-[11px] font-bold text-teal-700 dark:text-teal-300 hover:bg-teal-50 dark:hover:bg-teal-950/30">
           <Wrench className="w-3 h-3" /> Armar mi pedido
@@ -178,6 +233,7 @@ function AiChat({ onStartOrder, role, go }: Pick<Props, 'onStartOrder' | 'role'>
       </div>
       <div ref={end} />
       <form
+        data-avoid-mascot
         className="sticky bottom-0 -mx-3 -mb-3 mt-1 flex items-end gap-2 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3"
         onSubmit={(event) => {
           event.preventDefault();
@@ -216,6 +272,8 @@ export const HelpHub: React.FC<Props> = ({ mode, onModeChange, onStartOrder, onC
     onNavigate?.(path);
     onClose();
   };
+  const body = useRef<HTMLDivElement>(null);
+  useAvoidMascot(body, mode);
   const title = mode === 'faq' ? 'Preguntas frecuentes' : mode === 'ai' ? 'Consultas (asistente virtual)' : 'Ayuda de TecniUrbano';
   return (
     <section
@@ -239,25 +297,25 @@ export const HelpHub: React.FC<Props> = ({ mode, onModeChange, onStartOrder, onC
         </button>
       </header>
 
-      <div className="flex-1 overflow-y-auto px-3 py-3 bg-slate-50 dark:bg-slate-950">
+      <div ref={body} className="flex-1 overflow-y-auto px-3 py-3 bg-slate-50 dark:bg-slate-950">
         {mode === 'home' && (
           <div className="space-y-2">
             <Bubble line={{ role: 'assistant', content: '¡Hola! ¿En qué te puedo ayudar?' }} />
             <div className="grid gap-1.5">
-              <button type="button" onClick={onStartOrder} className={optionClass}>
+              <button type="button" onClick={onStartOrder} className={optionClass} data-avoid-mascot>
                 <span className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-slate-100"><Wrench className="w-4 h-4 text-teal-700" />Armar mi pedido</span>
                 <span className="block mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">Te guío paso a paso para pedir tu Visita de Presupuesto.</span>
               </button>
-              <button type="button" onClick={() => onModeChange('faq')} className={optionClass}>
+              <button type="button" onClick={() => onModeChange('faq')} className={optionClass} data-avoid-mascot>
                 <span className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-slate-100"><HelpCircle className="w-4 h-4 text-teal-700" />Preguntas frecuentes</span>
                 <span className="block mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">Cómo funciona la visita, el pago, el seguimiento y los reclamos.</span>
               </button>
-              <button type="button" onClick={() => onModeChange('ai')} className={optionClass}>
+              <button type="button" onClick={() => onModeChange('ai')} className={optionClass} data-avoid-mascot>
                 <span className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-slate-100"><MessageCircle className="w-4 h-4 text-teal-700" />Escribir una consulta</span>
                 <span className="block mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">Un asistente virtual (IA) te orienta sobre el uso de la app.</span>
               </button>
             </div>
-            <div className="pt-1"><WhatsAppButton /></div>
+            <div data-avoid-mascot className="pt-1"><WhatsAppButton /></div>
           </div>
         )}
         {mode === 'faq' && <Faq visitPrice={visitPrice} onStartOrder={onStartOrder} role={role} go={go} />}

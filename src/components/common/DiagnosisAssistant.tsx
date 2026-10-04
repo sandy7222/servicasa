@@ -274,6 +274,7 @@ export const DiagnosisAssistant: React.FC = () => {
             src={assistantBody}
             alt=""
             aria-hidden
+            data-assistant-mascot
             className="absolute z-10 pointer-events-none select-none bottom-2 right-0 h-[33%] w-auto drop-shadow-[0_10px_18px_rgba(15,23,42,0.28)]"
           />
         )}

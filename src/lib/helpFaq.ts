@@ -65,7 +65,7 @@ export const FAQ_ITEMS: FaqItem[] = [
     id: 'reclamo',
     question: '¿Cómo abro un reclamo?',
     answer: () =>
-      'Desde "Reclamos y garantías" tocá "Abrir reclamo". Tenés hasta 48 horas después del servicio y la garantía es de 30 días. Para que te entiendan rápido, contá qué pasó, cuándo y qué solución esperás.',
+      'Desde "Reclamos y garantías" tocá "Abrir reclamo". Tenés hasta 48 horas después del servicio y la garantía es de 30 días. Para que te entiendan rápido, contá qué pasó, cuándo y qué solución esperás. Si preferís escribirnos, también podés hacerlo a hola@tecniurbano.online.',
     cta: 'claims',
   },
   {
