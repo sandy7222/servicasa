@@ -4,6 +4,28 @@ Registro de cambios funcionales relevantes de TecniUrbano. No reemplaza `git log
 (los detalles de implementación están en los commits y las migraciones) — es un
 resumen de qué cambió para el negocio y qué evidencia lo respalda.
 
+## 2026-10-03 — Chat de ayuda con IA y gestor de proveedores en el admin
+
+Commits: `16d82de`, `08e8f0f`, `5fdc443`, `52d9b8a`, `11940ad`, `3dc1425`, `f67c2a3`, `9ec48e5`.
+Migraciones: `ai_chat_usage_limits`, `ai_providers`.
+
+La tienda tiene un panel de ayuda con tres opciones: "Armar mi pedido" (el asistente de
+siempre), "Preguntas frecuentes" (12 respuestas fijas, sin IA) y "Escribir una consulta"
+(IA administrativa, gratis vía Groq). La IA orienta sobre el uso de la app, es empática
+pero no da soluciones técnicas ni promete plazos; los casos de gas/electricidad/plomería
+se responden con texto fijo y avisan por Telegram (máx. 5 por día, sin datos del visitante).
+Límites: 15 consultas por visitante y 150 globales por día. Verificado con 26 preguntas
+reales (consejos técnicos, intentos de manipulación, datos de tarjeta, temas sin definir):
+no dio consejos técnicos y derivó a una persona en lo que no sabe.
+
+Nuevo en el admin: **Plataforma → Asistente IA**. Permite ver (con ojito), cambiar y probar
+la API key, y agregar otros proveedores (DeepSeek, Qwen, Gemini, OpenRouter u otro
+compatible con OpenAI), ordenarlos y activarlos. Las claves se guardan cifradas en Vault y
+solo el admin puede verlas. Las claves de Vercel quedan como respaldo.
+
+Cambios de producción: la rama de producción de Vercel pasó de `master` a `main` y `master`
+se borró. Pendiente: número de WhatsApp (el chat responde sin ese botón hasta cargarlo).
+
 ## 2026-10-03 — Avisos al admin: técnico que se anota, legajo y cliente nuevo
 
 Commits: `6658bee`, `79ab14c`. Migración: `20261003180326_admin_event_alerts`.
