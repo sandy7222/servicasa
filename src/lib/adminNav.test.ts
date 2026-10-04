@@ -5,6 +5,8 @@ import {
   destinationFromPath,
   groupFromPath,
   hubPathForTab,
+  servicesFiltersFromPath,
+  servicesPath,
   isAdminWorkspacePath,
   rememberDestination,
   tabFromPath,
@@ -60,5 +62,15 @@ describe('adminNav', () => {
   it('groupFromPath de pestaña interna de catálogo', () => {
     expect(groupFromPath('/hub?tab=inventory')).toBe('catalogo');
     expect(destinationFromPath('/hub?tab=inventory')?.id).toBe('inventory');
+  });
+
+  it('Servicios: cada nivel viaja en la dirección y se puede recuperar', () => {
+    expect(servicesPath('all', null)).toBe('/hub?tab=services');
+    expect(servicesPath('Electricidad', null)).toBe('/hub?tab=services&cat=Electricidad');
+    expect(servicesPath('Reparaciones del hogar', 'abc-1')).toBe('/hub?tab=services&cat=Reparaciones%20del%20hogar&sub=abc-1');
+    expect(servicesFiltersFromPath('/hub?tab=services')).toEqual({ category: 'all', subcategory: null });
+    expect(servicesFiltersFromPath('/hub?tab=services&cat=Electricidad')).toEqual({ category: 'Electricidad', subcategory: null });
+    expect(servicesFiltersFromPath(servicesPath('Reparaciones del hogar', 'abc-1'))).toEqual({ category: 'Reparaciones del hogar', subcategory: 'abc-1' });
+    expect(servicesFiltersFromPath('/hub?tab=services&sub=abc-1')).toEqual({ category: 'all', subcategory: null });
   });
 });

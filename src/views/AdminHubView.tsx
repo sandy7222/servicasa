@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import {
   LayoutDashboard,
   Plus,
@@ -50,7 +50,7 @@ import { DiagnosisPhotoCard } from '../components/common/DiagnosisPhotoCard';
 import { Timeline } from '../components/common/Timeline';
 import { EntityActionsMenu } from '../components/common/EntityActionsMenu';
 import { formatElapsedTime, getOrderElapsedSeconds, isOrderPaymentSettled, orderRequiresPaymentGate } from '../lib/workTimer';
-import { hubPathForTab, rememberDestination, tabFromPath, type AdminHubTab } from '../lib/adminNav';
+import { hubPathForTab, rememberDestination, servicesFiltersFromPath, servicesPath, tabFromPath, type AdminHubTab } from '../lib/adminNav';
 import { ARGENTINA_PROVINCES } from '../lib/argentina';
 import { formatCustomerCode, formatTechnicianCode } from '../lib/codes';
 import { TechnicianValidation } from '../components/admin/TechnicianValidation';
@@ -525,6 +525,37 @@ export const AdminHubView: React.FC = () => {
   const [serviceSearchQuery, setServiceSearchQuery] = useState('');
   const [serviceCategoryFilter, setServiceCategoryFilter] = useState('all');
   const [serviceSubcategoryFilter, setServiceSubcategoryFilter] = useState<string | null>(null);
+
+  // Los niveles de Servicios (categoría → subcategoría) viven en la dirección de la página:
+  // así "Atrás" del navegador sube un nivel y recargar deja en el mismo lugar. La dirección
+  // manda; los filtros de abajo son solo su reflejo.
+  const servicesDrillPushes = useRef(0);
+  useEffect(() => {
+    if (activeTab !== 'services') return;
+    const { category, subcategory } = servicesFiltersFromPath(currentPath);
+    if (category !== serviceCategoryFilter || subcategory !== serviceSubcategoryFilter) {
+      setServiceCategoryFilter(category);
+      setServiceSubcategoryFilter(subcategory);
+      setServiceSearchQuery('');
+    }
+    // "Atrás" manual reduce los niveles que se pueden deshacer con "Volver".
+    servicesDrillPushes.current = Math.min(servicesDrillPushes.current, (category !== 'all' ? 1 : 0) + (subcategory ? 1 : 0));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPath, activeTab]);
+  const goServices = (category: string, subcategory: string | null) => {
+    servicesDrillPushes.current += 1;
+    navigate(servicesPath(category, subcategory), { scroll: false });
+  };
+  /** Un nivel hacia arriba. Si se bajó en esta sesión es lo mismo que "Atrás"; si se llegó por un link, sube a mano. */
+  const goServicesUp = () => {
+    if (servicesDrillPushes.current > 0) {
+      servicesDrillPushes.current -= 1;
+      window.history.back();
+      return;
+    }
+    if (serviceSubcategoryFilter !== null) navigate(servicesPath(serviceCategoryFilter, null), { scroll: false });
+    else navigate(servicesPath('all', null), { scroll: false });
+  };
   const [serviceSortBy, setServiceSortBy] = useState<'name' | 'price-asc' | 'price-desc' | 'duration'>('price-asc');
   const [isNewServiceModalOpen, setIsNewServiceModalOpen] = useState(false);
   const [isEditServiceModalOpen, setIsEditServiceModalOpen] = useState(false);
@@ -2530,16 +2561,7 @@ export const AdminHubView: React.FC = () => {
                 {serviceCategoryFilter !== 'all' && (
                   <button
                     type="button"
-                    onClick={() => {
-                      if (serviceSubcategoryFilter !== null) {
-                        setServiceSubcategoryFilter(null);
-                        setServiceSearchQuery('');
-                      } else {
-                        setServiceCategoryFilter('all');
-                        setServiceSubcategoryFilter(null);
-                        setServiceSearchQuery('');
-                      }
-                    }}
+                    onClick={goServicesUp}
                     className="inline-flex items-center gap-1.5 text-slate-600 dark:text-slate-400 hover:text-slate-900 mb-2"
                   >
                     <ChevronLeft className="w-3.5 h-3.5" />
@@ -2629,11 +2651,7 @@ export const AdminHubView: React.FC = () => {
                       <button
                         key={item.key}
                         type="button"
-                        onClick={() => {
-                          setServiceCategoryFilter(item.name);
-                          setServiceSubcategoryFilter(null);
-                          setServiceSearchQuery('');
-                        }}
+                        onClick={() => goServices(item.name, null)}
                         className={`text-left bg-white dark:bg-slate-900 rounded-xl p-4 border shadow-xs hover:shadow-md hover:border-teal-300 transition-all flex items-center gap-3 ${
                           item.active ? 'border-slate-200 dark:border-slate-700' : 'border-slate-200 dark:border-slate-700 opacity-70'
                         }`}
@@ -2680,10 +2698,7 @@ export const AdminHubView: React.FC = () => {
                       <button
                         key={item.key}
                         type="button"
-                        onClick={() => {
-                          setServiceSubcategoryFilter(item.filterId);
-                          setServiceSearchQuery('');
-                        }}
+                        onClick={() => goServices(serviceCategoryFilter, item.filterId)}
                         className={`text-left bg-white dark:bg-slate-900 rounded-xl p-4 border shadow-xs hover:shadow-md hover:border-teal-300 transition-all flex items-center gap-3 ${
                           item.active ? 'border-slate-200 dark:border-slate-700' : 'border-slate-200 dark:border-slate-700 opacity-70'
                         }`}

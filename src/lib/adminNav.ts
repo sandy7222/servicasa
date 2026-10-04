@@ -169,3 +169,25 @@ export function destinationForGroupTap(groupId: AdminNavGroupId): AdminNavDestin
   }
   return defaultDestination(groupId);
 }
+
+/**
+ * Navegación por niveles de Servicios (categoría → subcategoría → servicios) en la
+ * dirección de la página, para que "Atrás" del navegador suba un nivel en vez de salir
+ * de Servicios, y para que recargar o compartir el link deje en el mismo lugar.
+ */
+export function servicesPath(category: string, subcategory: string | null): string {
+  let path = '/hub?tab=services';
+  if (category && category !== 'all') {
+    path += `&cat=${encodeURIComponent(category)}`;
+    if (subcategory) path += `&sub=${encodeURIComponent(subcategory)}`;
+  }
+  return path;
+}
+
+export function servicesFiltersFromPath(path: string): { category: string; subcategory: string | null } {
+  const params = new URLSearchParams(path.includes('?') ? path.slice(path.indexOf('?') + 1) : '');
+  const category = params.get('cat') || 'all';
+  // Una subcategoría sin categoría no tiene sentido: se ignora.
+  const subcategory = category === 'all' ? null : params.get('sub') || null;
+  return { category, subcategory };
+}
