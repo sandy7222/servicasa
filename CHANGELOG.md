@@ -4,6 +4,19 @@ Registro de cambios funcionales relevantes de TecniUrbano. No reemplaza `git log
 (los detalles de implementación están en los commits y las migraciones) — es un
 resumen de qué cambió para el negocio y qué evidencia lo respalda.
 
+## 2026-10-03 — Avisos al admin: técnico que se anota, legajo y cliente nuevo
+
+Commits: , . Migración: .
+
+Sandy recibe en Telegram (y en la campanita, en los de técnicos) tres avisos nuevos:
+se anotó un técnico, un técnico subió documentación para revisar (varios archivos
+seguidos = un solo aviso, ventana de 2 h) y se registró un cliente (tope de 10 avisos
+por día, hora Argentina; al llegar al tope avisa una vez y calla). Los avisos no llevan
+teléfono, email ni dirección. Triggers de base de datos → pg_net → con secreto compartido ( en Vercel,  en Vault).
+Verificado: tests (10 nuevos) y un aviso de prueba de cliente que llegó al celular.
+Pendiente de verificar con un alta real: avisos de técnico y trigger sobre cuentas nuevas.
+Un técnico nuevo genera dos avisos (primero se registra como cliente).
+
 ## 2026-10-03 — "Visita de Presupuesto" en lugar de "seña" (política de cobro de la visita)
 
 Commits: `f84fea7`, `9df5843`, `5d863c6`.
