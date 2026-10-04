@@ -69,6 +69,7 @@ import { distanceToOrderKm, isWithinWorkZone } from '../lib/technicianDistance';
 import { findConflictingOrder, isTechnicianAvailable } from '../lib/technicianSchedule';
 import { bestEligibleTechnician, countTechniciansInZone, sortTechniciansSuggested } from '../lib/technicianRanking';
 import { BusinessLeadsPanel } from '../components/admin/BusinessLeadsPanel';
+import { AiProvidersPanel } from '../components/admin/AiProvidersPanel';
 import {
   AppointmentBlock,
   OrderPriority,
@@ -2400,6 +2401,7 @@ export const AdminHubView: React.FC = () => {
 
         {activeTab === 'contracts' && <TechnicianContractPanel />}
         {activeTab === 'leads' && <BusinessLeadsPanel />}
+        {activeTab === 'ai' && <AiProvidersPanel />}
 
         {activeTab === 'settlements' && (
           <SettlementsHub onQueueChange={() => void refreshPayoutQueue()} />

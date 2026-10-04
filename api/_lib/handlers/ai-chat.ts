@@ -2,7 +2,8 @@ import { createHash } from 'node:crypto';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { supabaseAdmin } from '../supabaseAdmin.js';
 import { sendTelegramMessage } from '../telegram.js';
-import { askProviders, configuredProviders, type ChatMessage } from '../aiChat/providers.js';
+import { askProviders, type ChatMessage } from '../aiChat/providers.js';
+import { loadProviders } from '../aiChat/providerStore.js';
 import { detectSafety, wantsHuman } from '../aiChat/safety.js';
 import { buildSystemPrompt } from '../aiChat/knowledge.js';
 
@@ -69,7 +70,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // 2) Pide una persona: WhatsApp, sin IA.
   if (wantsHuman(last.content)) return reply(res, 'handoff', FIXED.handoff);
 
-  const providers = configuredProviders();
+  const providers = await loadProviders();
   if (providers.length === 0) return reply(res, 'unavailable', FIXED.unavailable);
 
   // 3) Límites de uso (cupo gratuito).

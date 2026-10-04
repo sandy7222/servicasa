@@ -15,10 +15,8 @@ vi.mock('../supabaseAdmin.js', () => ({
   },
 }));
 vi.mock('../telegram.js', () => ({ sendTelegramMessage: mocks.telegram }));
-vi.mock('../aiChat/providers.js', () => ({
-  askProviders: mocks.ask,
-  configuredProviders: mocks.providers,
-}));
+vi.mock('../aiChat/providers.js', () => ({ askProviders: mocks.ask }));
+vi.mock('../aiChat/providerStore.js', () => ({ loadProviders: async () => mocks.providers() }));
 
 import handler from './ai-chat';
 

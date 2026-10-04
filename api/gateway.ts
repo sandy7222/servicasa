@@ -7,6 +7,7 @@ import retryDraft from './_lib/handlers/retry-draft.js';
 import geocodeWorkZone from './_lib/handlers/geocode-work-zone.js';
 import aiChat from './_lib/handlers/ai-chat.js';
 import adminEvent from './_lib/handlers/admin-event.js';
+import aiAdmin from './_lib/handlers/ai-admin.js';
 
 type Handler = (req: VercelRequest, res: VercelResponse) => unknown;
 
@@ -34,6 +35,7 @@ const ROUTES = new Map<string, Handler>([
   ['geocode-work-zone', geocodeWorkZone],
   ['ai-chat', aiChat],
   ['admin-event', adminEvent],
+  ['ai-admin', aiAdmin],
 ]);
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
