@@ -26,3 +26,6 @@ src/assets/landing/source/
 # (ANDROID_KEYSTORE_BASE64), nunca en el repo. Ver docs/android-twa-setup.md.
 twa/*.keystore
 twa/*.jks
+
+# Prueba de concepto de Mercado Pago (token de cuenta de prueba)
+.mp-poc-state.json

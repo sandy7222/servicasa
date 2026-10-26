@@ -31,9 +31,13 @@ const ComingSoonBadge: React.FC = () => (
 
 export const DownloadAppSection: React.FC = () => {
   const [platform, setPlatform] = useState<Platform>('unknown');
+  const [showIosGuide, setShowIosGuide] = useState(false);
 
   useEffect(() => {
-    setPlatform(detectPlatform());
+    const detected = detectPlatform();
+    setPlatform(detected);
+    // En un iPhone la guía ya aparece abierta: es lo único que necesita para instalarla.
+    if (detected === 'ios') setShowIosGuide(true);
   }, []);
 
   const storeButtons = (
@@ -54,6 +58,19 @@ export const DownloadAppSection: React.FC = () => {
             >
               {btn.label}
             </a>
+          ) : btn.key === 'ios' ? (
+            // Sin app en la App Store (Apple pide cuenta de desarrollador paga): en iPhone se
+            // instala la web desde Safari, que ya está preparada (ícono, nombre, pantalla completa).
+            <button
+              key={btn.key}
+              type="button"
+              aria-expanded={showIosGuide}
+              aria-controls="ios-install-guide"
+              onClick={() => setShowIosGuide((open) => !open)}
+              className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-teal-400 hover:bg-teal-300 text-[#00203d] font-bold text-sm transition-colors duration-200"
+            >
+              Instalar en iPhone
+            </button>
           ) : (
             <button
               key={btn.key}
@@ -66,6 +83,17 @@ export const DownloadAppSection: React.FC = () => {
             </button>
           )
         )}
+      {showIosGuide && (
+        <div id="ios-install-guide" className="basis-full rounded-xl bg-white/[0.07] border border-white/15 p-4 text-sm text-blue-50">
+          <p className="font-bold text-white">Cómo instalarla en tu iPhone</p>
+          <ol className="mt-2 list-decimal list-inside space-y-1.5">
+            <li>Abrí <strong>tecniurbano.online</strong> en <strong>Safari</strong> (no en Chrome).</li>
+            <li>Tocá el botón <strong>Compartir</strong> (el cuadrado con la flecha hacia arriba).</li>
+            <li>Elegí <strong>&ldquo;Agregar a pantalla de inicio&rdquo;</strong> y confirmá.</li>
+          </ol>
+          <p className="mt-2 text-xs text-blue-100/70">Queda como una app más, con su ícono y a pantalla completa.</p>
+        </div>
+      )}
     </div>
   );
 
