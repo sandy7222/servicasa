@@ -3500,6 +3500,11 @@ export type Database = {
         Args: { p_order_id: string; p_response: string }
         Returns: undefined
       }
+      register_push_subscription: {
+        Args: { p_auth: string; p_endpoint: string; p_p256dh: string; p_user_agent?: string }
+        Returns: string
+      }
+      remove_push_subscription: { Args: { p_endpoint: string }; Returns: undefined }
       run_scheduled_settlement_release: { Args: never; Returns: undefined }
       self_register_technician:
         | {

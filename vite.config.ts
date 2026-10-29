@@ -29,6 +29,8 @@ export default defineConfig(() => {
           ],
         },
         workbox: {
+          // Avisos push: este archivo (public/push-handler.js) recibe y muestra las notificaciones.
+          importScripts: ['push-handler.js'],
           globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff2}'],
           maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
           // Android verifies this exact JSON endpoint. It must bypass the SPA

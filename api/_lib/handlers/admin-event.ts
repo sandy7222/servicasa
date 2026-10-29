@@ -3,10 +3,11 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { supabaseAdmin } from '../supabaseAdmin.js';
 import { sendTelegramMessage } from '../telegram.js';
 import { clean } from '../visitPaidAlert.js';
+import { sendPushForNotification } from '../webPush.js';
 
-type Kind = 'technician_registered' | 'technician_documents' | 'customer_registered';
+type Kind = 'technician_registered' | 'technician_documents' | 'customer_registered' | 'push_notification';
 
-const KINDS: Kind[] = ['technician_registered', 'technician_documents', 'customer_registered'];
+const KINDS: Kind[] = ['technician_registered', 'technician_documents', 'customer_registered', 'push_notification'];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Varios archivos subidos seguidos = un solo aviso. */
@@ -164,6 +165,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     if (kind === 'technician_registered') await onTechnicianRegistered(entityId);
     else if (kind === 'technician_documents') await onTechnicianDocuments(entityId);
+    // Aviso push al celular de quien recibe una notificación (entityId = id de la notificación).
+    else if (kind === 'push_notification') await sendPushForNotification(entityId);
     else await onCustomerRegistered(entityId);
   } catch (err) {
     console.error('[admin-event] error inesperado', err instanceof Error ? err.name : 'desconocido');

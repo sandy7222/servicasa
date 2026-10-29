@@ -23,6 +23,7 @@ import { CurrentUserData } from '../types';
 import { VisitFeeSettings } from '../components/admin/VisitFeeSettings';
 import { SystemSettingsPanel } from '../components/admin/SystemSettingsPanel';
 import { DEMO_MODE } from '../lib/featureFlags';
+import { PushOptIn } from '../components/common/PushOptIn';
 
 export const SettingsView: React.FC = () => {
   const { currentUser, setCurrentUser, navigate, resetDemoData, orders, materials, customers, technicians, usingRemoteData, refreshRemoteData, dataLoading, remoteBusy } =
@@ -115,6 +116,9 @@ export const SettingsView: React.FC = () => {
             )}
           </div>
         </div>
+
+        {/* Avisos push al celular (plan-notificaciones-push.md): para todos los roles. */}
+        <PushOptIn />
 
         {currentUser.role === 'technician' && (
         <div className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-700 shadow-xs space-y-1">
