@@ -10,7 +10,7 @@ type AcceptTermsBody = {
 };
 
 const VALID_ROLES = ['cliente', 'tecnico'] as const;
-const VALID_SLUGS = ['terminos_cliente', 'terminos_tecnico'] as const;
+const VALID_SLUGS = ['terminos_cliente', 'terminos_tecnico', 'politica_privacidad'] as const;
 
 /**
  * Registra la aceptación de Términos y Condiciones (cliente o técnico) como
@@ -70,6 +70,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     user_agent: userAgent,
   });
   if (insertError) {
+    // La Política de Privacidad se guarda en modo mejor esfuerzo: si la base todavía no admite ese
+    // documento (migración 20261104000000 sin aplicar) NO se frena el registro, solo se omite esa fila.
+    if (documentSlug === 'politica_privacidad') {
+      console.error('[legal/accept-terms] No se pudo registrar la privacidad', insertError.message);
+      return res.status(200).json({ ok: true, recorded: false });
+    }
     console.error('[legal/accept-terms] Error insertando aceptación', insertError);
     return res.status(500).json({ error: 'No se pudo registrar la aceptación.' });
   }

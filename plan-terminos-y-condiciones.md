@@ -93,3 +93,10 @@ corresponden al documento de cliente o al de técnico.
 
 Verificación: `tsc --noEmit` limpio, `git diff -b --stat` confirmó 6 hunks para las 3 ediciones
 en cada uno de los 2 archivos tocados (`AppContext.tsx`, `AuthView.tsx`), sin drift ajeno.
+
+## 6. Política de Privacidad en la casilla de aceptación (4/11/2026)
+- La casilla del registro (cliente, técnico, invitación y pago de invitados) ahora dice "Leí y acepto los Términos y Condiciones ... y la Política de Privacidad", con los dos enlaces.
+- Se registra también la aceptación de la privacidad (`document_slug = politica_privacidad`, con versión y hash del texto) en `legal_acceptances` / `guest_legal_acceptances`. Es **mejor esfuerzo**: si falla, el registro sigue (los Términos siguen siendo imprescindibles).
+- Requiere la migración `20261104000000_legal_acceptances_privacy_policy.sql` (sin ella, la fila de privacidad simplemente no se guarda).
+- Se corrigió un error previo: los enlaces a los Términos en la pantalla de registro no tenían `#` y daban 404 en producción.
+- Sigue pendiente: re-aceptación cuando cambian los textos, política de reembolsos/cancelaciones y revisión de un abogado.

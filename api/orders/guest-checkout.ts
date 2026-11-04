@@ -27,6 +27,8 @@ type GuestCheckoutBody = {
   photoStoragePath?: string;
   acceptedTermsVersion?: string;
   acceptedTermsHash?: string;
+  acceptedPrivacyVersion?: string;
+  acceptedPrivacyHash?: string;
 };
 
 const MAX_TEXT = 500;
@@ -81,6 +83,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const photoStoragePath = PENDING_PHOTO_PATH_RE.test(requestedPhotoPath) ? requestedPhotoPath : null;
   const acceptedTermsVersion = trimmed(body.acceptedTermsVersion, 40);
   const acceptedTermsHash = trimmed(body.acceptedTermsHash, 64).toLowerCase();
+  const acceptedPrivacyVersion = trimmed(body.acceptedPrivacyVersion, 40);
+  const acceptedPrivacyHash = trimmed(body.acceptedPrivacyHash, 64).toLowerCase();
 
   if (!fullName || !EMAIL_RE.test(email) || !phone || !address || !city || !province || !title || !description) {
     return res.status(400).json({ error: 'Completá todos los campos obligatorios con datos válidos.' });
@@ -203,6 +207,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.error('[orders/guest-checkout] Error registrando T&C', termsError);
     await supabaseAdmin.from('guest_checkout_drafts').update({ status: 'cancelled' }).eq('id', draft.id);
     return res.status(500).json({ error: 'No se pudo registrar la aceptación de los Términos.' });
+  }
+
+  // Política de Privacidad aceptada con la misma casilla: mejor esfuerzo, NUNCA frena el pago.
+  if (acceptedPrivacyVersion && /^[0-9a-f]{64}$/.test(acceptedPrivacyHash)) {
+    try {
+      const { error: privacyError } = await supabaseAdmin.from('guest_legal_acceptances').insert({
+        email,
+        document_slug: 'politica_privacidad',
+        document_version: acceptedPrivacyVersion,
+        document_hash: acceptedPrivacyHash,
+        ip_address: ipAddress,
+        user_agent: userAgent,
+        draft_id: draft.id,
+      });
+      if (privacyError) console.error('[orders/guest-checkout] No se pudo registrar la privacidad', privacyError.message);
+    } catch (err) {
+      console.error('[orders/guest-checkout] Error registrando la privacidad', err instanceof Error ? err.name : 'desconocido');
+    }
   }
 
   const origin = `https://${req.headers.host}`;

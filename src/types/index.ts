@@ -358,6 +358,9 @@ export type GuestServiceRequestInput = CustomerServiceRequestInput & {
   phone: string;
   acceptedTermsVersion: string;
   acceptedTermsHash: string;
+  /** Política de Privacidad aceptada con la misma casilla; opcional (se guarda en modo mejor esfuerzo). */
+  acceptedPrivacyVersion?: string;
+  acceptedPrivacyHash?: string;
 };
 
 export interface Technician {

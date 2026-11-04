@@ -447,12 +447,21 @@ export const AuthView: React.FC = () => {
               <span>
                 Leí y acepto los{' '}
                 <a
-                  href={invite?.kind === 'technician' ? '/terminos_y_condiciones/tecnico' : '/terminos_y_condiciones/cliente'}
+                  href={invite?.kind === 'technician' ? '/#/terminos_y_condiciones/tecnico' : '/#/terminos_y_condiciones/cliente'}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="font-semibold text-teal-700 hover:text-teal-600 underline"
                 >
                   Términos y Condiciones para {roleLabel === 'técnico' ? 'técnicos' : 'clientes'}
+                </a>{' '}
+                y la{' '}
+                <a
+                  href="/#/politica-de-privacidad"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold text-teal-700 hover:text-teal-600 underline"
+                >
+                  Política de Privacidad
                 </a>{' '}
                 de TecniUrbano.
               </span>
@@ -801,12 +810,21 @@ export const AuthView: React.FC = () => {
                 <span>
                   Leí y acepto los{' '}
                   <a
-                    href="/terminos_y_condiciones/cliente"
+                    href="/#/terminos_y_condiciones/cliente"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="font-semibold text-teal-700 hover:text-teal-600 underline"
                   >
                     Términos y Condiciones para clientes
+                  </a>{' '}
+                  y la{' '}
+                  <a
+                    href="/#/politica-de-privacidad"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-semibold text-teal-700 hover:text-teal-600 underline"
+                  >
+                    Política de Privacidad
                   </a>{' '}
                   de TecniUrbano.
                 </span>
@@ -996,12 +1014,21 @@ export const AuthView: React.FC = () => {
                 <span>
                   Leí y acepto los{' '}
                   <a
-                    href="/terminos_y_condiciones/tecnico"
+                    href="/#/terminos_y_condiciones/tecnico"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="font-semibold text-teal-700 hover:text-teal-600 underline"
                   >
                     Términos y Condiciones para técnicos
+                  </a>{' '}
+                  y la{' '}
+                  <a
+                    href="/#/politica-de-privacidad"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-semibold text-teal-700 hover:text-teal-600 underline"
+                  >
+                    Política de Privacidad
                   </a>{' '}
                   de TecniUrbano.
                 </span>

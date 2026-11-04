@@ -1,3 +1,4 @@
+import { PRIVACY_POLICY_TEXT, PRIVACY_POLICY_VERSION } from './legalTerms';
 // Evidencia técnica de aceptación de Términos y Condiciones (charla con
 // Sandy, 12/9): hash SHA-256 del texto exacto mostrado + versión, más una
 // llamada al endpoint server-side (api/legal/accept-terms.ts) que agrega IP
@@ -16,7 +17,7 @@ export async function sha256Hex(text: string): Promise<string> {
 }
 
 export type TermsRole = 'cliente' | 'tecnico';
-export type TermsDocumentSlug = 'terminos_cliente' | 'terminos_tecnico';
+export type TermsDocumentSlug = 'terminos_cliente' | 'terminos_tecnico' | 'politica_privacidad';
 
 /**
  * Se llama desde registerCustomer/registerTechnician (AppContext.tsx) justo
@@ -47,5 +48,33 @@ export async function recordTermsAcceptance(params: {
   });
   if (!res.ok) {
     throw new Error('No se pudo registrar la aceptación de los Términos y Condiciones.');
+  }
+  // La privacidad viaja con la misma casilla (ver recordPrivacyAcceptance: mejor esfuerzo).
+  if (params.documentSlug !== 'politica_privacidad') {
+    await recordPrivacyAcceptance({ userId: params.userId, role: params.role });
+  }
+}
+
+/**
+ * Política de Privacidad aceptada con la misma casilla que los Términos. A diferencia de los
+ * Términos, es "mejor esfuerzo": nunca lanza ni frena el registro (la base la admite recién
+ * con la migración 20261104000000; hasta entonces el servidor responde ok sin guardarla).
+ */
+export async function recordPrivacyAcceptance(params: { userId: string; role: TermsRole }): Promise<void> {
+  try {
+    const documentHash = await sha256Hex(PRIVACY_POLICY_TEXT);
+    await fetch('/api/legal/accept-terms', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: params.userId,
+        role: params.role,
+        documentSlug: 'politica_privacidad',
+        documentVersion: PRIVACY_POLICY_VERSION,
+        documentHash,
+      }),
+    });
+  } catch {
+    /* mejor esfuerzo */
   }
 }

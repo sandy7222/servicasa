@@ -10,7 +10,7 @@ import { AddressFields, type AddressFieldsValue } from '../common/AddressFields'
 import { ASSISTANT_DRAFT_EVENT, readAssistantDraft, clearAssistantDraft } from '../../lib/diagnosisDraft';
 import type { AssistantDraft } from '../../lib/diagnosisAssistant';
 import type { OrderPriority, ServiceItem, ServiceType, WorkMode } from '../../types';
-import { TERMS_CLIENTE_TEXT, TERMS_CLIENTE_VERSION } from '../../lib/legalTerms';
+import { PRIVACY_POLICY_TEXT, PRIVACY_POLICY_VERSION, TERMS_CLIENTE_TEXT, TERMS_CLIENTE_VERSION } from '../../lib/legalTerms';
 import { sha256Hex } from '../../lib/legalAcceptance';
 
 const DATE_TODAY = new Date().toISOString().slice(0, 10);
@@ -164,6 +164,8 @@ export const GuestServiceRequestForm: React.FC = () => {
         photoStoragePath,
         acceptedTermsVersion: TERMS_CLIENTE_VERSION,
         acceptedTermsHash,
+        acceptedPrivacyVersion: PRIVACY_POLICY_VERSION,
+        acceptedPrivacyHash: await sha256Hex(PRIVACY_POLICY_TEXT),
       });
       // redirectToGuestPayment navigates away on success — nothing else to do here.
     } catch (error) {
@@ -270,6 +272,10 @@ export const GuestServiceRequestForm: React.FC = () => {
             Leí y acepto los{' '}
             <a href="#/terminos_y_condiciones/cliente" target="_blank" rel="noreferrer" className="font-bold text-teal-700 hover:underline">
               Términos y Condiciones para clientes
+            </a>{' '}
+            y la{' '}
+            <a href="#/politica-de-privacidad" target="_blank" rel="noreferrer" className="font-bold text-teal-700 hover:underline">
+              Política de Privacidad
             </a>
             .
           </span>
