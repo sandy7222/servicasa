@@ -69,6 +69,14 @@ describe('api legal accept-terms', () => {
     expect((await call()).statusCode).toBe(500);
   });
 
+  it('admite la autorización de cobro de Mercado Pago, pero si falla guardarla devuelve error (es evidencia obligatoria)', async () => {
+    const ok = await call({ role: 'tecnico', documentSlug: 'autorizacion_cobro_mp' });
+    expect(ok.statusCode).toBe(200);
+    expect(m.inserts[0]).toMatchObject({ role: 'tecnico', document_slug: 'autorizacion_cobro_mp' });
+    m.insertError = { message: 'violates check constraint' };
+    expect((await call({ role: 'tecnico', documentSlug: 'autorizacion_cobro_mp' })).statusCode).toBe(500);
+  });
+
   it('si falla guardar la PRIVACIDAD (por ejemplo, migración sin aplicar), responde ok y no frena el registro', async () => {
     m.insertError = { message: 'violates check constraint legal_acceptances_document_slug_check' };
     const res = await call({ documentSlug: 'politica_privacidad' });

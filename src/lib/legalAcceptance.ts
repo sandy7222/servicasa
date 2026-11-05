@@ -1,4 +1,4 @@
-import { PRIVACY_POLICY_TEXT, PRIVACY_POLICY_VERSION } from './legalTerms';
+import { MP_COLLECTION_AUTH_TEXT, MP_COLLECTION_AUTH_VERSION, PRIVACY_POLICY_TEXT, PRIVACY_POLICY_VERSION } from './legalTerms';
 // Evidencia técnica de aceptación de Términos y Condiciones (charla con
 // Sandy, 12/9): hash SHA-256 del texto exacto mostrado + versión, más una
 // llamada al endpoint server-side (api/legal/accept-terms.ts) que agrega IP
@@ -17,7 +17,28 @@ export async function sha256Hex(text: string): Promise<string> {
 }
 
 export type TermsRole = 'cliente' | 'tecnico';
-export type TermsDocumentSlug = 'terminos_cliente' | 'terminos_tecnico' | 'politica_privacidad';
+export type TermsDocumentSlug = 'terminos_cliente' | 'terminos_tecnico' | 'politica_privacidad' | 'autorizacion_cobro_mp';
+
+/**
+ * Autorización de cobro en nombre del técnico (casilla al vincular Mercado Pago). Reutiliza el endpoint de
+ * aceptaciones pero, a diferencia de los Términos, NO arrastra la Política de Privacidad. Si falla, lanza:
+ * sin esta evidencia no se debe iniciar la vinculación.
+ */
+export async function recordMpCollectionAuthorization(params: { userId: string }): Promise<void> {
+  const documentHash = await sha256Hex(MP_COLLECTION_AUTH_TEXT);
+  const res = await fetch('/api/legal/accept-terms', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      userId: params.userId,
+      role: 'tecnico',
+      documentSlug: 'autorizacion_cobro_mp',
+      documentVersion: MP_COLLECTION_AUTH_VERSION,
+      documentHash,
+    }),
+  });
+  if (!res.ok) throw new Error('No se pudo registrar tu autorización. Probá de nuevo.');
+}
 
 /**
  * Se llama desde registerCustomer/registerTechnician (AppContext.tsx) justo

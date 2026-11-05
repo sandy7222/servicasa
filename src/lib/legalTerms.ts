@@ -18,6 +18,13 @@
 // abogado (ver charla del 12/9 sobre responsabilidad frente al consumidor —
 // Art. 40 Ley 24.240 — y la calificación laboral del vínculo con el técnico).
 
+// Casilla que el técnico tilda al vincular su cuenta de Mercado Pago (cláusula X del borrador
+// docs/borrador-clausula-cobros-tecnicos.md, plan-cobro-repartido.md Fase 1). Se hashea y se registra en
+// legal_acceptances con el slug 'autorizacion_cobro_mp'. Borrador: falta la revisión de un abogado.
+export const MP_COLLECTION_AUTH_VERSION = '2026-11-05';
+export const MP_COLLECTION_AUTH_TEXT =
+  'Autorizo a TecniUrbano a cobrar en mi nombre los trabajos que realice por la Plataforma y a descontar su comisión, según la cláusula X de los Términos y Condiciones para técnicos. Sé que puedo revocar esta autorización desde mi cuenta de Mercado Pago.';
+
 export const TERMS_CLIENTE_VERSION = '2026-09-12';
 export const TERMS_TECNICO_VERSION = '2026-09-12';
 

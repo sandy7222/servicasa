@@ -26,6 +26,7 @@ export function TechnicianReviewCard({ technicianId, onClose, onChanged }: { tec
   const [docs, setDocs] = useState<DocumentRow[]>([]);
   const [licenses, setLicenses] = useState<License[]>([]);
   const [account, setAccount] = useState<Account | null>(null);
+  const [mpLinked, setMpLinked] = useState<boolean | null>(null);
   const [decisionNote, setDecisionNote] = useState('');
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState<string | null>(null);
@@ -56,6 +57,9 @@ export function TechnicianReviewCard({ technicianId, onClose, onChanged }: { tec
     setDocs((d.data ?? []) as DocumentRow[]);
     setLicenses((l.data ?? []) as License[]);
     setAccount(a.data as Account | null);
+    // Vinculación de Mercado Pago (solo estado, nunca tokens). Si la migración aún no se aplicó: "sin datos".
+    const mp = await supabase.rpc('mp_account_status_admin', { p_technician_id: technicianId });
+    setMpLinked(mp.error ? null : Boolean(mp.data?.[0]?.linked));
     setLoading(false);
   };
   useEffect(() => { void load(); }, [technicianId]);
@@ -318,6 +322,7 @@ export function TechnicianReviewCard({ technicianId, onClose, onChanged }: { tec
         <h3 className="mb-2 text-sm font-bold">Documentos privados</h3>
         {docs.length ? docs.map((d) => <button key={d.id} onClick={() => void openDocument(d.storage_path)} className="block w-full rounded p-2 text-left hover:bg-slate-50 dark:hover:bg-slate-800"><FileText className="mr-1 inline w-4 text-teal-600" />{d.label} · {d.validation_status}</button>) : <p className="text-slate-500 dark:text-slate-400">No adjuntó documentos.</p>}
         <p className="mt-2"><Landmark className="mr-1 inline w-4 text-teal-600" />Cuenta: {account ? `${account.provider} · ****${account.cbu_cvu.slice(-4)} · ${account.validation_status}` : 'No cargada'}</p>
+        <p className="mt-1" data-testid="admin-mp-status"><Landmark className="mr-1 inline w-4 text-teal-600" />Mercado Pago: {mpLinked === null ? 'sin datos' : mpLinked ? 'vinculado' : 'no vinculado'}</p>
         <p className="mt-1">Matrículas: {licenses.length ? licenses.map((l) => `${l.issuing_entity} ${l.license_number} (${l.validation_status})`).join(', ') : 'No cargadas'}</p>
       </section>
 

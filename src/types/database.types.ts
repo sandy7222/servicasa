@@ -3456,6 +3456,22 @@ export type Database = {
         Returns: undefined
       }
       is_admin: { Args: never; Returns: boolean }
+      mp_account_status_admin: {
+        Args: { p_technician_id: string }
+        Returns: {
+          expires_at: string | null
+          linked: boolean
+          mp_user_id: string | null
+        }[]
+      }
+      my_mp_account_status: {
+        Args: never
+        Returns: {
+          expires_at: string | null
+          linked: boolean
+          mp_user_id: string | null
+        }[]
+      }
       is_conversation_participant: {
         Args: { p_conversation_id: string }
         Returns: boolean

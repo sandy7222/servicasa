@@ -10,7 +10,7 @@ type AcceptTermsBody = {
 };
 
 const VALID_ROLES = ['cliente', 'tecnico'] as const;
-const VALID_SLUGS = ['terminos_cliente', 'terminos_tecnico', 'politica_privacidad'] as const;
+const VALID_SLUGS = ['terminos_cliente', 'terminos_tecnico', 'politica_privacidad', 'autorizacion_cobro_mp'] as const;
 
 /**
  * Registra la aceptación de Términos y Condiciones (cliente o técnico) como

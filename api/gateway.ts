@@ -8,6 +8,9 @@ import geocodeWorkZone from './_lib/handlers/geocode-work-zone.js';
 import aiChat from './_lib/handlers/ai-chat.js';
 import adminEvent from './_lib/handlers/admin-event.js';
 import aiAdmin from './_lib/handlers/ai-admin.js';
+import mpOauthStart from './_lib/handlers/mp-oauth-start.js';
+import mpOauthCallback from './_lib/handlers/mp-oauth-callback.js';
+import mpOauthUnlink from './_lib/handlers/mp-oauth-unlink.js';
 
 type Handler = (req: VercelRequest, res: VercelResponse) => unknown;
 
@@ -36,6 +39,9 @@ const ROUTES = new Map<string, Handler>([
   ['ai-chat', aiChat],
   ['admin-event', adminEvent],
   ['ai-admin', aiAdmin],
+  ['mp-oauth-start', mpOauthStart],
+  ['mp-oauth-callback', mpOauthCallback],
+  ['mp-oauth-unlink', mpOauthUnlink],
 ]);
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {

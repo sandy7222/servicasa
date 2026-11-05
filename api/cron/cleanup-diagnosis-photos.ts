@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { supabaseAdmin } from '../_lib/supabaseAdmin.js';
+import { purgeOldStates, renewExpiringAccounts } from '../_lib/mpOauth.js';
 
 const RETENTION_DAYS = 30;
 
@@ -26,6 +27,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(401).json({ error: 'No autorizado.' });
   }
 
+  let result: CleanupResult;
+  try {
+    result = await cleanupDiagnosisPhotos();
+  } catch (err) {
+    console.error('[cron/cleanup-diagnosis-photos] error inesperado en la limpieza', err instanceof Error ? err.name : 'desconocido');
+    result = { status: 500, body: { error: 'Falló la limpieza de fotos.' } };
+  }
+
+  // Paso extra, aislado: renovar los tokens de Mercado Pago de los técnicos que vencen pronto
+  // (plan-cobro-repartido.md, Fase 1.5). Va en este cron para no sumar una función (límite de Vercel Hobby).
+  // Un fallo acá NO afecta la limpieza de arriba ni su respuesta.
+  let mpRenewal: unknown = null;
+  try {
+    mpRenewal = await renewExpiringAccounts();
+    await purgeOldStates();
+  } catch (err) {
+    console.error('[cron/cleanup-diagnosis-photos] falló la renovación de Mercado Pago', err instanceof Error ? err.name : 'desconocido');
+  }
+
+  return res.status(result.status).json({ ...result.body, mpRenewal });
+}
+
+type CleanupResult = { status: number; body: Record<string, unknown> };
+
+async function cleanupDiagnosisPhotos(): Promise<CleanupResult> {
   const cutoff = new Date(Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString();
 
   const { data: eligibleOrders, error: ordersError } = await supabaseAdmin
@@ -35,11 +61,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .lte('completed_at', cutoff);
   if (ordersError) {
     console.error('[cron/cleanup-diagnosis-photos] Error buscando órdenes completadas', ordersError);
-    return res.status(500).json({ error: 'No se pudo buscar órdenes completadas.' });
+    return { status: 500, body: { error: 'No se pudo buscar órdenes completadas.' } };
   }
   const orderIds = (eligibleOrders ?? []).map((o) => o.id as string);
   if (orderIds.length === 0) {
-    return res.status(200).json({ deleted: 0 });
+    return { status: 200, body: { deleted: 0 } };
   }
 
   const { data: photos, error: photosError } = await supabaseAdmin
@@ -48,10 +74,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .in('order_id', orderIds);
   if (photosError) {
     console.error('[cron/cleanup-diagnosis-photos] Error buscando fotos', photosError);
-    return res.status(500).json({ error: 'No se pudo buscar fotos.' });
+    return { status: 500, body: { error: 'No se pudo buscar fotos.' } };
   }
   if (!photos || photos.length === 0) {
-    return res.status(200).json({ deleted: 0 });
+    return { status: 200, body: { deleted: 0 } };
   }
 
   const { data: openCases, error: casesError } = await supabaseAdmin
@@ -61,13 +87,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .neq('status', 'closed');
   if (casesError) {
     console.error('[cron/cleanup-diagnosis-photos] Error buscando reclamos abiertos', casesError);
-    return res.status(500).json({ error: 'No se pudo verificar reclamos abiertos.' });
+    return { status: 500, body: { error: 'No se pudo verificar reclamos abiertos.' } };
   }
   const ordersWithOpenCase = new Set((openCases ?? []).map((c) => c.order_id as string));
 
   const deletable = photos.filter((photo) => !ordersWithOpenCase.has(photo.order_id as string));
   if (deletable.length === 0) {
-    return res.status(200).json({ deleted: 0 });
+    return { status: 200, body: { deleted: 0 } };
   }
 
   const { error: removeError } = await supabaseAdmin.storage
@@ -75,7 +101,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .remove(deletable.map((photo) => photo.storage_path as string));
   if (removeError) {
     console.error('[cron/cleanup-diagnosis-photos] Error borrando archivos', removeError);
-    return res.status(500).json({ error: 'No se pudo borrar los archivos.' });
+    return { status: 500, body: { error: 'No se pudo borrar los archivos.' } };
   }
 
   const { error: deleteRowsError } = await supabaseAdmin
@@ -84,8 +110,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .in('id', deletable.map((photo) => photo.id as string));
   if (deleteRowsError) {
     console.error('[cron/cleanup-diagnosis-photos] Error borrando filas', deleteRowsError);
-    return res.status(500).json({ error: 'No se pudo borrar los registros.' });
+    return { status: 500, body: { error: 'No se pudo borrar los registros.' } };
   }
 
-  return res.status(200).json({ deleted: deletable.length });
+  return { status: 200, body: { deleted: deletable.length } };
 }
