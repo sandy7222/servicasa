@@ -15,11 +15,17 @@
  *
  * Uso:
  *   node scripts/mp-split-poc.mjs auth-url
- *   node scripts/mp-split-poc.mjs exchange <code>
+ *   node scripts/mp-split-poc.mjs exchange <code> [--test]      (--test = test_token:true, token de sandbox)
  *   node scripts/mp-split-poc.mjs reserve [monto=1000] [comision=100] [tarjeta] [--direct]
  *   node scripts/mp-split-poc.mjs show
  *   node scripts/mp-split-poc.mjs capture
  *   node scripts/mp-split-poc.mjs cancel
+ *
+ * API de Payments (la única con application_fee, según soporte de MP 6/11/2026):
+ *   node scripts/mp-split-poc.mjs pay-reserve [monto=1000] [comision=170] [tarjeta] [email]
+ *   node scripts/mp-split-poc.mjs pay-show
+ *   node scripts/mp-split-poc.mjs pay-capture [monto]   (sin monto = captura total)
+ *   node scripts/mp-split-poc.mjs pay-cancel
  *
  * El token del vendedor de prueba queda en .mp-poc-state.json (ignorado por git).
  * Este script no imprime tokens ni claves.
@@ -32,9 +38,14 @@ import { fileURLToPath } from 'node:url';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const STATE_FILE = join(ROOT, '.mp-poc-state.json');
 const API = 'https://api.mercadopago.com';
-const REDIRECT_URI = 'https://tecniurbano.online/oauth-callback';
 // Aplicación con la que se vincula al vendedor: por defecto la de PRUEBA (creada desde la cuenta Marketplace de prueba). MP_POC_APP=real usa la aplicación real.
 const APP_PREFIX = process.env.MP_POC_APP === 'real' ? 'MP_APP' : 'MP_TEST_APP';
+// Desde el 5/11/2026 /oauth-callback es el callback REAL de la app (Fase 1): redirige al instante y el `code`
+// desaparece de la barra. Para el script, la app de PRUEBA usa una ruta que no existe (404) y deja el code visible.
+// Tiene que coincidir con la Redirect URL cargada en esa aplicación de Mercado Pago.
+const REDIRECT_URI =
+  process.env.MP_POC_REDIRECT_URI ||
+  (APP_PREFIX === 'MP_APP' ? 'https://tecniurbano.online/oauth-callback' : 'https://tecniurbano.online/prueba-oauth');
 // Comprador de prueba creado en el panel de Mercado Pago (no es un secreto).
 const DEFAULT_BUYER_EMAIL = 'TESTUSER336183156078157878@testuser.com';
 
@@ -160,19 +171,27 @@ if (command === 'auth-url') {
       grant_type: 'authorization_code',
       code,
       redirect_uri: REDIRECT_URI,
-      test_token: 'false',
+      test_token: flags.includes('--test') ? 'true' : 'false',
     },
   });
   writeState({
+    seller_prev: readState().seller ?? null,
     seller: {
       user_id: data.user_id,
       access_token: data.access_token,
       refresh_token: data.refresh_token,
       public_key: data.public_key,
       expires_in: data.expires_in,
+      test_token: flags.includes('--test'),
     },
   });
-  console.log('✔ Vendedor vinculado.', { user_id: data.user_id, live_mode: data.live_mode, scope: data.scope, expires_in_days: Math.round(data.expires_in / 86400) });
+  console.log('✔ Vendedor vinculado.', {
+    user_id: data.user_id,
+    live_mode: data.live_mode,
+    scope: data.scope,
+    expires_in_days: Math.round(data.expires_in / 86400),
+    token_prefix: String(data.access_token || '').split('-')[0],
+  });
 } else if (command === 'reserve') {
   const mode = flags.includes('--direct') ? 'direct' : 'oauth';
   const state = { ...readState(), mode };
@@ -231,6 +250,60 @@ if (command === 'auth-url') {
       /* el detalle clásico es opcional */
     }
   }
+} else if (command === 'pay-reserve') {
+  const state = readState();
+  const { token, publicKey } = creds({ ...state, mode: 'oauth' });
+  const amount = Number(args[0] ?? 1000);
+  const fee = Number(args[1] ?? 170);
+  const card = CARDS[args[2] ?? 'mastercard'];
+  if (!card) {
+    console.error(`Tarjeta desconocida. Opciones: ${Object.keys(CARDS).join(', ')}`);
+    process.exit(1);
+  }
+  const email = args[3] || process.env.MP_POC_BUYER_EMAIL || 'test_user_3775271222@testuser.com';
+  const cardToken = await mp(`/v1/card_tokens?public_key=${publicKey}`, {
+    method: 'POST',
+    body: {
+      card_number: card.number,
+      security_code: card.cvv,
+      expiration_month: 11,
+      expiration_year: 2030,
+      cardholder: { name: 'APRO', identification: { type: 'DNI', number: '12345678' } },
+    },
+  });
+  const externalReference = `poc-pay-${Date.now()}`;
+  const payment = await mp('/v1/payments', {
+    method: 'POST',
+    token,
+    idempotent: true,
+    body: {
+      transaction_amount: amount,
+      token: cardToken.id,
+      installments: 1,
+      payment_method_id: card.method,
+      description: 'Prueba split TecniUrbano',
+      payer: { email },
+      capture: false,
+      ...(fee > 0 ? { application_fee: fee } : {}),
+      external_reference: externalReference,
+    },
+  });
+  writeState({ paymentId: payment.id, externalReference });
+  console.log('Reserva (Payments) creada:', JSON.stringify((await classicPayments(token, externalReference))[0] ?? { id: payment.id, status: payment.status }, null, 1));
+} else if (command === 'pay-show' || command === 'pay-capture' || command === 'pay-cancel') {
+  const state = readState();
+  if (!state.paymentId) {
+    console.error('Primero creá una reserva (pay-reserve).');
+    process.exit(1);
+  }
+  const { token } = creds({ ...state, mode: 'oauth' });
+  if (command === 'pay-capture') {
+    const body = { capture: true, ...(args[0] ? { transaction_amount: Number(args[0]) } : {}) };
+    await mp(`/v1/payments/${state.paymentId}`, { method: 'PUT', token, idempotent: true, body });
+  } else if (command === 'pay-cancel') {
+    await mp(`/v1/payments/${state.paymentId}`, { method: 'PUT', token, idempotent: true, body: { status: 'cancelled' } });
+  }
+  console.log(`${command}:`, JSON.stringify(await classicPayments(token, state.externalReference), null, 1));
 } else {
-  console.log('Comandos: auth-url | exchange <code> | reserve [monto] [comision] [tarjeta] [--direct] | show | capture | cancel');
+  console.log('Comandos: auth-url | exchange <code> [--test] | reserve | show | capture | cancel | pay-reserve [monto] [comision] [tarjeta] [email] | pay-show | pay-capture [monto] | pay-cancel');
 }

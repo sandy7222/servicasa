@@ -29,10 +29,20 @@
 ---
 
 ## 🔒 Fase 0 — Validación con Mercado Pago (compuerta)
-- [ ] 0.1 👤 Respuesta de soporte de MP a: (a) ¿`application_fee` funciona con `capture:false` y captura posterior?; (b) ¿Split 1:1 admite tarjeta?; (c) ¿hay que declarar algo para operar como marketplace?
+> ✅ **6/11/2026 — VALIDADO EN SANDBOX.** Clave (dato de soporte MP): el token OAuth del vendedor de prueba se pide con **`test_token=true`** en `/oauth/token`, desde la app creada en la cuenta Marketplace de prueba (`tecniurbano-prueba`, Redirect URL extra `https://tecniurbano.online/prueba-oauth` solo para el script). Con eso `/v1/payments` funciona. Resultados (`scripts/mp-split-poc.mjs pay-*`, tarjeta de prueba Mastercard, $1000, `application_fee` 170):
+> - Reserva `capture:false` → `authorized / pending_capture`. Mientras está reservada, `fee_details` viene vacío (la comisión todavía no se ve).
+> - **Captura total** → `approved / accredited`; `fee_details`: `mercadopago_fee` 41 + `application_fee` 170, ambas pagadas por el técnico (`collector`); neto del técnico **789**. ✅
+> - **Captura parcial** de 600 sin tocar la comisión → la comisión queda en **170 fija** (no se prorratea); neto 405,40. ⚠️ Si se captura menos, hay que mandar el nuevo `application_fee` en el mismo `PUT`.
+> - **Captura parcial con `application_fee` ajustado** (`PUT {capture:true, transaction_amount:600, application_fee:102}`) → comisión 102, neto 473,40. ✅
+> - **Cancelación** (`PUT {status:'cancelled'}`) → `cancelled / by_collector`, nada cobrado. ✅
+> - `money_release_date` = 18 días después: es la configuración de liberación del vendedor, no la nuestra.
+> Falta solo lo que el sandbox no puede mostrar: que en una cuenta REAL la comisión llegue efectivamente al saldo de Sandy (se valida en 5.3 con monto bajo).
+- [x] 0.1 👤 Respuesta de soporte de MP (6/11): `application_fee` es de `/v1/payments` (Orders no tiene equivalente); Split 1:1 admite tarjeta; no hay trámite obligatorio para el modelo estándar; el token de prueba se pide con `test_token=true`.
 - [ ] 0.2 👤 Confirmar que la cuenta de Sandy tiene identificación **KYC nivel 6**.
 - [ ] 0.3 👤🤖 Si soporte no responde: **prueba real con monto bajo** (ej. $200) con OK explícito de Sandy: segunda cuenta REAL de MP como técnico (familiar), tarjeta de otra persona, `/v1/payments` con `capture:false` + `application_fee`, captura total y verificación de `fee_details` y saldos. Se puede hacer con el script de la Fase 1 + un comando nuevo en `scripts/mp-split-poc.mjs` apuntando a la app real (`MP_POC_APP=real`).
+- [x] 0.3 Reemplazado por la prueba en sandbox del 6/11 (ver recuadro). La prueba real de monto bajo queda para 5.3.
 - **Terminado cuando:** está confirmado (por soporte o por la prueba real) que la comisión se descuenta en un pago reservado y capturado. **Si no se confirma, NO se hacen las Fases 2-5**; se evalúa alternativa (cobro sin reserva, o Variante B).
+- **Estado:** ✅ terminado en sandbox (6/11/2026), salvo 0.2 (KYC 6 de Sandy), que hace falta antes de 5.3. **Implicancia para la Fase 3:** al capturar menos que lo reservado, recalcular `application_fee = round(monto_capturado × platform_commission_rate, 2)` y mandarlo en el mismo `PUT`.
 
 ## Fase 1 — Vincular la cuenta de Mercado Pago del técnico (se puede hacer YA, no mueve dinero)
 - [x] 1.1 🤖 Migración `technician_mp_accounts`: `technician_id` (único), `mp_user_id`, `public_key`, `scope`, `access_secret_id` y `refresh_secret_id` (uuid de Vault), `expires_at`, `linked_at`, `revoked_at`. RLS sin políticas; funciones SECURITY DEFINER solo para `service_role` para guardar/leer/borrar (copiar el patrón de `20261004003541_ai_providers.sql`). Una vista o función que el técnico pueda leer solo con `linked`, `mp_user_id` y `expires_at` (nunca tokens).
@@ -56,7 +66,7 @@
 - **Terminado cuando:** con el interruptor encendido en una orden de prueba, una reserva real de monto bajo queda `authorized` y se ve en la cuenta del técnico.
 
 ## 🔒 Fase 3 — Captura, cancelación y vencimiento
-- [ ] 3.1 🤖 Captura (`PUT /v1/payments/{id}` `{capture:true}` con token del técnico) disparada cuando se cumplen **las dos**: firma de conformidad del cliente y cierre del técnico. Idempotente.
+- [ ] 3.1 🤖 Captura (`PUT /v1/payments/{id}` `{capture:true}` con token del técnico) disparada cuando se cumplen **las dos**: firma de conformidad del cliente y cierre del técnico. Idempotente. Si se captura un monto menor, mandar también `transaction_amount` y el `application_fee` recalculado (verificado en sandbox: si no, la comisión queda fija en la original).
 - [ ] 3.2 🤖 Cancelación si la orden se cancela antes de capturar.
 - [ ] 3.3 🤖 Cron diario: reservas con más de [6] días → aplicar la política que decida Sandy (cláusula X.6: capturar o cancelar) y avisar a Sandy por Telegram.
 - [ ] 3.4 🤖 Tests.
@@ -78,3 +88,4 @@
 |---|---|---|
 | 4/11/2026 | Plan escrito. Decisiones: visita como hoy, trabajo con reparto, 17% sin IVA, reserva hasta conformidad. Borrador de cláusula en `docs/`. Fase 0 pendiente de soporte MP. | (este commit) |
 | 5/11/2026 | Fase 1 implementada por un asistente (Sonnet) en una copia aparte, revisada por Claude, migración aplicada a mano en Supabase, variables en Vercel, desplegada (`295e2ee`). Pendiente: vincular una cuenta real de MP para cerrar la fase. Fase 0 sigue esperando a soporte MP. | `295e2ee` |
+| 6/11/2026 | **Fase 0 validada en sandbox** con el dato de soporte MP (`test_token=true`): reserva + captura total/parcial + cancelación con `application_fee` por `/v1/payments`. La comisión se descuenta al capturar; en captura parcial hay que reenviar el `application_fee`. Script `mp-split-poc.mjs` ampliado (`exchange --test`, `pay-reserve/show/capture/cancel`). | (este commit) |
