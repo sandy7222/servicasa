@@ -55,6 +55,7 @@ import { ARGENTINA_PROVINCES } from '../lib/argentina';
 import { formatCustomerCode, formatTechnicianCode } from '../lib/codes';
 import { TechnicianValidation } from '../components/admin/TechnicianValidation';
 import { TechnicianReviewCard } from '../components/admin/TechnicianReviewCard';
+import { SplitReservationCard } from '../components/admin/SplitReservationCard';
 import { persistArchiveOrders } from '../lib/supabaseMutations';
 import { downloadArchivedOrdersExcel } from '../lib/exportOrdersExcel';
 import { TechnicianApplications } from '../components/admin/TechnicianApplications';
@@ -3321,6 +3322,8 @@ export const AdminHubView: React.FC = () => {
                 <p className="mt-1">{selectedOrder.adminIncidentReason}</p>
               </div>
             )}
+
+            <SplitReservationCard orderId={selectedOrder.id} />
 
             <div className="flex items-center justify-between gap-3 rounded-xl border border-teal-200 dark:border-teal-800 bg-teal-50 dark:bg-teal-950/40 px-4 py-3 text-xs">
               <div className="flex items-center gap-2 text-teal-950">

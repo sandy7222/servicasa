@@ -23,7 +23,8 @@
     { "source": "/api/technicians/geocode-work-zone", "destination": "/api/gateway?action=geocode-work-zone" },
     { "source": "/api/ai/chat", "destination": "/api/gateway?action=ai-chat" },
     { "source": "/oauth-callback", "destination": "/api/gateway?action=mp-oauth-callback" },
-    { "source": "/api/payments/work", "destination": "/api/gateway?action=work-payment" }
+    { "source": "/api/payments/work", "destination": "/api/gateway?action=work-payment" },
+    { "source": "/api/payments/split-admin", "destination": "/api/gateway?action=split-admin" }
   ],
   "crons": [
     {

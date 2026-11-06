@@ -4,10 +4,11 @@ import { supabaseAdmin } from '../supabaseAdmin.js';
 import { sendTelegramMessage } from '../telegram.js';
 import { clean } from '../visitPaidAlert.js';
 import { sendPushForNotification } from '../webPush.js';
+import { cancelSplitForOrder, captureSplitForOrder } from '../splitPayment.js';
 
-type Kind = 'technician_registered' | 'technician_documents' | 'customer_registered' | 'push_notification';
+type Kind = 'technician_registered' | 'technician_documents' | 'customer_registered' | 'push_notification' | 'split_capture' | 'split_cancel';
 
-const KINDS: Kind[] = ['technician_registered', 'technician_documents', 'customer_registered', 'push_notification'];
+const KINDS: Kind[] = ['technician_registered', 'technician_documents', 'customer_registered', 'push_notification', 'split_capture', 'split_cancel'];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Varios archivos subidos seguidos = un solo aviso. */
@@ -167,6 +168,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     else if (kind === 'technician_documents') await onTechnicianDocuments(entityId);
     // Aviso push al celular de quien recibe una notificación (entityId = id de la notificación).
     else if (kind === 'push_notification') await sendPushForNotification(entityId);
+    // Cobro repartido, Fase 3 (entityId = id de la orden): la orden se completó o se canceló con una reserva vigente.
+    else if (kind === 'split_capture') await captureSplitForOrder(entityId, 'Orden completada: firma de conformidad y cierre del técnico');
+    else if (kind === 'split_cancel') await cancelSplitForOrder(entityId, 'Orden cancelada');
     else await onCustomerRegistered(entityId);
   } catch (err) {
     console.error('[admin-event] error inesperado', err instanceof Error ? err.name : 'desconocido');

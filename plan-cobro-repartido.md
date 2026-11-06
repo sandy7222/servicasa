@@ -69,10 +69,13 @@
 - **Terminado cuando:** con el interruptor encendido en una orden de prueba, una reserva real de monto bajo queda `authorized` y se ve en la cuenta del técnico.
 
 ## 🔒 Fase 3 — Captura, cancelación y vencimiento
-- [ ] 3.1 🤖 Captura (`PUT /v1/payments/{id}` `{capture:true}` con token del técnico) disparada cuando se cumplen **las dos**: firma de conformidad del cliente y cierre del técnico. Idempotente. Si se captura un monto menor, mandar también `transaction_amount` y el `application_fee` recalculado (verificado en sandbox: si no, la comisión queda fija en la original).
-- [ ] 3.2 🤖 Cancelación si la orden se cancela antes de capturar.
-- [ ] 3.3 🤖 Cron diario: reservas con más de [6] días → aplicar la política que decida Sandy (cláusula X.6: capturar o cancelar) y avisar a Sandy por Telegram.
-- [ ] 3.4 🤖 Tests.
+> **Reglas decididas por Sandy (6/11/2026):** solo se cobra o cancela el **total** (no hay cobro parcial en pantalla). Si el técnico trabajó, cobra, salvo un reclamo abierto ("reclamo duro"). Cancelar o cobrar a mano: solo admin, con motivo. El cron corre una vez por día, así que el aviso es al **día 4** y la acción automática al **día 5** (margen de 1-2 días antes del vencimiento de MP al día 7).
+- [x] 3.1 🤖 Captura (`PUT {capture:true}` con token del técnico) cuando la orden pasa a `completed`. La app no deja cerrar sin la firma de conformidad, así que `completed` = firma + cierre. Trigger `split_payment_order_status` → `notify_admin_event('split_capture')` → `captureSplitForOrder`. Con un reclamo abierto (`support_cases` no resuelto) NO se cobra solo: aviso por Telegram. Idempotente.
+- [x] 3.2 🤖 Cancelación cuando la orden pasa a `cancelled` (`split_cancel`). Si una reserva se cae después de confirmar la orden (cancelada, vencida, devuelta), la orden se revierte una sola vez: resta lo acreditado, queda `balance_pending` y se avisa a Sandy (con alerta especial si la orden ya estaba completada).
+- [x] 3.3 🤖 Cron diario (paso aislado en `cron/cleanup-diagnosis-photos`): respaldo de cobro/cancelación si se perdió el aviso; día 4 aviso único por Telegram; día 5: con reclamo → aviso y decide Sandy; trabajo iniciado (`in_progress`/`paused`) → cobra; sin empezar (`assigned`) → cancela. No depende del interruptor.
+- [x] 3.4 🤖 Panel de admin: tarjeta `SplitReservationCard` en la ficha de la orden (estado, comisión, vencimiento, "Cobrar ahora" / "Cancelar reserva" con motivo obligatorio, queda en `order_events`). Endpoint `split-admin` (solo admin).
+- [x] 3.5 🤖 Tests: 14 de Fase 3 en `work-payment.test.ts` + 4 de `SplitReservationCard.test.tsx`.
+- [ ] 3.6 Migración `20261106160000_split_capture_cancel.sql` (trigger + columnas `split_alerted_at`, `split_action_reason`, `cancelled_at`): **pendiente de aplicar** (el conector de Supabase perdió el permiso el 6/11). Aplicar antes de encender el interruptor.
 
 ## Fase 4 — Liquidaciones y contabilidad
 - [x] 4.1 🤖 Ajustar `create_settlement_on_order_completed_and_paid()` para **no generar transferencia manual** por los pagos repartidos (riesgo 1). Hecho en la migración de la Fase 2. Falta el caso de prueba en `supabase/sql/` igual que el de visitas.
@@ -92,4 +95,5 @@
 | 4/11/2026 | Plan escrito. Decisiones: visita como hoy, trabajo con reparto, 17% sin IVA, reserva hasta conformidad. Borrador de cláusula en `docs/`. Fase 0 pendiente de soporte MP. | (este commit) |
 | 5/11/2026 | Fase 1 implementada por un asistente (Sonnet) en una copia aparte, revisada por Claude, migración aplicada a mano en Supabase, variables en Vercel, desplegada (`295e2ee`). Pendiente: vincular una cuenta real de MP para cerrar la fase. Fase 0 sigue esperando a soporte MP. | `295e2ee` |
 | 6/11/2026 | **Fase 0 validada en sandbox** con el dato de soporte MP (`test_token=true`): reserva + captura total/parcial + cancelación con `application_fee` por `/v1/payments`. La comisión se descuenta al capturar; en captura parcial hay que reenviar el `application_fee`. Script `mp-split-poc.mjs` ampliado (`exchange --test`, `pay-reserve/show/capture/cancel`). | `be75735` |
-| 6/11/2026 | **Fase 2 implementada** detrás del interruptor apagado: migración, endpoint `work-payment`, formulario de tarjeta, webhook, CSP (probada con el Brick real en sandbox) y 4.1 adelantado. Falta aplicar la migración y desplegar. | (este commit) |
+| 6/11/2026 | **Fase 2 implementada** detrás del interruptor apagado: migración, endpoint `work-payment`, formulario de tarjeta, webhook, CSP (probada con el Brick real en sandbox) y 4.1 adelantado. Falta aplicar la migración y desplegar. | `899530c` |
+| 6/11/2026 | **Fase 3 implementada:** cobro al completar, cancelación al cancelar, control diario (día 4 aviso, día 5 acción), reclamo abierto bloquea el cobro automático, panel de admin con motivo. Migración de Fase 2 aplicada; la de Fase 3 pendiente (conector sin permiso). | (este commit) |

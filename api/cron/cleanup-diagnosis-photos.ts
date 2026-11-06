@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { supabaseAdmin } from '../_lib/supabaseAdmin.js';
 import { purgeOldStates, renewExpiringAccounts } from '../_lib/mpOauth.js';
+import { processSplitReservations } from '../_lib/splitPayment.js';
 
 const RETENTION_DAYS = 30;
 
@@ -46,7 +47,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.error('[cron/cleanup-diagnosis-photos] falló la renovación de Mercado Pago', err instanceof Error ? err.name : 'desconocido');
   }
 
-  return res.status(result.status).json({ ...result.body, mpRenewal });
+  // Cobro repartido, Fase 3: resolver las reservas de pago del trabajo (cobrar, cancelar o avisar a Sandy).
+  // Aislado igual que el paso anterior.
+  let splitReservations: unknown = null;
+  try {
+    splitReservations = await processSplitReservations();
+  } catch (err) {
+    console.error('[cron/cleanup-diagnosis-photos] falló el control de reservas', err instanceof Error ? err.name : 'desconocido');
+  }
+
+  return res.status(result.status).json({ ...result.body, mpRenewal, splitReservations });
 }
 
 type CleanupResult = { status: number; body: Record<string, unknown> };

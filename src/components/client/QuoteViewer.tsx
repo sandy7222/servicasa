@@ -65,7 +65,7 @@ export const QuoteViewer: React.FC<Props> = ({ order }) => {
     {/* quote.status solo pasa a 'accepted' cuando el webhook de MP ya confirmó
        el pago (sync_accepted_quote_status) — para cuando esto se ve en
        pantalla, el pago ya está hecho, no "confirmándose". */}
-    {quote.status === 'accepted' && <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-900"><strong>Presupuesto aceptado y pago confirmado.</strong> El trabajo ya puede comenzar.</div>}
+    {quote.status === 'accepted' && <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-900"><strong>Presupuesto aceptado y pago asegurado.</strong> El trabajo ya puede comenzar.</div>}
     {cardForm && <CardReservationForm
       orderId={order.id}
       quoteId={quote.id}

@@ -17,10 +17,12 @@ const m = vi.hoisted(() => ({
   rpc: vi.fn(),
   tables: {} as Record<string, Row[]>,
   fetch: vi.fn(),
+  telegram: vi.fn(),
 }));
 
 vi.mock('../auth.js', () => ({ getAuthenticatedCaller: m.caller }));
 vi.mock('../visitPaidAlert.js', () => ({ notifyAdminsVisitPaid: vi.fn() }));
+vi.mock('../telegram.js', () => ({ sendTelegramMessage: m.telegram }));
 vi.mock('../supabaseAdmin.js', () => {
   function from(table: string) {
     const filters: Array<(r: Row) => boolean> = [];
@@ -52,6 +54,8 @@ vi.mock('../supabaseAdmin.js', () => {
         return q;
       },
       limit: (n: number) => { limitN = n; return q; },
+      is: (c: string, v: unknown) => { filters.push((r) => (r[c] ?? null) === v); return q; },
+      order: () => q,
       single: async () => exec(true),
       maybeSingle: async () => exec(true),
       then: (resolve: any) => resolve(exec(false)),
@@ -287,5 +291,165 @@ describe('estado del pago repartido (webhook y captura)', () => {
   it('un pago que no es repartido sigue por el circuito de siempre', async () => {
     expect(await handleSplitPaymentNotification('no-existe')).toBe(false);
     expect(m.fetch).not.toHaveBeenCalled();
+  });
+});
+
+import { cancelSplitForOrder, captureSplitForOrder, processSplitReservations } from '../splitPayment';
+import splitAdmin from './split-admin';
+
+describe('Fase 3: cobrar o cancelar la reserva', () => {
+  const DAY = 24 * 60 * 60 * 1000;
+  const NOW = Date.parse('2026-11-20T12:00:00Z');
+
+  function reserved(overrides: Row = {}) {
+    // Estado de una orden cuya reserva ya confirmó el pago (como lo deja applySplitPaymentStatus).
+    m.tables.service_orders[0] = { ...m.tables.service_orders[0], status: 'in_progress', payment_status: 'paid_in_full', total_paid_amount: 6000 };
+    m.tables.payment_transactions.push({
+      id: 'tx-r', order_id: 'order-1', quote_id: 'quote-1', payment_type: 'balance_payment', status: 'authorized', split: true,
+      split_technician_id: 'tech-1', amount: 1000, application_fee: 170, mp_payment_id: '900',
+      authorized_at: new Date(NOW - 1 * DAY).toISOString(), split_alerted_at: null, ...overrides,
+    });
+    m.tables.support_cases = [];
+  }
+  const tx = () => m.tables.payment_transactions.find((t) => t.id === 'tx-r')!;
+
+  beforeEach(() => {
+    m.telegram.mockReset();
+    m.fetch.mockImplementation(async (_url: string, init: any) => {
+      const body = JSON.parse(init.body);
+      if (body.capture) return mpResponse(200, { id: 900, status: 'approved', external_reference: 'tx-r', fee_details: [{ type: 'mercadopago_fee', amount: 41 }, { type: 'application_fee', amount: 170 }] });
+      return mpResponse(200, { id: 900, status: 'cancelled', external_reference: 'tx-r' });
+    });
+  });
+
+  it('orden completada: cobra con el token del técnico, sin volver a sumar a la orden', async () => {
+    reserved();
+    const r = await captureSplitForOrder('order-1', 'Orden completada');
+    expect(r).toEqual({ ok: true, status: 'approved' });
+    const [url, init] = m.fetch.mock.calls[0];
+    expect(url).toBe('https://api.mercadopago.com/v1/payments/900');
+    expect(init.method).toBe('PUT');
+    expect(init.headers.Authorization).toBe(`Bearer ${TECH_TOKEN}`);
+    expect(JSON.parse(init.body)).toEqual({ capture: true });
+    expect(tx()).toMatchObject({ status: 'approved', mp_fee_amount: 41, application_fee: 170 });
+    expect(m.tables.service_orders[0].total_paid_amount).toBe(6000);
+  });
+
+  it('con un reclamo abierto NO cobra solo y avisa a Sandy', async () => {
+    reserved();
+    m.tables.support_cases.push({ id: 'c1', order_id: 'order-1', status: 'open' });
+    const r = await captureSplitForOrder('order-1', 'Orden completada');
+    expect(r.ok).toBe(false);
+    expect(m.fetch).not.toHaveBeenCalled();
+    expect(m.telegram).toHaveBeenCalledWith(expect.stringContaining('reclamo abierto'));
+    expect(tx().status).toBe('authorized');
+  });
+
+  it('un admin puede cobrar aunque haya reclamo (ya lo decidió)', async () => {
+    reserved();
+    m.tables.support_cases.push({ id: 'c1', order_id: 'order-1', status: 'open' });
+    expect((await captureSplitForOrder('order-1', 'Admin: resuelto', true)).ok).toBe(true);
+  });
+
+  it('cancelar: libera la reserva y deja la orden con saldo pendiente', async () => {
+    reserved();
+    const r = await cancelSplitForOrder('order-1', 'Orden cancelada');
+    expect(r).toEqual({ ok: true, status: 'cancelled' });
+    expect(JSON.parse(m.fetch.mock.calls[0][1].body)).toEqual({ status: 'cancelled' });
+    expect(tx().status).toBe('cancelled');
+    expect(tx().cancelled_at).toBeTruthy();
+    expect(m.tables.service_orders[0]).toMatchObject({ total_paid_amount: 5000, payment_status: 'balance_pending' });
+  });
+
+  it('control diario día 5: el técnico trabajó y no hay reclamo → cobra', async () => {
+    reserved({ authorized_at: new Date(NOW - 5.2 * DAY).toISOString() });
+    const s = await processSplitReservations(NOW);
+    expect(s.captured).toBe(1);
+    expect(tx().status).toBe('approved');
+  });
+
+  it('control diario día 5: el trabajo ni empezó → cancela', async () => {
+    reserved({ authorized_at: new Date(NOW - 5.2 * DAY).toISOString() });
+    m.tables.service_orders[0].status = 'assigned';
+    const s = await processSplitReservations(NOW);
+    expect(s.cancelled).toBe(1);
+    expect(tx().status).toBe('cancelled');
+  });
+
+  it('control diario día 5 con reclamo abierto: no toca nada y avisa', async () => {
+    reserved({ authorized_at: new Date(NOW - 5.2 * DAY).toISOString() });
+    m.tables.support_cases.push({ id: 'c1', order_id: 'order-1', status: 'in_progress' });
+    const s = await processSplitReservations(NOW);
+    expect(s.awaitingAdmin).toBe(1);
+    expect(m.fetch).not.toHaveBeenCalled();
+    expect(m.telegram).toHaveBeenCalledWith(expect.stringContaining('reclamo abierto'));
+  });
+
+  it('control diario día 4: avisa una sola vez y no actúa', async () => {
+    reserved({ authorized_at: new Date(NOW - 4.3 * DAY).toISOString() });
+    expect((await processSplitReservations(NOW)).alerted).toBe(1);
+    expect((await processSplitReservations(NOW)).alerted).toBe(0);
+    expect(m.telegram).toHaveBeenCalledTimes(1);
+    expect(m.fetch).not.toHaveBeenCalled();
+  });
+
+  it('control diario: reserva reciente sin novedades no hace nada', async () => {
+    reserved();
+    const s = await processSplitReservations(NOW);
+    expect(s).toMatchObject({ checked: 1, captured: 0, cancelled: 0, alerted: 0 });
+    expect(m.fetch).not.toHaveBeenCalled();
+  });
+
+  it('control diario: respaldo si el aviso de "orden completada" se perdió', async () => {
+    reserved();
+    m.tables.service_orders[0].status = 'completed';
+    expect((await processSplitReservations(NOW)).captured).toBe(1);
+  });
+
+  it('si Mercado Pago falla, la reserva queda como estaba y se avisa', async () => {
+    reserved();
+    m.fetch.mockResolvedValue(mpResponse(500, { message: 'boom' }));
+    const r = await captureSplitForOrder('order-1', 'x');
+    expect(r.ok).toBe(false);
+    expect(tx().status).toBe('authorized');
+    expect(m.telegram).toHaveBeenCalledWith(expect.stringContaining('falló'));
+  });
+
+  describe('panel de admin', () => {
+    const ORDER = '11111111-1111-4111-8111-111111111111';
+    const adminCall = async (method: 'GET' | 'POST', opts: { query?: Row; body?: Row } = {}) => {
+      const res = makeRes();
+      await splitAdmin({ method, headers: { authorization: 'Bearer t' }, query: opts.query ?? {}, body: opts.body } as never, res);
+      return res;
+    };
+    beforeEach(() => {
+      reserved();
+      m.tables.service_orders[0].id = ORDER;
+      tx().order_id = ORDER;
+      m.caller.mockResolvedValue({ userId: 'a1', role: 'admin', customerId: null, technicianId: null });
+    });
+
+    it('solo admin', async () => {
+      m.caller.mockResolvedValue({ userId: 'u1', role: 'customer', customerId: 'cust-1', technicianId: null });
+      expect((await adminCall('GET', { query: { orderId: ORDER } })).statusCode).toBe(403);
+      expect((await adminCall('POST', { body: { orderId: ORDER, action: 'cancel', reason: 'motivo largo' } })).statusCode).toBe(403);
+    });
+
+    it('muestra la reserva con su vencimiento y sin tokens', async () => {
+      const res = await adminCall('GET', { query: { orderId: ORDER } });
+      expect(res.statusCode).toBe(200);
+      expect(res.body.payments[0]).toMatchObject({ status: 'authorized', amount: 1000, application_fee: 170 });
+      expect(res.body.payments[0].expires_at).toBeTruthy();
+      expect(JSON.stringify(res.body)).not.toContain(TECH_TOKEN);
+    });
+
+    it('exige motivo y cancela dejando constancia', async () => {
+      expect((await adminCall('POST', { body: { orderId: ORDER, action: 'cancel', reason: 'no' } })).statusCode).toBe(400);
+      const res = await adminCall('POST', { body: { orderId: ORDER, action: 'cancel', reason: 'El cliente y el técnico se pelearon' } });
+      expect(res.statusCode).toBe(200);
+      expect(tx().status).toBe('cancelled');
+      expect(tx().split_action_reason).toContain('Admin: El cliente y el técnico se pelearon');
+      expect(m.tables.order_events.at(-1).description).toContain('canceló la reserva');
+    });
   });
 });

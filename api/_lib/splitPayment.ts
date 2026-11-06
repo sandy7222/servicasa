@@ -1,5 +1,6 @@
 import { supabaseAdmin } from './supabaseAdmin.js';
 import { syncOrderAfterApprovedPayment } from './orderPaymentSync.js';
+import { sendTelegramMessage } from './telegram.js';
 
 /**
  * Cobro repartido del trabajo (plan-cobro-repartido.md, Fase 2). El pago se crea con el token OAuth del
@@ -196,17 +197,252 @@ export async function applySplitPaymentStatus(tx: SplitTransaction, payment: MpP
     return status;
   }
 
-  // rejected / cancelled / refunded / pending: nunca pisa un pago ya aprobado (captura hecha).
+  // Reserva que se cae (cancelada por nosotros, vencida por Mercado Pago o devuelta): el paso
+  // authorized → cancelado es el candado, así la orden se revierte UNA sola vez.
+  if (status === 'cancelled' || status === 'refunded') {
+    const { data: reverted, error: revertError } = await supabaseAdmin
+      .from('payment_transactions')
+      .update({ ...common, cancelled_at: now })
+      .eq('id', tx.id)
+      .eq('status', 'authorized')
+      .select('id, amount')
+      .maybeSingle();
+    if (revertError) throw new Error(`No se pudo registrar la cancelación: ${revertError.message}`);
+    if (reverted) {
+      await revertOrderAfterReservationDropped(tx, Number((reverted as { amount: number }).amount));
+      return status;
+    }
+  }
+
+  if (status === 'refunded') {
+    // Devolución de un pago YA cobrado (la hace Sandy o un contracargo): se registra y se avisa.
+    const { data: refunded } = await supabaseAdmin
+      .from('payment_transactions')
+      .update({ ...common, cancelled_at: now })
+      .eq('id', tx.id)
+      .eq('status', 'approved')
+      .select('id')
+      .maybeSingle();
+    if (refunded) await alertSandy(`💸 Cobro repartido: se devolvió un pago de trabajo ya cobrado. Revisá la orden: ${orderLink(tx.order_id)}`);
+    return status;
+  }
+
+  // rejected / cancelled / pending: nunca pisa un pago reservado o ya cobrado.
   const { error } = await supabaseAdmin
     .from('payment_transactions')
     .update(common)
     .eq('id', tx.id)
-    .neq('status', 'approved');
+    .not('status', 'in', '(authorized,approved)');
   if (error) throw new Error(`No se pudo registrar el pago repartido: ${error.message}`);
-  if (tx.status === 'authorized' && (status === 'cancelled' || status === 'refunded')) {
-    console.warn('[splitPayment] reserva cancelada después de confirmar la orden; revisar (Fase 3)', tx.id);
-  }
   return status;
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// Fase 3: cobrar (capturar) o cancelar la reserva.
+// ---------------------------------------------------------------------------------------------------------
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+/** El cron corre una vez por día: aviso al día 4 y acción al día 5 deja 1-2 días de margen antes del vencimiento (7). */
+export const ALERT_AFTER_DAYS = 4;
+export const ACT_AFTER_DAYS = 5;
+export const RESERVATION_LIFETIME_DAYS = 7;
+
+function orderLink(orderId: string): string {
+  const base = (process.env.PUBLIC_APP_URL || 'https://tecniurbano.online').replace(/\/$/, '');
+  return `${base}/#/hub?order=${orderId}`;
+}
+
+async function alertSandy(text: string): Promise<void> {
+  try {
+    await sendTelegramMessage(text);
+  } catch (err) {
+    console.error('[splitPayment] no se pudo avisar por Telegram', err instanceof Error ? err.name : 'desconocido');
+  }
+}
+
+/** La reserva se cayó después de haber confirmado la orden: se descuenta lo acreditado y queda saldo pendiente. */
+async function revertOrderAfterReservationDropped(tx: SplitTransaction, amount: number): Promise<void> {
+  const { data: order, error } = await supabaseAdmin
+    .from('service_orders')
+    .select('id, title, status, total_paid_amount')
+    .eq('id', tx.order_id)
+    .maybeSingle();
+  if (error || !order) {
+    console.error('[splitPayment] no se encontró la orden para revertir', tx.order_id);
+    return;
+  }
+  const o = order as { id: string; title: string | null; status: string; total_paid_amount: number | null };
+  const patch: Record<string, unknown> = { total_paid_amount: Math.max(0, Number(o.total_paid_amount ?? 0) - amount) };
+  if (o.status !== 'cancelled') patch.payment_status = 'balance_pending';
+  const { error: updateError } = await supabaseAdmin.from('service_orders').update(patch).eq('id', o.id);
+  if (updateError) console.error('[splitPayment] no se pudo revertir la orden', updateError.message);
+
+  if (o.status !== 'cancelled') {
+    await alertSandy(
+      `⚠️ Cobro repartido: se cayó la reserva del trabajo "${String(o.title ?? '').slice(0, 80)}" y la orden quedó con saldo pendiente` +
+        `${o.status === 'completed' ? ' (¡la orden ya estaba completada: el técnico no cobró!)' : ''}. ${orderLink(o.id)}`
+    );
+  }
+}
+
+type AuthorizedSplit = SplitTransaction & { amount: number; application_fee: number | null; mp_payment_id: string | null; authorized_at: string | null; split_alerted_at: string | null };
+
+const SPLIT_TX_COLUMNS = 'id, order_id, quote_id, payment_type, status, split_technician_id, amount, application_fee, mp_payment_id, authorized_at, split_alerted_at';
+
+async function authorizedSplitForOrder(orderId: string): Promise<AuthorizedSplit | null> {
+  const { data, error } = await supabaseAdmin
+    .from('payment_transactions')
+    .select(SPLIT_TX_COLUMNS)
+    .eq('order_id', orderId)
+    .eq('split', true)
+    .eq('status', 'authorized')
+    .limit(1);
+  if (error) throw new Error(`No se pudo leer la reserva: ${error.message}`);
+  return ((data ?? [])[0] as AuthorizedSplit | undefined) ?? null;
+}
+
+async function hasOpenClaim(orderId: string): Promise<boolean> {
+  const { data, error } = await supabaseAdmin
+    .from('support_cases')
+    .select('id')
+    .eq('order_id', orderId)
+    .not('status', 'in', '(resolved,closed)')
+    .limit(1);
+  if (error) {
+    // Ante la duda, se asume que hay reclamo: no se cobra solo.
+    console.error('[splitPayment] no se pudo revisar reclamos', error.message);
+    return true;
+  }
+  return (data ?? []).length > 0;
+}
+
+// Forma plana (sin unión discriminada): el proyecto compila sin strictNullChecks y ahí TS no estrecha por `ok`.
+export type SplitActionResult = { ok: boolean; status?: SplitTxStatus; reason?: string };
+
+async function runSplitAction(tx: AuthorizedSplit, action: 'capture' | 'cancel', reason: string): Promise<SplitActionResult> {
+  if (!tx.mp_payment_id) return { ok: false, reason: 'La reserva no tiene número de pago de Mercado Pago.' };
+  const creds = await getTechnicianMpCredentials(tx.split_technician_id);
+  if (!creds) {
+    await alertSandy(`🚨 Cobro repartido: no se pudo ${action === 'capture' ? 'cobrar' : 'cancelar'} una reserva porque el técnico ya no tiene Mercado Pago vinculado. Resolvelo desde Mercado Pago. ${orderLink(tx.order_id)}`);
+    return { ok: false, reason: 'El técnico ya no tiene Mercado Pago vinculado.' };
+  }
+  await supabaseAdmin.from('payment_transactions').update({ split_action_reason: reason.slice(0, 500) }).eq('id', tx.id).eq('status', 'authorized');
+  try {
+    const payment = await mpPaymentsRequest(`/v1/payments/${encodeURIComponent(tx.mp_payment_id)}`, creds.accessToken, {
+      method: 'PUT',
+      idempotencyKey: `${tx.id}-${action}`,
+      body: action === 'capture' ? { capture: true } : { status: 'cancelled' },
+    });
+    const status = await applySplitPaymentStatus(tx, payment);
+    return { ok: true, status };
+  } catch (err) {
+    const detail = err instanceof MpRequestError ? `Mercado Pago respondió ${err.status}` : 'error de conexión';
+    console.error('[splitPayment] falló la acción sobre la reserva', action, tx.id, detail);
+    await alertSandy(`🚨 Cobro repartido: falló ${action === 'capture' ? 'el cobro' : 'la cancelación'} de una reserva (${detail}). Se reintenta mañana; revisalo antes de que venza. ${orderLink(tx.order_id)}`);
+    return { ok: false, reason: `No se pudo completar en Mercado Pago (${detail}).` };
+  }
+}
+
+/**
+ * Orden completada → cobrar. Si hay un reclamo abierto NO se cobra solo: se avisa a Sandy para que decida.
+ * `manual` = lo pidió un admin desde el panel (cobra aunque haya reclamo: ya lo decidió).
+ */
+export async function captureSplitForOrder(orderId: string, reason: string, manual = false): Promise<SplitActionResult> {
+  const tx = await authorizedSplitForOrder(orderId);
+  if (!tx) return { ok: false, reason: 'No hay una reserva vigente para esta orden.' };
+  if (!manual && (await hasOpenClaim(orderId))) {
+    await alertSandy(`🟠 Cobro repartido: la orden se completó pero tiene un reclamo abierto, así que NO se cobró solo. Decidí desde el panel (cobrar o cancelar) antes de que venza la reserva. ${orderLink(orderId)}`);
+    return { ok: false, reason: 'Hay un reclamo abierto: decide administración.' };
+  }
+  return runSplitAction(tx, 'capture', reason);
+}
+
+/** Orden cancelada (o decisión de un admin) → cancelar la reserva: el cliente no paga el trabajo. */
+export async function cancelSplitForOrder(orderId: string, reason: string): Promise<SplitActionResult> {
+  const tx = await authorizedSplitForOrder(orderId);
+  if (!tx) return { ok: false, reason: 'No hay una reserva vigente para esta orden.' };
+  return runSplitAction(tx, 'cancel', reason);
+}
+
+export type SplitDailySummary = { checked: number; captured: number; cancelled: number; alerted: number; awaitingAdmin: number; failed: number };
+
+/**
+ * Paso del cron diario. No depende del interruptor: si alguna vez se apagó con reservas vigentes, igual hay que
+ * resolverlas. Cada reserva es independiente: un fallo no frena a las demás.
+ */
+export async function processSplitReservations(now = Date.now()): Promise<SplitDailySummary> {
+  const summary: SplitDailySummary = { checked: 0, captured: 0, cancelled: 0, alerted: 0, awaitingAdmin: 0, failed: 0 };
+  const { data, error } = await supabaseAdmin
+    .from('payment_transactions')
+    .select(SPLIT_TX_COLUMNS)
+    .eq('split', true)
+    .eq('status', 'authorized');
+  if (error) {
+    console.error('[splitPayment] no se pudieron listar las reservas', error.message);
+    return summary;
+  }
+  const toAlert: string[] = [];
+
+  for (const tx of (data ?? []) as AuthorizedSplit[]) {
+    summary.checked += 1;
+    try {
+      const { data: orderRow } = await supabaseAdmin.from('service_orders').select('id, title, status').eq('id', tx.order_id).maybeSingle();
+      const order = orderRow as { id: string; title: string | null; status: string } | null;
+      if (!order) continue;
+      const ageDays = tx.authorized_at ? (now - new Date(tx.authorized_at).getTime()) / DAY_MS : 0;
+      const expiresOn = tx.authorized_at
+        ? new Date(new Date(tx.authorized_at).getTime() + RESERVATION_LIFETIME_DAYS * DAY_MS).toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })
+        : 'pronto';
+
+      let result: SplitActionResult | null = null;
+      if (order.status === 'completed') {
+        result = await captureSplitForOrder(order.id, 'Orden completada (control diario)');
+        if (!result.ok) summary.awaitingAdmin += 1;
+      } else if (order.status === 'cancelled') {
+        result = await cancelSplitForOrder(order.id, 'Orden cancelada (control diario)');
+      } else if (ageDays >= ACT_AFTER_DAYS) {
+        if (await hasOpenClaim(order.id)) {
+          summary.awaitingAdmin += 1;
+          await alertSandy(`🟠 Cobro repartido: la reserva de "${String(order.title ?? '').slice(0, 80)}" vence el ${expiresOn} y hay un reclamo abierto. Decidí desde el panel: cobrar o cancelar. Si no, Mercado Pago la cancela sola. ${orderLink(order.id)}`);
+          continue;
+        }
+        if (order.status === 'in_progress' || order.status === 'paused') {
+          result = await runSplitAction(tx, 'capture', `Cobro automático al día ${ACT_AFTER_DAYS}: el técnico trabajó y no hay reclamo abierto`);
+        } else {
+          result = await runSplitAction(tx, 'cancel', `Cancelación automática al día ${ACT_AFTER_DAYS}: el trabajo no empezó`);
+        }
+      } else if (ageDays >= ALERT_AFTER_DAYS && !tx.split_alerted_at) {
+        const { data: marked } = await supabaseAdmin
+          .from('payment_transactions')
+          .update({ split_alerted_at: new Date(now).toISOString() })
+          .eq('id', tx.id)
+          .is('split_alerted_at', null)
+          .select('id')
+          .maybeSingle();
+        if (marked) toAlert.push(`• "${String(order.title ?? '').slice(0, 60)}" (vence el ${expiresOn}) ${orderLink(order.id)}`);
+        continue;
+      }
+
+      if (result?.ok) {
+        if (result.status === 'approved') summary.captured += 1;
+        else if (result.status === 'cancelled') summary.cancelled += 1;
+      } else if (result && !result.ok && order.status !== 'completed') {
+        summary.failed += 1;
+      }
+    } catch (err) {
+      summary.failed += 1;
+      console.error('[splitPayment] error procesando una reserva', tx.id, err instanceof Error ? err.message : 'desconocido');
+    }
+  }
+
+  if (toAlert.length > 0) {
+    summary.alerted = toAlert.length;
+    await alertSandy(
+      `⏳ Cobro repartido: ${toAlert.length} reserva${toAlert.length === 1 ? '' : 's'} sin cerrar hace ${ALERT_AFTER_DAYS} días. ` +
+        `Mañana se resuelve${toAlert.length === 1 ? '' : 'n'} solas (cobro si el técnico trabajó, cancelación si no empezó), salvo que haya reclamo abierto.\n${toAlert.join('\n')}`
+    );
+  }
+  return summary;
 }
 
 /**

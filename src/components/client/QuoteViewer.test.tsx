@@ -146,9 +146,9 @@ describe('QuoteViewer — estados y protección del pago', () => {
     await waitFor(() => expect(mocks.refreshRemoteData).toHaveBeenCalled());
   });
 
-  it('un presupuesto aceptado muestra pago confirmado y no vuelve a ofrecer pagar', () => {
+  it('un presupuesto aceptado muestra pago asegurado y no vuelve a ofrecer pagar', () => {
     render(<QuoteViewer order={order(quote({ status: 'accepted' }))} />);
-    expect(screen.getByText(/Presupuesto aceptado y pago confirmado/)).toBeInTheDocument();
+    expect(screen.getByText(/Presupuesto aceptado y pago asegurado/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Aceptar y pagar/ })).not.toBeInTheDocument();
   });
 });
