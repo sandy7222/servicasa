@@ -57,12 +57,15 @@
 - **Terminado cuando:** un técnico de prueba vincula su cuenta en producción, el estado aparece en su perfil y en el admin, y la renovación funciona (forzando un vencimiento cercano en un test).
 
 ## 🔒 Fase 2 — Cobrar el trabajo con reserva y comisión (requiere Fase 0)
-- [ ] 2.1 🤖 Interruptor `system_settings.split_payments_enabled` (default `false`). Con `false` todo sigue como hoy (Checkout Pro a la cuenta de Sandy). Solo se usa el flujo nuevo si el interruptor está en `true` **y** el técnico asignado tiene MP vinculado.
-- [ ] 2.2 🤖 CSP en `vercel.json` para el SDK de MP (ver riesgo 2). Probar en preview antes de producción.
-- [ ] 2.3 🤖 Formulario de tarjeta (Card Payment Brick o Secure Fields) en `QuoteViewer.tsx` / pago del trabajo. Los datos de tarjeta nunca pasan por nuestro servidor: solo el token.
-- [ ] 2.4 🤖 Endpoint `work-payment-reserve` (gateway, sesión de cliente): valida orden/presupuesto/monto en servidor, calcula `application_fee = round(monto × platform_commission_rate, 2)`, crea `/v1/payments` con el token del técnico, `capture:false`, `X-Idempotency-Key`, `external_reference` = id de `payment_transactions`, `notification_url`. Guarda `status='authorized'`, `mp_payment_id`, `collector_id`, `application_fee`, `split=true`.
-- [ ] 2.5 🤖 Webhook: reconocer pagos repartidos (riesgo 3) y actualizar estados `authorized → approved/cancelled/refunded`.
-- [ ] 2.6 🤖 Tests.
+- [x] 2.1 🤖 Interruptor `system_settings.split_payments_enabled` (default `false`) en la migración `20261106120000_split_work_payments.sql`. Con `false` todo sigue como hoy. Solo se usa el flujo nuevo si está en `true` **y** el técnico asignado tiene MP vinculado (con public key).
+- [x] 2.2 🤖 CSP en `vercel.json`: se agregaron dominios de Mercado Pago (`*.mercadopago.com`, `*.mlstatic.com`, `*.mercadolibre.com`) a script/style/font/img/connect y un `frame-src` nuevo. **Probado el 6/11** en un banco local con la misma CSP: el Card Payment Brick carga, tokeniza la tarjeta de prueba y la reserva queda `authorized` en sandbox. Solo quedó bloqueado un script inline del SDK, sin efecto en el flujo (no se agregó `'unsafe-inline'`).
+- [x] 2.3 🤖 `CardReservationForm.tsx` (Card Payment Brick cargado bajo demanda) abierto desde `QuoteViewer.tsx`. **Solo tarjeta de crédito** (se excluyen débito y prepaga: la reserva con débito no está documentada) y **1 pago** (ofrecer cuotas obliga a mostrar CFT/TEA, Res. E 51/2017). Si la consulta del cobro repartido falla, el botón paga como siempre.
+- [x] 2.4 🤖 Endpoint `work-payment` (gateway, `/api/payments/work`): GET dice si aplica y da la public key del técnico; POST valida orden/presupuesto/monto en servidor, calcula `application_fee`, crea `/v1/payments` con el token del técnico, `capture:false`, `binary_mode:true`, idempotencia = id de la transacción. Columnas nuevas en `payment_transactions`: `split`, `split_technician_id`, `collector_mp_user_id`, `application_fee`, `authorized_at`, `captured_at`; estado nuevo `authorized`; índice único "un pago repartido vigente por presupuesto" (si se cuela una segunda reserva, se cancela en MP).
+- [x] 2.5 🤖 Webhook: si el id es de un pago repartido lo consulta con el token del técnico (`api/_lib/splitPayment.ts`), verifica `external_reference` y aplica el estado. La lógica de "pago confirmado → orden" se movió sin cambios a `api/_lib/orderPaymentSync.ts` y la usan los dos circuitos.
+- [x] 2.6 🤖 Tests: `work-payment.test.ts` (19) + `QuoteViewer.test.tsx` (2 nuevos).
+- [x] 4.1 adelantado: `create_settlement_on_order_completed_and_paid()` ya excluye los montos y cargos de pagos repartidos (sin pagos repartidos, el resultado es idéntico al de antes).
+- **Decisión de diseño:** una reserva `authorized` cuenta como pago confirmado para la orden (presupuesto aceptado, `paid_in_full`, el trabajo puede empezar), porque el dinero ya está garantizado. La captura llega en la Fase 3; si la reserva se cancela o vence antes, la Fase 3 tiene que revertir la orden.
+- **Estado:** código listo y probado; **falta aplicar la migración en Supabase y desplegar** (con OK de Sandy). Sin encender el interruptor no cambia nada para los clientes.
 - **Terminado cuando:** con el interruptor encendido en una orden de prueba, una reserva real de monto bajo queda `authorized` y se ve en la cuenta del técnico.
 
 ## 🔒 Fase 3 — Captura, cancelación y vencimiento
@@ -72,7 +75,7 @@
 - [ ] 3.4 🤖 Tests.
 
 ## Fase 4 — Liquidaciones y contabilidad
-- [ ] 4.1 🤖 Ajustar `create_settlement_on_order_completed_and_paid()` para **no generar transferencia manual** por los pagos repartidos (riesgo 1). Caso de prueba en `supabase/sql/` igual que el de visitas.
+- [x] 4.1 🤖 Ajustar `create_settlement_on_order_completed_and_paid()` para **no generar transferencia manual** por los pagos repartidos (riesgo 1). Hecho en la migración de la Fase 2. Falta el caso de prueba en `supabase/sql/` igual que el de visitas.
 - [ ] 4.2 🤖 Vista en el admin: comisiones cobradas por reparto (para la facturación de Sandy al técnico).
 - [ ] 4.3 🤖 Vista del técnico: lo cobrado por reparto (informativo; el dinero ya está en su MP).
 
@@ -88,4 +91,5 @@
 |---|---|---|
 | 4/11/2026 | Plan escrito. Decisiones: visita como hoy, trabajo con reparto, 17% sin IVA, reserva hasta conformidad. Borrador de cláusula en `docs/`. Fase 0 pendiente de soporte MP. | (este commit) |
 | 5/11/2026 | Fase 1 implementada por un asistente (Sonnet) en una copia aparte, revisada por Claude, migración aplicada a mano en Supabase, variables en Vercel, desplegada (`295e2ee`). Pendiente: vincular una cuenta real de MP para cerrar la fase. Fase 0 sigue esperando a soporte MP. | `295e2ee` |
-| 6/11/2026 | **Fase 0 validada en sandbox** con el dato de soporte MP (`test_token=true`): reserva + captura total/parcial + cancelación con `application_fee` por `/v1/payments`. La comisión se descuenta al capturar; en captura parcial hay que reenviar el `application_fee`. Script `mp-split-poc.mjs` ampliado (`exchange --test`, `pay-reserve/show/capture/cancel`). | (este commit) |
+| 6/11/2026 | **Fase 0 validada en sandbox** con el dato de soporte MP (`test_token=true`): reserva + captura total/parcial + cancelación con `application_fee` por `/v1/payments`. La comisión se descuenta al capturar; en captura parcial hay que reenviar el `application_fee`. Script `mp-split-poc.mjs` ampliado (`exchange --test`, `pay-reserve/show/capture/cancel`). | `be75735` |
+| 6/11/2026 | **Fase 2 implementada** detrás del interruptor apagado: migración, endpoint `work-payment`, formulario de tarjeta, webhook, CSP (probada con el Brick real en sandbox) y 4.1 adelantado. Falta aplicar la migración y desplegar. | (este commit) |

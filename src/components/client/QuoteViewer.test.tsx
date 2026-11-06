@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   refreshRemoteData: vi.fn(),
   showToast: vi.fn(),
   redirectToPayment: vi.fn(),
+  fetchWorkPaymentConfig: vi.fn(),
   update: vi.fn(),
   eq: vi.fn(),
 }));
@@ -20,6 +21,10 @@ vi.mock('../../lib/supabase', () => ({
   },
 }));
 vi.mock('./RejectedVisitReceipt', () => ({ RejectedVisitReceipt: () => <div>Comprobante de rechazo</div> }));
+vi.mock('../../lib/workPaymentClient', () => ({ fetchWorkPaymentConfig: mocks.fetchWorkPaymentConfig }));
+vi.mock('./CardReservationForm', () => ({
+  CardReservationForm: (p: { amount: number; publicKey: string }) => <div>Formulario de tarjeta {p.publicKey} {p.amount}</div>,
+}));
 
 const { QuoteViewer } = await import('./QuoteViewer');
 
@@ -82,6 +87,25 @@ beforeEach(() => {
   mocks.update.mockReturnValue({ eq: mocks.eq });
   mocks.redirectToPayment.mockResolvedValue(undefined);
   mocks.refreshRemoteData.mockResolvedValue(undefined);
+  mocks.fetchWorkPaymentConfig.mockResolvedValue({ split: false });
+});
+
+describe('QuoteViewer — cobro repartido (Fase 2)', () => {
+  it('si el presupuesto se cobra repartido, abre el formulario de tarjeta y no redirige', async () => {
+    mocks.fetchWorkPaymentConfig.mockResolvedValue({ split: true, publicKey: 'PK-TECNICO', amount: 90000 });
+    render(<QuoteViewer order={order(quote())} />);
+    fireEvent.click(screen.getByRole('button', { name: /Aceptar y pagar/ }));
+    expect(await screen.findByText(/Formulario de tarjeta PK-TECNICO 90000/)).toBeInTheDocument();
+    expect(mocks.redirectToPayment).not.toHaveBeenCalled();
+  });
+
+  it('si la consulta del cobro repartido falla, paga como siempre', async () => {
+    mocks.fetchWorkPaymentConfig.mockRejectedValue(new Error('caído'));
+    render(<QuoteViewer order={order(quote())} />);
+    fireEvent.click(screen.getByRole('button', { name: /Aceptar y pagar/ }));
+    await waitFor(() => expect(mocks.redirectToPayment).toHaveBeenCalledWith('order-1', 'balance_payment', 'quote-1'));
+    expect(screen.queryByText(/Formulario de tarjeta/)).not.toBeInTheDocument();
+  });
 });
 
 describe('QuoteViewer — estados y protección del pago', () => {

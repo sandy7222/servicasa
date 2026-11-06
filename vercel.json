@@ -5,7 +5,7 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://ayszrtieplmqscqtabsu.supabase.co https://*.tile.openstreetmap.org; connect-src 'self' https://ayszrtieplmqscqtabsu.supabase.co wss://ayszrtieplmqscqtabsu.supabase.co; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+          "value": "default-src 'self'; script-src 'self' https://sdk.mercadopago.com https://*.mercadopago.com https://*.mlstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.mlstatic.com; font-src 'self' https://fonts.gstatic.com https://*.mlstatic.com; img-src 'self' data: https://ayszrtieplmqscqtabsu.supabase.co https://*.tile.openstreetmap.org https://*.mlstatic.com https://*.mercadopago.com https://*.mercadolibre.com; connect-src 'self' https://ayszrtieplmqscqtabsu.supabase.co wss://ayszrtieplmqscqtabsu.supabase.co https://*.mercadopago.com https://*.mercadolibre.com https://*.mlstatic.com; frame-src https://*.mercadopago.com https://*.mercadopago.com.ar https://*.mercadolibre.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
         },
         { "key": "X-Content-Type-Options", "value": "nosniff" },
         { "key": "X-Frame-Options", "value": "DENY" },
@@ -22,7 +22,8 @@
     { "source": "/api/payments/retry-draft", "destination": "/api/gateway?action=retry-draft" },
     { "source": "/api/technicians/geocode-work-zone", "destination": "/api/gateway?action=geocode-work-zone" },
     { "source": "/api/ai/chat", "destination": "/api/gateway?action=ai-chat" },
-    { "source": "/oauth-callback", "destination": "/api/gateway?action=mp-oauth-callback" }
+    { "source": "/oauth-callback", "destination": "/api/gateway?action=mp-oauth-callback" },
+    { "source": "/api/payments/work", "destination": "/api/gateway?action=work-payment" }
   ],
   "crons": [
     {

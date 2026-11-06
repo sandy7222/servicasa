@@ -4,7 +4,9 @@ import { useApp } from '../../context/AppContext';
 import { formatArs } from '../../lib/pricing';
 import { redirectToPayment } from '../../lib/paymentClient';
 import { supabase } from '../../lib/supabase';
+import { fetchWorkPaymentConfig } from '../../lib/workPaymentClient';
 import type { OrderQuote, ServiceOrder } from '../../types';
+import { CardReservationForm } from './CardReservationForm';
 import { RejectedVisitReceipt } from './RejectedVisitReceipt';
 
 type Props = { order: ServiceOrder };
@@ -13,6 +15,8 @@ export const QuoteViewer: React.FC<Props> = ({ order }) => {
   const { refreshRemoteData, showToast } = useApp();
   const quote = order.quotes?.[0] as OrderQuote | undefined;
   const [busy, setBusy] = useState(false);
+  // Cobro repartido (Fase 2): solo se abre si el servidor dice que este presupuesto se paga con reserva.
+  const [cardForm, setCardForm] = useState<{ publicKey: string; amount: number } | null>(null);
   const isExpired = Boolean(quote?.validUntil && new Date(quote.validUntil).getTime() < Date.now());
 
   const reject = async () => {
@@ -35,6 +39,13 @@ export const QuoteViewer: React.FC<Props> = ({ order }) => {
     }
     setBusy(true);
     try {
+      // Si la consulta del cobro repartido falla por lo que sea, se paga como siempre: lo nuevo nunca puede
+      // bloquear el pago que ya funciona.
+      const config = await fetchWorkPaymentConfig(order.id, quote.id).catch(() => ({ split: false as const }));
+      if (config.split) {
+        setCardForm({ publicKey: config.publicKey, amount: config.amount });
+        return;
+      }
       // Payment preference creation remains server-only. Do not mark accepted until its webhook confirms payment.
       await redirectToPayment(order.id, 'balance_payment', quote.id);
     } catch (error) {
@@ -55,5 +66,17 @@ export const QuoteViewer: React.FC<Props> = ({ order }) => {
        el pago (sync_accepted_quote_status) — para cuando esto se ve en
        pantalla, el pago ya está hecho, no "confirmándose". */}
     {quote.status === 'accepted' && <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-900"><strong>Presupuesto aceptado y pago confirmado.</strong> El trabajo ya puede comenzar.</div>}
+    {cardForm && <CardReservationForm
+      orderId={order.id}
+      quoteId={quote.id}
+      publicKey={cardForm.publicKey}
+      amount={cardForm.amount}
+      onClose={() => setCardForm(null)}
+      onReserved={() => {
+        setCardForm(null);
+        showToast('Listo: tu tarjeta quedó reservada. Se cobra cuando des la conformidad del trabajo terminado.', 'success');
+        void refreshRemoteData();
+      }}
+    />}
   </section>;
 };
