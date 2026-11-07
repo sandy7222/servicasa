@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, CalendarClock, CheckCircle2, CreditCard, Sprout, Target, Trash2, WalletCards } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { supabase } from '../../lib/supabase';
+import { SplitEarningsReport } from '../common/SplitEarningsReport';
 import { computeGoalProgress, deactivateGoal, fetchGoals, setGoal } from '../../lib/technicianGoals';
 import type { GoalProgress, GoalType, TechnicianGoal } from '../../lib/technicianGoals';
 import { fetchSettings, getSettingValue } from '../../lib/settings';
@@ -106,6 +107,11 @@ export const EarningsView: React.FC = () => {
           <Goals techId={techId} showToast={showToast} />
         ) : (
           <>
+            {tab === 'summary' && (
+              <div className="mt-4">
+                <SplitEarningsReport mode="technician" />
+              </div>
+            )}
             {tab === 'summary' && (
               <Summary
                 figures={figures}

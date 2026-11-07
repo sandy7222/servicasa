@@ -80,8 +80,9 @@
 
 ## Fase 4 — Liquidaciones y contabilidad
 - [x] 4.1 🤖 Ajustar `create_settlement_on_order_completed_and_paid()` para **no generar transferencia manual** por los pagos repartidos (riesgo 1). Hecho en la migración de la Fase 2. Falta el caso de prueba en `supabase/sql/` igual que el de visitas.
-- [ ] 4.2 🤖 Vista en el admin: comisiones cobradas por reparto (para la facturación de Sandy al técnico).
-- [ ] 4.3 🤖 Vista del técnico: lo cobrado por reparto (informativo; el dinero ya está en su MP).
+- [x] 4.2 🤖 Vista en el admin (Liquidaciones, debajo de lo de siempre): informe mensual `SplitEarningsReport` con totales (cobrado, comisión, cargo MP, neto técnicos), **subtotal por técnico = comisión a facturar**, detalle por trabajo y descarga CSV (";" y coma decimal, abre bien en Excel). Endpoint `split-report` (gateway): cuenta los `approved` del mes por fecha de cobro en hora argentina; los `refunded` se muestran pero no suman.
+- [x] 4.3 🤖 Vista del técnico (Mis ganancias → Resumen): lo cobrado directo en su MP (informativo). Si no tiene cobros repartidos no ve nada. El servidor filtra siempre por su propio id.
+- [x] 4.4 🤖 Tests: `split-report.test.ts` (4) + `SplitEarningsReport.test.tsx` (4).
 
 ## 🔒 Fase 5 — Legal y puesta en marcha
 - [ ] 5.1 👤 Revisión del borrador de cláusula por un abogado; definir los [corchetes].
@@ -97,4 +98,5 @@
 | 5/11/2026 | Fase 1 implementada por un asistente (Sonnet) en una copia aparte, revisada por Claude, migración aplicada a mano en Supabase, variables en Vercel, desplegada (`295e2ee`). Pendiente: vincular una cuenta real de MP para cerrar la fase. Fase 0 sigue esperando a soporte MP. | `295e2ee` |
 | 6/11/2026 | **Fase 0 validada en sandbox** con el dato de soporte MP (`test_token=true`): reserva + captura total/parcial + cancelación con `application_fee` por `/v1/payments`. La comisión se descuenta al capturar; en captura parcial hay que reenviar el `application_fee`. Script `mp-split-poc.mjs` ampliado (`exchange --test`, `pay-reserve/show/capture/cancel`). | `be75735` |
 | 6/11/2026 | **Fase 2 implementada** detrás del interruptor apagado: migración, endpoint `work-payment`, formulario de tarjeta, webhook, CSP (probada con el Brick real en sandbox) y 4.1 adelantado. Falta aplicar la migración y desplegar. | `899530c` |
-| 6/11/2026 | **Fase 3 implementada:** cobro al completar, cancelación al cancelar, control diario (día 4 aviso, día 5 acción), reclamo abierto bloquea el cobro automático, panel de admin con motivo. Migración de Fase 2 aplicada; la de Fase 3 pendiente (conector sin permiso). | (este commit) |
+| 6/11/2026 | **Fase 3 implementada:** cobro al completar, cancelación al cancelar, control diario (día 4 aviso, día 5 acción), reclamo abierto bloquea el cobro automático, panel de admin con motivo. Migración de Fase 2 aplicada; la de Fase 3 pendiente (conector sin permiso). | `ab1a278`, `020d638` (publicados 7/11) |
+| 7/11/2026 | **Fase 4 implementada:** informe mensual de cobros repartidos para el admin (comisión a facturar por técnico, planilla CSV) y para el técnico (informativo). | (este commit) |

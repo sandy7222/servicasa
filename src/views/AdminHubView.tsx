@@ -56,6 +56,7 @@ import { formatCustomerCode, formatTechnicianCode } from '../lib/codes';
 import { TechnicianValidation } from '../components/admin/TechnicianValidation';
 import { TechnicianReviewCard } from '../components/admin/TechnicianReviewCard';
 import { SplitReservationCard } from '../components/admin/SplitReservationCard';
+import { SplitEarningsReport } from '../components/common/SplitEarningsReport';
 import { persistArchiveOrders } from '../lib/supabaseMutations';
 import { downloadArchivedOrdersExcel } from '../lib/exportOrdersExcel';
 import { TechnicianApplications } from '../components/admin/TechnicianApplications';
@@ -2436,7 +2437,10 @@ export const AdminHubView: React.FC = () => {
         {activeTab === 'ai' && <AiProvidersPanel />}
 
         {activeTab === 'settlements' && (
-          <SettlementsHub onQueueChange={() => void refreshPayoutQueue()} />
+          <div className="space-y-4">
+            <SettlementsHub onQueueChange={() => void refreshPayoutQueue()} />
+            <SplitEarningsReport mode="admin" />
+          </div>
         )}
 
         {/* ================= TAB 4: INVENTORY ================= */}

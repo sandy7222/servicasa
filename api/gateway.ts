@@ -13,6 +13,7 @@ import mpOauthCallback from './_lib/handlers/mp-oauth-callback.js';
 import mpOauthUnlink from './_lib/handlers/mp-oauth-unlink.js';
 import workPayment from './_lib/handlers/work-payment.js';
 import splitAdmin from './_lib/handlers/split-admin.js';
+import splitReport from './_lib/handlers/split-report.js';
 
 type Handler = (req: VercelRequest, res: VercelResponse) => unknown;
 
@@ -46,6 +47,7 @@ const ROUTES = new Map<string, Handler>([
   ['mp-oauth-unlink', mpOauthUnlink],
   ['work-payment', workPayment],
   ['split-admin', splitAdmin],
+  ['split-report', splitReport],
 ]);
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
