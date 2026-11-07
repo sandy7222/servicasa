@@ -453,3 +453,64 @@ describe('Fase 3: cobrar o cancelar la reserva', () => {
     });
   });
 });
+
+import unlink from './mp-oauth-unlink';
+
+describe('lecciones del manual de Capitán YA', () => {
+  // Forma real de un error de Mercado Pago (el del sandbox del 5/11): estado, mensaje y `cause` con código.
+  const realMpError = { message: 'Unauthorized use of live credentials', error: 'unauthorized', status: 401,
+    cause: [{ code: 7, description: 'Unauthorized use of live credentials', data: '05-11-2026T04:32:47UTC;cf02d4b2' }] };
+
+  it('una tarjeta de débito se rechaza en el servidor aunque el formulario la deje pasar', async () => {
+    const res = await call('POST', { body: { ...validBody, paymentMethodId: 'debvisa' } });
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toMatch(/crédito/);
+    expect(m.fetch).not.toHaveBeenCalled();
+    expect(m.tables.payment_transactions).toHaveLength(0);
+  });
+
+  it('si Mercado Pago rechaza la reserva, queda guardado el detalle del error (sin token)', async () => {
+    m.fetch.mockResolvedValue(mpResponse(401, realMpError));
+    const res = await call('POST', { body: validBody });
+    expect(res.statusCode).toBe(402);
+    const saved = m.tables.payment_transactions[0];
+    expect(saved.status).toBe('cancelled');
+    expect(saved.provider_payload.mp_error).toContain('MP 401');
+    expect(saved.provider_payload.mp_error).toContain('7 Unauthorized use of live credentials');
+    expect(JSON.stringify(saved)).not.toContain(TECH_TOKEN);
+  });
+
+  it('si falla el cobro, el detalle queda en la reserva y la clave de reintento cambia por día', async () => {
+    m.tables.service_orders[0].status = 'completed';
+    m.tables.support_cases = [];
+    m.tables.payment_transactions.push({ id: 'tx-k', order_id: 'order-1', quote_id: 'quote-1', payment_type: 'balance_payment',
+      status: 'authorized', split: true, split_technician_id: 'tech-1', amount: 1000, application_fee: 170, mp_payment_id: '901' });
+    m.fetch.mockResolvedValue(mpResponse(500, { message: 'internal_error', cause: [{ code: 'E500', description: 'boom' }] }));
+
+    const { captureSplitForOrder } = await import('../splitPayment');
+    expect((await captureSplitForOrder('order-1', 'Orden completada')).ok).toBe(false);
+    const tx = m.tables.payment_transactions.find((t) => t.id === 'tx-k')!;
+    expect(tx.status).toBe('authorized');
+    expect(tx.split_action_reason).toContain('FALLÓ el cobro: MP 500 internal_error [E500 boom]');
+    const key = m.fetch.mock.calls[0][1].headers['X-Idempotency-Key'];
+    expect(key).toBe(`tx-k-capture-${new Date().toISOString().slice(0, 10)}`);
+  });
+
+  it('un técnico con un pago reservado no puede desvincular su Mercado Pago', async () => {
+    m.caller.mockResolvedValue({ userId: 'u3', role: 'technician', customerId: null, technicianId: 'tech-1' });
+    m.tables.payment_transactions.push({ id: 'tx-u', split: true, split_technician_id: 'tech-1', status: 'authorized' });
+    const res = makeRes();
+    await unlink({ method: 'POST', headers: { authorization: 'Bearer t' }, body: {} } as never, res);
+    expect(res.statusCode).toBe(409);
+    expect(m.rpc).not.toHaveBeenCalledWith('mp_account_delete', expect.anything());
+  });
+
+  it('sin reservas abiertas sí puede desvincular', async () => {
+    m.caller.mockResolvedValue({ userId: 'u3', role: 'technician', customerId: null, technicianId: 'tech-1' });
+    m.tables.payment_transactions.push({ id: 'tx-u', split: true, split_technician_id: 'tech-1', status: 'approved' });
+    const res = makeRes();
+    await unlink({ method: 'POST', headers: { authorization: 'Bearer t' }, body: {} } as never, res);
+    expect(res.statusCode).toBe(200);
+    expect(m.rpc).toHaveBeenCalledWith('mp_account_delete', { p_technician_id: 'tech-1' });
+  });
+});

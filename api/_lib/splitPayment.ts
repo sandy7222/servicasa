@@ -107,7 +107,8 @@ export async function getTechnicianMpCredentials(technicianId: string): Promise<
 export class MpRequestError extends Error {
   constructor(
     public readonly status: number,
-    public readonly mpMessage: string
+    public readonly mpMessage: string,
+    public readonly causes: string[] = []
   ) {
     super(`Mercado Pago respondió ${status}`);
   }
@@ -130,11 +131,44 @@ export async function mpPaymentsRequest(
     body: init.body === undefined ? undefined : JSON.stringify(init.body),
     signal: AbortSignal.timeout(MP_TIMEOUT_MS),
   });
-  const json = (await response.json().catch(() => ({}))) as MpPayment & { message?: string };
+  const json = (await response.json().catch(() => ({}))) as MpPayment & { message?: string; cause?: unknown };
   if (!response.ok) {
-    throw new MpRequestError(response.status, typeof json.message === 'string' ? json.message : '');
+    throw new MpRequestError(response.status, typeof json.message === 'string' ? json.message : '', causeCodes(json.cause));
   }
   return json;
+}
+
+/** Códigos y descripciones de `cause` de un error de Mercado Pago (no trae tokens ni datos de tarjeta). */
+function causeCodes(cause: unknown): string[] {
+  if (!Array.isArray(cause)) return [];
+  return cause
+    .map((c) => {
+      const item = (c ?? {}) as { code?: unknown; description?: unknown };
+      return [item.code, item.description].filter((v) => v != null && v !== '').map(String).join(' ');
+    })
+    .filter(Boolean)
+    .slice(0, 5)
+    .map((s) => s.slice(0, 160));
+}
+
+/** Texto corto para guardar/loguear un error de Mercado Pago: estado HTTP, mensaje y códigos de causa. */
+export function describeMpError(err: unknown): string {
+  if (err instanceof MpRequestError) {
+    return [`MP ${err.status}`, err.mpMessage, err.causes.length ? `[${err.causes.join('; ')}]` : '']
+      .filter(Boolean)
+      .join(' ')
+      .slice(0, 500);
+  }
+  return err instanceof Error && err.name === 'TimeoutError' ? 'Sin respuesta de Mercado Pago (timeout)' : 'Error de conexión con Mercado Pago';
+}
+
+/**
+ * Tarjetas que NO sirven para reservar (débito/prepaga): la reserva con capture:false es solo de crédito.
+ * El formulario ya las excluye; esto es la defensa en el servidor por si alguien arma el pedido a mano.
+ */
+export function isReservableCardMethod(paymentMethodId: string): boolean {
+  const id = paymentMethodId.toLowerCase();
+  return !(id.startsWith('deb') || id === 'maestro' || id.includes('prepaid') || id === 'account_money');
 }
 
 function feesOf(payment: MpPayment) {
@@ -330,14 +364,23 @@ async function runSplitAction(tx: AuthorizedSplit, action: 'capture' | 'cancel',
   try {
     const payment = await mpPaymentsRequest(`/v1/payments/${encodeURIComponent(tx.mp_payment_id)}`, creds.accessToken, {
       method: 'PUT',
-      idempotencyKey: `${tx.id}-${action}`,
+      // La clave cambia por día: Mercado Pago recuerda la respuesta de cada clave, así que con una fija un fallo
+      // de su lado se repetiría en todos los reintentos. Dentro del mismo día (trigger + cron, doble clic) es la
+      // misma clave y no hay riesgo de operar dos veces.
+      idempotencyKey: `${tx.id}-${action}-${new Date().toISOString().slice(0, 10)}`,
       body: action === 'capture' ? { capture: true } : { status: 'cancelled' },
     });
     const status = await applySplitPaymentStatus(tx, payment);
     return { ok: true, status };
   } catch (err) {
-    const detail = err instanceof MpRequestError ? `Mercado Pago respondió ${err.status}` : 'error de conexión';
+    const detail = describeMpError(err);
     console.error('[splitPayment] falló la acción sobre la reserva', action, tx.id, detail);
+    // Queda el cuerpo del error en la transacción (sin tokens ni datos de tarjeta) para no tener que adivinar.
+    await supabaseAdmin
+      .from('payment_transactions')
+      .update({ split_action_reason: `${reason.slice(0, 200)} — FALLÓ ${action === 'capture' ? 'el cobro' : 'la cancelación'}: ${detail}`.slice(0, 500) })
+      .eq('id', tx.id)
+      .eq('status', 'authorized');
     await alertSandy(`🚨 Cobro repartido: falló ${action === 'capture' ? 'el cobro' : 'la cancelación'} de una reserva (${detail}). Se reintenta mañana; revisalo antes de que venza. ${orderLink(tx.order_id)}`);
     return { ok: false, reason: `No se pudo completar en Mercado Pago (${detail}).` };
   }

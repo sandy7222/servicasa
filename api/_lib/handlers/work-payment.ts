@@ -4,8 +4,10 @@ import { supabaseAdmin } from '../supabaseAdmin.js';
 import {
   applySplitPaymentStatus,
   commissionFor,
+  describeMpError,
   getCommissionRate,
   getTechnicianMpCredentials,
+  isReservableCardMethod,
   isSplitEnabled,
   MpRequestError,
   mpPaymentsRequest,
@@ -153,6 +155,9 @@ async function handlePost(req: VercelRequest, res: VercelResponse, caller: Calle
   if (!Number.isInteger(installments) || installments < 1 || installments > 24) {
     return res.status(400).json({ error: 'La cantidad de cuotas no es válida.' });
   }
+  if (!isReservableCardMethod(paymentMethodId)) {
+    return res.status(400).json({ error: 'Para reservar el pago hace falta una tarjeta de crédito. Las de débito no sirven.' });
+  }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payerEmail)) {
     return res.status(400).json({ error: 'Falta un email válido para el comprobante.' });
   }
@@ -220,12 +225,17 @@ async function handlePost(req: VercelRequest, res: VercelResponse, caller: Calle
       },
     });
   } catch (err) {
-    await supabaseAdmin.from('payment_transactions').update({ status: 'cancelled', updated_at: new Date().toISOString() }).eq('id', tx.id);
+    const detail = describeMpError(err);
+    // Se guarda el cuerpo del error (estado, mensaje, códigos de causa; sin token ni datos de tarjeta).
+    await supabaseAdmin
+      .from('payment_transactions')
+      .update({ status: 'cancelled', provider_payload: { mp_error: detail }, updated_at: new Date().toISOString() })
+      .eq('id', tx.id);
     if (err instanceof MpRequestError && err.status >= 400 && err.status < 500) {
-      console.warn('[work-payment] Mercado Pago rechazó el pedido', err.status, err.mpMessage);
+      console.warn('[work-payment] Mercado Pago rechazó el pedido', detail);
       return res.status(402).json({ error: 'Mercado Pago no pudo procesar la tarjeta. Revisá los datos o probá con otra.' });
     }
-    console.error('[work-payment] error con Mercado Pago', err instanceof Error ? err.message : 'desconocido');
+    console.error('[work-payment] error con Mercado Pago', detail);
     return res.status(502).json({ error: GENERIC_ERROR });
   }
 

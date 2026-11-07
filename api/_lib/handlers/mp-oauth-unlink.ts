@@ -19,6 +19,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(403).json({ error: 'Solo los técnicos pueden desvincular Mercado Pago.' });
   }
 
+  // Con una reserva de pago abierta, su token es lo único que permite cobrarla o cancelarla: no se puede
+  // desvincular hasta que se resuelva (si no, la plata del cliente queda retenida hasta que venza sola).
+  const { data: open, error: openError } = await supabaseAdmin
+    .from('payment_transactions')
+    .select('id')
+    .eq('split_technician_id', caller.technicianId)
+    .eq('split', true)
+    .eq('status', 'authorized')
+    .limit(1);
+  if (openError) {
+    console.error('[mp-oauth-unlink] no se pudieron revisar las reservas', openError.message);
+    return res.status(500).json({ error: 'No se pudo desvincular. Probá de nuevo.' });
+  }
+  if (open && open.length > 0) {
+    return res.status(409).json({
+      error: 'Tenés un trabajo con el pago reservado. Vas a poder desvincular Mercado Pago cuando ese pago se cobre o se cancele.',
+    });
+  }
+
   const { error } = await supabaseAdmin.rpc('mp_account_delete', { p_technician_id: caller.technicianId });
   if (error) {
     console.error('[mp-oauth-unlink] no se pudo desvincular', error.message);
