@@ -204,6 +204,7 @@ export const INITIAL_ORDERS: ServiceOrder[] = [
         addedAt: '11:22',
       },
     ],
+    materialExpenses: [],
     customerSignature: null,
     diagnosisPhotos: [],
     events: [
@@ -255,6 +256,7 @@ export const INITIAL_ORDERS: ServiceOrder[] = [
     timeLogs: [],
     technicalNotes: [],
     usedMaterials: [],
+    materialExpenses: [],
     customerSignature: null,
     diagnosisPhotos: [],
     events: [
@@ -317,6 +319,7 @@ export const INITIAL_ORDERS: ServiceOrder[] = [
         addedAt: '12:20',
       },
     ],
+    materialExpenses: [],
     customerSignature: null,
     diagnosisPhotos: [],
     events: [
@@ -403,6 +406,7 @@ export const INITIAL_ORDERS: ServiceOrder[] = [
         addedAt: '17:15',
       },
     ],
+    materialExpenses: [],
     customerSignature: {
       signerName: 'Florencia Soria',
       signatureDataUrl: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="60"><path d="M 10 40 Q 50 10 90 40 T 170 30" fill="none" stroke="%23004899" stroke-width="3"/></svg>',
@@ -472,6 +476,7 @@ export const INITIAL_ORDERS: ServiceOrder[] = [
     timeLogs: [],
     technicalNotes: [],
     usedMaterials: [],
+    materialExpenses: [],
     customerSignature: null,
     diagnosisPhotos: [],
     events: [

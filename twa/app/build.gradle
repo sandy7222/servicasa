@@ -55,7 +55,7 @@ android {
     namespace "online.tecniurbano.twa"
     defaultConfig {
         applicationId "online.tecniurbano.twa"
-        minSdkVersion 21
+        minSdkVersion 24
         targetSdkVersion 36
         versionCode 1
         versionName "1"

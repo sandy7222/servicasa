@@ -74,6 +74,7 @@ function order(currentQuote: OrderQuote): ServiceOrder {
     timeLogs: [],
     technicalNotes: [],
     usedMaterials: [],
+    materialExpenses: [],
     customerSignature: null,
     events: [],
     quotes: [currentQuote],

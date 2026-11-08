@@ -419,6 +419,16 @@ export const CustomerView: React.FC = () => {
                           <MessageCircle className="w-3.5 h-3.5" />Escribir al técnico
                         </button>
                       )}
+                      {/* Diagnóstico con el presupuesto ya enviado mientras la orden sigue "asignada": el cliente
+                          tiene que verlo para aceptarlo y pagarlo (QuoteViewer no muestra nada si no hay uno enviado).
+                          Progreso, materiales y firma siguen ocultos hasta que pague. Test de CustomerView del 18/9. */}
+                      {activeOrder.workMode === 'diagnosis' && activeOrder.quoteStatus === 'sent' && (
+                        <div className="rounded-xl border border-sky-200 dark:border-sky-800 bg-sky-50 dark:bg-sky-950/40 p-3 text-xs text-sky-900 dark:text-sky-200">
+                          Esta etapa es el presupuesto: revisalo abajo. Cuando lo aceptes y pagues, el técnico va a
+                          poder empezar el trabajo y vas a ver el avance acá.
+                        </div>
+                      )}
+                      {activeOrder.workMode === 'diagnosis' && <QuoteViewer order={activeOrder} />}
                     </>
                   ) : (
                     <div className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-700 shadow-xs">

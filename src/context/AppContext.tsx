@@ -2308,6 +2308,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       timeLogs: [],
       technicalNotes: [],
       usedMaterials: [],
+      materialExpenses: [],
       customerSignature: null,
       events: [
         {
