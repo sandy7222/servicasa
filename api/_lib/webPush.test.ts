@@ -93,6 +93,12 @@ describe('sendPushForNotification', () => {
     expect(m.updated).toEqual(['s1', 's2']);
   });
 
+  it('un aviso de prioridad normal también sale con urgencia alta, para sonar con la pantalla apagada', async () => {
+    m.notification = notification({ priority: 'normal' });
+    await sendPushForNotification(NID);
+    expect(m.send.mock.calls[0][2]).toMatchObject({ urgency: 'high' });
+  });
+
   it('un dispositivo vencido (410) se borra y no impide enviar a los demás', async () => {
     m.subs = [sub('viejo'), sub('vivo')];
     m.send.mockRejectedValueOnce(Object.assign(new Error('gone'), { statusCode: 410 })).mockResolvedValueOnce({});

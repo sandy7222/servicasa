@@ -73,7 +73,8 @@ export async function sendPushForNotification(notificationId: string): Promise<{
       await webpush.sendNotification(
         { endpoint: subscription.endpoint, keys: { p256dh: subscription.p256dh, auth: subscription.auth } },
         payload,
-        { TTL: TTL_SECONDS, urgency: n.priority === 'high' ? 'high' : 'normal' }
+        // Siempre alta: con urgencia normal Android deja el aviso dormido hasta que se prende la pantalla.
+        { TTL: TTL_SECONDS, urgency: 'high' }
       );
       result.sent += 1;
       await supabaseAdmin.from('push_subscriptions').update({ last_used_at: new Date().toISOString() }).eq('id', subscription.id);

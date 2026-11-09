@@ -10,13 +10,19 @@ self.addEventListener('push', (event) => {
     data = { title: 'TecniUrbano', body: event.data ? event.data.text() : '' };
   }
   const title = data.title || 'TecniUrbano';
+  // Sin etiqueta, renotify no vuelve a sonar si ya hay un aviso igual en la barra.
+  const tag = data.tag || 'tecniurbano';
   // iOS exige mostrar siempre una notificación por cada push recibido.
+  // Vibrar y renotify hacen que Android suene también con la pantalla apagada.
   event.waitUntil(
     self.registration.showNotification(title, {
       body: data.body || '',
       icon: '/icons/icon-192.png',
       badge: '/icons/icon-192.png',
-      tag: data.tag || undefined,
+      tag: tag,
+      renotify: true,
+      silent: false,
+      vibrate: [200, 100, 200, 100, 200],
       data: { url: data.url || '/#/' },
     })
   );
