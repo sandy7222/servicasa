@@ -21,6 +21,28 @@
 | 7+ | **(siguientes pasos de la clase)** | | | Pendiente |
 | — | **Materiales y presupuesto** | Precios / mano de obra (opcional) | Lista de materiales (bocas, cajas, cable por metro, caño, ITM, ID, tablero) → ítems del presupuesto con los precios del catálogo | Correspondencia de cada resultado con ítems del catálogo de precios |
 
+### Dónde está cada paso en la norma (AEA 90364-7-770, Edición 2026)
+Sacado del índice general del PDF de Sandy (`C:\Users\sandy\Downloads\AEA 90364-7-770 ED. 2026 — AEA.PDF`, escaneado: la página N de la norma es la página N+10 del PDF). Al programar cada paso, leer **solo** esas páginas para tomar los valores (sin copiar el texto en la app):
+
+| Paso | Cláusula | Página de la norma |
+|---|---|---|
+| Alcance (viviendas unifamiliares hasta 63 A, Icc ≤ 10 kA) | 770.1 | 7 |
+| Clasificación de líneas y circuitos (IUG, TUG, ACU, seccional, concepto de boca) | 770.7 (770.7.1 a 770.7.7) | 15 |
+| 1. Superficies a considerar (SLA) | 770.8.1 | 18 |
+| 2-3. Grados de electrificación, circuitos mínimos y puntos de utilización (bocas) | 770.8.2 y 770.8.3 (viviendas) | 18 a 24 |
+| Ubicación de interruptores y tomacorrientes | 770.8.6 | 25 |
+| 4. DPMS según grado y de otros circuitos; carga total | 770.9.1 a 770.9.3 | 26 a 28 |
+| Contratación del suministro | 770.9.4 | 29 |
+| 6. Canalizaciones, cables y conductores permitidos | 770.12 | 31 a 58 |
+| Sección nominal de los cables | 770.13 | 60 |
+| 5. Determinación de la sección / corriente admisible | 770.16 | 61 a 62 |
+| 5. Aparamenta de maniobra y protección | 770.17 | 66 a 67 |
+| Protección contra choques eléctricos (diferencial, puesta a tierra) | 770.18 | 68 a 73 |
+| Coordinación cable-protección, caídas de tensión | 770.19.3 y 770.19.6 | 78 y 80 |
+| Tableros | 770.20 | 82 a 94 |
+| Documentación técnica (contenido mínimo del proyecto) | Anexo 770-A | 103 |
+| **Guía práctica para cálculos** (tabla resumen para la sección de cables, cortocircuito, tableros) | Anexo 770-D | 111 a 120 |
+
 ### Ejemplo de referencia (para los tests)
 El ejemplo de los apuntes queda como **caso de prueba**: la app tiene que reproducir sus resultados (SLA 24,81 m²; electrificación mínima; 3 circuitos IUG/TUG/ACU; S IUG = 158,4 VA; S TUG = 2.200 VA; DPMS = 2.358,4 VA < 3,7 kVA → se mantiene el grado mínimo; tabla de protecciones IUG 6 A / 1,5 mm², TUG 16 A / 2,5 mm², ACU 16 A / 2,5 mm², seccional 25 A / 4 mm² con ID 30 mA tipo A; ITM bipolar curva C 3 kA).
 
