@@ -55,7 +55,9 @@ Pasos 6 a 9 del ejemplo (apuntes del 16/11): canalización RSP 20 / IRAM 62386-2
 **Dudas abiertas para Sandy (antes de programar):**
 1. ~~La térmica de IUG figura de 6 A en el paso 5 y de 10 A en el paso 8 y en el unifilar~~ → **Respuesta de Sandy (16/11): queda en 10 A; con 6 A "no verificaba el estándar del 2 % de tolerancia".** Falta saber qué cuenta exacta no cumplía (¿caída de tensión del circuito? ¿coordinación cable-protección?) para que la app la repita: probar protección → verificar → si no cumple, pasar a la siguiente.
 2. ~~En la DPMS del ejemplo se suman IUG + TUG y el ACU (2.600 W) va aparte~~ → **Respuesta de Sandy (16/11): según la AEA, en la DPMS del grado de electrificación (770.9.1) los circuitos de uso específico no suman; suman recién en la DPMS total (770.9.2/770.9.3).** La app calcula las dos: DPMS del grado (IUG + TUG = 2.358,4 VA → verifica el grado) y DPMS total (+ ACU 2.600 W) para la línea seccional. Coincide con el ejemplo: (2.358,4 + 2.600) / 220 V ≈ 22,5 A = corriente de la seccional del paso 5.
-3. Las 4 bocas de IUG y 4 de TUG del unifilar: ¿en qué ambientes van (la tabla del paso 3 suma 3 y 5)?
+3. ~~Las 4 bocas de IUG y 4 de TUG del unifilar: ¿en qué ambientes van?~~ → **Respuesta de Sandy (16/11): se pone el mínimo de IUG y TUG que exige cada circuito; la distribución está en el plano** (en la foto se ven bocas A, B, C, D; la resolución no alcanza para contar los tomas). **Decisión para la app:** propone el mínimo de bocas por ambiente según 770.8.3 y el grado; el técnico puede agregar más; la app suma por circuito y verifica mínimos/máximos. Para el test se usan los totales del unifilar: IUG 4, TUG 4, ACU 1.
+
+**Fase 0 cerrada el 16/11/2026.**
 
 ## Diseño técnico (propuesta)
 - **Datos:** tabla `installation_projects` (técnico, cliente/orden opcional, ambientes y resultados en JSON, versión de las reglas usadas, fechas). RLS: cada técnico ve los suyos; admin ve todos.
