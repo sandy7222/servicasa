@@ -53,7 +53,7 @@ Pasos 6 a 9 del ejemplo (apuntes del 16/11): canalización RSP 20 / IRAM 62386-2
 **Salidas que tiene que generar la app** (las mismas que pide el Trabajo Práctico N° 1): memoria técnica, vista en planta (opcional: subir el plano), unifilar y lista de materiales.
 
 **Dudas abiertas para Sandy (antes de programar):**
-1. La térmica de IUG figura de 6 A en el paso 5 y de 10 A en el paso 8 y en el unifilar: ¿cuál es la correcta y por qué cambió?
+1. ~~La térmica de IUG figura de 6 A en el paso 5 y de 10 A en el paso 8 y en el unifilar~~ → **Respuesta de Sandy (16/11): queda en 10 A; con 6 A "no verificaba el estándar del 2 % de tolerancia".** Falta saber qué cuenta exacta no cumplía (¿caída de tensión del circuito? ¿coordinación cable-protección?) para que la app la repita: probar protección → verificar → si no cumple, pasar a la siguiente.
 2. En la DPMS del ejemplo se suman IUG + TUG y el ACU (2.600 W) va aparte: ¿cuál es la regla para los circuitos de uso específico?
 3. Las 4 bocas de IUG y 4 de TUG del unifilar: ¿en qué ambientes van (la tabla del paso 3 suma 3 y 5)?
 
