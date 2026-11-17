@@ -17,8 +17,10 @@
 | 3 | **Número mínimo de bocas y circuitos** | Tipo de cada ambiente; si hay aire acondicionado u otras cargas | Tabla "bocas por circuito y ambiente" (IUG / TUG / ACU…) y circuitos mínimos | Bocas mínimas por tipo de ambiente y grado; circuitos mínimos por grado |
 | 4 | **Demanda de Potencia Máxima Simultánea (DPMS)** | — (puede corregir) | Potencia por circuito (ej.: IUG = bocas × coeficiente × VA por boca; TUG = valor fijo; ACU = potencia del equipo) y DPMS = suma de los circuitos que corresponda; verifica si se mantiene el grado | Coeficientes y VA por tipo de circuito; qué circuitos suman en la DPMS; límite de potencia por grado |
 | 5 | **Protecciones y conductores** | — (puede corregir) | Por circuito: I = S/U, In de la protección, Iz y sección del conductor; seccional y principal; tipo de ITM e interruptor diferencial | Tabla corriente → In → Iz → sección; tensión de cálculo; criterio de ITM e ID |
-| 6 | **Canalizaciones y conductores** | Tipo de canalización | Caño y conductores (F, N, PE) por circuito | **Pendiente: Sandy lo completa en la próxima clase** |
-| 7+ | **(siguientes pasos de la clase)** | | | Pendiente |
+| 6 | **Canalizaciones y conductores** (AEA pág. 32) | Tipo de canalización | Por circuito: caño (ej. IRAM 62386-21, RSP 20), conductores F y N (IRAM NM 247-3) y PE, con su sección | Tipos de caño y cable permitidos; sección del PE según la de fase |
+| 7 | **Caída de tensión** | Longitud de cada circuito y de la línea seccional; cos φ por circuito | ΔU = 2 × ρ × L / S × I × cos φ por circuito; verifica seccional ≤ 1 % Un y circuito ≤ límite; suma seccional + circuito ≤ 3 % Un. **Si no verifica, propone la sección siguiente y vuelve a calcular** (en el ejemplo la seccional pasa de 4 a 6 mm²) | ρ del conductor; límites de % de Un; tensión; secciones normalizadas |
+| 8 | **Exigencia térmica** | — | Verifica K² × S² ≥ I²t por circuito | K por material/aislación (ej. 115 Cu/PVC); I²t de la protección según curva/clase/poder de corte |
+| 9 | **Unifilar** | — | Diagrama: protección principal (ID), peine, PAT (jabalina, bornera), ITM y conductores por circuito, cuadro circuito / bocas / DPMS | Símbolos y componentes estándar |
 | — | **Materiales y presupuesto** | Precios / mano de obra (opcional) | Lista de materiales (bocas, cajas, cable por metro, caño, ITM, ID, tablero) → ítems del presupuesto con los precios del catálogo | Correspondencia de cada resultado con ítems del catálogo de precios |
 
 ### Dónde está cada paso en la norma (AEA 90364-7-770, Edición 2026)
@@ -46,10 +48,14 @@ Sacado del índice general del PDF de Sandy (`C:\Users\sandy\Downloads\AEA 90364
 ### Ejemplo de referencia (para los tests)
 El ejemplo de los apuntes queda como **caso de prueba**: la app tiene que reproducir sus resultados (SLA 24,81 m²; electrificación mínima; 3 circuitos IUG/TUG/ACU; S IUG = 158,4 VA; S TUG = 2.200 VA; DPMS = 2.358,4 VA < 3,7 kVA → se mantiene el grado mínimo; tabla de protecciones IUG 6 A / 1,5 mm², TUG 16 A / 2,5 mm², ACU 16 A / 2,5 mm², seccional 25 A / 4 mm² con ID 30 mA tipo A; ITM bipolar curva C 3 kA).
 
+Pasos 6 a 9 del ejemplo (apuntes del 16/11): canalización RSP 20 / IRAM 62386-21 y conductores IRAM NM 247-3 (F y N: IUG 1,5; TUG 2,5; ACU 2,5; seccional 4 → 6 mm²). Caída de tensión con ρ = 0,017, longitudes IUG 4 m / TUG 7,5 m / ACU 2 m / seccional 20 m, cos φ 0,85 (ACU 0,75): ΔU IUG 0,056 V, TUG 0,867 V, ACU 0,24 V, seccional 3,29 V con 4 mm² (no verifica 1 % = 2,2 V) → 6 mm²: 2,19 V; totales IUG 2,24 V, TUG 3,06 V, ACU 2,46 V ≤ 3 % (6,6 V). Exigencia térmica K = 115, I²t = 18.000 A²s (ITM curva C clase 3, 3 kA): IUG 1,5 mm² y TUG/ACU 2,5 mm² verifican. Unifilar: ID 2×40 A 30 mA, peine 63 A bipolar, PAT con jabalina 1.500 mm y bornera de 8 salidas, PE 1×6 mm² a tierra y 1×2,5 mm² por circuito; IUG 2×10 A, TUG 2×16 A, ACU 2×16 A (todas C 3 kA); 4 bocas IUG (158 VA), 4 bocas TUG (2.200 VA), 1 boca AA (2.600 W). Plano: departamento en 3er piso, habitación 16 m², baño 6 m², balcón 2,5 m², escala 1:50.
+
+**Salidas que tiene que generar la app** (las mismas que pide el Trabajo Práctico N° 1): memoria técnica, vista en planta (opcional: subir el plano), unifilar y lista de materiales.
+
 **Dudas abiertas para Sandy (antes de programar):**
-1. En la DPMS del ejemplo se suman IUG + TUG. ¿El circuito ACU (2.600 W) no entra en esa suma? ¿Cuál es la regla?
-2. En el paso 4 dice "4 bocas" de IUG y en la tabla del paso 3 aparecen 3 (habitación, baño, balcón): ¿hay un cuarto ambiente en la primera hoja?
-3. La primera hoja se ve chica: reenviarla más de cerca (medidas de los ambientes y aclaraciones del proyecto).
+1. La térmica de IUG figura de 6 A en el paso 5 y de 10 A en el paso 8 y en el unifilar: ¿cuál es la correcta y por qué cambió?
+2. En la DPMS del ejemplo se suman IUG + TUG y el ACU (2.600 W) va aparte: ¿cuál es la regla para los circuitos de uso específico?
+3. Las 4 bocas de IUG y 4 de TUG del unifilar: ¿en qué ambientes van (la tabla del paso 3 suma 3 y 5)?
 
 ## Diseño técnico (propuesta)
 - **Datos:** tabla `installation_projects` (técnico, cliente/orden opcional, ambientes y resultados en JSON, versión de las reglas usadas, fechas). RLS: cada técnico ve los suyos; admin ve todos.
@@ -70,3 +76,4 @@ El ejemplo de los apuntes queda como **caso de prueba**: la app tiene que reprod
 | Fecha | Qué se hizo |
 |---|---|
 | 13/11/2026 | Plan escrito a partir de los apuntes de clase de Sandy (pasos 1 a 5 del ejemplo, paso 6 empezado). Decisiones: módulo opcional, solo electricistas, valores técnicos configurables por Sandy, sin reproducir el texto de la norma. |
+| 16/11/2026 | Metodología completa: pasos 6 (canalizaciones), 7 (caída de tensión, con recálculo de sección), 8 (exigencia térmica), 9 (unifilar), plano del ejemplo y entregables del TP N° 1. Fase 0 casi cerrada: faltan las 3 dudas. |
