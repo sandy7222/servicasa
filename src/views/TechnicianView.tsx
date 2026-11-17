@@ -39,6 +39,8 @@ import { MaterialShoppingList } from '../components/technician/MaterialShoppingL
 import { TechnicianAssistant } from '../components/technician/TechnicianAssistant';
 import { ProfessionalProfile } from '../components/technician/ProfessionalProfile';
 import { EarningsView } from '../components/technician/EarningsView';
+import { InstallationProjectView } from '../components/technician/InstallationProjectView';
+import { isElectrician } from '../lib/technicianTools';
 import { WorkHistoryView } from '../components/technician/WorkHistoryView';
 import { TechnicianClaimsView } from '../components/technician/TechnicianClaimsView';
 import { TechnicianConversationsView } from '../components/technician/TechnicianConversationsView';
@@ -112,6 +114,16 @@ export const TechnicianView: React.FC = () => {
   }
   if (currentPath.split('?')[0] === '/technician/disponibilidad') {
     return <AvailabilityView />;
+  }
+  if (currentPath.split('?')[0] === '/technician/proyecto-instalacion') {
+    // Solo técnicos de Electricidad (y admin, para revisarlo).
+    const me = technicians.find((t) => t.id === currentUser?.technicianId);
+    if (currentUser?.role === 'admin' || isElectrician(me)) return <InstallationProjectView />;
+    return (
+      <main className="max-w-xl mx-auto p-6 text-sm text-slate-600 dark:text-slate-400">
+        Esta herramienta es para técnicos con la especialidad Electricidad.
+      </main>
+    );
   }
 
   const techId = currentUser?.technicianId || '';

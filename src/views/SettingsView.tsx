@@ -17,8 +17,10 @@ import {
   MapPinned,
   CalendarDays,
   ChevronRight,
+  Calculator,
 } from 'lucide-react';
 import { DEMO_USERS, useApp } from '../context/AppContext';
+import { isElectrician } from '../lib/technicianTools';
 import { CurrentUserData } from '../types';
 import { VisitFeeSettings } from '../components/admin/VisitFeeSettings';
 import { SystemSettingsPanel } from '../components/admin/SystemSettingsPanel';
@@ -129,6 +131,10 @@ export const SettingsView: React.FC = () => {
             { path: '/technician/profile', label: 'Mi perfil', description: 'Datos profesionales, foto y documentación.', icon: UserRound },
             { path: '/technician/zona-trabajo', label: 'Zona de trabajo', description: 'Dónde recibís los pedidos asignados.', icon: MapPinned },
             { path: '/technician/disponibilidad', label: 'Disponibilidad', description: 'Días y horarios en los que trabajás.', icon: CalendarDays },
+            // Herramienta opcional, solo para técnicos de Electricidad (plan-proyecto-instalacion.md).
+            ...(isElectrician(technicians.find((t) => t.id === currentUser.technicianId))
+              ? [{ path: '/technician/proyecto-instalacion', label: 'Proyecto de instalación', description: 'Calculá una instalación domiciliaria según AEA 90364-7-770.', icon: Calculator }]
+              : []),
           ].map(({ path, label, description, icon: Icon }) => (
             <button
               key={path}
