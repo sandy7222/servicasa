@@ -131,6 +131,31 @@ describe('reglas sueltas', () => {
     expect(r.warnings.join(' ')).toMatch(/supera las 15 bocas/);
   });
 
+  it('caída propia del circuito ≤ 2 % Un (pizarrón del 16/11): un TUG largo sube de sección', () => {
+    const r = calculateProject(
+      {
+        ...classExample,
+        circuits: [
+          { id: 'CT1', kind: 'IUG', points: 4, lengthM: 4, breakerA: 10 },
+          { id: 'CT2', kind: 'TUG', points: 4, lengthM: 45, breakerA: 16 }, // 45 m: con 2,5 mm² da 5,2 V > 2 % (4,4 V)
+        ],
+      },
+      CLASS_RULES
+    );
+    const tug = r.circuits.find((c) => c.id === 'CT2')!;
+    expect(tug.sectionIncreasedForDrop).toBe(true);
+    expect(tug.sectionMm2).toBeGreaterThan(2.5);
+    expect(tug.voltageDropV).toBeLessThanOrEqual(4.4);
+  });
+
+  it('si el técnico fija una sección que no cumple el 2 %, se avisa', () => {
+    const r = calculateProject(
+      { ...classExample, circuits: [{ id: 'CT2', kind: 'TUG', points: 4, lengthM: 45, breakerA: 16, sectionMm2: 2.5 }] },
+      CLASS_RULES
+    );
+    expect(r.circuits[0].warnings.join(' ')).toMatch(/supera el 2 %/);
+  });
+
   it('superficie: muros suman a la cubierta', () => {
     expect(applicationSurface([{ name: 'A', type: 'estar', areaM2: 10 }], 2).sla).toBe(12);
   });

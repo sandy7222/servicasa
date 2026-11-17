@@ -52,7 +52,7 @@ export type InstallationRules = {
   /** 770.19.6 (Anexo de fórmulas): factor de potencia en régimen permanente. */
   cosPhi: number;
   /** Tabla 770.19.IV: caída de tensión máxima total (%) — uso general/IUE y uso especial/específico; Nota 1: seccional. */
-  maxVoltageDropPct: { general: number; especifico: number; seccional: number };
+  maxVoltageDropPct: { general: number; especifico: number; seccional: number; circuitoTerminal: number };
   /** Exigencia térmica K²·S² ≥ I²t: K para cobre/PVC y I²t de la protección (A²s, dato del fabricante). */
   thermal: { k: number; i2t: number };
 };
@@ -85,7 +85,8 @@ export const DEFAULT_RULES: InstallationRules = {
   breakerRatings: [6, 10, 16, 20, 25, 32, 40, 50, 63],
   copperResistivity: 0.017,
   cosPhi: 0.85,
-  maxVoltageDropPct: { general: 3, especifico: 5, seccional: 1 },
+  // circuitoTerminal: caída propia de cada circuito terminal (criterio de la clase: 1 % seccional + 2 % circuito = 3 %).
+  maxVoltageDropPct: { general: 3, especifico: 5, seccional: 1, circuitoTerminal: 2 },
   thermal: { k: 115, i2t: 18000 },
 };
 
@@ -374,10 +375,12 @@ export function calculateProject(input: ProjectInput, rules = DEFAULT_RULES) {
       minSection: rules.minSection[c.kind],
       maxProtection: c.kind === 'ACU' ? undefined : rules.circuitLimits[c.kind].maxProtection,
       // Para el circuito terminal se busca que el TOTAL (seccional + circuito) quede dentro del límite.
-      ownDropLimitV: Math.max(0, totalLimitV - feeder.voltageDropV),
+      ownDropLimitV: Math.min((rules.maxVoltageDropPct.circuitoTerminal / 100) * v, Math.max(0, totalLimitV - feeder.voltageDropV)),
       rules,
     });
     const totalDropV = round3(feeder.voltageDropV + line.voltageDropV);
+    const ownLimitV = (rules.maxVoltageDropPct.circuitoTerminal / 100) * v;
+    if (line.voltageDropV > ownLimitV) line.warnings.push(`La caída propia del circuito (${line.voltageDropV} V) supera el ${rules.maxVoltageDropPct.circuitoTerminal} % (${round2(ownLimitV)} V).`);
     const totalDropOk = totalDropV <= totalLimitV;
     if (!totalDropOk) line.warnings.push(`La caída total (${totalDropV} V) supera el ${limitPct} % (${round2(totalLimitV)} V).`);
     return { ...line, demandVa, totalDropV, totalDropLimitV: round2(totalLimitV), totalDropOk };
