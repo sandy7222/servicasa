@@ -27,7 +27,7 @@ const classExample: ProjectInput = {
   circuits: [
     { id: 'CT1', kind: 'IUG', points: 4, lengthM: 4, breakerA: 10 },
     { id: 'CT2', kind: 'TUG', points: 4, lengthM: 7.5, breakerA: 16 },
-    { id: 'CT3', kind: 'ACU', points: 1, loadVa: 2600, lengthM: 2, cosPhi: 0.75, breakerA: 16 },
+    { id: 'CT3', kind: 'ACU', points: 1, loadVa: 2600, lengthM: 2, cosPhi: 0.85, breakerA: 16 },
   ],
   feeder: { lengthM: 20, breakerA: 25 },
 };
@@ -75,7 +75,7 @@ describe('Proyecto de instalación — ejemplo de clase', () => {
     const [iug, tug, acu] = r.circuits;
     expect(iug.voltageDropV).toBeCloseTo(0.056, 2);
     expect(tug.voltageDropV).toBeCloseTo(0.867, 2);
-    expect(acu.voltageDropV).toBeCloseTo(0.24, 2);
+    expect(acu.voltageDropV).toBeCloseTo(0.272, 2);
     expect(tug.totalDropV).toBeCloseTo(3.04, 1); // apuntes: 3,06 V (con I seccional 22,8 A)
     for (const c of r.circuits) expect(c.totalDropOk).toBe(true);
   });

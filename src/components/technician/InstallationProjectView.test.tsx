@@ -43,7 +43,7 @@ describe('InstallationProjectView', () => {
         circuits: [
           { id: 'CT1', kind: 'IUG', points: 4, lengthM: 4, breakerA: 10 },
           { id: 'CT2', kind: 'TUG', points: 4, lengthM: 7.5, breakerA: 16 },
-          { id: 'CT3', kind: 'ACU', points: 1, loadVa: 2600, lengthM: 2, cosPhi: 0.75, breakerA: 16 },
+          { id: 'CT3', kind: 'ACU', points: 1, loadVa: 2600, lengthM: 2, cosPhi: 0.85, breakerA: 16 },
         ],
         feeder: { lengthM: 20, breakerA: 25 },
       })

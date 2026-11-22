@@ -187,7 +187,7 @@ export const InstallationProjectView: React.FC = () => {
               <button type="button" aria-label="Quitar circuito" onClick={() => setDraft((d) => ({ ...d, circuits: d.circuits.filter((_, j) => j !== i) }))} className="pb-1.5 text-rose-600"><Trash2 className="w-4 h-4" /></button>
             </div>
           ))}
-          <button type="button" onClick={() => setDraft((d) => ({ ...d, circuits: [...d.circuits, { id: `CT${d.circuits.length + 1}`, kind: 'ACU', points: 1, loadVa: 2600, lengthM: 5, cosPhi: 0.75 }] }))} className="inline-flex items-center gap-1 rounded-lg border border-teal-200 px-3 py-1.5 text-xs font-bold text-teal-700"><Plus className="w-3.5" />Agregar circuito</button>
+          <button type="button" onClick={() => setDraft((d) => ({ ...d, circuits: [...d.circuits, { id: `CT${d.circuits.length + 1}`, kind: 'ACU', points: 1, loadVa: 2600, lengthM: 5, cosPhi: 0.85 }] }))} className="inline-flex items-center gap-1 rounded-lg border border-teal-200 px-3 py-1.5 text-xs font-bold text-teal-700"><Plus className="w-3.5" />Agregar circuito</button>
           <div className="grid grid-cols-3 gap-2 max-w-md">
             <label className="text-[10px] text-slate-500">Seccional: largo m<input className={input} inputMode="decimal" value={draft.feeder.lengthM} onChange={(e) => setDraft((d) => ({ ...d, feeder: { ...d.feeder, lengthM: num(e.target.value) } }))} /></label>
             <label className="text-[10px] text-slate-500">ITM A<input className={input} inputMode="numeric" value={draft.feeder.breakerA ?? ''} placeholder="auto" onChange={(e) => setDraft((d) => ({ ...d, feeder: { ...d.feeder, breakerA: optNum(e.target.value) } }))} /></label>
