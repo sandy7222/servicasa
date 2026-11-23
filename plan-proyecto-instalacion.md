@@ -138,7 +138,7 @@ Departamento en 3er piso, Constitución 1734, C.A.B.A. Memoria completa en `C:\U
 ### ⏳ Fase 2B (🤖) — Correcciones del motor (cortocircuito y exigencia térmica)
 **Objetivo:** que el motor reproduzca el caso de prueba 2 (TP N° 1) sin romper el caso 1.
 - [ ] 2B.1 **Entrada:** `ProjectInput.iccA?: number` (Icc del punto de suministro). Por circuito y seccional: `breakingCapacityA?` (poder de corte elegido) y, opcional, `i2tOverride?` (I²t del fabricante). Para el ID: `rcdShortCircuitA?` (capacidad de cortocircuito garantizada).
-- [ ] 2B.2 **Reglas:** `breakingCapacities: [3000, 4500, 6000, 10000]`; `defaultEnergyClass: 3`; `defaultCurve: 'C'`; tabla `i2tMax` con las Tablas 770-B.VIII (In ≤ 16 A) y 770-B.IX (16 < In ≤ 32 A) por poder de corte, clase (2 y 3; clase 1 = "sin límite": no se puede verificar sin dato del fabricante) y curva (B y C). Valores clase 3: ≤16 A → B 15.000/25.000/35.000/70.000, C 18.000/30.000/42.000/84.000; 16–32 A → B 18.000/32.000/45.000/90.000, C 22.000/39.000/55.000/110.000 (para 3.000/4.500/6.000/10.000 A). Clase 2: ≤16 A → B 31.000/60.000/100.000/240.000, C 37.000/75.000/120.000/290.000; 16–32 A → B 40.000/80.000/130.000/310.000, C 50.000/100.000/160.000/370.000. Reemplaza `thermal.i2t`. **Sandy confirma los valores con la Ed. 2026 antes del commit.**
+- [ ] 2B.2 **Reglas:** `breakingCapacities: [3000, 4500, 6000, 10000]`; `defaultEnergyClass: 3`; `defaultCurve: 'C'`; tabla `i2tMax` con las Tablas 770-B.VIII (In ≤ 16 A) y 770-B.IX (16 < In ≤ 32 A) por poder de corte, clase (2 y 3; clase 1 = "sin límite": no se puede verificar sin dato del fabricante) y curva (B y C). Valores clase 3: ≤16 A → B 15.000/25.000/35.000/70.000, C 18.000/30.000/42.000/84.000; 16–32 A → B 18.000/32.000/45.000/90.000, C 22.000/39.000/55.000/110.000 (para 3.000/4.500/6.000/10.000 A). Clase 2: ≤16 A → B 31.000/60.000/100.000/240.000, C 37.000/75.000/120.000/290.000; 16–32 A → B 40.000/80.000/130.000/310.000, C 50.000/100.000/160.000/370.000. Reemplaza `thermal.i2t`. Los valores se cargan con la cita de la Guía 2017 y la marca "a confirmar con Ed. 2026" (ver "Única comprobación pendiente de Sandy").
 - [ ] 2B.3 **Propuesta automática:** si el técnico no fija el poder de corte, la app propone el menor normalizado ≥ Icc (Icc 3.250 → 4.500 A).
 - [ ] 2B.4 **Verificación 8 A:** por circuito y seccional, `breakingOk = breakingCapacityA ≥ iccA`; para el ID, `rcdShortCircuitA ≥ iccA` (sin dato → advertencia "confirmar con el fabricante"). Sin Icc cargada → resultado "sin dato", no error.
 - [ ] 2B.5 **Verificación 8 B:** I²t = `i2tOverride` o el de la tabla según In, poder de corte, clase y curva. Si no verifica y el técnico no fijó la sección, subir a la siguiente normalizada y marcar `sectionIncreasedForThermal` (análogo a `sectionIncreasedForDrop`). Recalcular la caída con la sección nueva.
@@ -174,14 +174,21 @@ Reproduce las secciones 10 a 14 del TP N° 1. Es **opcional** y solo para obras 
 
 ---
 
-## Decisiones abiertas (preguntar a Sandy antes de la fase que las usa)
-1. (2B) ¿La Ed. 2026 mantiene las Tablas 770.15.II, 770-B.VIII y 770-B.IX con los mismos valores?
-2. (2B) Clase de limitación por defecto: ¿3? (las tiendas no la informan).
-3. (2B) ¿Cómo se trata el ID: se exige capacidad propia ≥ Icc, o alcanza con la protección de respaldo que indica el fabricante?
-4. (2B) Tipo del ID (A o AC) — consulta pendiente con el profesor.
-5. (3B) ¿La comisión de la plataforma (17 % sin IVA sobre el trabajo, ver `plan-cobro-repartido.md`) se muestra en la nota del presupuesto de obra o queda interna?
-6. (3B) Garantía: ¿una obra completa tiene la misma garantía de 30 días que un servicio común?
-7. (3B) ¿Valor hora de referencia UOCRA o uno propio de TecniUrbano?
+## Decisiones de diseño ya tomadas (23/11/2026, no volver a preguntar a Sandy)
+Estamos construyendo un **modelo** (una herramienta), no un proyecto: los datos propios de cada proyecto (Icc, poder de corte y clase de cada térmica, tipo del ID) los **carga el técnico**; a Sandy no se le piden.
+1. **Poder de corte, clase y curva de cada protección:** el técnico las **elige de una lista** mirando la ficha del fabricante. Si no las carga, la herramienta usa por defecto **poder de corte = menor normalizado ≥ Icc, clase 3, curva C** y lo muestra con el aviso "valor supuesto, confirmar con el fabricante". El valor por defecto de clase vive en `DEFAULT_RULES` y Sandy lo puede cambiar después desde la configuración.
+2. **I²t:** el técnico puede cargar el valor **garantizado por el fabricante** (`i2tOverride`); si lo hace, la herramienta lo usa en lugar de la tabla. Si no, usa las Tablas 770-B.VIII / 770-B.IX según In, poder de corte, clase y curva. Clase 1 ("sin límite especificado") sin dato del fabricante: la verificación queda **"sin dato"**, no "verifica".
+3. **Diferencial (ID):** el técnico carga su capacidad de cortocircuito garantizada (`rcdShortCircuitA`). Si es **menor que la Icc**, la herramienta marca "NO VERIFICA" y avisa que hay que elegir un ID con capacidad suficiente o confirmar con el fabricante la protección de respaldo. Sin dato: "confirmar con el fabricante". (En el TP N° 1 se aplicó este criterio: ID de 3 kA no verifica con Icc 3.250 A; ID de 6 kA sí.)
+4. **Tipo del ID (A o AC):** el técnico lo elige; por defecto tipo A como en el ejemplo de clase. Queda una consulta suelta con el profesor, que **no bloquea** el desarrollo.
+5. **Sin Icc cargada:** las verificaciones de cortocircuito quedan en "sin dato" (no son error), para no romper proyectos sin ese dato.
+
+## Única comprobación pendiente de Sandy (puede esperar)
+- (2B, al cargar los valores) Confirmar con el libro impreso de la **Ed. 2026** que las Tablas 770.15.II, 770-B.VIII y 770-B.IX tienen los mismos valores que la Guía 2017. El agente deja los valores cargados con la cita de la Guía 2017 y la marca "a confirmar con Ed. 2026".
+
+## Decisiones abiertas de la Fase 3B (preguntar a Sandy cuando se llegue a esa fase)
+1. ¿La comisión de la plataforma (17 % sin IVA sobre el trabajo, ver `plan-cobro-repartido.md`) se muestra en la nota del presupuesto de obra o queda interna?
+2. Garantía: ¿una obra completa tiene la misma garantía de 30 días que un servicio común?
+3. ¿Valor hora de referencia UOCRA o uno propio de TecniUrbano?
 
 ## Bitácora
 | Fecha | Qué se hizo |
@@ -190,4 +197,4 @@ Reproduce las secciones 10 a 14 del TP N° 1. Es **opcional** y solo para obras 
 | 16/11/2026 | **Fase 1 hecha** (`85d2e38`): motor `src/lib/installationProject.ts` con reglas de la AEA (tablas 770.7.I, 770.8.I–III, 770.9.I–II, 770.13.I, 770.16.I, 770.19.IV) y el ejemplo de clase como test. **Fase 2 (primera versión) hecha:** pantalla `InstallationProjectView` en `/technician/proyecto-instalacion`, entrada en Ajustes solo para Electricidad (`isElectrician`), proponer circuitos mínimos, memoria de cálculo imprimible; guarda en el dispositivo (localStorage). Pendiente de Fase 2: guardar en la cuenta (tabla + migración) y adjuntar el plano. Para consultar con el profesor: el criterio "DPMS < 3,7 kVA" no está en la Ed. 2026 (grado solo por superficie) y la Tabla 770.9.I usa 2/3 (no 0,66). |
 | 16/11/2026 | Metodología completa: pasos 6 (canalizaciones), 7 (caída de tensión, con recálculo de sección), 8 (exigencia térmica), 9 (unifilar), plano del ejemplo y entregables del TP N° 1. Fase 0 casi cerrada: faltan las 3 dudas. |
 | 21/11/2026 | Caída propia de cada circuito terminal ≤ 2 % Un (`ca2e086`). cos φ 0,85 también en ACU (`c8da54a`). |
-| 23/11/2026 | Plan ampliado con lo aprendido en el TP N° 1: Fase 2B (Icc, poder de corte, I²t por tabla, subir sección por exigencia térmica, seccional en el 8 B), Fase 2C (guardar en la cuenta), Fase 3B (presupuesto formal de obra con oráculo numérico) y sección "para el agente que retome". |
+| 23/11/2026 | Decisiones de diseño de la Fase 2B fijadas (el técnico carga poder de corte, clase, I²t del fabricante y datos del ID; valores por defecto avisados; sin Icc = "sin dato"). Plan ampliado con lo aprendido en el TP N° 1: Fase 2B (Icc, poder de corte, I²t por tabla, subir sección por exigencia térmica, seccional en el 8 B), Fase 2C (guardar en la cuenta), Fase 3B (presupuesto formal de obra con oráculo numérico) y sección "para el agente que retome". |
