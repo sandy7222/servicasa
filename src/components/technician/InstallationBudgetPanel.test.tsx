@@ -34,3 +34,28 @@ describe('InstallationBudgetPanel — pasar a presupuesto', () => {
     expect(screen.queryByRole('button', { name: /Pasar materiales/ })).not.toBeInTheDocument();
   });
 });
+
+describe('InstallationBudgetPanel — composición interna', () => {
+  const withLabor = { ...budget, tasks: [{ name: 'Obra', officialHours: 10, helperHours: 5 }], officialRate: 8000, helperRate: 6000, visit: 20000, tools: [{ name: 'Amoladora', originValue: 100000, hoursOnSite: 40 }] };
+
+  it('muestra cada componente con su porcentaje y a dónde va cada peso del precio', () => {
+    render(<InstallationBudgetPanel project={project} result={result} value={withLabor} onChange={vi.fn()} />);
+    expect(screen.getByText(/Composición del precio \(uso interno/)).toBeInTheDocument();
+    expect(screen.getByText('COSTO DIRECTO (lo que cuesta hacer la obra)')).toBeInTheDocument();
+    expect(screen.getByText('A dónde va cada peso del precio')).toBeInTheDocument();
+    expect(screen.getByText('Mano de obra y visita (con cargas)')).toBeInTheDocument();
+    expect(screen.getByText('Depreciación por herramienta')).toBeInTheDocument();
+  });
+
+  it('el botón abre el documento interno para imprimir', () => {
+    const written: string[] = [];
+    const fake = { document: { open: vi.fn(), write: (h: string) => written.push(h), close: vi.fn() }, focus: vi.fn(), print: vi.fn() };
+    const open = vi.spyOn(window, 'open').mockReturnValue(fake as unknown as Window);
+    render(<InstallationBudgetPanel project={project} result={result} value={withLabor} onChange={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: /Abrir composición para imprimir/ }));
+    expect(open).toHaveBeenCalled();
+    expect(written[0]).toContain('Documento interno');
+    expect(written[0]).toContain('Amoladora');
+    open.mockRestore();
+  });
+});

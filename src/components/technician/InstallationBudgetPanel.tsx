@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { FileText, Plus, Sparkles, Trash2 } from 'lucide-react';
 import logoTecniurbano from '../../assets/logo-tecniurbano.png';
 import { buildQuoteNoteHtml } from '../../lib/installationQuoteNote';
+import { buildComposition, buildCompositionHtml, pct } from '../../lib/installationComposition';
 import { buildMaterialQuoteItems, type QuoteItemDraft } from '../../lib/installationQuoteItems';
 import type { ProjectInput, ProjectResult } from '../../lib/installationProject';
 import { computeTakeoff } from '../../lib/installationTakeoff';
@@ -121,6 +122,22 @@ export const InstallationBudgetPanel: React.FC<Props> = ({ project, result, valu
       'Tablero seccional con protecciones termomagnéticas e interruptor diferencial.',
       'Puesta a tierra y ensayos de puesta en servicio.',
     ].join('\n');
+  };
+  const compositions = results.map((r) => buildComposition(r, { officialRate: budget.officialRate, helperRate: budget.helperRate, rules: budget.rules, tools: budget.tools }));
+  const openComposition = () => {
+    const html = buildCompositionHtml({
+      date: new Date().toLocaleDateString('es-AR'),
+      projectName: project.name ?? '',
+      rules: budget.rules,
+      options: [0, 1].map((i) => ({ label: budget.listNames[i], composition: compositions[i], advance: results[i].advance, advanceShare: results[i].advanceShare })),
+    });
+    const w = window.open('', '_blank');
+    if (!w) return;
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    setTimeout(() => w.print(), 400);
   };
   const openNote = () => {
     const idx = budget.showOptions === 'both' ? [0, 1] : [budget.showOptions];
@@ -291,6 +308,46 @@ export const InstallationBudgetPanel: React.FC<Props> = ({ project, result, valu
           </table>
         </div>
       </div>
+
+      {/* Composición interna del precio */}
+      <details className="rounded-lg border border-slate-200 dark:border-slate-700 p-3">
+        <summary className="cursor-pointer font-bold">Composición del precio (uso interno, no es para el cliente)</summary>
+        <div className="mt-3 space-y-3">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[520px] text-left">
+              <thead><tr className="text-[10px] text-slate-500"><th>Concepto</th><th className="text-right">{budget.listNames[0]}</th><th className="text-right">%</th><th className="text-right">{budget.listNames[1]}</th><th className="text-right">%</th></tr></thead>
+              <tbody>
+                {compositions[0].rows.map((row, i) => (
+                  <tr key={row.label} className={`border-t border-slate-100 dark:border-slate-800 ${row.kind !== 'row' ? 'font-bold' : ''}`}>
+                    <td>{row.label}</td>
+                    <td className="text-right">{money(row.amount)}</td><td className="text-right">{pct(row.share)}</td>
+                    <td className="text-right">{money(compositions[1].rows[i].amount)}</td><td className="text-right">{pct(compositions[1].rows[i].share)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div>
+            <p className="font-bold">A dónde va cada peso del precio</p>
+            <ul className="mt-1 space-y-0.5">
+              {compositions[0].groups.map((g, i) => (
+                <li key={g.label} className="flex flex-wrap gap-x-3"><span className="min-w-52">{g.label}</span><span>{pct(g.share)} · {money(g.amount)}</span><span className="text-slate-500">{pct(compositions[1].groups[i].share)} · {money(compositions[1].groups[i].amount)}</span></li>
+              ))}
+            </ul>
+            <p className="mt-1 text-[11px] text-slate-500">Gastos generales y beneficio suman {pct(compositions[0].markup.shareOfTotal)} del precio ({pct(compositions[0].markup.overDirect)} sobre el costo directo) en {budget.listNames[0]}.</p>
+          </div>
+          {compositions[0].tools.length > 0 && (
+            <div className="overflow-x-auto">
+              <p className="font-bold">Depreciación por herramienta</p>
+              <table className="w-full min-w-[420px] text-left">
+                <thead><tr className="text-[10px] text-slate-500"><th>Herramienta</th><th className="text-right">Valor de origen</th><th className="text-right">Cuota anual</th><th className="text-right">Horas</th><th className="text-right">Cargo a la obra</th></tr></thead>
+                <tbody>{compositions[0].tools.map((t, i) => <tr key={i} className="border-t border-slate-100 dark:border-slate-800"><td>{t.name || '—'}</td><td className="text-right">{money(t.originValue)}</td><td className="text-right">{money(t.annualQuota)}</td><td className="text-right">{t.hoursOnSite}</td><td className="text-right">{money(t.charge)}</td></tr>)}</tbody>
+              </table>
+            </div>
+          )}
+          <button type="button" onClick={openComposition} className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-1.5 font-bold"><FileText className="w-3.5" />Abrir composición para imprimir / guardar PDF</button>
+        </div>
+      </details>
 
       {/* Nota para el cliente */}
       <div className="space-y-2">
