@@ -114,6 +114,29 @@ describe('InstallationProjectView', () => {
     expect(total).toHaveTextContent('236.918,00');
   });
 
+  it('"Abrir nota para imprimir" arma la nota con el cliente, el logo y la garantía', () => {
+    localStorage.setItem(
+      'tu:installation-project:v1',
+      JSON.stringify({
+        name: 'Obra',
+        rooms: [{ name: 'Habitación', type: 'dormitorio', areaM2: 16 }],
+        circuits: [{ id: 'CT1', kind: 'IUG', points: 5, lengthM: 11, breakerA: 10 }],
+        feeder: { lengthM: 11, breakerA: 25 },
+        budget: { clientName: 'María Gómez', visit: 1000 },
+      })
+    );
+    const written: string[] = [];
+    const fakeWindow = { document: { open: vi.fn(), write: (h: string) => written.push(h), close: vi.fn() }, focus: vi.fn(), print: vi.fn() };
+    const open = vi.spyOn(window, 'open').mockReturnValue(fakeWindow as unknown as Window);
+    render(<InstallationProjectView />);
+    fireEvent.click(screen.getByRole('button', { name: /Abrir nota para imprimir/ }));
+    expect(open).toHaveBeenCalled();
+    expect(written[0]).toContain('María Gómez');
+    expect(written[0]).toContain('respaldada');
+    expect(written[0]).toContain('<img');
+    open.mockRestore();
+  });
+
   it('"Proponer circuitos mínimos" arma los circuitos del grado con las bocas mínimas', () => {
     render(<InstallationProjectView />);
     expect(screen.queryByText(/Memoria de cálculo/)).not.toBeInTheDocument();

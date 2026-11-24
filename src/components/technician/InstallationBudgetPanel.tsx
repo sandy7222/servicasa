@@ -1,5 +1,7 @@
 import React, { useMemo, useState } from 'react';
-import { Plus, Sparkles, Trash2 } from 'lucide-react';
+import { FileText, Plus, Sparkles, Trash2 } from 'lucide-react';
+import logoTecniurbano from '../../assets/logo-tecniurbano.png';
+import { buildQuoteNoteHtml } from '../../lib/installationQuoteNote';
 import type { ProjectInput, ProjectResult } from '../../lib/installationProject';
 import { computeTakeoff } from '../../lib/installationTakeoff';
 import { priceMaterials, parsePastedPrices, type PriceEntry } from '../../lib/installationPrices';
@@ -23,6 +25,13 @@ export type BudgetDraft = {
   helperRate: number;
   visit: number;
   rules: Partial<BudgetRules>;
+  /** Datos de la nota para el cliente. */
+  clientName: string;
+  clientDocument: string;
+  clientAddress: string;
+  scope: string;
+  exclusions: string;
+  showOptions: 'both' | 0 | 1;
 };
 
 export const EMPTY_BUDGET: BudgetDraft = {
@@ -36,6 +45,12 @@ export const EMPTY_BUDGET: BudgetDraft = {
   helperRate: 0,
   visit: 0,
   rules: {},
+  clientName: '',
+  clientDocument: '',
+  clientAddress: '',
+  scope: '',
+  exclusions: 'IVA, pintura y terminaciones de albañilería, y trámites ante la distribuidora.',
+  showOptions: 'both',
 };
 
 const TYPICAL_TASKS = ['Replanteo y marcado', 'Canaletas y perforaciones', 'Caños, cajas y accesorios', 'Tapado', 'Pasado de conductores', 'Línea seccional', 'Tablero seccional', 'Mecanismos y plafones', 'Puesta a tierra', 'Ensayos y puesta en servicio'];
@@ -44,9 +59,15 @@ const money = (n: number) => n.toLocaleString('es-AR', { minimumFractionDigits: 
 const num = (v: string) => { const n = Number(v.replace(',', '.')); return Number.isFinite(n) ? n : 0; };
 const input = 'w-full min-w-0 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1 text-xs';
 
-type Props = { project: ProjectInput; result: ProjectResult; value: BudgetDraft | undefined; onChange: (next: BudgetDraft) => void };
+type Props = {
+  project: ProjectInput & { name?: string };
+  result: ProjectResult;
+  value: BudgetDraft | undefined;
+  onChange: (next: BudgetDraft) => void;
+  technician?: { name: string; phone?: string; email?: string };
+};
 
-export const InstallationBudgetPanel: React.FC<Props> = ({ project, result, value, onChange }) => {
+export const InstallationBudgetPanel: React.FC<Props> = ({ project, result, value, onChange, technician }) => {
   const budget: BudgetDraft = { ...EMPTY_BUDGET, ...value };
   const [pasting, setPasting] = useState<0 | 1 | null>(null);
   const [pasted, setPasted] = useState('');
@@ -85,6 +106,34 @@ export const InstallationBudgetPanel: React.FC<Props> = ({ project, result, valu
       <input className={input} inputMode="decimal" value={Math.round(rules[rule] * 10000) / 100} onChange={(e) => set({ rules: { ...budget.rules, [rule]: num(e.target.value) / 100 } })} />
     </label>
   );
+  const defaultScope = () => {
+    const kinds = [...new Set(project.circuits.map((c) => c.kind))].join(', ');
+    return [
+      `Provisión de materiales y mano de obra para la instalación eléctrica${project.name ? ` de ${project.name}` : ''}: ${project.circuits.length} circuito(s) (${kinds}).`,
+      'Tablero seccional con protecciones termomagnéticas e interruptor diferencial.',
+      'Puesta a tierra y ensayos de puesta en servicio.',
+    ].join('\n');
+  };
+  const openNote = () => {
+    const idx = budget.showOptions === 'both' ? [0, 1] : [budget.showOptions];
+    const html = buildQuoteNoteHtml({
+      logoUrl: new URL(logoTecniurbano, window.location.href).href,
+      date: new Date().toLocaleDateString('es-AR'),
+      projectName: project.name ?? '',
+      technician: technician ?? { name: '' },
+      client: { name: budget.clientName, document: budget.clientDocument, address: budget.clientAddress },
+      scope: (budget.scope.trim() || defaultScope()).split('\n').map((l) => l.trim()).filter(Boolean),
+      exclusions: budget.exclusions,
+      options: idx.map((i) => ({ label: budget.listNames[i], result: results[i] })),
+    });
+    const w = window.open('', '_blank');
+    if (!w) return;
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    setTimeout(() => w.print(), 400);
+  };
   const groups = [...new Set(priced.lines.map((l) => takeoff.find((t) => t.key === l.key)?.group ?? ''))];
 
   return (
@@ -233,6 +282,33 @@ export const InstallationBudgetPanel: React.FC<Props> = ({ project, result, valu
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Nota para el cliente */}
+      <div className="space-y-2">
+        <h3 className="font-bold">7. Nota de presupuesto para el cliente (PDF)</h3>
+        <div className="grid sm:grid-cols-3 gap-2">
+          <label className="text-[10px] text-slate-500">Cliente<input className={input} value={budget.clientName} onChange={(e) => set({ clientName: e.target.value })} /></label>
+          <label className="text-[10px] text-slate-500">CUIT / DNI<input className={input} value={budget.clientDocument} onChange={(e) => set({ clientDocument: e.target.value })} /></label>
+          <label className="text-[10px] text-slate-500">Domicilio de la obra<input className={input} value={budget.clientAddress} onChange={(e) => set({ clientAddress: e.target.value })} /></label>
+        </div>
+        <label className="block text-[10px] text-slate-500">Alcance (una línea por punto; si lo dejás vacío se arma uno)
+          <textarea className={`${input} h-20`} value={budget.scope} placeholder={defaultScope()} onChange={(e) => set({ scope: e.target.value })} />
+        </label>
+        <label className="block text-[10px] text-slate-500">No incluye
+          <input className={input} value={budget.exclusions} onChange={(e) => set({ exclusions: e.target.value })} />
+        </label>
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="text-[10px] text-slate-500">Mostrar
+            <select className={input} value={String(budget.showOptions)} onChange={(e) => set({ showOptions: e.target.value === 'both' ? 'both' : (Number(e.target.value) as 0 | 1) })}>
+              <option value="both">Las dos opciones</option>
+              <option value="0">Solo {budget.listNames[0]}</option>
+              <option value="1">Solo {budget.listNames[1]}</option>
+            </select>
+          </label>
+          <button type="button" onClick={openNote} className="inline-flex items-center gap-1 rounded-lg bg-teal-600 px-3 py-2 font-bold text-white"><FileText className="w-3.5" />Abrir nota para imprimir / guardar PDF</button>
+        </div>
+        <p className="text-[10px] text-slate-500">Se abre en otra pestaña: elegí "Guardar como PDF" en la impresora. Lleva el logo de TecniUrbano y la garantía de la plataforma.</p>
       </div>
     </section>
   );

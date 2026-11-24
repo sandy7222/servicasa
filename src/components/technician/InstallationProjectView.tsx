@@ -125,12 +125,14 @@ const Mark: React.FC<{ ok: boolean | null; label: string }> = ({ ok, label }) =>
   : <AlertTriangle className="inline w-4 text-rose-600" aria-label={`${label}: no verifica`} />;
 
 export const InstallationProjectView: React.FC = () => {
-  const { navigate, currentUser, showToast } = useApp() as {
+  const { navigate, currentUser, showToast, technicians } = useApp() as {
     navigate: (path: string) => void;
+    technicians?: Array<{ id: string; name: string; phone?: string; email?: string }>;
     currentUser?: { technicianId?: string } | null;
     showToast?: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
   };
   const technicianId = currentUser?.technicianId;
+  const technician = technicians?.find((t) => t.id === technicianId);
   const cloud = Boolean(technicianId) && isSupabaseConfigured;
   const [draft, setDraft] = useState<Draft>(loadDraft);
   const [projectId, setProjectId] = useState<string | null>(() => {
@@ -425,6 +427,7 @@ export const InstallationProjectView: React.FC = () => {
             project={draft}
             result={result}
             value={draft.budget}
+            technician={technician ? { name: technician.name, phone: technician.phone, email: technician.email } : undefined}
             onChange={(budget) => setDraft((d) => ({ ...d, budget }))}
           />
         )}
