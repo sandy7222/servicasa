@@ -207,3 +207,6 @@ Estamos construyendo un **modelo** (una herramienta), no un proyecto: los datos 
 
 ### Decisión 24/11/2026 — obras especiales: opción A
 Sandy eligió la **opción A**: la obra especial (materiales + mano de obra de proyecto) se acuerda y se cobra **fuera de la plataforma**. Consecuencias: "Pasar a presupuesto" queda apagado (`PASS_TO_QUOTE_ENABLED = false`); la nota para el cliente ya no dice "respaldada por TecniUrbano": dice que la garantía es del técnico y que la obra se cobra fuera de la plataforma. La opción B (presupuesto de obra dentro de la plataforma) queda para más adelante.
+
+### 24/11/2026 — Ayuda guiada del proyecto
+La cabecita del asistente (HelpHub) suma la opción "Ayuda con el proyecto de instalación" con 7 temas (inicio, las 4 secciones, memoria, presupuesto). Solo se ofrece a técnico electricista o admin y solo en /technician/proyecto-instalacion; el cliente no la ve. Textos fijos en src/lib/installationHelp.ts (sin IA, sin costo).

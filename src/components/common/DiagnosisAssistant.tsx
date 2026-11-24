@@ -19,6 +19,8 @@ import { saveAssistantDraft } from '../../lib/diagnosisDraft';
 import { isAdminWorkspacePath } from '../../lib/adminNav';
 import { uploadDiagnosisPhoto } from '../../lib/diagnosisPhotoUpload';
 import { HelpHub, type HelpMode } from './HelpHub';
+import { isElectrician } from '../../lib/technicianTools';
+import { INSTALLATION_PROJECT_PATH } from '../../lib/installationHelp';
 import type { CatalogSubcategory, ServiceItem } from '../../types';
 import assistantBody from '../../assets/landing/asistente-cuerpo.png';
 
@@ -31,8 +33,12 @@ function slugMap(subcategories: readonly CatalogSubcategory[]) {
 }
 
 export const DiagnosisAssistant: React.FC = () => {
-  const { services, catalogSubcategories, currentUser, currentPath, navigate, showToast, visitDepositAmount } = useApp();
+  const { services, catalogSubcategories, currentUser, currentPath, navigate, showToast, visitDepositAmount, technicians } = useApp();
   const [open, setOpen] = useState(false);
+  // La ayuda del Proyecto de instalación es solo para el técnico electricista (o admin) que está en esa pantalla.
+  const projectHelp =
+    currentPath === INSTALLATION_PROJECT_PATH &&
+    (currentUser?.role === 'admin' || (currentUser?.role === 'technician' && isElectrician(technicians.find((t) => t.id === currentUser.technicianId))));
   // 'order' = el asistente de diagnóstico de siempre; el resto es el menú de ayuda (HelpHub).
   const [mode, setMode] = useState<'order' | HelpMode>('home');
   const [session, setSession] = useState<AssistantSession>(() => startAssistant());
@@ -130,7 +136,7 @@ export const DiagnosisAssistant: React.FC = () => {
     <div className={`fixed right-4 z-[70] pointer-events-none ${adminMobileNav ? 'bottom-20 md:bottom-4' : 'bottom-4'}`}>
       <div className={open ? 'relative' : 'flex flex-col items-end'}>
         {open && mode !== 'order' && (
-          <HelpHub mode={mode} onModeChange={setMode} onStartOrder={() => setMode('order')} onClose={() => setOpen(false)} visitPrice={visitDepositAmount} role={currentUser?.role ?? null} onNavigate={navigate} />
+          <HelpHub mode={mode} onModeChange={setMode} onStartOrder={() => setMode('order')} onClose={() => setOpen(false)} visitPrice={visitDepositAmount} role={currentUser?.role ?? null} onNavigate={navigate} projectHelp={projectHelp} />
         )}
         {open && mode === 'order' && (
         <section

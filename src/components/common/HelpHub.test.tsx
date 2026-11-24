@@ -5,9 +5,9 @@ import { HelpHub, type HelpMode } from './HelpHub';
 import { FAQ_ITEMS, formatPrice } from '../../lib/helpFaq';
 import { whatsappUrl } from '../../lib/appLinks';
 
-function Harness({ onStartOrder = () => {}, initial = 'home' as HelpMode, role = null as string | null, onNavigate = () => {} }) {
+function Harness({ onStartOrder = () => {}, initial = 'home' as HelpMode, role = null as string | null, onNavigate = () => {}, projectHelp = false }) {
   const [mode, setMode] = useState<HelpMode>(initial);
-  return <HelpHub mode={mode} onModeChange={setMode} onStartOrder={onStartOrder} onClose={() => {}} visitPrice={50000} role={role} onNavigate={onNavigate} />;
+  return <HelpHub mode={mode} onModeChange={setMode} onStartOrder={onStartOrder} onClose={() => {}} visitPrice={50000} role={role} onNavigate={onNavigate} projectHelp={projectHelp} />;
 }
 
 describe('preguntas frecuentes (contenido)', () => {
@@ -111,5 +111,28 @@ describe('HelpHub', () => {
     fireEvent.click(screen.getByLabelText('Enviar'));
     await waitFor(() => expect(screen.getByText(/emergencia eléctrica/)).toBeTruthy());
     vi.unstubAllGlobals();
+  });
+});
+
+describe('ayuda del proyecto de instalación', () => {
+  afterEach(() => cleanup());
+
+  it('el cliente y el visitante no ven la opción', () => {
+    render(<Harness role="customer" />);
+    expect(screen.queryByText('Ayuda con el proyecto de instalación')).toBeNull();
+  });
+
+  it('el técnico en la pantalla del proyecto la ve, abre un tema y vuelve', () => {
+    render(<Harness role="technician" projectHelp />);
+    fireEvent.click(screen.getByText('Ayuda con el proyecto de instalación'));
+    fireEvent.click(screen.getByText('Sección 4 — Ubicación del tablero'));
+    expect(screen.getByText(/Se recomienda 0,90 m/)).toBeTruthy();
+    fireEvent.click(screen.getByText('Otro tema'));
+    expect(screen.getByText('Sección 3 — Cortocircuito (Icc)')).toBeTruthy();
+  });
+
+  it('el modo de ayuda no se muestra si no corresponde, aunque se pida', () => {
+    render(<Harness role="customer" initial="project" />);
+    expect(screen.queryByText('Sección 3 — Cortocircuito (Icc)')).toBeNull();
   });
 });

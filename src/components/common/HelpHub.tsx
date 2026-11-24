@@ -2,9 +2,10 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, HelpCircle, MessageCircle, Send, Wrench, X } from 'lucide-react';
 import { FAQ_ITEMS, formatPrice } from '../../lib/helpFaq';
 import { WHATSAPP_NUMBER, whatsappUrl } from '../../lib/appLinks';
+import { INSTALLATION_HELP_TOPICS } from '../../lib/installationHelp';
 import assistantBody from '../../assets/landing/asistente-cuerpo.png';
 
-export type HelpMode = 'home' | 'faq' | 'ai';
+export type HelpMode = 'home' | 'faq' | 'ai' | 'project';
 
 type Props = {
   mode: HelpMode;
@@ -15,6 +16,8 @@ type Props = {
   /** Rol de quien mira (null = visitante sin cuenta): decide qué atajos a la cuenta se ofrecen. */
   role?: string | null;
   onNavigate?: (path: string) => void;
+  /** Solo técnico electricista dentro de la pantalla del Proyecto de instalación: ofrece su ayuda guiada. */
+  projectHelp?: boolean;
 };
 
 type ChatLine = { role: 'user' | 'assistant'; content: string; kind?: string };
@@ -167,6 +170,32 @@ function Faq({ visitPrice, onStartOrder, role, go }: Pick<Props, 'visitPrice' | 
   );
 }
 
+function ProjectHelp() {
+  const [openId, setOpenId] = useState<string | null>(null);
+  const topic = INSTALLATION_HELP_TOPICS.find((t) => t.id === openId);
+  if (topic) {
+    return (
+      <div className="space-y-2">
+        <Bubble line={{ role: 'user', content: topic.title }} />
+        {topic.steps.map((step, i) => <React.Fragment key={i}><Bubble line={{ role: 'assistant', content: step }} /></React.Fragment>)}
+        <div data-avoid-mascot className="pt-1">
+          <button type="button" onClick={() => setOpenId(null)} className="rounded-xl border border-slate-300 dark:border-slate-600 px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-200">Otro tema</button>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-2">
+      <Bubble line={{ role: 'assistant', content: '¿Con qué parte del proyecto necesitás ayuda?' }} />
+      <div className="grid gap-1.5">
+        {INSTALLATION_HELP_TOPICS.map((t) => (
+          <button key={t.id} type="button" data-avoid-mascot onClick={() => setOpenId(t.id)} className={`${optionClass} text-xs font-semibold text-slate-800 dark:text-slate-200`}>{t.title}</button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function AiChat({ onStartOrder, role, go }: Pick<Props, 'onStartOrder' | 'role'> & { go: (path: string) => void }) {
   const [lines, setLines] = useState<ChatLine[]>([
     {
@@ -267,14 +296,14 @@ function AiChat({ onStartOrder, role, go }: Pick<Props, 'onStartOrder' | 'role'>
  * Escribir una consulta). "Armar mi pedido" es el asistente de diagnóstico de siempre,
  * que NO se toca: este panel solo lo lanza. Ver plan-avisos-telegram-y-chat.md, Fase B.
  */
-export const HelpHub: React.FC<Props> = ({ mode, onModeChange, onStartOrder, onClose, visitPrice, role, onNavigate }) => {
+export const HelpHub: React.FC<Props> = ({ mode, onModeChange, onStartOrder, onClose, visitPrice, role, onNavigate, projectHelp }) => {
   const go = (path: string) => {
     onNavigate?.(path);
     onClose();
   };
   const body = useRef<HTMLDivElement>(null);
   useAvoidMascot(body, mode);
-  const title = mode === 'faq' ? 'Preguntas frecuentes' : mode === 'ai' ? 'Consultas (asistente virtual)' : 'Ayuda de TecniUrbano';
+  const title = mode === 'project' ? 'Ayuda del proyecto de instalación' : mode === 'faq' ? 'Preguntas frecuentes' : mode === 'ai' ? 'Consultas (asistente virtual)' : 'Ayuda de TecniUrbano';
   return (
     <section
       className="pointer-events-auto w-[min(100vw-2rem,26rem)] max-h-[min(40rem,calc(100vh-6.5rem))] flex flex-col overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xl shadow-slate-900/20"
@@ -302,6 +331,12 @@ export const HelpHub: React.FC<Props> = ({ mode, onModeChange, onStartOrder, onC
           <div className="space-y-2">
             <Bubble line={{ role: 'assistant', content: '¡Hola! ¿En qué te puedo ayudar?' }} />
             <div className="grid gap-1.5">
+              {projectHelp && (
+                <button type="button" onClick={() => onModeChange('project')} className={optionClass} data-avoid-mascot>
+                  <span className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-slate-100"><Wrench className="w-4 h-4 text-teal-700" />Ayuda con el proyecto de instalación</span>
+                  <span className="block mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">Te explico cómo completar cada sección y qué significan los pasos.</span>
+                </button>
+              )}
               <button type="button" onClick={onStartOrder} className={optionClass} data-avoid-mascot>
                 <span className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-slate-100"><Wrench className="w-4 h-4 text-teal-700" />Armar mi pedido</span>
                 <span className="block mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">Te guío paso a paso para pedir tu Visita de Presupuesto.</span>
@@ -318,6 +353,7 @@ export const HelpHub: React.FC<Props> = ({ mode, onModeChange, onStartOrder, onC
             <div data-avoid-mascot className="pt-1"><WhatsAppButton /></div>
           </div>
         )}
+        {mode === 'project' && projectHelp && <ProjectHelp />}
         {mode === 'faq' && <Faq visitPrice={visitPrice} onStartOrder={onStartOrder} role={role} go={go} />}
         {mode === 'ai' && <AiChat onStartOrder={onStartOrder} role={role} go={go} />}
       </div>
