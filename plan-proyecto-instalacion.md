@@ -150,7 +150,7 @@ Departamento en 3er piso, Constitución 1734, C.A.B.A. Memoria completa en `C:\U
 ### 🟡 Fase 2C (🤖 + 👤 migración) — Guardar en la cuenta
 - [x] Migración `supabase/migrations/20261124030159_installation_projects.sql` (+ RLS solo del dueño) — **aplicada en producción el 24/11/2026.**
 - [x] Guardar/abrir/duplicar/eliminar desde la pantalla (`src/lib/installationProjectStore.ts` + panel "Mis proyectos guardados"). El borrador sigue en `localStorage`; "Guardar en mi cuenta" sube lo que haya en el dispositivo.
-- [ ] Opcional: adjuntar el plano (PDF o imagen) en un bucket privado, mismo patrón que `technician-documents`.
+- [x] Adjuntar el plano (PDF, JPG o PNG, hasta 10 MB) en el bucket privado `installation-plans` (carpeta `<técnico>/<proyecto>/`, solo el dueño; mismo patrón que `technician-documents`). Código y migración `20261124034559_installation_plans.sql` **aplicada en producción el 24/11/2026**. Al borrar el proyecto se borra también el archivo.
 
 ### ✅ Fase 3 (🤖) — "Pasar a presupuesto" de una orden
 - [x] Botón en el proyecto (sección 8 del presupuesto; `installationQuoteItems.ts`): elegir una orden del técnico y crear ítems en `order_quote_items` (`item_type` = `labor` | `material`, ya existe el CHECK) **sin enviarlo**; el técnico lo revisa y lo envía como siempre desde `QuoteBuilder`.

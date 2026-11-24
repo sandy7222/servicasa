@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, ArrowLeft, Calculator, CheckCircle2, Copy, FolderOpen, Plus, Printer, Save, Sparkles, Trash2 } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Calculator, CheckCircle2, Copy, FileUp, FolderOpen, Plus, Printer, Save, Sparkles, Trash2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { InstallationBudgetPanel, type BudgetDraft } from './InstallationBudgetPanel';
 import { addMaterialsToDraftQuote, type QuoteItemDraft } from '../../lib/installationQuoteItems';
@@ -7,7 +7,7 @@ import { isOrderPaymentSettled } from '../../lib/workTimer';
 import type { ServiceOrder } from '../../types';
 import exampleTp1 from '../../lib/installationExampleTp1.json';
 import { isSupabaseConfigured } from '../../lib/supabase';
-import { deleteProject, duplicateProject, listProjects, openProject, saveProject, type SavedProjectSummary } from '../../lib/installationProjectStore';
+import { attachPlan, deleteProject, duplicateProject, listProjects, openProject, planUrl, removePlan, saveProject, validatePlanFile, type SavedProjectSummary } from '../../lib/installationProjectStore';
 import {
   calculateProject,
   minimumPoints,
@@ -200,10 +200,38 @@ export const InstallationProjectView: React.FC = () => {
     setDraft({ ...EMPTY, ...found });
     setProjectId(id);
   }, 'No se pudo abrir el proyecto.');
+  const currentSaved = saved.find((p) => p.id === projectId);
+  const attachFile = (file?: File) => {
+    if (!file || !projectId) return;
+    const problem = validatePlanFile(file);
+    if (problem) { showToast?.(problem, 'warning'); return; }
+    void run(async () => {
+      await attachPlan(technicianId as string, projectId, file, currentSaved?.planPath);
+      showToast?.('Plano adjuntado al proyecto.', 'success');
+      await refreshSaved();
+    }, 'No se pudo adjuntar el plano.');
+  };
+  const viewPlan = () => {
+    if (!currentSaved?.planPath) return;
+    const path = currentSaved.planPath;
+    // La pestaña se abre en el clic (así el navegador no la bloquea) y se le pone el enlace temporal cuando llega.
+    const tab = window.open('', '_blank');
+    void run(async () => {
+      const url = await planUrl(path);
+      if (tab) tab.location.href = url; else window.location.href = url;
+    }, 'No se pudo abrir el plano.');
+  };
+  const dropPlan = () => {
+    if (!projectId || !currentSaved?.planPath) return;
+    if (!window.confirm('¿Quitar el plano adjunto? No se puede deshacer.')) return;
+    const path = currentSaved.planPath;
+    void run(async () => { await removePlan(projectId, path); await refreshSaved(); }, 'No se pudo quitar el plano.');
+  };
   const removeFromAccount = (id: string, name: string) => {
     if (!window.confirm(`¿Eliminar "${name}" de tu cuenta? No se puede deshacer.`)) return;
+    const planPath = saved.find((p) => p.id === id)?.planPath;
     void run(async () => {
-      await deleteProject(id);
+      await deleteProject(id, planPath);
       if (id === projectId) setProjectId(null);
       await refreshSaved();
     }, 'No se pudo eliminar el proyecto.');
@@ -287,13 +315,35 @@ export const InstallationProjectView: React.FC = () => {
               <button type="button" disabled={busy} onClick={() => void saveToAccount()} className="inline-flex items-center gap-1 rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-bold text-white disabled:opacity-60"><Save className="w-3.5" />{projectId ? 'Guardar cambios' : 'Guardar en mi cuenta'}</button>
             </div>
             <p className="text-[11px] text-slate-500">{projectId ? 'Estás editando un proyecto guardado en tu cuenta.' : 'Este proyecto está solo en este dispositivo hasta que lo guardes en tu cuenta.'}</p>
+            <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-3 space-y-2" aria-label="Plano del proyecto">
+              <p className="text-xs font-bold">Plano del proyecto</p>
+              {!projectId ? (
+                <p className="text-[11px] text-slate-500">Guardá el proyecto en tu cuenta para poder adjuntar el plano (PDF, JPG o PNG, hasta 10 MB).</p>
+              ) : (
+                <div className="flex flex-wrap items-center gap-2 text-xs">
+                  {currentSaved?.planName ? (
+                    <>
+                      <span className="mr-auto min-w-0 truncate">{currentSaved.planName}</span>
+                      <button type="button" disabled={busy} onClick={viewPlan} className="rounded-lg border border-slate-200 px-3 py-1.5 font-bold disabled:opacity-60">Ver plano</button>
+                      <button type="button" disabled={busy} onClick={dropPlan} className="rounded-lg border border-rose-200 px-3 py-1.5 font-bold text-rose-700 disabled:opacity-60">Quitar</button>
+                    </>
+                  ) : (
+                    <span className="mr-auto text-slate-500">Todavía no adjuntaste el plano.</span>
+                  )}
+                  <label className={`inline-flex cursor-pointer items-center gap-1 rounded-lg border border-teal-200 px-3 py-1.5 font-bold text-teal-700 ${busy ? 'opacity-60 pointer-events-none' : ''}`}>
+                    <FileUp className="w-3.5" />{currentSaved?.planName ? 'Reemplazar' : 'Adjuntar plano'}
+                    <input type="file" aria-label="Archivo del plano" accept="application/pdf,image/jpeg,image/png" className="sr-only" onChange={(e) => { attachFile(e.target.files?.[0]); e.target.value = ''; }} />
+                  </label>
+                </div>
+              )}
+            </div>
             {saved.length === 0 ? (
               <p className="text-xs text-slate-500">Todavía no guardaste proyectos.</p>
             ) : (
               <ul className="space-y-1">
                 {saved.map((p) => (
                   <li key={p.id} className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs ${p.id === projectId ? 'bg-teal-50 dark:bg-teal-950/40' : 'bg-slate-50 dark:bg-slate-950'}`}>
-                    <span className="mr-auto min-w-0 truncate"><strong>{p.name}</strong> · {new Date(p.updatedAt).toLocaleDateString('es-AR')}</span>
+                    <span className="mr-auto min-w-0 truncate"><strong>{p.name}</strong> · {new Date(p.updatedAt).toLocaleDateString('es-AR')}{p.planName ? ' · con plano' : ''}</span>
                     <button type="button" disabled={busy} aria-label={`Abrir ${p.name}`} onClick={() => void openFromAccount(p.id)} className="text-teal-700"><FolderOpen className="w-4 h-4" /></button>
                     <button type="button" disabled={busy} aria-label={`Eliminar ${p.name}`} onClick={() => removeFromAccount(p.id, p.name)} className="text-rose-600"><Trash2 className="w-4 h-4" /></button>
                   </li>

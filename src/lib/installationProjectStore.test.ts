@@ -19,8 +19,17 @@ const chain = (table: string, op: string, payload?: unknown): any => {
   return api;
 };
 
+const storageCalls: Array<{ op: string; path?: string | string[] }> = [];
+let uploadError: { message: string } | null = null;
 vi.mock('./supabase', () => ({
   supabase: {
+    storage: {
+      from: () => ({
+        upload: (path: string) => { storageCalls.push({ op: 'upload', path }); return Promise.resolve({ error: uploadError }); },
+        remove: (paths: string[]) => { storageCalls.push({ op: 'remove', path: paths }); return Promise.resolve({ error: null }); },
+        createSignedUrl: (path: string) => { storageCalls.push({ op: 'sign', path }); return Promise.resolve({ data: { signedUrl: 'https://signed/x' }, error: null }); },
+      }),
+    },
     from: (table: string) => ({
       select: (cols?: string) => chain(table, `select:${cols}`),
       insert: (payload: unknown) => chain(table, 'insert', payload),
@@ -30,11 +39,13 @@ vi.mock('./supabase', () => ({
   },
 }));
 
-const { deleteProject, duplicateProject, listProjects, openProject, saveProject } = await import('./installationProjectStore');
+const { attachPlan, deleteProject, duplicateProject, listProjects, openProject, planUrl, removePlan, saveProject, validatePlanFile } = await import('./installationProjectStore');
 
 beforeEach(() => {
   calls.length = 0;
   nextResult = { data: null, error: null };
+  storageCalls.length = 0;
+  uploadError = null;
 });
 
 describe('installationProjectStore', () => {
@@ -65,10 +76,49 @@ describe('installationProjectStore', () => {
   });
 
   it('lista con el formato de la app y propaga los errores', async () => {
-    nextResult = { data: [{ id: 'a', name: 'X', updated_at: '2026-11-23T10:00:00Z' }], error: null };
-    expect(await listProjects()).toEqual([{ id: 'a', name: 'X', updatedAt: '2026-11-23T10:00:00Z' }]);
+    nextResult = { data: [{ id: 'a', name: 'X', updated_at: '2026-11-23T10:00:00Z', plan_path: null, plan_name: 'plano.pdf' }], error: null };
+    expect(await listProjects()).toEqual([{ id: 'a', name: 'X', updatedAt: '2026-11-23T10:00:00Z', planPath: null, planName: 'plano.pdf' }]);
     nextResult = { data: null, error: new Error('rls') };
     await expect(listProjects()).rejects.toThrow('rls');
     await expect(deleteProject('a')).rejects.toThrow('rls');
+  });
+});
+
+describe('plano adjunto', () => {
+  const file = (name: string, type: string, size = 100) => new File([new Uint8Array(size)], name, { type });
+
+  it('valida tipo, tamaño y vacío', () => {
+    expect(validatePlanFile({ type: 'application/pdf', size: 1000 })).toBeNull();
+    expect(validatePlanFile({ type: 'image/png', size: 1000 })).toBeNull();
+    expect(validatePlanFile({ type: 'application/zip', size: 1000 })).toMatch(/PDF, JPG o PNG/);
+    expect(validatePlanFile({ type: 'application/pdf', size: 11 * 1024 * 1024 })).toMatch(/10 MB/);
+    expect(validatePlanFile({ type: 'application/pdf', size: 0 })).toMatch(/vacío/);
+  });
+
+  it('sube a la carpeta técnico/proyecto, vincula el proyecto y borra el plano anterior', async () => {
+    const r = await attachPlan('tech-1', 'proj-1', file('Plano 1° piso.pdf', 'application/pdf'), 'tech-1/proj-1/viejo.pdf');
+    expect(r.name).toBe('Plano 1° piso.pdf');
+    expect(r.path).toMatch(/^tech-1\/proj-1\/\d+-Plano-1--piso\.pdf$/);
+    expect(storageCalls[0]).toMatchObject({ op: 'upload', path: r.path });
+    expect(calls[0]).toMatchObject({ op: 'update', filter: ['id', 'proj-1'], payload: { plan_path: r.path, plan_name: 'Plano 1° piso.pdf' } });
+    expect(storageCalls[1]).toEqual({ op: 'remove', path: ['tech-1/proj-1/viejo.pdf'] });
+  });
+
+  it('un archivo inválido no sube nada, y si falla el vínculo se borra lo subido', async () => {
+    await expect(attachPlan('t', 'p', file('a.zip', 'application/zip'))).rejects.toThrow('PDF, JPG o PNG');
+    expect(storageCalls).toHaveLength(0);
+    nextResult = { data: null, error: new Error('rls') };
+    await expect(attachPlan('t', 'p', file('a.pdf', 'application/pdf'))).rejects.toThrow('rls');
+    expect(storageCalls.map((c) => c.op)).toEqual(['upload', 'remove']);
+  });
+
+  it('da un enlace temporal, quita el plano y al borrar el proyecto borra también el archivo', async () => {
+    expect(await planUrl('t/p/x.pdf')).toBe('https://signed/x');
+    await removePlan('p', 't/p/x.pdf');
+    expect(calls[0]).toMatchObject({ op: 'update', payload: { plan_path: null, plan_name: null } });
+    expect(storageCalls.at(-1)).toEqual({ op: 'remove', path: ['t/p/x.pdf'] });
+    storageCalls.length = 0;
+    await deleteProject('p', 't/p/x.pdf');
+    expect(storageCalls).toEqual([{ op: 'remove', path: ['t/p/x.pdf'] }]);
   });
 });
