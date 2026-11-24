@@ -1,6 +1,6 @@
 # Plan: módulo "Proyecto de instalación" (electricistas)
 
-> **Estado (23/11/2026):** Fases 0, 1, 2B y 2C (código) hechas; Fase 2 hecha en su primera versión. **Fase 2C hecha y migración aplicada.** Se hace antes la Fase 3B (la 3 necesita sus precios); motor de precio de 3B ya hecho, sigue el cómputo de materiales (3B.1). Después: 3 (pasar a presupuesto), 3B (presupuesto formal de obra) y 4 (prueba real).
+> **Estado (23/11/2026):** Fases 0, 1, 2B y 2C (código) hechas; Fase 2 hecha en su primera versión. **Fase 2C hecha y migración aplicada.** Se hace antes la Fase 3B (la 3 necesita sus precios); motor de precio de 3B ya hecho, cómputo de materiales (3B.1) también hecho; sigue 3B.2 (listas de precios). Después: 3 (pasar a presupuesto), 3B (presupuesto formal de obra) y 4 (prueba real).
 > **Fuente técnica:** la Reglamentación AEA 90364-7-770 (instalaciones eléctricas en inmuebles), de cumplimiento obligatorio, aplicada según los apuntes de clase de Sandy. La app **aplica** las reglas y cita el artículo/tabla; **no reproduce el texto del libro**. Los valores técnicos los valida Sandy (la IA no da indicaciones técnicas de electricidad).
 
 ---
@@ -159,7 +159,7 @@ Departamento en 3er piso, Constitución 1734, C.A.B.A. Memoria completa en `C:\U
 
 ### ⏳ Fase 3B (🤖) — Presupuesto formal de obra (módulo aparte, dentro del asistente)
 Reproduce las secciones 10 a 14 del TP N° 1. Es **opcional** y solo para obras completas.
-- [ ] 3B.1 **Cómputo de materiales** desde el proyecto: cables por metro (+10 % de desperdicio) por sección y color, caños en tiras de 3 m (RSP 20 circuitos, RSP 25 seccional), cajas (octogonales para bocas de luz, rectangulares para llaves y tomas), conectores, cuplas y curvas, mecanismos y tapas, plafones, ITM, ID, peine, bornera, jabalina, cable de PAT, cinta y precintos. Cantidades editables.
+- [x] 3B.1 (hecho: `src/lib/installationTakeoff.ts`, cantidades sugeridas con la regla de cada una, editables; falta mostrarlas en pantalla) **Cómputo de materiales** desde el proyecto: cables por metro (+10 % de desperdicio) por sección y color, caños en tiras de 3 m (RSP 20 circuitos, RSP 25 seccional), cajas (octogonales para bocas de luz, rectangulares para llaves y tomas), conectores, cuplas y curvas, mecanismos y tapas, plafones, ITM, ID, peine, bornera, jabalina, cable de PAT, cinta y precintos. Cantidades editables.
 - [ ] 3B.2 **Dos listas de precios** (opción 1 "por precio" y opción 2 "por calidad/marca"): el técnico carga o pega los precios; marca de ítem faltante en una casa (se usa el de la otra, con asterisco); cables por rollo cerrado cuando la casa no vende por metro. **No** se hace scraping automático de tiendas en esta fase.
 - [ ] 3B.3 **Insumos** que se consumen (discos, hojas, mechas, grampas, tarugos): se cobran como material.
 - [x] 3B.4 **Depreciación de herramientas** (no se cobra la herramienta, solo el desgaste): cuota anual = (valor de origen − residual) / vida útil; cargo = cuota anual × horas en obra / horas de uso al año. Supuestos por defecto: residual 10 %, 5 años, 400 h/año (cuota = 18 % del valor). Editables por herramienta.
