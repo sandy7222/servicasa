@@ -577,7 +577,7 @@ export function calculateProject(input: ProjectInput, rules = DEFAULT_RULES) {
   const boardChecks = [
     { label: 'Accesible', ref: '770.20.4.1', ok: loc.accessible ?? null },
     { label: 'No cubierto ni oculto (fuera del giro de puertas)', ref: '770.20.4.1', ok: loc.notHidden ?? null },
-    { label: `Espacio libre al frente (recomendado ${rules.boardLocation.recommendedFrontClearM} m)`, ref: '770.20.4.2', ok: frontOk },
+    { label: `Espacio libre al frente (recomendado ${String(rules.boardLocation.recommendedFrontClearM).replace('.', ',')} m)`, ref: '770.20.4.2', ok: frontOk },
   ];
   const boardOk = boardChecks.some((c) => c.ok === false) ? false : boardChecks.every((c) => c.ok === true) ? true : null;
   if (boardOk === false) warnings.push('La ubicación del tablero seccional no cumple 770.20.4: moverlo a un lugar accesible, a la vista y con espacio libre al frente.');
