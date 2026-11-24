@@ -6,9 +6,13 @@ import {
   minimumPoints,
   applicationSurface,
   electrificationGrade,
+  DEFAULT_RULES,
   type CircuitInput,
   type CircuitKind,
+  type Curve,
+  type EnergyClass,
   type ProjectInput,
+  type ProtectionInput,
   type Room,
   type RoomType,
 } from '../../lib/installationProject';
@@ -71,6 +75,49 @@ const num = (value: string): number => {
 };
 const optNum = (value: string): number | undefined => (value.trim() === '' ? undefined : num(value));
 const fmt = (n: number, digits = 2) => n.toLocaleString('es-AR', { maximumFractionDigits: digits });
+
+/**
+ * Datos de cortocircuito de una protección (paso 8): el técnico los toma de la ficha del fabricante. Si los deja en
+ * "auto", la app usa valores por defecto y los avisa como supuestos en la memoria.
+ */
+const ProtectionFields: React.FC<{
+  value: ProtectionInput;
+  onChange: (patch: Partial<ProtectionInput>) => void;
+  className: string;
+  label: string;
+}> = ({ value, onChange, className, label }) => (
+  <div className="col-span-full grid grid-cols-2 sm:grid-cols-4 gap-2 items-end">
+    <label className="text-[10px] text-slate-500">{label}: poder de corte A
+      <select className={className} value={value.breakingCapacityA ?? ''} onChange={(e) => onChange({ breakingCapacityA: e.target.value === '' ? undefined : Number(e.target.value) })}>
+        <option value="">auto (≥ Icc)</option>
+        {DEFAULT_RULES.breakingCapacities.map((c) => <option key={c} value={c}>{c.toLocaleString('es-AR')}</option>)}
+      </select>
+    </label>
+    <label className="text-[10px] text-slate-500">Clase de limitación
+      <select className={className} value={value.energyClass ?? ''} onChange={(e) => onChange({ energyClass: e.target.value === '' ? undefined : (Number(e.target.value) as EnergyClass) })}>
+        <option value="">auto (3)</option>
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+      </select>
+    </label>
+    <label className="text-[10px] text-slate-500">Curva
+      <select className={className} value={value.curve ?? ''} onChange={(e) => onChange({ curve: e.target.value === '' ? undefined : (e.target.value as Curve) })}>
+        <option value="">auto (C)</option>
+        <option value="B">B</option>
+        <option value="C">C</option>
+      </select>
+    </label>
+    <label className="text-[10px] text-slate-500">I²t del fabricante (A²s)
+      <input className={className} inputMode="decimal" value={value.i2tOverride ?? ''} placeholder="tabla" onChange={(e) => onChange({ i2tOverride: e.target.value.trim() === '' ? undefined : Number(e.target.value.replace(',', '.')) || undefined })} />
+    </label>
+  </div>
+);
+
+const Mark: React.FC<{ ok: boolean | null; label: string }> = ({ ok, label }) =>
+  ok === null ? <span className="text-slate-400" aria-label={`${label}: sin dato`}>—</span>
+  : ok ? <CheckCircle2 className="inline w-4 text-emerald-600" aria-label={`${label}: verifica`} />
+  : <AlertTriangle className="inline w-4 text-rose-600" aria-label={`${label}: no verifica`} />;
 
 export const InstallationProjectView: React.FC = () => {
   const { navigate } = useApp();
@@ -185,6 +232,7 @@ export const InstallationProjectView: React.FC = () => {
               <label className="text-[10px] text-slate-500">ITM A<input className={input} inputMode="numeric" value={c.breakerA ?? ''} placeholder="auto" onChange={(e) => setCircuit(i, { breakerA: optNum(e.target.value) })} /></label>
               <label className="text-[10px] text-slate-500">Sección mm²<input className={input} inputMode="decimal" value={c.sectionMm2 ?? ''} placeholder="auto" onChange={(e) => setCircuit(i, { sectionMm2: optNum(e.target.value) })} /></label>
               <button type="button" aria-label="Quitar circuito" onClick={() => setDraft((d) => ({ ...d, circuits: d.circuits.filter((_, j) => j !== i) }))} className="pb-1.5 text-rose-600"><Trash2 className="w-4 h-4" /></button>
+              <ProtectionFields label="ITM" value={c} onChange={(patch) => setCircuit(i, patch)} className={input} />
             </div>
           ))}
           <button type="button" onClick={() => setDraft((d) => ({ ...d, circuits: [...d.circuits, { id: `CT${d.circuits.length + 1}`, kind: 'ACU', points: 1, loadVa: 2600, lengthM: 5, cosPhi: 0.85 }] }))} className="inline-flex items-center gap-1 rounded-lg border border-teal-200 px-3 py-1.5 text-xs font-bold text-teal-700"><Plus className="w-3.5" />Agregar circuito</button>
@@ -192,6 +240,23 @@ export const InstallationProjectView: React.FC = () => {
             <label className="text-[10px] text-slate-500">Seccional: largo m<input className={input} inputMode="decimal" value={draft.feeder.lengthM} onChange={(e) => setDraft((d) => ({ ...d, feeder: { ...d.feeder, lengthM: num(e.target.value) } }))} /></label>
             <label className="text-[10px] text-slate-500">ITM A<input className={input} inputMode="numeric" value={draft.feeder.breakerA ?? ''} placeholder="auto" onChange={(e) => setDraft((d) => ({ ...d, feeder: { ...d.feeder, breakerA: optNum(e.target.value) } }))} /></label>
             <label className="text-[10px] text-slate-500">Sección mm²<input className={input} inputMode="decimal" value={draft.feeder.sectionMm2 ?? ''} placeholder="auto" onChange={(e) => setDraft((d) => ({ ...d, feeder: { ...d.feeder, sectionMm2: optNum(e.target.value) } }))} /></label>
+            <ProtectionFields label="Seccional" value={draft.feeder} onChange={(patch) => setDraft((d) => ({ ...d, feeder: { ...d.feeder, ...patch } }))} className={input} />
+          </div>
+        </section>
+
+        {/* Cortocircuito (paso 8 A) */}
+        <section className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 space-y-2 print:hidden">
+          <h2 className="text-sm font-bold">3. Cortocircuito</h2>
+          <p className="text-[11px] text-slate-500">La corriente de cortocircuito (Icc) la informa la distribuidora para el punto de conexión. Con ese dato se verifica que cada protección pueda cortarla. Sin Icc, esa verificación queda "sin dato".</p>
+          <div className="grid grid-cols-3 gap-2 max-w-xl">
+            <label className="text-[10px] text-slate-500">Icc del suministro (A)<input className={input} inputMode="decimal" value={draft.iccA ?? ''} placeholder="sin dato" onChange={(e) => setDraft((d) => ({ ...d, iccA: optNum(e.target.value) }))} /></label>
+            <label className="text-[10px] text-slate-500">Diferencial: capacidad de cortocircuito (A)<input className={input} inputMode="decimal" value={draft.rcd?.shortCircuitA ?? ''} placeholder="ficha" onChange={(e) => setDraft((d) => ({ ...d, rcd: { ...d.rcd, shortCircuitA: optNum(e.target.value) } }))} /></label>
+            <label className="text-[10px] text-slate-500">Diferencial: tipo
+              <select className={input} value={draft.rcd?.type ?? 'A'} onChange={(e) => setDraft((d) => ({ ...d, rcd: { ...d.rcd, type: e.target.value as 'A' | 'AC' } }))}>
+                <option value="A">A</option>
+                <option value="AC">AC</option>
+              </select>
+            </label>
           </div>
         </section>
 
@@ -231,10 +296,10 @@ export const InstallationProjectView: React.FC = () => {
             </div>
 
             <div className="overflow-x-auto">
-              <h3 className="font-bold">Pasos 5, 7 y 8 — Protecciones, conductores, caída de tensión y exigencia térmica</h3>
+              <h3 className="font-bold">Pasos 5, 7 y 8 — Protecciones, conductores, caída de tensión, cortocircuito y exigencia térmica</h3>
               <table className="w-full text-left">
                 <thead className="text-slate-500">
-                  <tr><th>Línea</th><th>I = S/U</th><th>ITM In</th><th>Iz</th><th>Sección</th><th>ΔU línea</th><th>ΔU total</th><th>Térmica</th></tr>
+                  <tr><th>Línea</th><th>I = S/U</th><th>ITM In</th><th>Iz</th><th>Sección</th><th>ΔU línea</th><th>ΔU total</th><th>Poder de corte (8 A)</th><th>I²t (8 B)</th><th>Térmica</th></tr>
                 </thead>
                 <tbody>
                   {[{ ...result.feeder, totalDropV: result.feeder.voltageDropV, totalDropOk: result.feeder.warnings.length === 0, demandVa: 0, totalDropLimitV: 0 }, ...result.circuits].map((l) => (
@@ -243,15 +308,25 @@ export const InstallationProjectView: React.FC = () => {
                       <td>{fmt(l.ib)} A</td>
                       <td className={l.coordinationOk ? '' : 'text-rose-700 font-bold'}>{l.breakerA} A</td>
                       <td>{l.iz} A</td>
-                      <td>{fmt(l.sectionMm2, 1)} mm²{l.sectionIncreasedForDrop ? ' ↑' : ''}</td>
+                      <td>{fmt(l.sectionMm2, 1)} mm²{l.sectionIncreasedForDrop ? ' ↑ caída' : ''}{l.sectionIncreasedForThermal ? ' ↑ térmica' : ''}</td>
                       <td>{fmt(l.voltageDropV, 3)} V</td>
                       <td className={l.totalDropOk ? '' : 'text-rose-700 font-bold'}>{l.id === 'seccional' ? '—' : `${fmt(l.totalDropV, 3)} V`}</td>
-                      <td>{l.thermalOk ? <CheckCircle2 className="inline w-4 text-emerald-600" aria-label="Verifica" /> : <AlertTriangle className="inline w-4 text-rose-600" aria-label="No verifica" />}</td>
+                      <td>{fmt(l.breakingCapacityA, 0)} A{l.breakingCapacityAssumed ? '*' : ''} <Mark ok={l.breakingOk} label="Poder de corte" /></td>
+                      <td title={l.i2tRef ?? ''}>{l.i2t === null ? 'sin dato' : `${fmt(l.i2t, 0)} A²s${l.i2tSource === 'fabricante' ? ' (fabricante)' : ''}`}{l.i2tRef ? ` · ${l.i2tRef}` : ''}{l.classAssumed && l.i2tSource === 'tabla' ? ` · clase ${l.energyClass}*, curva ${l.curve}*` : ''}</td>
+                      <td><Mark ok={l.thermalOk} label="Exigencia térmica" /></td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-              <p className="mt-1 text-[10px] text-slate-500">↑ = la sección se subió para cumplir la caída de tensión. ITM bipolar; ID 30 mA aguas arriba de los circuitos terminales (770.18).</p>
+              <p className="mt-1 text-[10px] text-slate-500">↑ = la app subió la sección para cumplir la caída de tensión o la exigencia térmica. * = valor supuesto por la app (confirmar con la ficha del fabricante); el I²t real es un dato garantizado por el fabricante. ITM bipolar; ID 30 mA aguas arriba de los circuitos terminales (770.18).</p>
+              <p>
+                <strong>Icc:</strong> {result.iccA === null ? 'sin dato' : `${fmt(result.iccA, 0)} A`}. <strong>Diferencial</strong> (tipo {result.rcd.type}): {result.rcd.shortCircuitA === null ? 'capacidad de cortocircuito sin dato' : `${fmt(result.rcd.shortCircuitA, 0)} A`} <Mark ok={result.rcd.ok} label="Diferencial" />
+              </p>
+              {result.assumptions.length > 0 && (
+                <ul className="mt-1 text-[10px] text-slate-500 list-disc pl-4">
+                  {result.assumptions.map((a) => <li key={a}>{a}</li>)}
+                </ul>
+              )}
               {[result.feeder, ...result.circuits].flatMap((l) => l.warnings.map((w) => `${l.id}: ${w}`)).map((w) => <p key={w} className="text-rose-700">{w}</p>)}
             </div>
           </section>

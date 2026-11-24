@@ -56,6 +56,31 @@ describe('InstallationProjectView', () => {
     expect(screen.getByText(/6 mm² ↑/)).toBeInTheDocument();
   });
 
+  it('con la Icc del TP N° 1 muestra el 8 A (4.500 A), el 8 B (30.000 A²s, tabla) y el IUG subido a 2,5 mm² por la térmica', () => {
+    localStorage.setItem(
+      'tu:installation-project:v1',
+      JSON.stringify({
+        name: 'TP N° 1',
+        rooms: [{ name: 'Habitación', type: 'dormitorio', areaM2: 16 }],
+        circuits: [
+          { id: 'CT1', kind: 'IUG', points: 5, lengthM: 11, breakerA: 10 },
+          { id: 'CT2', kind: 'TUG', points: 11, lengthM: 12, breakerA: 16 },
+          { id: 'CT3', kind: 'ACU', points: 1, loadVa: 2600, lengthM: 11, breakerA: 16 },
+        ],
+        feeder: { lengthM: 11, breakerA: 25 },
+        iccA: 3250,
+        rcd: { shortCircuitA: 3000 },
+      })
+    );
+    render(<InstallationProjectView />);
+    expect(screen.getByDisplayValue('3250')).toBeInTheDocument(); // Icc cargada
+    expect(screen.getByText(/2,5 mm² ↑ térmica/)).toBeInTheDocument();
+    expect(screen.getAllByText(/30\.000 A²s · Tabla 770-B\.VIII/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/39\.000 A²s · Tabla 770-B\.IX/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/4\.500 A\*/).length).toBeGreaterThan(0); // poder de corte supuesto
+    expect(screen.getByText(/El diferencial aguanta 3000 A de cortocircuito/)).toBeInTheDocument();
+  });
+
   it('"Proponer circuitos mínimos" arma los circuitos del grado con las bocas mínimas', () => {
     render(<InstallationProjectView />);
     expect(screen.queryByText(/Memoria de cálculo/)).not.toBeInTheDocument();

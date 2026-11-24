@@ -5,6 +5,7 @@ import {
   circuitDemandVa,
   DEFAULT_RULES,
   electrificationGrade,
+  i2tLimit,
   minPointsForRoom,
   simultaneityFactor,
   type ProjectInput,
@@ -83,6 +84,134 @@ describe('Proyecto de instalación — ejemplo de clase', () => {
   it('paso 8: exigencia térmica K²·S² ≥ I²t verifica en todos', () => {
     expect(r.circuits.every((c) => c.thermalOk)).toBe(true);
     expect(r.feeder.thermalOk).toBe(true);
+  });
+});
+
+/**
+ * Caso de prueba 2 = Trabajo Práctico N° 1 de Sandy (departamento en Constitución 1734, validado el 23/11/2026).
+ * Icc = 3.250 A (dato del profesor). Memoria: TP1_memoria_AEA (puntos 5, 7 y 8).
+ */
+const tpInput: ProjectInput = {
+  rooms: classExample.rooms,
+  wallsM2: classExample.wallsM2,
+  circuits: [
+    { id: 'CT1', kind: 'IUG', points: 5, lengthM: 11, breakerA: 10 },
+    { id: 'CT2', kind: 'TUG', points: 11, lengthM: 12, breakerA: 16 },
+    { id: 'CT3', kind: 'ACU', points: 1, loadVa: 2600, lengthM: 11, breakerA: 16 },
+  ],
+  feeder: { lengthM: 11, breakerA: 25 },
+  iccA: 3250,
+  rcd: { shortCircuitA: 6000 },
+};
+
+describe('Proyecto de instalación — TP N° 1 (Icc = 3.250 A)', () => {
+  const r = calculateProject(tpInput, CLASS_RULES);
+  const [iug, tug, acu] = r.circuits;
+
+  it('8 A: propone térmicas de 4,5 kA (3 kA no alcanzan para 3.250 A) y verifica', () => {
+    for (const l of [iug, tug, acu, r.feeder]) {
+      expect(l).toMatchObject({ breakingCapacityA: 4500, breakingCapacityAssumed: true, breakingOk: true });
+    }
+  });
+
+  it('8 B: el I²t sale de las tablas 770-B.VIII (30.000) y 770-B.IX (39.000)', () => {
+    expect(iug).toMatchObject({ i2t: 30000, i2tSource: 'tabla', i2tRef: 'Tabla 770-B.VIII' });
+    expect(r.feeder).toMatchObject({ i2t: 39000, i2tSource: 'tabla', i2tRef: 'Tabla 770-B.IX' });
+  });
+
+  it('8 B: IUG con 1,5 mm² no verifica (29.756 < 30.000) y la app sube a 2,5 mm²', () => {
+    expect(iug.sectionIncreasedForThermal).toBe(true);
+    expect(iug.sectionMm2).toBe(2.5);
+    expect(iug.thermalOk).toBe(true);
+    expect(iug.iz).toBe(21);
+  });
+
+  it('8 B: TUG y ACU (2,5 mm²) y la seccional (4 mm², 211.600 ≥ 39.000) verifican sin cambios', () => {
+    expect(tug).toMatchObject({ sectionMm2: 2.5, sectionIncreasedForThermal: false, thermalOk: true });
+    expect(acu).toMatchObject({ sectionMm2: 2.5, sectionIncreasedForThermal: false, thermalOk: true });
+    expect(r.feeder).toMatchObject({ sectionMm2: 4, sectionIncreasedForThermal: false, sectionIncreasedForDrop: false, thermalOk: true });
+  });
+
+  it('paso 7: caídas de la memoria (seccional 1,81 V; IUG 0,11 V; TUG 1,39 V; ACU 1,50 V)', () => {
+    expect(r.feeder.voltageDropV).toBeCloseTo(1.81, 1);
+    expect(iug.voltageDropV).toBeCloseTo(0.11, 2);
+    expect(tug.voltageDropV).toBeCloseTo(1.39, 2);
+    expect(acu.voltageDropV).toBeCloseTo(1.5, 2);
+    for (const c of r.circuits) expect(c.totalDropOk).toBe(true);
+  });
+
+  it('diferencial de 6 kA verifica; de 3 kA no verifica; sin dato queda sin verificar', () => {
+    expect(r.rcd.ok).toBe(true);
+    const low = calculateProject({ ...tpInput, rcd: { shortCircuitA: 3000 } }, CLASS_RULES);
+    expect(low.rcd.ok).toBe(false);
+    expect(low.warnings.join(' ')).toMatch(/diferencial aguanta 3000 A/);
+    const none = calculateProject({ ...tpInput, rcd: undefined }, CLASS_RULES);
+    expect(none.rcd.ok).toBeNull();
+    expect(none.warnings.join(' ')).toMatch(/capacidad de cortocircuito del diferencial/);
+  });
+
+  it('una térmica de 3 kA elegida a mano no verifica contra 3.250 A', () => {
+    const r2 = calculateProject({ ...tpInput, circuits: tpInput.circuits.map((c) => ({ ...c, breakingCapacityA: 3000 })) }, CLASS_RULES);
+    expect(r2.circuits.every((c) => c.breakingOk === false && c.breakingCapacityAssumed === false)).toBe(true);
+    expect(r2.circuits[0].warnings.join(' ')).toMatch(/poder de corte \(3000 A\) es menor que la Icc/);
+  });
+
+  it('avisa los valores supuestos para confirmar con el fabricante', () => {
+    expect(r.assumptions.join(' ')).toMatch(/CT1: poder de corte 4500 A, clase 3, curva C/);
+  });
+
+  it('con el I²t del fabricante (20.000) el IUG se queda en 1,5 mm²', () => {
+    const r3 = calculateProject(
+      { ...tpInput, circuits: tpInput.circuits.map((c) => (c.id === 'CT1' ? { ...c, i2tOverride: 20000 } : c)) },
+      CLASS_RULES
+    );
+    expect(r3.circuits[0]).toMatchObject({ sectionMm2: 1.5, sectionIncreasedForThermal: false, i2tSource: 'fabricante', thermalOk: true });
+  });
+
+  it('si el técnico fija 1,5 mm² con la térmica de 4,5 kA, avisa que no verifica y no la cambia', () => {
+    const r4 = calculateProject(
+      { ...tpInput, circuits: tpInput.circuits.map((c) => (c.id === 'CT1' ? { ...c, sectionMm2: 1.5 } : c)) },
+      CLASS_RULES
+    );
+    expect(r4.circuits[0]).toMatchObject({ sectionMm2: 1.5, thermalOk: false, sectionIncreasedForThermal: false });
+    expect(r4.circuits[0].warnings.join(' ')).toMatch(/exigencia térmica/);
+  });
+});
+
+describe('Cortocircuito — casos sueltos', () => {
+  it('tablas de I²t máximo (Tablas 770-B.VIII y 770-B.IX, clase 3, curva C)', () => {
+    expect(i2tLimit(10, 3000, 3, 'C')).toEqual({ value: 18000, ref: 'Tabla 770-B.VIII' });
+    expect(i2tLimit(16, 4500, 3, 'C')?.value).toBe(30000);
+    expect(i2tLimit(25, 4500, 3, 'C')).toEqual({ value: 39000, ref: 'Tabla 770-B.IX' });
+    expect(i2tLimit(32, 6000, 3, 'C')?.value).toBe(55000);
+    expect(i2tLimit(10, 4500, 3, 'B')?.value).toBe(25000);
+    expect(i2tLimit(10, 4500, 2, 'C')?.value).toBe(75000);
+  });
+
+  it('clase 1 y más de 32 A no tienen valor en la tabla (sin dato)', () => {
+    expect(i2tLimit(10, 4500, 1, 'C')).toBeNull();
+    expect(i2tLimit(40, 4500, 3, 'C')).toBeNull();
+  });
+
+  it('sin Icc las verificaciones de cortocircuito quedan "sin dato" y el ejemplo de clase sigue igual', () => {
+    const r = calculateProject(classExample, CLASS_RULES);
+    expect(r.iccA).toBeNull();
+    expect(r.circuits.every((c) => c.breakingOk === null && c.breakingCapacityA === 3000 && c.i2t === 18000)).toBe(true);
+  });
+
+  it('clase 1 sin dato del fabricante: el térmico queda "sin dato" (no "verifica")', () => {
+    const r = calculateProject({ ...classExample, circuits: classExample.circuits.map((c) => ({ ...c, energyClass: 1 as const })) }, CLASS_RULES);
+    expect(r.circuits.every((c) => c.thermalOk === null)).toBe(true);
+    expect(r.circuits[0].warnings.join(' ')).toMatch(/Sin dato de I²t/);
+  });
+
+  it('la Icc propone el menor poder de corte normalizado que la cubre', () => {
+    const at = (icc: number) => calculateProject({ ...classExample, iccA: icc }, CLASS_RULES).circuits[0].breakingCapacityA;
+    expect(at(2500)).toBe(3000);
+    expect(at(3000)).toBe(3000);
+    expect(at(3250)).toBe(4500);
+    expect(at(6000)).toBe(6000);
+    expect(at(8000)).toBe(10000);
   });
 });
 
