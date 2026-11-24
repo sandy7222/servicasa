@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, ArrowLeft, Calculator, CheckCircle2, Copy, FolderOpen, Plus, Printer, Save, Sparkles, Trash2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { InstallationBudgetPanel, type BudgetDraft } from './InstallationBudgetPanel';
 import { isSupabaseConfigured } from '../../lib/supabase';
 import { deleteProject, duplicateProject, listProjects, openProject, saveProject, type SavedProjectSummary } from '../../lib/installationProjectStore';
 import {
@@ -53,7 +54,7 @@ const CIRCUIT_KINDS: Array<[CircuitKind, string]> = [
 
 const GRADE_LABEL = { minimo: 'Mínimo', medio: 'Medio', elevado: 'Elevado', superior: 'Superior' } as const;
 
-type Draft = { name: string } & ProjectInput;
+type Draft = { name: string; budget?: BudgetDraft } & ProjectInput;
 
 const EMPTY: Draft = {
   name: '',
@@ -417,6 +418,15 @@ export const InstallationProjectView: React.FC = () => {
               {[result.feeder, ...result.circuits].flatMap((l) => l.warnings.map((w) => `${l.id}: ${w}`)).map((w) => <p key={w} className="text-rose-700">{w}</p>)}
             </div>
           </section>
+        )}
+
+        {result && (
+          <InstallationBudgetPanel
+            project={draft}
+            result={result}
+            value={draft.budget}
+            onChange={(budget) => setDraft((d) => ({ ...d, budget }))}
+          />
         )}
       </div>
     </main>

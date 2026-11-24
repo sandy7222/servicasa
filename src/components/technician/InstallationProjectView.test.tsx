@@ -81,6 +81,39 @@ describe('InstallationProjectView', () => {
     expect(screen.getByText(/El diferencial aguanta 3000 A de cortocircuito/)).toBeInTheDocument();
   });
 
+  it('el presupuesto de obra muestra el precio total con mano de obra, herramientas y precios cargados', () => {
+    const budget = {
+      qty: {},
+      listNames: ['Por precio', 'Por calidad / marca'],
+      prices: [{ tape: { unitPrice: 1000 } }, { tape: { unitPrice: 2000 } }],
+      supplies: [{ name: 'Discos', amount: 5000 }],
+      tools: [{ name: 'Amoladora', originValue: 100000, hoursOnSite: 40 }],
+      tasks: [{ name: 'Caños', officialHours: 10, helperHours: 5 }],
+      officialRate: 8000,
+      helperRate: 6000,
+      visit: 20000,
+      rules: {},
+    };
+    localStorage.setItem(
+      'tu:installation-project:v1',
+      JSON.stringify({
+        name: 'Obra',
+        rooms: [{ name: 'Habitación', type: 'dormitorio', areaM2: 16 }],
+        circuits: [{ id: 'CT1', kind: 'IUG', points: 5, lengthM: 11, breakerA: 10 }],
+        feeder: { lengthM: 11, breakerA: 25 },
+        budget,
+      })
+    );
+    render(<InstallationProjectView />);
+    // Solo la cinta tiene precio (2 u): materiales 2.000 / 4.000. Insumos 5.000. Depreciación 100.000 × 0,18 × 40 / 400 = 1.800.
+    // MO = 10 × 8.000 + 5 × 6.000 = 110.000 → con cargas 165.000. Directo = 2.000 + 5.000 + 1.800 + 165.000 + 20.000 = 193.800.
+    expect(screen.getByText('Presupuesto de obra')).toBeInTheDocument();
+    // Lista 1: GG 19.380 + beneficio 21.318 → 234.498,00. Lista 2 (materiales 4.000): directo 195.800 → 236.918,00.
+    const total = screen.getByText('PRECIO TOTAL').closest('tr');
+    expect(total).toHaveTextContent('234.498,00');
+    expect(total).toHaveTextContent('236.918,00');
+  });
+
   it('"Proponer circuitos mínimos" arma los circuitos del grado con las bocas mínimas', () => {
     render(<InstallationProjectView />);
     expect(screen.queryByText(/Memoria de cálculo/)).not.toBeInTheDocument();
