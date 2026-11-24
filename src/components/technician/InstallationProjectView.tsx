@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, ArrowLeft, Calculator, CheckCircle2, Plus, Printer, Sparkles, Trash2 } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Calculator, CheckCircle2, Copy, FolderOpen, Plus, Printer, Save, Sparkles, Trash2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { isSupabaseConfigured } from '../../lib/supabase';
+import { deleteProject, duplicateProject, listProjects, openProject, saveProject, type SavedProjectSummary } from '../../lib/installationProjectStore';
 import {
   calculateProject,
   minimumPoints,
@@ -22,11 +24,13 @@ import {
  * Electricidad. Calcula una instalación domiciliaria según AEA 90364-7-770 con el motor de
  * src/lib/installationProject.ts. Es una guía: el técnico matriculado verifica y es responsable del proyecto.
  *
- * Esta primera versión guarda el proyecto en el dispositivo (localStorage). Guardarlo en la cuenta, adjuntar el
- * plano y "Pasar a presupuesto" son los pasos siguientes del plan.
+ * El borrador de trabajo se guarda siempre en el dispositivo (localStorage); además el técnico puede guardarlo en su
+ * cuenta (Fase 2C), abrirlo en otro dispositivo y duplicarlo. Adjuntar el plano y "Pasar a presupuesto" son los
+ * pasos siguientes del plan.
  */
 
 const STORAGE_KEY = 'tu:installation-project:v1';
+const ID_KEY = 'tu:installation-project:id:v1';
 
 const ROOM_TYPES: Array<[RoomType, string]> = [
   ['estar', 'Estar / comedor / escritorio'],
@@ -120,8 +124,66 @@ const Mark: React.FC<{ ok: boolean | null; label: string }> = ({ ok, label }) =>
   : <AlertTriangle className="inline w-4 text-rose-600" aria-label={`${label}: no verifica`} />;
 
 export const InstallationProjectView: React.FC = () => {
-  const { navigate } = useApp();
+  const { navigate, currentUser, showToast } = useApp() as {
+    navigate: (path: string) => void;
+    currentUser?: { technicianId?: string } | null;
+    showToast?: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
+  };
+  const technicianId = currentUser?.technicianId;
+  const cloud = Boolean(technicianId) && isSupabaseConfigured;
   const [draft, setDraft] = useState<Draft>(loadDraft);
+  const [projectId, setProjectId] = useState<string | null>(() => {
+    try { return localStorage.getItem(ID_KEY); } catch { return null; }
+  });
+  const [saved, setSaved] = useState<SavedProjectSummary[]>([]);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    try {
+      if (projectId) localStorage.setItem(ID_KEY, projectId); else localStorage.removeItem(ID_KEY);
+    } catch { /* ignorar */ }
+  }, [projectId]);
+
+  const refreshSaved = async () => {
+    if (!cloud) return;
+    try { setSaved(await listProjects()); } catch { showToast?.('No pudimos cargar tus proyectos guardados.', 'error'); }
+  };
+  useEffect(() => { void refreshSaved(); // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cloud]);
+
+  const run = async (action: () => Promise<void>, failure: string) => {
+    setBusy(true);
+    try { await action(); } catch { showToast?.(failure, 'error'); } finally { setBusy(false); }
+  };
+  const saveToAccount = () => run(async () => {
+    const id = await saveProject(technicianId as string, draft, projectId);
+    setProjectId(id);
+    showToast?.('Proyecto guardado en tu cuenta.', 'success');
+    await refreshSaved();
+  }, 'No se pudo guardar el proyecto.');
+  const duplicateToAccount = () => run(async () => {
+    const id = await duplicateProject(technicianId as string, draft);
+    const copy = await openProject<ProjectInput>(id);
+    if (copy) setDraft({ ...EMPTY, ...copy });
+    setProjectId(id);
+    showToast?.('Copia guardada; ahora estás editando la copia.', 'success');
+    await refreshSaved();
+  }, 'No se pudo duplicar el proyecto.');
+  const openFromAccount = (id: string) => run(async () => {
+    const found = await openProject<ProjectInput>(id);
+    if (!found) { showToast?.('Ese proyecto ya no existe.', 'warning'); await refreshSaved(); return; }
+    setDraft({ ...EMPTY, ...found });
+    setProjectId(id);
+  }, 'No se pudo abrir el proyecto.');
+  const removeFromAccount = (id: string, name: string) => {
+    if (!window.confirm(`¿Eliminar "${name}" de tu cuenta? No se puede deshacer.`)) return;
+    void run(async () => {
+      await deleteProject(id);
+      if (id === projectId) setProjectId(null);
+      await refreshSaved();
+    }, 'No se pudo eliminar el proyecto.');
+  };
+  const newProject = () => { setDraft(EMPTY); setProjectId(null); };
 
   useEffect(() => {
     try {
@@ -184,6 +246,31 @@ export const InstallationProjectView: React.FC = () => {
           <label className="block text-xs font-bold" htmlFor="ip-name">Nombre del proyecto</label>
           <input id="ip-name" className={input} value={draft.name} placeholder="Ej.: Depto. 3er piso — Pérez" onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))} />
         </section>
+
+        {cloud && (
+          <section className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 space-y-3 print:hidden" aria-label="Mis proyectos guardados">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-sm font-bold mr-auto">Mis proyectos guardados</h2>
+              <button type="button" disabled={busy} onClick={newProject} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold disabled:opacity-60"><Plus className="w-3.5" />Nuevo</button>
+              <button type="button" disabled={busy} onClick={() => void duplicateToAccount()} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold disabled:opacity-60"><Copy className="w-3.5" />Duplicar</button>
+              <button type="button" disabled={busy} onClick={() => void saveToAccount()} className="inline-flex items-center gap-1 rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-bold text-white disabled:opacity-60"><Save className="w-3.5" />{projectId ? 'Guardar cambios' : 'Guardar en mi cuenta'}</button>
+            </div>
+            <p className="text-[11px] text-slate-500">{projectId ? 'Estás editando un proyecto guardado en tu cuenta.' : 'Este proyecto está solo en este dispositivo hasta que lo guardes en tu cuenta.'}</p>
+            {saved.length === 0 ? (
+              <p className="text-xs text-slate-500">Todavía no guardaste proyectos.</p>
+            ) : (
+              <ul className="space-y-1">
+                {saved.map((p) => (
+                  <li key={p.id} className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs ${p.id === projectId ? 'bg-teal-50 dark:bg-teal-950/40' : 'bg-slate-50 dark:bg-slate-950'}`}>
+                    <span className="mr-auto min-w-0 truncate"><strong>{p.name}</strong> · {new Date(p.updatedAt).toLocaleDateString('es-AR')}</span>
+                    <button type="button" disabled={busy} aria-label={`Abrir ${p.name}`} onClick={() => void openFromAccount(p.id)} className="text-teal-700"><FolderOpen className="w-4 h-4" /></button>
+                    <button type="button" disabled={busy} aria-label={`Eliminar ${p.name}`} onClick={() => removeFromAccount(p.id, p.name)} className="text-rose-600"><Trash2 className="w-4 h-4" /></button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        )}
 
         {/* 1. Ambientes */}
         <section className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 space-y-3 print:hidden">

@@ -1,6 +1,6 @@
 # Plan: módulo "Proyecto de instalación" (electricistas)
 
-> **Estado (23/11/2026):** Fases 0, 1 y 2B hechas; Fase 2 hecha en su primera versión. **Lo próximo es la Fase 2C** (guardar en la cuenta). Después: 3 (pasar a presupuesto), 3B (presupuesto formal de obra) y 4 (prueba real).
+> **Estado (23/11/2026):** Fases 0, 1, 2B y 2C (código) hechas; Fase 2 hecha en su primera versión. **Fase 2C hecha en código; falta que Sandy aplique la migración.** Lo próximo es la Fase 3. Después: 3 (pasar a presupuesto), 3B (presupuesto formal de obra) y 4 (prueba real).
 > **Fuente técnica:** la Reglamentación AEA 90364-7-770 (instalaciones eléctricas en inmuebles), de cumplimiento obligatorio, aplicada según los apuntes de clase de Sandy. La app **aplica** las reglas y cita el artículo/tabla; **no reproduce el texto del libro**. Los valores técnicos los valida Sandy (la IA no da indicaciones técnicas de electricidad).
 
 ---
@@ -147,9 +147,9 @@ Departamento en 3er piso, Constitución 1734, C.A.B.A. Memoria completa en `C:\U
 - [x] 2B.8 **Tests:** caso 1 sigue en verde (Icc 3.000 o sin Icc); caso 2 completo (tabla de arriba): propone 4,5 kA, IUG sube a 2,5 mm² por térmica, seccional 211.600 ≥ 39.000, ID de 3 kA no verifica y de 6 kA sí.
 - **Terminado cuando:** los dos casos pasan, `tsc` sin errores y Sandy revisa la memoria impresa del caso 2 contra su TP.
 
-### ⏳ Fase 2C (🤖 + 👤 migración) — Guardar en la cuenta
-- [ ] Migración `installation_projects` (+ RLS) — Sandy la aplica.
-- [ ] Guardar/abrir/duplicar proyectos desde la pantalla (hoy solo `localStorage`; migrar lo que haya en el dispositivo la primera vez).
+### 🟡 Fase 2C (🤖 + 👤 migración) — Guardar en la cuenta
+- [x] Migración `supabase/migrations/20261123000000_installation_projects.sql` (+ RLS solo del dueño) — **escrita, SIN aplicar: la aplica Sandy.**
+- [x] Guardar/abrir/duplicar/eliminar desde la pantalla (`src/lib/installationProjectStore.ts` + panel "Mis proyectos guardados"). El borrador sigue en `localStorage`; "Guardar en mi cuenta" sube lo que haya en el dispositivo.
 - [ ] Opcional: adjuntar el plano (PDF o imagen) en un bucket privado, mismo patrón que `technician-documents`.
 
 ### ⏳ Fase 3 (🤖) — "Pasar a presupuesto" de una orden
@@ -199,3 +199,4 @@ Estamos construyendo un **modelo** (una herramienta), no un proyecto: los datos 
 | 21/11/2026 | Caída propia de cada circuito terminal ≤ 2 % Un (`ca2e086`). cos φ 0,85 también en ACU (`c8da54a`). |
 | 23/11/2026 | **Fase 2B hecha:** el motor pide la Icc y verifica el poder de corte de cada ITM y del diferencial (8 A); el I²t sale de las Tablas 770-B.VIII/IX según In, poder de corte, clase y curva (o del fabricante si el técnico lo carga); si no verifica la exigencia térmica sube la sección (`sectionIncreasedForThermal`); la seccional también se verifica; sin dato = "sin dato"; supuestos avisados en `assumptions`. El caso del TP N° 1 pasa como test (IUG 1,5 → 2,5 mm² con 4,5 kA; seccional 211.600 ≥ 39.000; ID de 3 kA no verifica, de 6 kA sí). Pantalla: sección "3. Cortocircuito" (Icc, ID), campos de poder de corte / clase / curva / I²t por protección, columnas 8 A y 8 B en la memoria. 37 tests del módulo y 508 en total en verde, `tsc` limpio. Sin verificación visual en el navegador (requiere iniciar sesión como electricista). |
 | 23/11/2026 | Decisiones de diseño de la Fase 2B fijadas (el técnico carga poder de corte, clase, I²t del fabricante y datos del ID; valores por defecto avisados; sin Icc = "sin dato"). Plan ampliado con lo aprendido en el TP N° 1: Fase 2B (Icc, poder de corte, I²t por tabla, subir sección por exigencia térmica, seccional en el 8 B), Fase 2C (guardar en la cuenta), Fase 3B (presupuesto formal de obra con oráculo numérico) y sección "para el agente que retome". |
+| 23/11/2026 | Fase 2C en código: migración `installation_projects` (sin aplicar), módulo de guardado, panel para guardar/abrir/duplicar/eliminar, 5 tests nuevos (513 en total). Queda opcional: adjuntar plano. |
