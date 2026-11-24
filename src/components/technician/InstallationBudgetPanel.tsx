@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { FileText, Plus, Sparkles, Trash2 } from 'lucide-react';
 import logoTecniurbano from '../../assets/logo-tecniurbano.png';
 import { buildQuoteNoteHtml } from '../../lib/installationQuoteNote';
+import { buildMaterialQuoteItems, type QuoteItemDraft } from '../../lib/installationQuoteItems';
 import type { ProjectInput, ProjectResult } from '../../lib/installationProject';
 import { computeTakeoff } from '../../lib/installationTakeoff';
 import { priceMaterials, parsePastedPrices, type PriceEntry } from '../../lib/installationPrices';
@@ -65,13 +66,20 @@ type Props = {
   value: BudgetDraft | undefined;
   onChange: (next: BudgetDraft) => void;
   technician?: { name: string; phone?: string; email?: string };
+  /** Órdenes del técnico con presupuesto editable (borrador o sin presupuesto). */
+  quoteOrders?: Array<{ id: string; title: string; clientName?: string }>;
+  /** Pasa los ítems de material al borrador de la orden. */
+  onPassToQuote?: (orderId: string, items: QuoteItemDraft[]) => Promise<void>;
 };
 
-export const InstallationBudgetPanel: React.FC<Props> = ({ project, result, value, onChange, technician }) => {
+export const InstallationBudgetPanel: React.FC<Props> = ({ project, result, value, onChange, technician, quoteOrders, onPassToQuote }) => {
   const budget: BudgetDraft = { ...EMPTY_BUDGET, ...value };
   const [pasting, setPasting] = useState<0 | 1 | null>(null);
   const [pasted, setPasted] = useState('');
   const [pasteMsg, setPasteMsg] = useState('');
+  const [targetOrder, setTargetOrder] = useState('');
+  const [targetOption, setTargetOption] = useState<0 | 1>(0);
+  const [passing, setPassing] = useState(false);
   const set = (patch: Partial<BudgetDraft>) => onChange({ ...budget, ...patch });
 
   const takeoff = useMemo(() => computeTakeoff(project, result), [project, result]);
@@ -310,6 +318,41 @@ export const InstallationBudgetPanel: React.FC<Props> = ({ project, result, valu
         </div>
         <p className="text-[10px] text-slate-500">Se abre en otra pestaña: elegí "Guardar como PDF" en la impresora. Lleva el logo de TecniUrbano y la garantía de la plataforma.</p>
       </div>
+
+      {/* Pasar a presupuesto de una orden */}
+      {onPassToQuote && (
+        <div className="space-y-2" aria-label="Pasar a presupuesto">
+          <h3 className="font-bold">8. Pasar los materiales al presupuesto de una orden</h3>
+          <p className="text-[10px] text-slate-500">Crea los materiales e insumos como ítems del borrador de la orden. No se envía nada al cliente. La mano de obra la elegís vos desde el catálogo, en el presupuesto de la orden.</p>
+          {(quoteOrders ?? []).length === 0 ? (
+            <p className="text-slate-500">No tenés órdenes con un presupuesto que se pueda editar ahora.</p>
+          ) : (
+            <div className="flex flex-wrap items-end gap-2">
+              <label className="text-[10px] text-slate-500">Orden
+                <select className={input} value={targetOrder} onChange={(e) => setTargetOrder(e.target.value)}>
+                  <option value="">Elegí una orden</option>
+                  {(quoteOrders ?? []).map((o) => <option key={o.id} value={o.id}>{o.title}{o.clientName ? ` — ${o.clientName}` : ''}</option>)}
+                </select>
+              </label>
+              <label className="text-[10px] text-slate-500">Precios de
+                <select className={input} value={targetOption} onChange={(e) => setTargetOption(Number(e.target.value) as 0 | 1)}>
+                  <option value={0}>{budget.listNames[0]}</option>
+                  <option value={1}>{budget.listNames[1]}</option>
+                </select>
+              </label>
+              <button
+                type="button"
+                disabled={!targetOrder || passing}
+                onClick={async () => {
+                  setPassing(true);
+                  try { await onPassToQuote(targetOrder, buildMaterialQuoteItems(priced.lines, targetOption, budget.supplies)); } finally { setPassing(false); }
+                }}
+                className="rounded-lg bg-teal-600 px-3 py-2 font-bold text-white disabled:opacity-60"
+              >Pasar materiales al presupuesto</button>
+            </div>
+          )}
+        </div>
+      )}
     </section>
   );
 };

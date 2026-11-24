@@ -2,6 +2,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, ArrowLeft, Calculator, CheckCircle2, Copy, FolderOpen, Plus, Printer, Save, Sparkles, Trash2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { InstallationBudgetPanel, type BudgetDraft } from './InstallationBudgetPanel';
+import { addMaterialsToDraftQuote, type QuoteItemDraft } from '../../lib/installationQuoteItems';
+import { isOrderPaymentSettled } from '../../lib/workTimer';
+import type { ServiceOrder } from '../../types';
 import { isSupabaseConfigured } from '../../lib/supabase';
 import { deleteProject, duplicateProject, listProjects, openProject, saveProject, type SavedProjectSummary } from '../../lib/installationProjectStore';
 import {
@@ -125,15 +128,33 @@ const Mark: React.FC<{ ok: boolean | null; label: string }> = ({ ok, label }) =>
   : <AlertTriangle className="inline w-4 text-rose-600" aria-label={`${label}: no verifica`} />;
 
 export const InstallationProjectView: React.FC = () => {
-  const { navigate, currentUser, showToast, technicians } = useApp() as {
+  const { navigate, currentUser, showToast, technicians, orders, refreshRemoteData } = useApp() as {
+    orders?: ServiceOrder[];
+    refreshRemoteData?: () => Promise<void> | void;
     navigate: (path: string) => void;
     technicians?: Array<{ id: string; name: string; phone?: string; email?: string }>;
-    currentUser?: { technicianId?: string } | null;
+    currentUser?: { technicianId?: string; id?: string } | null;
     showToast?: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
   };
   const technicianId = currentUser?.technicianId;
   const technician = technicians?.find((t) => t.id === technicianId);
   const cloud = Boolean(technicianId) && isSupabaseConfigured;
+  // Órdenes del técnico donde el presupuesto se puede editar (mismo criterio que QuoteBuilder).
+  const quoteOrders = cloud
+    ? (orders ?? []).filter((o) => o.assignedTechnicianId === technicianId && o.workMode === 'diagnosis' && isOrderPaymentSettled(o) && (!o.quotes?.[0] || o.quotes[0].status === 'draft'))
+    : [];
+  const passToQuote = async (orderId: string, items: QuoteItemDraft[]) => {
+    const order = quoteOrders.find((o) => o.id === orderId);
+    if (!order) return;
+    if (items.length === 0) { showToast?.('No hay materiales con precio para pasar.', 'warning'); return; }
+    try {
+      const n = await addMaterialsToDraftQuote(order, items, currentUser?.id ?? null);
+      await refreshRemoteData?.();
+      showToast?.(`${n} ítem(s) de material agregados al borrador. Revisalo y enviá el presupuesto desde la orden.`, 'success');
+    } catch (e) {
+      showToast?.(e instanceof Error ? e.message : 'No se pudieron pasar los materiales.', 'error');
+    }
+  };
   const [draft, setDraft] = useState<Draft>(loadDraft);
   const [projectId, setProjectId] = useState<string | null>(() => {
     try { return localStorage.getItem(ID_KEY); } catch { return null; }
@@ -427,6 +448,8 @@ export const InstallationProjectView: React.FC = () => {
             project={draft}
             result={result}
             value={draft.budget}
+            quoteOrders={quoteOrders.map((o) => ({ id: o.id, title: o.title, clientName: o.clientName }))}
+            onPassToQuote={cloud ? passToQuote : undefined}
             technician={technician ? { name: technician.name, phone: technician.phone, email: technician.email } : undefined}
             onChange={(budget) => setDraft((d) => ({ ...d, budget }))}
           />

@@ -1,6 +1,6 @@
 # Plan: módulo "Proyecto de instalación" (electricistas)
 
-> **Estado (23/11/2026):** Fases 0, 1, 2B y 2C (código) hechas; Fase 2 hecha en su primera versión. **Fase 2C hecha y migración aplicada.** Se hace antes la Fase 3B (la 3 necesita sus precios); motor de precio de 3B ya hecho, cómputo de materiales (3B.1) también hecho; listas de precios (3B.2) también hechas en motor; pantalla del presupuesto de obra hecha (`InstallationBudgetPanel.tsx`: materiales, insumos, herramientas, mano de obra, porcentajes, precio y anticipo); nota de presupuesto para el cliente (3B.7) hecha; 3B completa (salvo la salida de composición interna); sigue la Fase 3. Después: 3 (pasar a presupuesto), 3B (presupuesto formal de obra) y 4 (prueba real).
+> **Estado (23/11/2026):** Fases 0, 1, 2B y 2C (código) hechas; Fase 2 hecha en su primera versión. **Fase 2C hecha y migración aplicada.** Se hace antes la Fase 3B (la 3 necesita sus precios); motor de precio de 3B ya hecho, cómputo de materiales (3B.1) también hecho; listas de precios (3B.2) también hechas en motor; pantalla del presupuesto de obra hecha (`InstallationBudgetPanel.tsx`: materiales, insumos, herramientas, mano de obra, porcentajes, precio y anticipo); nota de presupuesto para el cliente (3B.7) hecha; 3B y Fase 3 hechas; sigue la Fase 4 (prueba real con un proyecto de Sandy). Después: 3 (pasar a presupuesto), 3B (presupuesto formal de obra) y 4 (prueba real).
 > **Fuente técnica:** la Reglamentación AEA 90364-7-770 (instalaciones eléctricas en inmuebles), de cumplimiento obligatorio, aplicada según los apuntes de clase de Sandy. La app **aplica** las reglas y cita el artículo/tabla; **no reproduce el texto del libro**. Los valores técnicos los valida Sandy (la IA no da indicaciones técnicas de electricidad).
 
 ---
@@ -152,10 +152,10 @@ Departamento en 3er piso, Constitución 1734, C.A.B.A. Memoria completa en `C:\U
 - [x] Guardar/abrir/duplicar/eliminar desde la pantalla (`src/lib/installationProjectStore.ts` + panel "Mis proyectos guardados"). El borrador sigue en `localStorage`; "Guardar en mi cuenta" sube lo que haya en el dispositivo.
 - [ ] Opcional: adjuntar el plano (PDF o imagen) en un bucket privado, mismo patrón que `technician-documents`.
 
-### ⏳ Fase 3 (🤖) — "Pasar a presupuesto" de una orden
-- [ ] Botón en el proyecto: elegir una orden del técnico y crear ítems en `order_quote_items` (`item_type` = `labor` | `material`, ya existe el CHECK) **sin enviarlo**; el técnico lo revisa y lo envía como siempre desde `QuoteBuilder`.
-- [ ] Mapeo resultado → ítems: mano de obra por tarea (Fase 3B) y materiales del cómputo.
-- [ ] No cambiar la lógica de precios ni de pagos del presupuesto existente.
+### ✅ Fase 3 (🤖) — "Pasar a presupuesto" de una orden
+- [x] Botón en el proyecto (sección 8 del presupuesto; `installationQuoteItems.ts`): elegir una orden del técnico y crear ítems en `order_quote_items` (`item_type` = `labor` | `material`, ya existe el CHECK) **sin enviarlo**; el técnico lo revisa y lo envía como siempre desde `QuoteBuilder`.
+- [x] Mapeo: **solo materiales e insumos** (decisión de Sandy 24/11): la base exige que la mano de obra venga del catálogo publicado (trigger `apply_catalog_price_to_quote_item`), así que el técnico la elige en `QuoteBuilder`.
+- [x] No cambia la lógica de precios ni de pagos; solo órdenes del técnico con presupuesto en borrador o sin presupuesto (mismo criterio que `QuoteBuilder`).
 
 ### ⏳ Fase 3B (🤖) — Presupuesto formal de obra (módulo aparte, dentro del asistente)
 Reproduce las secciones 10 a 14 del TP N° 1. Es **opcional** y solo para obras completas.
