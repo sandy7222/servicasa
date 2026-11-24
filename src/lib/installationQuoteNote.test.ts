@@ -38,6 +38,10 @@ describe('buildQuoteNoteHtml', () => {
     expect(bad).not.toContain('<img src=x');
     expect(esc(`<&>"'`)).toBe('&lt;&amp;&gt;&quot;&#39;');
   });
+  it('no repite el nombre del proyecto si ya está en el domicilio', () => {
+    const h = buildQuoteNoteHtml({ ...base, projectName: 'Constitución 1734', client: { address: 'Constitución 1734, CABA' } });
+    expect(h.match(/Constitución 1734/g)).toHaveLength(2); // domicilio + título de la pestaña
+  });
   it('con dos opciones muestra dos columnas', () => {
     const two = buildQuoteNoteHtml({ ...base, options: [{ label: 'Por precio', result }, { label: 'Por calidad', result }] });
     expect(two).toContain('<th>Por precio</th><th>Por calidad</th>');

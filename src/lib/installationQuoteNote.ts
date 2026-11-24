@@ -74,7 +74,7 @@ table.p tr.tot td { background: #dfe6f1; font-weight: bold; font-size: 9.6pt; }
 <tr><td class="k">Prestador:</td><td>${esc(d.technician.name)}</td></tr>
 <tr><td class="k">Contacto:</td><td>Teléfono: ${blank(d.technician.phone, '______________')} &nbsp; Correo: ${blank(d.technician.email, '______________________')}</td></tr>
 <tr><td class="k">Cliente:</td><td>${blank(d.client.name, '______________________________')} &nbsp; CUIT/DNI: ${blank(d.client.document, '______________')}</td></tr>
-<tr><td class="k">Obra:</td><td>${blank(d.client.address, '______________________________')}${d.projectName ? ` — ${esc(d.projectName)}` : ''}</td></tr>
+<tr><td class="k">Obra:</td><td>${blank(d.client.address, '______________________________')}${d.projectName && !(d.client.address ?? '').includes(d.projectName) ? ` — ${esc(d.projectName)}` : ''}</td></tr>
 </table>
 <h2>Alcance de los trabajos</h2>
 <ul>${d.scope.map((s) => `<li>${esc(s)}</li>`).join('')}</ul>
