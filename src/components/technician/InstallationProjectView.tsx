@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, ArrowLeft, Calculator, CheckCircle2, Copy, FileUp, FolderOpen, Plus, Printer, Save, Sparkles, Trash2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { InstallationBudgetPanel, type BudgetDraft } from './InstallationBudgetPanel';
+import { EMPTY_BUDGET, InstallationBudgetPanel, type BudgetDraft } from './InstallationBudgetPanel';
 import { addMaterialsToDraftQuote, type QuoteItemDraft } from '../../lib/installationQuoteItems';
 import { isOrderPaymentSettled } from '../../lib/workTimer';
 import type { ServiceOrder } from '../../types';
@@ -259,6 +259,38 @@ export const InstallationProjectView: React.FC = () => {
     return { surface, grade, minimums: minimumPoints(draft.rooms, grade) };
   }, [draft.rooms, draft.wallsM2]);
 
+  type StepState = 'ok' | 'todo' | 'alert';
+  const walkthrough = useMemo((): Array<{ n: number; title: string; state: StepState; note?: string; anchor: string }> => {
+    const b = draft.budget ? { ...EMPTY_BUDGET, ...draft.budget } : undefined;
+    const hasRooms = draft.rooms.some((r) => r.areaM2 > 0);
+    const rs = result;
+    const lines = rs ? [rs.feeder, ...rs.circuits] : [];
+    const pricedSomething = Boolean(b && b.prices.some((list) => Object.keys(list).length > 0));
+    const hasLabor = Boolean(b && b.tasks.length > 0 && (b.officialRate > 0 || b.helperRate > 0));
+    const st = (cond: boolean, bad = false): StepState => (bad ? 'alert' : cond ? 'ok' : 'todo');
+    return [
+      { n: 1, title: 'Superficie límite de aplicación (SLA)', state: st(hasRooms), anchor: 'ip-ambientes' },
+      { n: 2, title: 'Tipo de electrificación', state: st(hasRooms), note: hasRooms ? `Grado ${GRADE_LABEL[preview.grade]}` : undefined, anchor: 'ip-ambientes' },
+      { n: 3, title: 'Bocas y circuitos mínimos', state: st(Boolean(rs), Boolean(rs?.warnings.some((w) => w.startsWith('Faltan') || w.startsWith('El grado')))), anchor: 'ip-circuitos' },
+      { n: 4, title: 'Demanda de potencia (DPMS)', state: st(Boolean(rs)), anchor: 'ip-memoria' },
+      { n: 5, title: 'Protectores y conductores', state: st(Boolean(rs), lines.some((l) => !l.coordinationOk)), anchor: 'ip-memoria' },
+      { n: 6, title: 'Canalizaciones y conductores', state: st(Boolean(rs)), anchor: 'ip-memoria' },
+      { n: 7, title: 'Caída de tensión', state: st(Boolean(rs), Boolean(rs?.circuits.some((c) => !c.totalDropOk))), anchor: 'ip-memoria' },
+      {
+        n: 8, title: 'Exigencia térmica y cortocircuito',
+        state: st(Boolean(rs) && rs!.iccA !== null && lines.every((l) => l.breakingOk === true && l.thermalOk !== false), lines.some((l) => l.breakingOk === false || l.thermalOk === false) || rs?.rcd.ok === false),
+        note: rs && rs.iccA === null ? 'Falta cargar la Icc' : undefined, anchor: 'ip-cortocircuito',
+      },
+      { n: 9, title: 'Ubicación del tablero seccional', state: st(rs?.boardLocation.ok === true, rs?.boardLocation.ok === false), note: rs && rs.boardLocation.ok === null ? 'Sin confirmar' : undefined, anchor: 'ip-tablero' },
+      { n: 10, title: 'Pendientes y avisos', state: st(Boolean(rs) && rs!.warnings.length === 0, Boolean(rs) && rs!.warnings.length > 0), note: rs && rs.warnings.length > 0 ? `${rs.warnings.length} aviso(s)` : undefined, anchor: 'ip-memoria' },
+      { n: 11, title: 'Lista de materiales y presupuesto', state: st(pricedSomething), anchor: 'ip-presupuesto' },
+      { n: 12, title: 'Insumos, depreciación de herramientas y puesta en servicio', state: st(Boolean(b && (b.supplies.length > 0 || b.tools.length > 0))), anchor: 'ip-presupuesto' },
+      { n: 13, title: 'Mano de obra y precio final', state: st(hasLabor), anchor: 'ip-presupuesto' },
+      { n: 14, title: 'Presupuesto para el cliente (nota en PDF)', state: st(hasLabor && pricedSomething && Boolean(b?.clientName?.trim())), note: hasLabor && !b?.clientName?.trim() ? 'Falta el nombre del cliente' : undefined, anchor: 'ip-presupuesto' },
+      { n: 15, title: 'Composición del precio', state: st(hasLabor && pricedSomething), anchor: 'ip-presupuesto' },
+    ];
+  }, [draft, result, preview.grade]);
+
   const setRoom = (i: number, patch: Partial<Room>) =>
     setDraft((d) => ({ ...d, rooms: d.rooms.map((r, j) => (j === i ? { ...r, ...patch } : r)) }));
   const setCircuit = (i: number, patch: Partial<CircuitInput>) =>
@@ -304,6 +336,20 @@ export const InstallationProjectView: React.FC = () => {
         <section className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 space-y-2 print:hidden">
           <label className="block text-xs font-bold" htmlFor="ip-name">Nombre del proyecto</label>
           <input id="ip-name" className={input} value={draft.name} placeholder="Ej.: Depto. 3er piso — Pérez" onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))} />
+        </section>
+
+        <section className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 space-y-2 print:hidden" aria-label="Recorrido del trabajo">
+          <h2 className="text-sm font-bold">Recorrido del trabajo ({walkthrough.filter((st) => st.state === 'ok').length} de {walkthrough.length} listos)</h2>
+          <ol className="grid sm:grid-cols-2 gap-x-4 gap-y-1 text-xs">
+            {walkthrough.map((st) => (
+              <li key={st.n}>
+                <button type="button" onClick={() => document.getElementById(st.anchor)?.scrollIntoView?.({ behavior: 'smooth', block: 'start' })} className="flex w-full items-start gap-2 rounded-md px-1.5 py-1 text-left hover:bg-slate-50 dark:hover:bg-slate-800">
+                  <span className={st.state === 'ok' ? 'text-emerald-600' : st.state === 'alert' ? 'text-rose-600' : 'text-slate-400'} aria-label={st.state === 'ok' ? 'listo' : st.state === 'alert' ? 'con aviso' : 'pendiente'}>{st.state === 'ok' ? '✓' : st.state === 'alert' ? '⚠' : '○'}</span>
+                  <span className="min-w-0"><strong>{st.n}.</strong> {st.title}{st.note ? <span className="block text-[10px] text-slate-500">{st.note}</span> : null}</span>
+                </button>
+              </li>
+            ))}
+          </ol>
         </section>
 
         {cloud && (
@@ -354,7 +400,7 @@ export const InstallationProjectView: React.FC = () => {
         )}
 
         {/* 1. Ambientes */}
-        <section className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 space-y-3 print:hidden">
+        <section id="ip-ambientes" className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 space-y-3 print:hidden">
           <h2 className="text-sm font-bold">1. Ambientes</h2>
           {draft.rooms.map((room, i) => (
             <div key={i} className="grid grid-cols-2 sm:grid-cols-[2fr_2fr_1fr_1fr_auto_auto] gap-2 items-end rounded-lg bg-slate-50 dark:bg-slate-950 p-2">
@@ -380,7 +426,7 @@ export const InstallationProjectView: React.FC = () => {
         </section>
 
         {/* 3. Circuitos */}
-        <section className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 space-y-3 print:hidden">
+        <section id="ip-circuitos" className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 space-y-3 print:hidden">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-sm font-bold">2. Circuitos y línea seccional</h2>
             <button type="button" onClick={suggestCircuits} className="inline-flex items-center gap-1 rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-bold text-white"><Sparkles className="w-3.5" />Proponer circuitos mínimos</button>
@@ -414,7 +460,7 @@ export const InstallationProjectView: React.FC = () => {
         </section>
 
         {/* Cortocircuito (paso 8 A) */}
-        <section className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 space-y-2 print:hidden">
+        <section id="ip-cortocircuito" className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 space-y-2 print:hidden">
           <h2 className="text-sm font-bold">3. Cortocircuito</h2>
           <p className="text-[11px] text-slate-500">La corriente de cortocircuito (Icc) la informa la distribuidora para el punto de conexión. Con ese dato se verifica que cada protección pueda cortarla. Sin Icc, esa verificación queda "sin dato".</p>
           <div className="grid grid-cols-3 gap-2 max-w-xl">
@@ -429,11 +475,24 @@ export const InstallationProjectView: React.FC = () => {
           </div>
         </section>
 
+        {/* Ubicación del tablero seccional (paso 9) */}
+        <section id="ip-tablero" className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 space-y-2 print:hidden">
+          <h2 className="text-sm font-bold">4. Ubicación del tablero seccional (770.20.4)</h2>
+          <p className="text-[11px] text-slate-500">La app no puede medir el lugar: confirmalo vos con el plano o en la obra. Tiene que ser accesible, no estar cubierto ni oculto (ej.: detrás del giro de una puerta) y tener espacio libre al frente.</p>
+          <div className="flex flex-wrap items-end gap-4 text-xs">
+            <label className="flex items-center gap-1.5"><input type="checkbox" checked={Boolean(draft.boardLocation?.accessible)} onChange={(e) => setDraft((d) => ({ ...d, boardLocation: { ...d.boardLocation, accessible: e.target.checked } }))} />Es accesible</label>
+            <label className="flex items-center gap-1.5"><input type="checkbox" checked={Boolean(draft.boardLocation?.notHidden)} onChange={(e) => setDraft((d) => ({ ...d, boardLocation: { ...d.boardLocation, notHidden: e.target.checked } }))} />No está cubierto ni oculto (fuera del giro de puertas)</label>
+            <label className="text-[10px] text-slate-500 w-44">Espacio libre al frente (m)
+              <input className={input} inputMode="decimal" value={draft.boardLocation?.frontClearM ?? ''} placeholder="recomendado 0,90" onChange={(e) => setDraft((d) => ({ ...d, boardLocation: { ...d.boardLocation, frontClearM: optNum(e.target.value) } }))} />
+            </label>
+          </div>
+        </section>
+
         {/* Resultados */}
         {!result ? (
           <p className="text-xs text-slate-500 print:hidden">Cargá los ambientes y tocá "Proponer circuitos mínimos" (o agregalos a mano) para ver el cálculo.</p>
         ) : (
-          <section className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 space-y-4 text-xs print:border-0">
+          <section id="ip-memoria" className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 space-y-4 text-xs print:border-0">
             <div className="flex items-center justify-between gap-2">
               <h2 className="text-sm font-bold">Memoria de cálculo{draft.name ? ` — ${draft.name}` : ''}</h2>
               <button type="button" onClick={() => window.print()} className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-1.5 font-bold print:hidden"><Printer className="w-3.5" />Imprimir / PDF</button>
@@ -497,6 +556,35 @@ export const InstallationProjectView: React.FC = () => {
                 </ul>
               )}
               {[result.feeder, ...result.circuits].flatMap((l) => l.warnings.map((w) => `${l.id}: ${w}`)).map((w) => <p key={w} className="text-rose-700">{w}</p>)}
+            </div>
+
+            <div className="overflow-x-auto">
+              <h3 className="font-bold">Paso 6 — Canalizaciones y conductores (770.12.2 a, 770.12.3.1 b1, 770.12.3.3.1, Tabla 770.13.I)</h3>
+              <table className="w-full text-left">
+                <thead className="text-slate-500"><tr><th>Línea</th><th>Caño</th><th>Fase y neutro</th><th>Conductor de protección (PE)</th></tr></thead>
+                <tbody>
+                  {result.conduits.map((c) => (
+                    <tr key={c.id} className="border-t border-slate-100 dark:border-slate-800">
+                      <td>{c.id}</td>
+                      <td>{c.conduit}</td>
+                      <td>{c.conductorStandard}, {fmt(c.phaseNeutralMm2, 1)} mm²</td>
+                      <td>{c.conductorStandard}, {fmt(c.peMm2, 1)} mm²</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="mt-1 text-[10px] text-slate-500">Las llaves son elementos de maniobra y no se cuentan como bocas (770.7.6). Si una luz se comanda desde dos llaves combinadas, entre ellas se tienden 3 conductores (línea y dos retornos) dentro de la canalización del IUG.</p>
+            </div>
+
+            <div>
+              <h3 className="font-bold">Paso 9 — Ubicación del tablero seccional (770.20.4)</h3>
+              <ul className="space-y-0.5">
+                {result.boardLocation.checks.map((c) => (
+                  <li key={c.label}><Mark ok={c.ok} label={c.label} /> {c.label} <span className="text-slate-400">({c.ref})</span></li>
+                ))}
+              </ul>
+              {result.boardLocation.ok === null && <p className="mt-1 text-[10px] text-slate-500">Sin confirmar: completá la sección 4 para dejarlo verificado en la memoria.</p>}
+              {result.boardLocation.ok === false && <p className="mt-1 text-rose-700">La ubicación no cumple: mover el tablero seccional (sobre la misma pared, fuera del giro de la hoja y con espacio libre al frente).</p>}
             </div>
           </section>
         )}

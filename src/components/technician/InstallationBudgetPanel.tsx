@@ -162,7 +162,7 @@ export const InstallationBudgetPanel: React.FC<Props> = ({ project, result, valu
   const groups = [...new Set(priced.lines.map((l) => takeoff.find((t) => t.key === l.key)?.group ?? ''))];
 
   return (
-    <section className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 space-y-4 text-xs print:hidden" aria-label="Presupuesto de obra">
+    <section id="ip-presupuesto" className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 space-y-4 text-xs print:hidden" aria-label="Presupuesto de obra">
       <div>
         <h2 className="text-sm font-bold">Presupuesto de obra</h2>
         <p className="text-[11px] text-slate-500">Opcional, para obras completas. Las cantidades son una estimación a partir de los circuitos: corregilas con las medidas del plano. Los precios los cargás vos (no se buscan en tiendas).</p>

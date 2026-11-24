@@ -55,6 +55,10 @@ export type InstallationRules = {
   maxVoltageDropPct: { general: number; especifico: number; seccional: number; circuitoTerminal: number };
   /** Exigencia térmica K²·S² ≥ I²t: K para cobre/PVC (Tabla 770.15.II). El I²t sale de `i2tMax` o del fabricante. */
   thermal: { k: number };
+  /** Paso 6 (770.12.2 a, 770.12.3.1 b1, 770.12.3.3.1, Tabla 770.13.I): canalización y tipo de conductor de cada línea. */
+  conduit: { standard: string; circuits: string; feeder: string; conductorStandard: string };
+  /** Paso 9 (770.20.4.2): espacio libre al frente del tablero seccional, valor recomendado en la nota (m). */
+  boardLocation: { recommendedFrontClearM: number };
   /** Poderes de corte normalizados de los interruptores automáticos (A). */
   breakingCapacities: number[];
   /** Valores por defecto cuando el técnico no carga el dato de su protección (se avisan como "supuestos"). */
@@ -107,6 +111,8 @@ export const DEFAULT_RULES: InstallationRules = {
   // circuitoTerminal: caída propia de cada circuito terminal (criterio de la clase: 1 % seccional + 2 % circuito = 3 %).
   maxVoltageDropPct: { general: 3, especifico: 5, seccional: 1, circuitoTerminal: 2 },
   thermal: { k: 115 },
+  conduit: { standard: 'IRAM 62386-21', circuits: 'RSP 20', feeder: 'RSP 25', conductorStandard: 'IRAM-NM-247-3' },
+  boardLocation: { recommendedFrontClearM: 0.9 },
   breakingCapacities: [3000, 4500, 6000, 10000],
   protectionDefaults: { energyClass: 3, curve: 'C' },
   i2tMax: {
@@ -200,6 +206,8 @@ export type ProjectInput = {
   iccA?: number;
   /** Interruptor diferencial: capacidad de cortocircuito que garantiza el fabricante (A) y tipo. */
   rcd?: { shortCircuitA?: number; type?: 'A' | 'AC' };
+  /** Paso 9 (770.20.4): el técnico confirma la ubicación del tablero seccional. Sin dato = "sin confirmar". */
+  boardLocation?: { accessible?: boolean; notHidden?: boolean; frontClearM?: number };
   /** Aplicar el factor de simultaneidad de la Tabla 770.9.II a la DPMS del grado (por defecto no, como en los apuntes). */
   applySimultaneity?: boolean;
 };
@@ -553,7 +561,29 @@ export function calculateProject(input: ProjectInput, rules = DEFAULT_RULES) {
     if (parts.length > 0) assumptions.push(`${l.id === 'seccional' ? 'Seccional' : l.id}: ${parts.join(', ')} (supuesto: confirmar con la ficha del fabricante).`);
   }
 
-  return { surface, grade, minimums, demand: dem, feeder, circuits, rcd, assumptions, iccA: input.iccA ?? null, warnings };
+  // Paso 6 — Canalizaciones y conductores: caño y conductor de cada línea; el PE iguala a la fase y no baja del mínimo.
+  const conduits = [
+    { line: feeder, label: 'Seccional', conduit: rules.conduit.feeder },
+    ...circuits.map((c) => ({ line: c, label: c.id, conduit: rules.conduit.circuits })),
+  ].map(({ line, label, conduit }) => {
+    const pe = Math.max(line.sectionMm2, rules.minSection.pe);
+    if (line.sectionMm2 > 16) warnings.push(`${label}: con más de 16 mm² la sección del conductor de protección (PE) se verifica aparte (770.12.3.3.1).`);
+    return { id: label, conduit: `${rules.conduit.standard}, ${conduit}`, conductorStandard: rules.conduit.conductorStandard, phaseNeutralMm2: line.sectionMm2, peMm2: pe };
+  });
+
+  // Paso 9 — Ubicación del tablero seccional (770.20.4): lo confirma el técnico, la app no lo puede medir.
+  const loc = input.boardLocation ?? {};
+  const frontOk = loc.frontClearM === undefined ? null : loc.frontClearM >= rules.boardLocation.recommendedFrontClearM;
+  const boardChecks = [
+    { label: 'Accesible', ref: '770.20.4.1', ok: loc.accessible ?? null },
+    { label: 'No cubierto ni oculto (fuera del giro de puertas)', ref: '770.20.4.1', ok: loc.notHidden ?? null },
+    { label: `Espacio libre al frente (recomendado ${rules.boardLocation.recommendedFrontClearM} m)`, ref: '770.20.4.2', ok: frontOk },
+  ];
+  const boardOk = boardChecks.some((c) => c.ok === false) ? false : boardChecks.every((c) => c.ok === true) ? true : null;
+  if (boardOk === false) warnings.push('La ubicación del tablero seccional no cumple 770.20.4: moverlo a un lugar accesible, a la vista y con espacio libre al frente.');
+  const boardLocation = { checks: boardChecks, ok: boardOk, frontClearM: loc.frontClearM ?? null };
+
+  return { surface, grade, minimums, demand: dem, feeder, circuits, conduits, boardLocation, rcd, assumptions, iccA: input.iccA ?? null, warnings };
 }
 
 function round2(n: number) {

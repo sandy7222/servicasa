@@ -346,5 +346,10 @@
     "scope": "",
     "exclusions": "IVA, provisión e instalación del equipo de aire acondicionado, pintura y terminaciones de albañilería, y trámites ante la distribuidora.",
     "showOptions": "both"
+  },
+  "boardLocation": {
+    "accessible": true,
+    "notHidden": true,
+    "frontClearM": 0.9
   }
 }

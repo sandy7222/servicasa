@@ -289,3 +289,46 @@ describe('reglas sueltas', () => {
     expect(applicationSurface([{ name: 'A', type: 'estar', areaM2: 10 }], 2).sla).toBe(12);
   });
 });
+
+describe('Paso 6 — canalizaciones y conductores (TP N° 1)', () => {
+  const r = calculateProject(tpInput);
+  const by = (id: string) => r.conduits.find((c) => c.id === id)!;
+
+  it('circuitos en RSP 20 y seccional en RSP 25, con conductores IRAM-NM-247-3', () => {
+    expect(by('CT1').conduit).toBe('IRAM 62386-21, RSP 20');
+    expect(by('Seccional').conduit).toBe('IRAM 62386-21, RSP 25');
+    expect(by('CT2').conductorStandard).toBe('IRAM-NM-247-3');
+    expect(r.conduits).toHaveLength(4);
+  });
+  it('fase/neutro con la sección calculada y PE igual a la fase (mínimo 2,5 mm²)', () => {
+    expect([by('CT1').phaseNeutralMm2, by('CT1').peMm2]).toEqual([2.5, 2.5]); // IUG subió a 2,5 por la térmica
+    expect([by('CT2').phaseNeutralMm2, by('CT2').peMm2]).toEqual([2.5, 2.5]);
+    expect([by('Seccional').phaseNeutralMm2, by('Seccional').peMm2]).toEqual([4, 4]);
+  });
+  it('con 1,5 mm² fijo el PE no baja de 2,5 mm² (como en el TP original)', () => {
+    const fixed = calculateProject({ ...tpInput, circuits: tpInput.circuits.map((c) => (c.id === 'CT1' ? { ...c, sectionMm2: 1.5 } : c)) });
+    const ct1 = fixed.conduits.find((c) => c.id === 'CT1')!;
+    expect([ct1.phaseNeutralMm2, ct1.peMm2]).toEqual([1.5, 2.5]);
+  });
+});
+
+describe('Paso 9 — ubicación del tablero seccional (770.20.4)', () => {
+  it('sin datos queda "sin confirmar" (no verifica ni falla)', () => {
+    const b = calculateProject(tpInput).boardLocation;
+    expect(b.ok).toBeNull();
+    expect(b.checks.map((c) => c.ok)).toEqual([null, null, null]);
+  });
+  it('accesible, a la vista y con 0,90 m libres: verifica', () => {
+    const b = calculateProject({ ...tpInput, boardLocation: { accessible: true, notHidden: true, frontClearM: 0.9 } }).boardLocation;
+    expect(b.ok).toBe(true);
+    expect(b.checks[2].ref).toBe('770.20.4.2');
+  });
+  it('detrás del giro de la puerta no verifica y avisa (caso de la consigna del TP)', () => {
+    const r = calculateProject({ ...tpInput, boardLocation: { accessible: true, notHidden: false, frontClearM: 0.9 } });
+    expect(r.boardLocation.ok).toBe(false);
+    expect(r.warnings.some((w) => w.includes('770.20.4'))).toBe(true);
+  });
+  it('con menos de 0,90 m libres al frente no verifica (valor recomendado de la nota)', () => {
+    expect(calculateProject({ ...tpInput, boardLocation: { accessible: true, notHidden: true, frontClearM: 0.6 } }).boardLocation.ok).toBe(false);
+  });
+});

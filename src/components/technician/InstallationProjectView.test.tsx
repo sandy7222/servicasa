@@ -146,6 +146,18 @@ describe('InstallationProjectView', () => {
     expect(screen.getByText('PRECIO TOTAL').closest('tr')).toHaveTextContent('2.935.510,94'); // sin las 2 llaves de combinación ni la térmica de 25 A
   });
 
+  it('con el ejemplo muestra el recorrido de los 15 pasos y los pasos 6 y 9 de la memoria', () => {
+    render(<InstallationProjectView />);
+    expect(screen.getByText(/Recorrido del trabajo \(2 de 15 listos\)/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Cargar ejemplo/ }));
+    expect(screen.getByText(/Recorrido del trabajo \(14 de 15 listos\)/)).toBeInTheDocument(); // falta solo el nombre del cliente de la nota
+    expect(screen.getByText('Falta el nombre del cliente')).toBeInTheDocument();
+    expect(screen.getByText(/Paso 6 — Canalizaciones y conductores/)).toBeInTheDocument();
+    expect(screen.getAllByText('IRAM 62386-21, RSP 25').length).toBeGreaterThan(0);
+    expect(screen.getByText(/Paso 9 — Ubicación del tablero seccional/)).toBeInTheDocument();
+    expect(screen.getByText(/4\. Ubicación del tablero seccional/)).toBeInTheDocument();
+  });
+
   it('"Proponer circuitos mínimos" arma los circuitos del grado con las bocas mínimas', () => {
     render(<InstallationProjectView />);
     expect(screen.queryByText(/Memoria de cálculo/)).not.toBeInTheDocument();
