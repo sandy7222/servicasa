@@ -10,10 +10,10 @@ import type { BudgetResult } from './installationBudget';
 
 /**
  * Garantía con la redacción de los Términos (src/lib/legalTerms.ts, secciones 4 y 5). La ejecución del trabajo es
- * responsabilidad del técnico independiente; TecniUrbano respalda con sus canales de reclamo y garantía.
+ * responsabilidad del técnico independiente; la obra se cobra fuera de la plataforma (decisión 24/11: opción A), así que la garantía es del técnico.
  */
 export const QUOTE_WARRANTY_TEXT =
-  'Obra respaldada por TecniUrbano: si el trabajo no queda bien, se soluciona sin cargo dentro de los 30 días posteriores a su finalización. El reclamo se puede abrir hasta 48 horas después de finalizado el servicio, desde la cuenta del cliente en la plataforma. La ejecución del trabajo es responsabilidad del técnico independiente que lo realiza (Términos y Condiciones, secciones 4 y 5).';
+  'Garantía de obra a cargo del técnico independiente: si el trabajo no queda bien, se soluciona sin cargo dentro de los 30 días posteriores a su finalización. Esta obra se acuerda y se cobra directamente con el técnico, fuera de la plataforma, por lo que no está respaldada por los canales de reclamo ni de pago de TecniUrbano. La ejecución del trabajo es responsabilidad del técnico independiente que lo realiza.';
 
 export type QuoteNoteOption = { label: string; result: BudgetResult };
 

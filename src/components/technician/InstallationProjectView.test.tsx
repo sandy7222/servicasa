@@ -132,7 +132,7 @@ describe('InstallationProjectView', () => {
     fireEvent.click(screen.getByRole('button', { name: /Abrir nota para imprimir/ }));
     expect(open).toHaveBeenCalled();
     expect(written[0]).toContain('María Gómez');
-    expect(written[0]).toContain('respaldada');
+    expect(written[0]).toContain('fuera de la plataforma');
     expect(written[0]).toContain('<img');
     open.mockRestore();
   });

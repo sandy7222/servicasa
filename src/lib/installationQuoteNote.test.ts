@@ -20,10 +20,10 @@ describe('buildQuoteNoteHtml', () => {
     expect(html).toContain(arsMoney(result.total));
     expect(html).toMatch(/\(\d+,\d %\)/);
   });
-  it('incluye la garantía "respaldada" con la redacción de los Términos y la responsabilidad del técnico', () => {
-    expect(html).toContain('respaldada');
+  it('incluye la garantía a cargo del técnico y aclara que la obra se cobra fuera de la plataforma', () => {
+    expect(html).toContain('a cargo del técnico independiente');
     expect(html).toContain('30 días posteriores a su finalización');
-    expect(html).toContain('48 horas');
+    expect(html).toContain('fuera de la plataforma');
     expect(QUOTE_WARRANTY_TEXT).toContain('responsabilidad del técnico independiente');
   });
   it('deja líneas en blanco para lo que falta y muestra las condiciones', () => {
