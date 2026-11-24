@@ -1,6 +1,6 @@
 # Plan: módulo "Proyecto de instalación" (electricistas)
 
-> **Estado (23/11/2026):** Fases 0, 1, 2B y 2C (código) hechas; Fase 2 hecha en su primera versión. **Fase 2C hecha en código; falta que Sandy aplique la migración.** Lo próximo es la Fase 3. Después: 3 (pasar a presupuesto), 3B (presupuesto formal de obra) y 4 (prueba real).
+> **Estado (23/11/2026):** Fases 0, 1, 2B y 2C (código) hechas; Fase 2 hecha en su primera versión. **Fase 2C hecha y migración aplicada.** Lo próximo es la Fase 3. Después: 3 (pasar a presupuesto), 3B (presupuesto formal de obra) y 4 (prueba real).
 > **Fuente técnica:** la Reglamentación AEA 90364-7-770 (instalaciones eléctricas en inmuebles), de cumplimiento obligatorio, aplicada según los apuntes de clase de Sandy. La app **aplica** las reglas y cita el artículo/tabla; **no reproduce el texto del libro**. Los valores técnicos los valida Sandy (la IA no da indicaciones técnicas de electricidad).
 
 ---
@@ -148,7 +148,7 @@ Departamento en 3er piso, Constitución 1734, C.A.B.A. Memoria completa en `C:\U
 - **Terminado cuando:** los dos casos pasan, `tsc` sin errores y Sandy revisa la memoria impresa del caso 2 contra su TP.
 
 ### 🟡 Fase 2C (🤖 + 👤 migración) — Guardar en la cuenta
-- [x] Migración `supabase/migrations/20261123000000_installation_projects.sql` (+ RLS solo del dueño) — **escrita, SIN aplicar: la aplica Sandy.**
+- [x] Migración `supabase/migrations/20261124030159_installation_projects.sql` (+ RLS solo del dueño) — **escrita, SIN aplicar: la aplica Sandy.**
 - [x] Guardar/abrir/duplicar/eliminar desde la pantalla (`src/lib/installationProjectStore.ts` + panel "Mis proyectos guardados"). El borrador sigue en `localStorage`; "Guardar en mi cuenta" sube lo que haya en el dispositivo.
 - [ ] Opcional: adjuntar el plano (PDF o imagen) en un bucket privado, mismo patrón que `technician-documents`.
 
