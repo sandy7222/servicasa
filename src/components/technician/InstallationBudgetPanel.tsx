@@ -95,12 +95,16 @@ export const InstallationBudgetPanel: React.FC<Props> = ({ project, result, valu
   const results = priced.totals.map((materials) => calculateBudget({ ...common, materials }));
   const rules = { ...DEFAULT_BUDGET_RULES, ...budget.rules };
 
-  const setPrice = (list: 0 | 1, key: string, text: string) => {
+  /** Cambia un campo del precio de un ítem (precio unitario o total por rollos) y limpia la entrada si queda vacía. */
+  const setPriceField = (list: 0 | 1, key: string, field: 'unitPrice' | 'lumpTotal', text: string) => {
     const next = { ...budget.prices[list] };
-    if (text.trim() === '') delete next[key]; else next[key] = { unitPrice: num(text) };
+    const entry: PriceEntry = { ...next[key] };
+    if (text.trim() === '') delete entry[field]; else entry[field] = num(text);
+    if (entry.unitPrice === undefined && entry.lumpTotal === undefined) delete next[key]; else next[key] = entry;
     const prices: BudgetDraft['prices'] = list === 0 ? [next, budget.prices[1]] : [budget.prices[0], next];
     set({ prices });
   };
+  const setPrice = (list: 0 | 1, key: string, text: string) => setPriceField(list, key, 'unitPrice', text);
   const applyPaste = () => {
     if (pasting === null) return;
     const { prices, unmatched } = parsePastedPrices(pasted, takeoff);
@@ -207,6 +211,9 @@ export const InstallationBudgetPanel: React.FC<Props> = ({ project, result, valu
                           <React.Fragment key={i}>
                             <td className="w-28">
                               <input aria-label={`Precio de ${l.description} en ${budget.listNames[i]}`} className={input} inputMode="decimal" placeholder={l.options[i].borrowed ? String(l.options[i].unitPrice) : ''} value={budget.prices[i][l.key]?.unitPrice ?? ''} onChange={(e) => setPrice(i, l.key, e.target.value)} />
+                              {l.unit === 'm' && (
+                                <input aria-label={`Total por rollos de ${l.description} en ${budget.listNames[i]}`} title="Si la casa vende en rollos cerrados: cargá el total real de lo que hay que comprar (reemplaza cantidad × precio)" className={`${input} mt-1`} inputMode="decimal" placeholder="total por rollos" value={budget.prices[i][l.key]?.lumpTotal ?? ''} onChange={(e) => setPriceField(i, l.key, 'lumpTotal', e.target.value)} />
+                              )}
                             </td>
                             <td className="w-24 text-right">{l.options[i].missing ? <span className="text-rose-600">sin precio</span> : `${money(l.options[i].subtotal)}${l.options[i].borrowed ? '*' : ''}`}</td>
                           </React.Fragment>

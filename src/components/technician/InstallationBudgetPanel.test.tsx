@@ -59,3 +59,18 @@ describe('InstallationBudgetPanel — composición interna', () => {
     open.mockRestore();
   });
 });
+
+describe('InstallationBudgetPanel — rollo cerrado', () => {
+  it('el total por rollos reemplaza cantidad × precio y se conserva al editar el precio', () => {
+    let current = { ...EMPTY_BUDGET, prices: [{ 'cable-1.5': { unitPrice: 1000 } }, {}] as typeof EMPTY_BUDGET.prices };
+    const onChange = vi.fn((next: typeof current) => { current = next; });
+    const { rerender } = render(<InstallationBudgetPanel project={project} result={result} value={current} onChange={onChange} />);
+    fireEvent.change(screen.getByLabelText(/Total por rollos de Cable unipolar 1,5 mm² IRAM-NM 247-3 en Por precio/), { target: { value: '422148' } });
+    expect(onChange).toHaveBeenCalled();
+    expect(current.prices[0]['cable-1.5']).toEqual({ unitPrice: 1000, lumpTotal: 422148 });
+    rerender(<InstallationBudgetPanel project={project} result={result} value={current} onChange={onChange} />);
+    expect(screen.getAllByText('422.148,00').length).toBeGreaterThan(0);
+    fireEvent.change(screen.getByLabelText(/Precio de Cable unipolar 1,5 mm² IRAM-NM 247-3 en Por precio/), { target: { value: '' } });
+    expect(current.prices[0]['cable-1.5']).toEqual({ lumpTotal: 422148 }); // el rollo sigue
+  });
+});
