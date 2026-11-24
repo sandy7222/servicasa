@@ -170,7 +170,10 @@ Reproduce las secciones 10 a 14 del TP N° 1. Es **opcional** y solo para obras 
 - Tareas del caso 2 (oficial h / ayudante h): replanteo 4/2; canaletas y perforaciones 8/16; caños, cajas y accesorios 20/10; tapado 6/12; pasado de conductores 8/8; línea seccional 6/6; tablero seccional 8/4; mecanismos y plafones 10/4; puesta a tierra 4/4; ensayos y puesta en servicio 4/0.
 - Herramientas del caso 2 (valor de origen / horas): amoladora 483.644,90 / 16; rotomartillo 463.649,00 / 12; telurímetro 399.644,00 / 2; multímetro 47.564,00 / 6; pinza pelacables 17.037,00 / 10; cinta pasacable 8.019,90 / 8; buscapolo 2.740,00 / 6.
 
-### ⏳ Fase 4 (👤🤖) — Prueba con un proyecto real de Sandy y ajustes.
+### 🟡 Fase 4 (👤🤖) — Prueba con un proyecto real de Sandy y ajustes.
+- [x] 🤖 Botón **"Cargar ejemplo (TP N° 1)"** (`src/lib/installationExampleTp1.json`): departamento de 37,94 m² (grado Mínimo), Icc 3.250 A, ID 6 kA, y el presupuesto del caso 2 (cantidades del plano, precios de las dos casas, herramientas, tareas, valor hora). Da 2.935.510,94 / 3.288.985,98: **difiere de la memoria (2.938.731,50 / 3.292.870,08) solo por las 2 llaves de combinación y la térmica de 25 A de la seccional**, que el cómputo automático no incluye (se agregan a mano si se quiere igualar).
+- [ ] 👤 Sandy prueba logueado como electricista: guardar/abrir/duplicar en la cuenta, presupuesto, nota en PDF, pasar a presupuesto una orden real, celular.
+- [ ] 🤖 Ajustes según lo que encuentre Sandy.
 
 ---
 

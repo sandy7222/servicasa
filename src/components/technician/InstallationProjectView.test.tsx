@@ -137,6 +137,15 @@ describe('InstallationProjectView', () => {
     open.mockRestore();
   });
 
+  it('"Cargar ejemplo (TP N° 1)" arma el proyecto del departamento con grado Mínimo y el precio de la obra', () => {
+    render(<InstallationProjectView />);
+    fireEvent.click(screen.getByRole('button', { name: /Cargar ejemplo/ }));
+    expect(screen.getByText(/Memoria de cálculo — TP N° 1/)).toBeInTheDocument();
+    expect(screen.getAllByText(/37,94 m²/).length).toBeGreaterThan(0);
+    expect(screen.getByDisplayValue('3250')).toBeInTheDocument();
+    expect(screen.getByText('PRECIO TOTAL').closest('tr')).toHaveTextContent('2.935.510,94'); // sin las 2 llaves de combinación ni la térmica de 25 A
+  });
+
   it('"Proponer circuitos mínimos" arma los circuitos del grado con las bocas mínimas', () => {
     render(<InstallationProjectView />);
     expect(screen.queryByText(/Memoria de cálculo/)).not.toBeInTheDocument();

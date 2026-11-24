@@ -1,0 +1,350 @@
+{
+  "name": "TP N° 1 — Constitución 1734",
+  "rooms": [
+    {
+      "name": "Comedor",
+      "type": "estar",
+      "areaM2": 13.6
+    },
+    {
+      "name": "Baño",
+      "type": "bano",
+      "areaM2": 3.94
+    },
+    {
+      "name": "Cocina y lavadero",
+      "type": "cocina",
+      "areaM2": 7.225
+    },
+    {
+      "name": "Dormitorio con placard",
+      "type": "dormitorio",
+      "areaM2": 13.175
+    }
+  ],
+  "wallsM2": 0,
+  "circuits": [
+    {
+      "id": "CT1",
+      "kind": "IUG",
+      "points": 5,
+      "lengthM": 11,
+      "breakerA": 10
+    },
+    {
+      "id": "CT2",
+      "kind": "TUG",
+      "points": 11,
+      "lengthM": 12,
+      "breakerA": 16
+    },
+    {
+      "id": "CT3",
+      "kind": "ACU",
+      "points": 1,
+      "loadVa": 2600,
+      "lengthM": 11,
+      "breakerA": 16
+    }
+  ],
+  "feeder": {
+    "lengthM": 11,
+    "breakerA": 25
+  },
+  "iccA": 3250,
+  "rcd": {
+    "shortCircuitA": 6000,
+    "type": "A"
+  },
+  "budget": {
+    "qty": {
+      "cable-2.5": 278,
+      "cable-4": 36,
+      "pipe-20": 30,
+      "pipe-25": 4,
+      "conn-20": 40,
+      "conn-25": 2,
+      "coupling-20": 20,
+      "coupling-25": 3,
+      "bend-20": 30,
+      "bend-25": 2,
+      "box-oct": 5,
+      "box-rect": 18,
+      "mech-switch": 4,
+      "mech-outlet-10": 11,
+      "mech-outlet-20": 1,
+      "mech-cover": 18,
+      "luminaire": 5,
+      "itm-10-4500-C": 1,
+      "itm-16-4500-C": 2,
+      "rcd": 1,
+      "comb": 1,
+      "ground-bar": 1,
+      "ground-rod": 1,
+      "ground-cable": 6,
+      "tape": 2,
+      "ties": 1
+    },
+    "listNames": [
+      "Electro Tucumán",
+      "Electrocity"
+    ],
+    "prices": [
+      {
+        "cable-2.5": {
+          "unitPrice": 1055.99
+        },
+        "cable-4": {
+          "unitPrice": 1679.15
+        },
+        "pipe-20": {
+          "unitPrice": 2569.28
+        },
+        "pipe-25": {
+          "unitPrice": 3628.96
+        },
+        "conn-20": {
+          "unitPrice": 194.23
+        },
+        "conn-25": {
+          "unitPrice": 414.27
+        },
+        "coupling-20": {
+          "unitPrice": 144.74
+        },
+        "coupling-25": {
+          "unitPrice": 208.63
+        },
+        "bend-20": {
+          "unitPrice": 433.72
+        },
+        "bend-25": {
+          "unitPrice": 556
+        },
+        "box-oct": {
+          "unitPrice": 1112.96
+        },
+        "box-rect": {
+          "unitPrice": 464.64
+        },
+        "mech-switch": {
+          "unitPrice": 1092.86
+        },
+        "mech-outlet-10": {
+          "unitPrice": 1196.7
+        },
+        "mech-outlet-20": {
+          "unitPrice": 3993.04
+        },
+        "mech-cover": {
+          "unitPrice": 748.11
+        },
+        "itm-10-4500-C": {
+          "unitPrice": 8619.83
+        },
+        "itm-16-4500-C": {
+          "unitPrice": 8619.83
+        },
+        "rcd": {
+          "unitPrice": 36059.62
+        },
+        "ground-bar": {
+          "unitPrice": 5954.11
+        },
+        "ground-rod": {
+          "unitPrice": 21901.35
+        },
+        "ground-cable": {
+          "unitPrice": 2543.87
+        },
+        "tape": {
+          "unitPrice": 3374.89
+        },
+        "ties": {
+          "unitPrice": 9110.17
+        }
+      },
+      {
+        "conn-20": {
+          "unitPrice": 277
+        },
+        "conn-25": {
+          "unitPrice": 590
+        },
+        "coupling-20": {
+          "unitPrice": 206
+        },
+        "coupling-25": {
+          "unitPrice": 297
+        },
+        "bend-20": {
+          "unitPrice": 618
+        },
+        "bend-25": {
+          "unitPrice": 792
+        },
+        "box-oct": {
+          "unitPrice": 1585
+        },
+        "box-rect": {
+          "unitPrice": 794
+        },
+        "mech-switch": {
+          "unitPrice": 1318
+        },
+        "mech-outlet-10": {
+          "unitPrice": 1444
+        },
+        "mech-outlet-20": {
+          "unitPrice": 4817
+        },
+        "mech-cover": {
+          "unitPrice": 903
+        },
+        "luminaire": {
+          "unitPrice": 12625
+        },
+        "itm-10-4500-C": {
+          "unitPrice": 24028
+        },
+        "itm-16-4500-C": {
+          "unitPrice": 24028
+        },
+        "rcd": {
+          "unitPrice": 55595
+        },
+        "comb": {
+          "unitPrice": 80169
+        },
+        "ground-bar": {
+          "unitPrice": 10812
+        },
+        "ground-rod": {
+          "unitPrice": 29443
+        },
+        "ground-cable": {
+          "unitPrice": 3246
+        },
+        "tape": {
+          "unitPrice": 2725
+        },
+        "ties": {
+          "unitPrice": 4940
+        },
+        "cable-2.5": {
+          "lumpTotal": 422148,
+          "note": "3 rollos de 100 m"
+        },
+        "cable-4": {
+          "lumpTotal": 120418,
+          "note": "rollos 25+10+10 m"
+        }
+      }
+    ],
+    "supplies": [
+      {
+        "name": "Discos, mechas, grampas y tarugos",
+        "amount": 94710
+      }
+    ],
+    "tools": [
+      {
+        "name": "Amoladora",
+        "originValue": 483644.9,
+        "hoursOnSite": 16
+      },
+      {
+        "name": "Rotomartillo",
+        "originValue": 463649,
+        "hoursOnSite": 12
+      },
+      {
+        "name": "Telurímetro",
+        "originValue": 399644,
+        "hoursOnSite": 2
+      },
+      {
+        "name": "Multímetro",
+        "originValue": 47564,
+        "hoursOnSite": 6
+      },
+      {
+        "name": "Pinza pelacables",
+        "originValue": 17037,
+        "hoursOnSite": 10
+      },
+      {
+        "name": "Cinta pasacable",
+        "originValue": 8019.9,
+        "hoursOnSite": 8
+      },
+      {
+        "name": "Buscapolo",
+        "originValue": 2740,
+        "hoursOnSite": 6
+      }
+    ],
+    "tasks": [
+      {
+        "name": "Replanteo y marcado",
+        "officialHours": 4,
+        "helperHours": 2
+      },
+      {
+        "name": "Canaletas y perforaciones",
+        "officialHours": 8,
+        "helperHours": 16
+      },
+      {
+        "name": "Caños, cajas y accesorios",
+        "officialHours": 20,
+        "helperHours": 10
+      },
+      {
+        "name": "Tapado",
+        "officialHours": 6,
+        "helperHours": 12
+      },
+      {
+        "name": "Pasado de conductores",
+        "officialHours": 8,
+        "helperHours": 8
+      },
+      {
+        "name": "Línea seccional",
+        "officialHours": 6,
+        "helperHours": 6
+      },
+      {
+        "name": "Tablero seccional",
+        "officialHours": 8,
+        "helperHours": 4
+      },
+      {
+        "name": "Mecanismos y plafones",
+        "officialHours": 10,
+        "helperHours": 4
+      },
+      {
+        "name": "Puesta a tierra",
+        "officialHours": 4,
+        "helperHours": 4
+      },
+      {
+        "name": "Ensayos y puesta en servicio",
+        "officialHours": 4,
+        "helperHours": 0
+      }
+    ],
+    "officialRate": 7828,
+    "helperRate": 5696,
+    "visit": 60000,
+    "rules": {},
+    "clientName": "",
+    "clientDocument": "",
+    "clientAddress": "Constitución 1734, CABA",
+    "scope": "",
+    "exclusions": "IVA, provisión e instalación del equipo de aire acondicionado, pintura y terminaciones de albañilería, y trámites ante la distribuidora.",
+    "showOptions": "both"
+  }
+}

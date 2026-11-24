@@ -5,6 +5,7 @@ import { InstallationBudgetPanel, type BudgetDraft } from './InstallationBudgetP
 import { addMaterialsToDraftQuote, type QuoteItemDraft } from '../../lib/installationQuoteItems';
 import { isOrderPaymentSettled } from '../../lib/workTimer';
 import type { ServiceOrder } from '../../types';
+import exampleTp1 from '../../lib/installationExampleTp1.json';
 import { isSupabaseConfigured } from '../../lib/supabase';
 import { deleteProject, duplicateProject, listProjects, openProject, saveProject, type SavedProjectSummary } from '../../lib/installationProjectStore';
 import {
@@ -208,6 +209,12 @@ export const InstallationProjectView: React.FC = () => {
     }, 'No se pudo eliminar el proyecto.');
   };
   const newProject = () => { setDraft(EMPTY); setProjectId(null); };
+  /** Carga el TP N° 1 de ejemplo (departamento de 37,94 m², Icc 3.250 A, presupuesto del caso 2). */
+  const loadExample = () => {
+    if (draft.circuits.length > 0 && !window.confirm('Esto reemplaza el proyecto que tenés en pantalla (los guardados en tu cuenta no se tocan). ¿Seguir?')) return;
+    setDraft({ ...EMPTY, ...(exampleTp1 as unknown as Draft) });
+    setProjectId(null);
+  };
 
   useEffect(() => {
     try {
@@ -327,6 +334,7 @@ export const InstallationProjectView: React.FC = () => {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-sm font-bold">2. Circuitos y línea seccional</h2>
             <button type="button" onClick={suggestCircuits} className="inline-flex items-center gap-1 rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-bold text-white"><Sparkles className="w-3.5" />Proponer circuitos mínimos</button>
+            <button type="button" onClick={loadExample} className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-bold">Cargar ejemplo (TP N° 1)</button>
           </div>
           {draft.circuits.map((c, i) => (
             <div key={i} className="grid grid-cols-2 sm:grid-cols-[1fr_2fr_1fr_1fr_1fr_1fr_1fr_1fr_auto] gap-2 items-end rounded-lg bg-slate-50 dark:bg-slate-950 p-2">
