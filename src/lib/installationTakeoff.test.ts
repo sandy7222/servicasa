@@ -56,7 +56,7 @@ describe('computeTakeoff — proyecto del TP N° 1', () => {
 
   it('las líneas salen ordenadas por rubro y cada una explica su regla', () => {
     expect(lines[0].group).toBe('Conductores');
-    expect(lines.every((l) => l.basis.length > 0 && l.quantity > 0)).toBe(true);
+    expect(lines.every((l) => l.basis.length > 0 && (l.quantity > 0 || l.keepZero))).toBe(true);
   });
 });
 
@@ -66,5 +66,15 @@ describe('opciones', () => {
     expect(qty(lines, 'mech-switch')).toBe(6);
     expect(qty(lines, 'box-rect')).toBe(18); // el TP tenía 18
     expect(qty(lines, 'cable-2.5')).toBe(102);
+  });
+});
+
+describe('llaves de combinación', () => {
+  it('la línea aparece en 0 para que el técnico la complete, y al cargarlas suma cajas', () => {
+    const base = take();
+    expect(base.find((l) => l.key === 'mech-comb')).toMatchObject({ quantity: 0, keepZero: true });
+    const withComb = take(tp, { combinationSwitches: 2 });
+    expect(qty(withComb, 'mech-comb')).toBe(2);
+    expect(qty(withComb, 'box-rect')).toBe((qty(base, 'box-rect') as number) + 2);
   });
 });

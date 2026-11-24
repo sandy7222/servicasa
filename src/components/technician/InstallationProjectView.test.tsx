@@ -143,7 +143,7 @@ describe('InstallationProjectView', () => {
     expect(screen.getByText(/Memoria de cálculo — TP N° 1/)).toBeInTheDocument();
     expect(screen.getAllByText(/37,94 m²/).length).toBeGreaterThan(0);
     expect(screen.getByDisplayValue('3250')).toBeInTheDocument();
-    expect(screen.getByText('PRECIO TOTAL').closest('tr')).toHaveTextContent('2.935.510,94'); // sin las 2 llaves de combinación ni la térmica de 25 A
+    expect(screen.getByText('PRECIO TOTAL').closest('tr')).toHaveTextContent('2.938.731,50'); // el ejemplo reproduce la memoria del TP al centavo
   });
 
   it('con el ejemplo muestra el recorrido de los 15 pasos y los pasos 6 y 9 de la memoria', () => {

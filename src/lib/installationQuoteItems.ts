@@ -9,6 +9,13 @@ import { supabase } from './supabase';
  * cliente: el técnico revisa y envía el presupuesto como siempre.
  */
 
+/**
+ * APAGADO a propósito (24/11/2026). La plataforma dice que los materiales "no se cobran" en el presupuesto de una
+ * orden, y un ítem de material suma al total que el cliente paga por Mercado Pago (y puede cambiar la comisión).
+ * Hasta que Sandy decida cómo se tratan los materiales de una obra especial, el botón no se muestra.
+ */
+export const PASS_TO_QUOTE_ENABLED = false;
+
 export type QuoteItemDraft = {
   item_type: 'material';
   description: string;

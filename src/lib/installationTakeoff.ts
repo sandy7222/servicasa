@@ -15,6 +15,8 @@ export type TakeoffOptions = {
   pipeStripM: number;
   /** Cantidad de puntos de comando (llaves). Por defecto, uno por boca de luz. */
   switches?: number;
+  /** Llaves de combinación (una luz comandada desde dos puntos). Por defecto 0: el técnico las carga si las hay. */
+  combinationSwitches?: number;
   /** Cable de puesta a tierra (bornera a jabalina), en metros. */
   groundCableM: number;
   /** Sección del cable de puesta a tierra (mm²). */
@@ -39,6 +41,8 @@ export type TakeoffLine = {
   quantity: number;
   /** Cómo se estimó la cantidad (se muestra al técnico). */
   basis: string;
+  /** La línea se muestra aunque la cantidad sea 0 (para que el técnico la complete). */
+  keepZero?: boolean;
 };
 
 const GROUP_ORDER: TakeoffGroup[] = ['Conductores', 'Canalizaciones', 'Accesorios de canalización', 'Cajas', 'Mecanismos', 'Luminarias', 'Tablero y protecciones', 'Puesta a tierra', 'Insumos menores'];
@@ -47,7 +51,7 @@ const mm = (n: number) => String(n).replace('.', ',');
 export function computeTakeoff(input: ProjectInput, result: ProjectResult, options: Partial<TakeoffOptions> = {}): TakeoffLine[] {
   const o = { ...DEFAULT_TAKEOFF_OPTIONS, ...options };
   const lines: TakeoffLine[] = [];
-  const add = (l: TakeoffLine) => { if (l.quantity > 0) lines.push(l); };
+  const add = (l: TakeoffLine) => { if (l.quantity > 0 || l.keepZero) lines.push(l); };
   const pts = (...kinds: string[]) => input.circuits.filter((c) => kinds.includes(c.kind)).reduce((s, c) => s + c.points, 0);
 
   // Conductores: 3 por circuito (fase, neutro y tierra) × largo, agrupados por sección, + desperdicio.
@@ -72,7 +76,7 @@ export function computeTakeoff(input: ProjectInput, result: ProjectResult, optio
   const switches = o.switches ?? lightPoints;
   const outletPoints = pts('TUG', 'TUE');
   const acPoints = pts('ACU');
-  const rectBoxes = outletPoints + acPoints + switches;
+  const rectBoxes = outletPoints + acPoints + switches + (o.combinationSwitches ?? 0);
   const boxes = lightPoints + rectBoxes;
   add({ key: 'box-oct', group: 'Cajas', description: 'Caja octogonal grande plástica (bocas de luz)', unit: 'u', quantity: lightPoints, basis: 'una por boca de iluminación (IUG + IUE)' });
   add({ key: 'box-rect', group: 'Cajas', description: 'Caja rectangular 5 × 10 cm (llaves y tomas)', unit: 'u', quantity: rectBoxes, basis: 'una por toma (TUG, TUE, ACU) y por llave' });
@@ -85,6 +89,7 @@ export function computeTakeoff(input: ProjectInput, result: ProjectResult, optio
   add({ key: 'bend-25', group: 'Accesorios de canalización', description: 'Curva, 25 mm', unit: 'u', quantity: 2, basis: '2 en la seccional' });
 
   add({ key: 'mech-switch', group: 'Mecanismos', description: 'Módulo interruptor de un punto', unit: 'u', quantity: switches, basis: 'un punto de comando por boca de luz (editable)' });
+  add({ key: 'mech-comb', group: 'Mecanismos', description: 'Módulo interruptor de combinación', unit: 'u', quantity: o.combinationSwitches ?? 0, basis: 'luz comandada desde dos puntos: cargá cuántas hay (entre ambas van 3 conductores)', keepZero: true });
   add({ key: 'mech-outlet-10', group: 'Mecanismos', description: 'Módulo tomacorriente 2P+T 10 A', unit: 'u', quantity: outletPoints, basis: 'una por boca TUG/TUE' });
   add({ key: 'mech-outlet-20', group: 'Mecanismos', description: 'Módulo tomacorriente 2P+T 20 A (carga única)', unit: 'u', quantity: acPoints, basis: 'una por boca de carga única (ACU)' });
   add({ key: 'mech-cover', group: 'Mecanismos', description: 'Tapa con bastidor', unit: 'u', quantity: rectBoxes, basis: 'una por caja rectangular' });

@@ -83,7 +83,9 @@
       "ground-rod": 1,
       "ground-cable": 6,
       "tape": 2,
-      "ties": 1
+      "ties": 1,
+      "mech-comb": 2,
+      "itm-25-4500-C": 0
     },
     "listNames": [
       "Electro Tucumán",
@@ -162,6 +164,9 @@
         },
         "ties": {
           "unitPrice": 9110.17
+        },
+        "mech-comb": {
+          "unitPrice": 1330.81
         }
       },
       {
@@ -238,6 +243,9 @@
         "cable-4": {
           "lumpTotal": 120418,
           "note": "rollos 25+10+10 m"
+        },
+        "mech-comb": {
+          "unitPrice": 1605
         }
       }
     ],

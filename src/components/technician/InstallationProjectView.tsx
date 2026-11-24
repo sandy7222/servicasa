@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, ArrowLeft, Calculator, CheckCircle2, Copy, FileUp, FolderOpen, Plus, Printer, Save, Sparkles, Trash2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { EMPTY_BUDGET, InstallationBudgetPanel, type BudgetDraft } from './InstallationBudgetPanel';
-import { addMaterialsToDraftQuote, type QuoteItemDraft } from '../../lib/installationQuoteItems';
+import { addMaterialsToDraftQuote, PASS_TO_QUOTE_ENABLED, type QuoteItemDraft } from '../../lib/installationQuoteItems';
 import { isOrderPaymentSettled } from '../../lib/workTimer';
 import type { ServiceOrder } from '../../types';
 import exampleTp1 from '../../lib/installationExampleTp1.json';
@@ -595,7 +595,7 @@ export const InstallationProjectView: React.FC = () => {
             result={result}
             value={draft.budget}
             quoteOrders={quoteOrders.map((o) => ({ id: o.id, title: o.title, clientName: o.clientName }))}
-            onPassToQuote={cloud ? passToQuote : undefined}
+            onPassToQuote={cloud && PASS_TO_QUOTE_ENABLED ? passToQuote : undefined}
             technician={technician ? { name: technician.name, phone: technician.phone, email: technician.email } : undefined}
             onChange={(budget) => setDraft((d) => ({ ...d, budget }))}
           />
