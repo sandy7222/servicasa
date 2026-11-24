@@ -129,6 +129,7 @@ describe('ayuda del proyecto de instalación', () => {
     expect(screen.getByText(/Se recomienda 0,90 m/)).toBeTruthy();
     fireEvent.click(screen.getByText('Otro tema'));
     expect(screen.getByText('Sección 3 — Cortocircuito (Icc)')).toBeTruthy();
+    expect(screen.getByText('¿No encontrás tu duda?')).toBeTruthy();
   });
 
   it('el modo de ayuda no se muestra si no corresponde, aunque se pida', () => {

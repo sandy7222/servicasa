@@ -71,6 +71,36 @@ export const INSTALLATION_HELP_TOPICS: InstallationHelpTopic[] = [
     ],
   },
   {
+    id: 'protecciones',
+    title: 'Protecciones: poder de corte, curva, limitación e I²t',
+    steps: [
+      'Esas cuatro casillas de cada circuito (poder de corte, clase de limitación, curva e I²t del fabricante) vienen en "auto". Dejalas así si no tenés la ficha de la térmica: la app usa valores de las tablas de la norma.',
+      'Si ya elegiste una térmica concreta, completalas con los datos de su ficha técnica: la verificación del cortocircuito y de la exigencia térmica queda con tu equipo y no con valores supuestos.',
+      'Si una protección muestra que no alcanza (⚠ en el paso 5 u 8), subí el poder de corte de esa térmica o revisá la Icc cargada.',
+    ],
+  },
+  {
+    id: 'guardar',
+    title: 'Guardar, abrir, duplicar y adjuntar el plano',
+    steps: [
+      'Lo que cargás queda en este dispositivo solamente. Para no perderlo ni cambiar de celular o computadora, tocá "Guardar en mi cuenta".',
+      'En "Mis proyectos guardados" podés abrir, duplicar (útil para armar una variante) o borrar un proyecto.',
+      'El plano (PDF, JPG o PNG, hasta 10 MB) se adjunta una vez que el proyecto está guardado en tu cuenta.',
+      '"Nuevo" empieza un proyecto en blanco: guardá antes el que estés haciendo.',
+    ],
+  },
+  {
+    id: 'avisos',
+    title: 'Me aparece un aviso o un ⚠, ¿qué hago?',
+    steps: [
+      'Un aviso no significa que el proyecto esté mal: dice qué falta o qué no cumple todavía.',
+      '"Faltan bocas…" o "El grado pide al menos…": agregá circuitos o bocas hasta llegar al mínimo (sección 2).',
+      '"Falta cargar la Icc" o "sin dato": cargá la Icc en la sección 3.',
+      '"Sin confirmar" en la ubicación del tablero: completá la sección 4.',
+      'Si una protección o la caída de tensión no cumple, la memoria lo indica en rojo: probá con una sección mayor o un largo menor, o revisá el dato cargado.',
+    ],
+  },
+  {
     id: 'presupuesto',
     title: 'El presupuesto (pasos 11 a 15)',
     steps: [

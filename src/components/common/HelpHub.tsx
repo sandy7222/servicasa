@@ -192,6 +192,10 @@ function ProjectHelp() {
           <button key={t.id} type="button" data-avoid-mascot onClick={() => setOpenId(t.id)} className={`${optionClass} text-xs font-semibold text-slate-800 dark:text-slate-200`}>{t.title}</button>
         ))}
       </div>
+      <div data-avoid-mascot className="pt-1 space-y-1.5">
+        <p className="text-[11px] text-slate-500 dark:text-slate-400">¿No encontrás tu duda?</p>
+        <WhatsAppButton />
+      </div>
     </div>
   );
 }
