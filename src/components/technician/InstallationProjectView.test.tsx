@@ -143,7 +143,7 @@ describe('InstallationProjectView', () => {
     expect(screen.getByText(/Memoria de cálculo — TP N° 1/)).toBeInTheDocument();
     expect(screen.getAllByText(/37,94 m²/).length).toBeGreaterThan(0);
     expect(screen.getByDisplayValue('3250')).toBeInTheDocument();
-    expect(screen.getByText('PRECIO TOTAL').closest('tr')).toHaveTextContent('2.949.161,49'); // el ejemplo reproduce la memoria del TP al centavo
+    expect(screen.getByText('PRECIO TOTAL').closest('tr')).toHaveTextContent('2.942.883,63'); // el ejemplo reproduce la memoria del TP al centavo
   });
 
   it('con el ejemplo muestra el recorrido de los 15 pasos y los pasos 6 y 9 de la memoria', () => {

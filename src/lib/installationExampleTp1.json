@@ -157,7 +157,7 @@
           "unitPrice": 21901.35
         },
         "ground-cable": {
-          "unitPrice": 2543.87
+          "unitPrice": 1679.15
         },
         "tape": {
           "unitPrice": 3374.89
@@ -231,7 +231,7 @@
           "unitPrice": 29443
         },
         "ground-cable": {
-          "unitPrice": 3246
+          "lumpTotal": 27368
         },
         "tape": {
           "unitPrice": 2725

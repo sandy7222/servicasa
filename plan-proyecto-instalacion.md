@@ -213,3 +213,6 @@ La cabecita del asistente (HelpHub) suma la opción "Ayuda con el proyecto de in
 
 ### 24/11/2026 (noche) — se suma la térmica de 25 A de la seccional (corrección del profe)
 El ejemplo del TP N° 1 agrega 1 térmica 2P 25 A 4,5 kA (Electro Tucumán Conextube TM225CONC45 $8.619,83; Electrocity ABB $24.028). Materiales: ET $796.246,56 / EC $1.104.331,24. **Nuevos totales (sin IVA): ET $2.949.161,49 / EC $3.321.943,95; anticipos $512.065,27 (17,4 %) / $666.107,61 (20,1 %); saldos $2.437.096,22 / $2.655.836,34.** Reemplazan a los de 2.938.731,50 / 3.292.870,08 de la memoria anterior.
+
+### 24/11/2026 (noche) — cable de puesta a tierra: 4 mm², no 6
+La Guía AEA 90364-7-770 (770.14.4.4 y Tabla 770.14.I) fija el cable de PAT igual al conductor de protección y nunca menor a 4 mm²; el 6 mm² era un valor supuesto sin respaldo. El cómputo usa 4 mm² verde/amarillo (ET $1.679,15/m; EC rollo cerrado de 10 m = $27.368). **Totales nuevos (con la térmica de 25 A todavía incluida, decisión pendiente): ET $2.942.883,63 / EC $3.331.493,28; anticipos $509.471,11 (17,3 %) / $670.053,61 (20,1 %); saldos $2.433.412,52 / $2.661.439,67.**

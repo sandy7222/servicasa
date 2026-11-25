@@ -12,7 +12,7 @@ const rows: Array<[string, number, number | null, number | null]> = [
   ['mech-switch', 4, 1092.86, 1318], ['mech-comb', 2, 1330.81, 1605], ['mech-outlet-10', 11, 1196.7, 1444], ['mech-outlet-20', 1, 3993.04, 4817], ['mech-cover', 18, 748.11, 903],
   ['luminaire', 5, null, 12625],
   ['itm-10', 1, 8619.83, 24028], ['itm-16', 2, 8619.83, 24028], ['itm-25', 1, 8619.83, 24028], ['rcd', 1, 36059.62, 55595], ['comb', 1, null, 80169],
-  ['ground-bar', 1, 5954.11, 10812], ['ground-rod', 1, 21901.35, 29443], ['ground-cable', 6, 2543.87, 3246],
+  ['ground-bar', 1, 5954.11, 10812], ['ground-rod', 1, 21901.35, 29443], ['ground-cable', 6, 1679.15, null],
   ['tape', 2, 3374.89, 2725], ['ties', 1, 9110.17, 4940],
 ];
 const lines = rows.map(([key, quantity]) => ({ key, description: key, unit: 'u', quantity }));
@@ -24,16 +24,16 @@ const list = (name: string, col: 2 | 3, lump: Record<string, number> = {}): Pric
 });
 // La casa 2 vende cable por rollo cerrado: subtotales reales de lo que hay que comprar.
 const house1 = list('Por precio', 2);
-const house2 = list('Por calidad', 3, { 'cable-2.5': 422148, 'cable-4': 120418 });
+const house2 = list('Por calidad', 3, { 'cable-2.5': 422148, 'cable-4': 120418, 'ground-cable': 27368 });
 
 describe('priceMaterials — caso 2 del TP N° 1', () => {
   const result = priceMaterials(lines, [house1, house2]);
 
-  it('opción 1 (por precio): 796.246,56', () => {
-    expect(result.totals[0]).toBe(796246.56);
+  it('opción 1 (por precio): 791.058,24', () => {
+    expect(result.totals[0]).toBe(791058.24);
   });
-  it('opción 2 (por calidad, cables por rollo cerrado): 1.104.331,24', () => {
-    expect(result.totals[1]).toBe(1104331.24);
+  it('opción 2 (por calidad, cables por rollo cerrado): 1.112.223,24', () => {
+    expect(result.totals[1]).toBe(1112223.24);
   });
   it('lo que una casa no tiene se toma de la otra y se marca (asterisco)', () => {
     const lum = result.lines.find((l) => l.key === 'luminaire')!;

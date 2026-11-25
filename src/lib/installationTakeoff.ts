@@ -27,7 +27,8 @@ export const DEFAULT_TAKEOFF_OPTIONS: TakeoffOptions = {
   wasteRate: 0.1,
   pipeStripM: 3,
   groundCableM: 6,
-  groundCableMm2: 6,
+  /** Sección del cable de puesta a tierra: igual al PE y nunca menor a 4 mm² (AEA 90364-7-770, 770.14.4.4 y Tabla 770.14.I). */
+  groundCableMm2: 4,
 };
 
 export type TakeoffGroup = 'Conductores' | 'Canalizaciones' | 'Accesorios de canalización' | 'Cajas' | 'Mecanismos' | 'Luminarias' | 'Tablero y protecciones' | 'Puesta a tierra' | 'Insumos menores';
