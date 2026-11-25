@@ -85,7 +85,7 @@
       "tape": 2,
       "ties": 1,
       "mech-comb": 2,
-      "itm-25-4500-C": 1
+      "itm-25-4500-C": 0
     },
     "listNames": [
       "Electro Tucumán",
@@ -167,9 +167,6 @@
         },
         "mech-comb": {
           "unitPrice": 1330.81
-        },
-        "itm-25-4500-C": {
-          "unitPrice": 8619.83
         }
       },
       {
@@ -249,9 +246,6 @@
         },
         "mech-comb": {
           "unitPrice": 1605
-        },
-        "itm-25-4500-C": {
-          "unitPrice": 24028
         }
       }
     ],
