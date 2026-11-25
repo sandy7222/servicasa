@@ -62,3 +62,15 @@ Hoy los avisos de la app (campanita y contador de mensajes) se consultan cada 30
 |---|---|---|
 | 28/10/2026 | Se confirma que la app no tiene push (solo campanita con consulta cada 30 s). Sandy elige PWA + Web Push. Se escribe este plan. | (este commit) |
 | 28/10/2026 | Fase 0 hecha (VAPID, `web-push`, variables en Vercel). Código de las Fases 1 y 2 hecho y con tests (service worker, `push.ts`, botón en Ajustes, envío `webPush.ts`, rutas `pushRoute.ts`). Migraciones escritas, **sin aplicar**: el conector de Supabase de Claude ve solo `CapitanYA-MASTER` (otra cuenta), no ServiCasa; hay que correrlas en el editor SQL de Supabase. **No desplegar el código antes de aplicarlas.** | (este commit) |
+| 25/11/2026 | **Política de avisos:** al celular solo llegan los momentos importantes (lista en `api/_lib/pushPolicy.ts`; el resto queda en la campanita; lo que ya sale por Telegram no se duplica). **Migración `20261125032206_push_process_events.sql` aplicada** (cinco avisos nuevos: técnico llegó, trabajo terminó, técnico aceptó/rechazó, cliente pagó; probados con rollback, uno cada uno). | (este commit) |
+
+## Prueba real con el celular (Fase 1/2 — definición de terminado)
+
+**Quién:** Sandy, con su celular Android (o iPhone con la app instalada desde Safari, iOS 16.4+).
+1. Abrir https://tecniurbano.online en el celular, entrar con una cuenta (técnico o cliente) y recargar para tener la última versión.
+2. Ir a **Ajustes → Avisos en el celular → Activar avisos** y aceptar el permiso. Tiene que decir "✅ Los avisos están activados".
+3. Cerrar la app y bloquear el celular.
+4. Pedirle a Claude que mande un **aviso de prueba** a esa cuenta (se inserta una notificación en la base y el celular debe sonar). Tocar el aviso: debe abrir la app en la pantalla correcta.
+5. Probar un evento real: asignar una orden a ese técnico, o avanzar una orden de prueba (en camino, llegó, terminó).
+- **Si no suena:** revisar que el permiso no esté bloqueado, que la app esté instalada (iPhone) y que `select count(*) from push_subscriptions` sea mayor que 0.
+- Hoy `push_subscriptions` tiene **0 filas**: nadie activó los avisos todavía.

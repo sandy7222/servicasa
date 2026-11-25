@@ -38,6 +38,7 @@ import { sendPushForNotification } from './webPush';
 const notification = (over: Record<string, unknown> = {}) => ({
   id: NID,
   recipient_profile_id: 'tech-1',
+  type: 'order_assigned',
   title: 'Nueva visita asignada',
   body: 'Instalación de tomacorrientes — Quilmes',
   entity_type: 'order',
@@ -120,5 +121,12 @@ describe('sendPushForNotification', () => {
     const payload = JSON.parse(m.send.mock.calls[0][1]);
     expect(payload.title.length).toBe(80);
     expect(payload.body.length).toBe(160);
+  });
+
+  it('no manda push de avisos que no son momentos importantes (quedan solo en la campanita)', async () => {
+    m.notification = notification({ type: 'payment_pending', priority: 'normal' });
+    const result = await sendPushForNotification(NID);
+    expect(result).toEqual({ sent: 0, removed: 0 });
+    expect(m.send).not.toHaveBeenCalled();
   });
 });

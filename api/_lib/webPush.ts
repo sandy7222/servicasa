@@ -1,10 +1,12 @@
 import webpush from 'web-push';
 import { supabaseAdmin } from './supabaseAdmin.js';
 import { pushUrlFor, type PushRole } from './pushRoute.js';
+import { shouldPush } from './pushPolicy.js';
 
 type NotificationRow = {
   id: string;
   recipient_profile_id: string;
+  type: string | null;
   title: string;
   body: string | null;
   entity_type: string | null;
@@ -45,11 +47,13 @@ export async function sendPushForNotification(notificationId: string): Promise<{
 
   const { data: notification } = await supabaseAdmin
     .from('notifications')
-    .select('id, recipient_profile_id, title, body, entity_type, entity_id, priority')
+    .select('id, recipient_profile_id, type, title, body, entity_type, entity_id, priority')
     .eq('id', notificationId)
     .maybeSingle();
   const n = notification as NotificationRow | null;
   if (!n) return result;
+  // Solo los momentos importantes de cada proceso llegan al celular (ver pushPolicy.ts).
+  if (!shouldPush(n.type)) return result;
 
   const { data: subs } = await supabaseAdmin
     .from('push_subscriptions')

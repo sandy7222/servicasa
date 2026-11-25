@@ -61,7 +61,7 @@ export const PushOptIn: React.FC = () => {
 
       {support === 'supported' && permission !== 'denied' && !subscribed && (
         <>
-          <p className="text-xs text-slate-600 dark:text-slate-300">Te avisamos al celular cuando te asignan un trabajo, te escribe alguien o cambia el estado de un pedido.</p>
+          <p className="text-xs text-slate-600 dark:text-slate-300">Te avisamos al celular solo en los momentos importantes: nuevos trabajos, presupuestos, pagos, mensajes y cuando el técnico sale, llega o termina.</p>
           <button type="button" disabled={busy} onClick={() => void run(enablePush, 'Avisos activados.')} className={`${BTN} bg-teal-600 text-white hover:bg-teal-700`}>
             {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Bell className="w-3.5 h-3.5" />} Activar avisos
           </button>
