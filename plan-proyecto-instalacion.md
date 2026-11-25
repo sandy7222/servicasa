@@ -210,3 +210,6 @@ Sandy eligió la **opción A**: la obra especial (materiales + mano de obra de p
 
 ### 24/11/2026 — Ayuda guiada del proyecto
 La cabecita del asistente (HelpHub) suma la opción "Ayuda con el proyecto de instalación" con 7 temas (inicio, las 4 secciones, memoria, presupuesto). Solo se ofrece a técnico electricista o admin y solo en /technician/proyecto-instalacion; el cliente no la ve. Textos fijos en src/lib/installationHelp.ts (sin IA, sin costo).
+
+### 24/11/2026 (noche) — se suma la térmica de 25 A de la seccional (corrección del profe)
+El ejemplo del TP N° 1 agrega 1 térmica 2P 25 A 4,5 kA (Electro Tucumán Conextube TM225CONC45 $8.619,83; Electrocity ABB $24.028). Materiales: ET $796.246,56 / EC $1.104.331,24. **Nuevos totales (sin IVA): ET $2.949.161,49 / EC $3.321.943,95; anticipos $512.065,27 (17,4 %) / $666.107,61 (20,1 %); saldos $2.437.096,22 / $2.655.836,34.** Reemplazan a los de 2.938.731,50 / 3.292.870,08 de la memoria anterior.

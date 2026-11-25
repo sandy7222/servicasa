@@ -16,7 +16,7 @@ const rows: Array<[string, number, number | null, number | null]> = [
   ['box-oct', 5, 1112.96, 1585], ['box-rect', 18, 464.64, 794],
   ['mech-switch', 4, 1092.86, 1318], ['mech-comb', 2, 1330.81, 1605], ['mech-outlet-10', 11, 1196.7, 1444], ['mech-outlet-20', 1, 3993.04, 4817], ['mech-cover', 18, 748.11, 903],
   ['luminaire', 5, null, 12625],
-  ['itm-10', 1, 8619.83, 24028], ['itm-16', 2, 8619.83, 24028], ['rcd', 1, 36059.62, 55595], ['comb', 1, null, 80169],
+  ['itm-10', 1, 8619.83, 24028], ['itm-16', 2, 8619.83, 24028], ['itm-25', 1, 8619.83, 24028], ['rcd', 1, 36059.62, 55595], ['comb', 1, null, 80169],
   ['ground-bar', 1, 5954.11, 10812], ['ground-rod', 1, 21901.35, 29443], ['ground-cable', 6, 2543.87, 3246],
   ['tape', 2, 3374.89, 2725], ['ties', 1, 9110.17, 4940],
 ];
@@ -64,22 +64,22 @@ describe('Caso 2 del TP N° 1, de punta a punta', () => {
   const opt1 = calculateBudget({ ...common, materials: materials.totals[0] });
   const opt2 = calculateBudget({ ...common, materials: materials.totals[1] });
 
-  it('opción 1: total 2.938.731,50, anticipo 507.755,35 y saldo 2.430.976,15', () => {
-    expect(opt1.total).toBe(2938731.5);
-    expect(opt1.advance).toBe(507755.35);
-    expect(opt1.balance).toBe(2430976.15);
+  it('opción 1: total 2.949.161,49, anticipo 512.065,27 y saldo 2.437.096,22', () => {
+    expect(opt1.total).toBe(2949161.49);
+    expect(opt1.advance).toBe(512065.27);
+    expect(opt1.balance).toBe(2437096.22);
   });
-  it('opción 2: total 3.292.870,08 y anticipo 654.093,61', () => {
-    expect(opt2.total).toBe(3292870.08);
-    expect(opt2.advance).toBe(654093.61);
+  it('opción 2: total 3.321.943,95 y anticipo 666.107,61', () => {
+    expect(opt2.total).toBe(3321943.95);
+    expect(opt2.advance).toBe(666107.61);
   });
   it('la nota para el cliente muestra los mismos totales y el plazo de 10 días', () => {
     const html = buildQuoteNoteHtml({
       logoUrl: 'logo.png', date: '24/11/2026', projectName: 'Constitución 1734', technician: { name: 'Prestador' }, client: {},
       scope: ['Instalación eléctrica'], exclusions: 'IVA', options: [{ label: 'Opción 1', result: opt1 }, { label: 'Opción 2', result: opt2 }],
     });
-    expect(html).toContain(arsMoney(2938731.5));
-    expect(html).toContain(arsMoney(3292870.08));
+    expect(html).toContain(arsMoney(2949161.49));
+    expect(html).toContain(arsMoney(3321943.95));
     expect(html).toContain('10 día(s) hábil(es)');
   });
 });
