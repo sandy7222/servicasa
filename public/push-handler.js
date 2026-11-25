@@ -18,7 +18,9 @@ self.addEventListener('push', (event) => {
     self.registration.showNotification(title, {
       body: data.body || '',
       icon: '/icons/icon-192.png',
-      badge: '/icons/icon-192.png',
+      // Android pinta el badge (icono chico de la barra) con la forma del dibujo: tiene que ser
+      // blanco sobre fondo transparente; con un cuadrado de color se ve un cuadrado blanco.
+      badge: '/icons/badge-96.png',
       tag: tag,
       renotify: true,
       silent: false,
