@@ -44,7 +44,7 @@ select t.id,
                    from public.technician_specialties ts
                    join public.categories c on c.id = ts.category_id
                   where ts.technician_id = t.id), t.specialty) as specialty,
-       t.rating,
+       t.rating::numeric(3,2) as rating,
        t.completed_orders_count,
        t.public_avatar_path,
        t.bio,

@@ -35,11 +35,12 @@ Hallazgo 25/11: la política `technicians_select_scoped` deja que el cliente de 
 del técnico asignado, con `phone`, `work_phone` y `email`. La app no los muestra, pero cualquiera con su sesión
 puede pedirlos a la base.
 
-- [ ] 0.1 Ver qué pantallas leen esas columnas (admin, el propio técnico, el cliente) antes de tocar nada.
-- [ ] 0.2 Migración: el cliente solo ve los datos públicos del técnico (nombre, foto, especialidad, calificación),
+- [x] 0.1 Ver qué pantallas leen esas columnas (admin, el propio técnico, el cliente) antes de tocar nada.
+- [x] 0.2 Migración: el cliente solo ve los datos públicos del técnico (nombre, foto, especialidad, calificación),
       por una vista o función segura; teléfono y correo solo para el propio técnico y el admin.
-- [ ] 0.3 La nota PDF de la herramienta deja de imprimir teléfono y correo: "Contacto por la app TecniUrbano".
-- [ ] 0.4 Tests + probar como cliente que la consulta directa ya no devuelve el teléfono.
+- [x] 0.3 La nota PDF de la herramienta deja de imprimir teléfono y correo: "Contacto por la app TecniUrbano".
+- [x] 0.4 Tests + probar como cliente que la consulta directa ya no devuelve el teléfono.
+- [ ] 0.5 Sandy: entrar como cliente con una orden y comprobar que se sigue viendo bien la ficha pública de su técnico.
 
 ## Fase 1 — Presupuesto de obra en la base
 
@@ -86,3 +87,4 @@ puede pedirlos a la base.
 | Fecha | Qué |
 |---|---|
 | 25/11/2026 | Plan escrito con las decisiones de Sandy. Hallazgo de la fuga de teléfono/correo del técnico (Fase 0). |
+| 26/11/2026 | Fase 0 aplicada (migración `20261126035805_hide_technician_private_data`). La fuga incluía también DNI, CUIT, domicilio y zona de trabajo. Verificado en la base real: el cliente lee 0 fichas completas y sigue viendo los datos públicos de sus técnicos. |
