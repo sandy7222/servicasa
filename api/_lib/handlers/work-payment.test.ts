@@ -152,6 +152,14 @@ describe('GET /api/payments/work (¿se cobra repartido?)', () => {
     expect(res.statusCode).toBe(403);
   });
 
+  it('un presupuesto de obra no se cobra por este camino (se cobraría todo junto)', async () => {
+    m.tables.order_quotes[0].quote_kind = 'obra';
+    const res = await call('POST', { body: validBody });
+    expect(res.statusCode).toBe(409);
+    expect(m.fetch).not.toHaveBeenCalled();
+    expect(m.tables.payment_transactions).toHaveLength(0);
+  });
+
   it('sin sesión responde 401', async () => {
     m.caller.mockResolvedValue(null);
     const res = await call('GET', { query: { orderId: 'order-1', quoteId: 'quote-1' } });

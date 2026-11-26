@@ -52,11 +52,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!quoteId) return res.status(400).json({ error: 'Falta el presupuesto a pagar.' });
     const { data: quote, error: quoteError } = await supabaseAdmin
       .from('order_quotes')
-      .select('id, order_id, status, remaining_amount')
+      .select('id, order_id, status, remaining_amount, quote_kind')
       .eq('id', quoteId)
       .maybeSingle();
     if (quoteError || !quote || quote.order_id !== orderId) {
       return res.status(404).json({ error: 'Presupuesto no encontrado.' });
+    }
+    // La obra se cobra en dos partes (anticipo y saldo): hasta que exista ese cobro, no pasa por acá
+    // porque se cobraría todo junto (plan-presupuesto-de-obra.md, Fase 3).
+    if (quote.quote_kind === 'obra') {
+      return res.status(409).json({ error: 'El presupuesto de obra todavía no se puede pagar desde la app.' });
     }
     if (quote.status !== 'sent') {
       return res.status(409).json({ error: 'Este presupuesto no está disponible para pago.' });

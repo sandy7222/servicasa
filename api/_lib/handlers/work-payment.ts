@@ -63,10 +63,12 @@ async function checkEligibility(caller: Caller, orderId: string, quoteId: string
 
   const { data: quote, error: quoteError } = await supabaseAdmin
     .from('order_quotes')
-    .select('id, order_id, status, remaining_amount, valid_until')
+    .select('id, order_id, status, remaining_amount, valid_until, quote_kind')
     .eq('id', quoteId)
     .maybeSingle();
   if (quoteError || !quote || quote.order_id !== orderId) return { kind: 'error', status: 404, error: 'Presupuesto no encontrado.' };
+  // La obra va en dos partes: no se cobra todo junto por este camino (plan-presupuesto-de-obra.md, Fase 3).
+  if (quote.quote_kind === 'obra') return { kind: 'error', status: 409, error: 'El presupuesto de obra todavía no se puede pagar desde la app.' };
   if (quote.status !== 'sent') return { kind: 'error', status: 409, error: 'Este presupuesto no está disponible para pago.' };
   if (quote.valid_until && new Date(quote.valid_until as string).getTime() < Date.now()) {
     return { kind: 'error', status: 409, error: 'El presupuesto venció. Pedí una nueva versión al técnico.' };

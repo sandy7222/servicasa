@@ -44,12 +44,22 @@ puede pedirlos a la base.
 
 ## Fase 1 — Presupuesto de obra en la base
 
-- [ ] 1.1 Marcar el tipo de presupuesto: `order_quotes.quote_kind` ('standard' | 'obra').
-- [ ] 1.2 Columnas de la obra: `advance_amount` (anticipo), `commission_base` (= mano de obra), y el detalle
-      de la herramienta guardado como foto fija (lo que vio el cliente no puede cambiar después de enviado).
-- [ ] 1.3 Para `quote_kind = 'obra'` el trigger acepta ítems de mano de obra libres (vienen de la herramienta).
-      Para el presupuesto común no cambia nada.
-- [ ] 1.4 Solo el técnico asignado a la orden puede crear o enviar el presupuesto de obra (RLS + chequeo en la función).
+- [x] 1.1 `order_quotes.quote_kind` ('standard' | 'obra').
+- [x] 1.2 `advance_amount`, `commission_base` (= mano de obra con cargas) y `obra_detail` (foto fija). Montos:
+  `total_amount` = obra completa; `visit_deposit_credit` = visita ya pagada (no se cobra dos veces);
+  `remaining_amount` = todo lo que paga el cliente en la app; anticipo = `advance_amount`; saldo = `remaining_amount - advance_amount`.
+- [x] 1.3 (cambió el diseño) La obra **no usa ítems**: se crea con `create_obra_quote()`, que calcula los montos en la base.
+  Nadie puede escribirla a mano; el cliente solo puede rechazarla.
+- [x] 1.4 Solo el técnico asignado, con la visita ya pagada y sin otro presupuesto en curso. Queda en **borrador**:
+  el envío al cliente llega en la Fase 2. El servidor de pagos rechaza cobrar una obra hasta la Fase 3.
+
+Notas para las fases 2 y 3:
+- La herramienta debe cargar como "visita" el monto que el cliente pagó en la plataforma, y usar 50 % de anticipo
+  de materiales (la base usa ese 50 % fijo).
+- `QuoteBuilder` (técnico) y `QuoteViewer` (cliente) todavía no distinguen la obra: adaptarlos antes de permitir el envío.
+- **Pregunta abierta para Sandy:** ¿la comisión del 17 % va solo sobre la mano de obra con cargas, o también sobre
+  gastos generales y beneficio? Con el ejemplo del TP: $251.562,60 contra $338.081,90 aprox. Hoy `commission_base`
+  guarda solo la mano de obra con cargas.
 
 ## Fase 2 — Enviar desde la herramienta y verlo como cliente
 
@@ -88,3 +98,4 @@ puede pedirlos a la base.
 |---|---|
 | 25/11/2026 | Plan escrito con las decisiones de Sandy. Hallazgo de la fuga de teléfono/correo del técnico (Fase 0). |
 | 26/11/2026 | Fase 0 aplicada (migración `20261126035805_hide_technician_private_data`). La fuga incluía también DNI, CUIT, domicilio y zona de trabajo. Verificado en la base real: el cliente lee 0 fichas completas y sigue viendo los datos públicos de sus técnicos. |
+| 26/11/2026 | Fase 1 aplicada (migración `20261126040158_obra_quotes`), ensayada antes en una transacción deshecha: 21 pruebas, montos iguales al TP. También se cerró la ejecución manual de las funciones `notify_*` (`20261126035902`). |
