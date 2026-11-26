@@ -32,6 +32,7 @@ export const TechnicianConversationsView: React.FC = () => {
         <ConversationsPanel
           title="Mis conversaciones"
           emptyLabel="No tenés conversaciones todavía."
+          mascot
           onOpen={(id) => (window.location.hash = `#/technician/conversaciones/${id}`)}
         />
       </div>

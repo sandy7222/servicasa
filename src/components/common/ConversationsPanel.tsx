@@ -1,3 +1,4 @@
+import { MascotEmptyState } from '../brand/MascotEmptyState';
 import { useEffect, useState } from 'react';
 import { MessageCircle } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
@@ -18,11 +19,14 @@ export function ConversationsPanel({
   title = 'Conversaciones',
   emptyLabel = 'No hay conversaciones todavía.',
   hideWhenEmpty = false,
+  mascot = false,
 }: {
   onOpen: (conversationId: string) => void;
   title?: string;
   emptyLabel?: string;
   hideWhenEmpty?: boolean;
+  /** Solo cuando el panel es la pantalla entera: muestra el muñequito si no hay conversaciones. */
+  mascot?: boolean;
 }) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,7 +52,9 @@ export function ConversationsPanel({
         <MessageCircle className="w-4 h-4 text-teal-600" />
         {title}
       </div>
-      {conversations.length === 0 ? (
+      {conversations.length === 0 && mascot ? (
+        <MascotEmptyState title={emptyLabel} />
+      ) : conversations.length === 0 ? (
         <p className="text-xs text-slate-500 dark:text-slate-400">{emptyLabel}</p>
       ) : (
         <div className="divide-y divide-slate-100">

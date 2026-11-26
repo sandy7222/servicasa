@@ -1,3 +1,4 @@
+import { Mascot, MascotEmptyState } from '../components/brand/MascotEmptyState';
 import React, { useEffect, useState } from 'react';
 import {
   UserCheck,
@@ -236,7 +237,7 @@ export const CustomerView: React.FC = () => {
               </>
             ) : linkedDraft.status === 'approved' ? (
               <>
-                <CheckCircle2 className="w-6 h-6 text-emerald-500 mx-auto" />
+                <Mascot className="h-28 mx-auto" />
                 <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">Pago confirmado</h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Ya se activó tu solicitud — buscala en "Mis servicios".</p>
               </>
@@ -255,14 +256,12 @@ export const CustomerView: React.FC = () => {
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Puede que no pertenezca a tu cuenta o que ya no esté disponible.</p>
           </div>
         ) : customerOrders.length === 0 ? (
-          <div className="bg-white dark:bg-slate-900 rounded-xl p-8 border border-slate-200 dark:border-slate-700 text-center max-w-md mx-auto mt-4 shadow-xs">
-            <div className="w-10 h-10 rounded-xl bg-teal-50 dark:bg-teal-950/40 text-teal-600 flex items-center justify-center mx-auto mb-2.5">
-              <ShieldCheck className="w-5 h-5" />
-            </div>
-            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Sin servicios registrados</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              Actualmente no tenés órdenes asociadas a esta cuenta demo.
-            </p>
+          <div className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-700 max-w-md mx-auto mt-4 shadow-xs">
+            <MascotEmptyState
+              title="Todavía no pediste ningún servicio"
+              description="Cuando pidas un técnico, vas a poder seguir cada paso desde acá."
+              action={{ label: 'Pedir un técnico', onClick: () => document.getElementById('solicitar-servicio')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }}
+            />
           </div>
         ) : (
           <div className={`grid grid-cols-1 gap-4 ${isDetailPage ? '' : 'lg:grid-cols-12'}`}>

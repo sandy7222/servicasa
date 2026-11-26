@@ -4,6 +4,7 @@ import { LandingHeader } from '../components/landing/LandingHeader';
 import { HeroSection } from '../components/landing/HeroSection';
 import { HowItWorksModal } from '../components/landing/HowItWorksModal';
 import { ServicesSection } from '../components/landing/ServicesSection';
+import { AssistantInviteSection } from '../components/landing/AssistantInviteSection';
 import { HowItWorksSection } from '../components/landing/HowItWorksSection';
 import { TrustBand } from '../components/landing/TrustBand';
 import { DownloadAppSection } from '../components/landing/DownloadAppSection';
@@ -48,6 +49,7 @@ export const LandingView: React.FC = () => {
       />
 
       <ServicesSection />
+      <AssistantInviteSection />
       <HowItWorksSection />
       <TrustBand />
 

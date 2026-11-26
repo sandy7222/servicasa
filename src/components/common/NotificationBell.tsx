@@ -1,3 +1,4 @@
+import { MascotEmptyState } from '../brand/MascotEmptyState';
 import React, { useEffect, useRef, useState } from 'react';
 import { Bell, Check } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
@@ -115,7 +116,7 @@ export const NotificationBell: React.FC = () => {
             {!loaded ? (
               <div className="px-3 py-6 text-center text-xs text-slate-400">Cargando…</div>
             ) : items.length === 0 ? (
-              <div className="px-3 py-6 text-center text-xs text-slate-400">No tenés notificaciones.</div>
+              <div className="px-3"><MascotEmptyState compact title="No tenés notificaciones." /></div>
             ) : (
               items.map((n) => (
                 <button

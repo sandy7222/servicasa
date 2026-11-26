@@ -1,3 +1,4 @@
+import { Mascot } from '../components/brand/MascotEmptyState';
 import React, { useState, useEffect } from 'react';
 import {
   Wrench,
@@ -379,9 +380,7 @@ export const TechnicianView: React.FC = () => {
         {assignedOrders.length === 0 ? (
           <div className="max-w-5xl mx-auto mt-4 space-y-4">
             <div className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-700 text-center shadow-xs">
-              <div className="w-10 h-10 rounded-xl bg-teal-50 dark:bg-teal-950/40 text-teal-600 flex items-center justify-center mx-auto mb-2.5">
-                <CheckCircle2 className="w-5 h-5" />
-              </div>
+              <Mascot className="h-28 mx-auto mb-2.5" />
               <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
                 {hasFinishedOrders ? '¡Todo al día! No tenés trabajos activos' : '¡Al día! No tenés órdenes pendientes'}
               </h3>
