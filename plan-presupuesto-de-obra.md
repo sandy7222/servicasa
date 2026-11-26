@@ -58,7 +58,7 @@ Notas para las fases 2 y 3:
   de materiales (la base usa ese 50 % fijo).
 - `QuoteBuilder` (técnico) y `QuoteViewer` (cliente) todavía no distinguen la obra: adaptarlos antes de permitir el envío.
 - **Pregunta abierta para Sandy:** ¿la comisión del 17 % va solo sobre la mano de obra con cargas, o también sobre
-  gastos generales y beneficio? Con el ejemplo del TP: $251.562,60 contra $338.081,90 aprox. Hoy `commission_base`
+  gastos generales y beneficio? Con el ejemplo del TP: $251.562,60 contra $338.082,10. Hoy `commission_base`
   guarda solo la mano de obra con cargas.
 
 ## Fase 2 — Enviar desde la herramienta y verlo como cliente
