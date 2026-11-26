@@ -45,41 +45,41 @@ export const LandingHeader: React.FC = () => {
       id="tecniurbano-landing-header"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-[4.5rem]">
+        <div className="flex items-center justify-between gap-4 h-[4.5rem]">
           <button onClick={() => navigate('/')} className="shrink-0 transition-opacity hover:opacity-90">
             <Logo size="md" showText showTagline={false} variant="white" />
           </button>
 
-          <nav className="hidden lg:flex items-center gap-6 xl:gap-8">
+          <nav className="hidden xl:flex items-center gap-7">
             {NAV_ANCHORS.map((a) => (
               <button
                 key={a.targetId}
                 onClick={() => scrollToAnchor(a)}
-                className="text-sm font-medium text-slate-300 hover:text-white transition-colors duration-200"
+                className="whitespace-nowrap text-sm font-medium text-slate-300 hover:text-white transition-colors duration-200"
               >
                 {a.label}
               </button>
             ))}
             <button
               onClick={() => navigate('/auth?mode=apply')}
-              className="text-sm font-medium text-slate-300 hover:text-white transition-colors duration-200"
+              className="whitespace-nowrap text-sm font-medium text-slate-300 hover:text-white transition-colors duration-200"
             >
               Trabajá con nosotros
             </button>
           </nav>
 
-          <div className="hidden lg:flex items-center gap-2">
+          <div className="hidden xl:flex items-center gap-2">
             <ThemeToggle variant="bar" />
             <button
               onClick={() => navigate('/auth')}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-teal-400 hover:bg-teal-300 text-[#0B1B33] font-bold text-sm transition-colors duration-200"
+              className="inline-flex items-center gap-2 whitespace-nowrap px-5 py-2.5 rounded-lg bg-teal-400 hover:bg-teal-300 text-[#0B1B33] font-bold text-sm transition-colors duration-200"
             >
               Ingresar al sistema
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
 
-          <div className="flex lg:hidden items-center gap-1">
+          <div className="flex xl:hidden items-center gap-1">
             <ThemeToggle variant="bar" />
             <button
               onClick={() => setMobileOpen((v) => !v)}
@@ -94,7 +94,7 @@ export const LandingHeader: React.FC = () => {
       </div>
 
       {mobileOpen && (
-        <div className="lg:hidden border-t border-slate-800 bg-[#0F172A] px-4 py-4 space-y-1">
+        <div className="xl:hidden border-t border-slate-800 bg-[#0F172A] px-4 py-4 space-y-1">
           {NAV_ANCHORS.map((a) => (
             <button
               key={a.targetId}
