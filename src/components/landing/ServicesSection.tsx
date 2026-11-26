@@ -1,51 +1,9 @@
 import React from 'react';
-import {
-  Wrench,
-  Zap,
-  Hammer,
-  Settings,
-  ShieldCheck,
-  Sparkles,
-  ChevronRight,
-  Droplets,
-  Flame,
-  Lightbulb,
-} from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
+import { categoryBrandIcon } from '../brand/BrandIcons';
 import { useApp } from '../../context/AppContext';
 import { sortByDisplayOrder } from '../../lib/catalogOrder';
 import type { CatalogCategory } from '../../types';
-
-const CATEGORY_ICON_MAP: Record<string, { icon: React.ReactNode; bg: string; border: string }> = {
-  Wrench: { icon: <Wrench className="w-6 h-6 text-sky-600" />, bg: 'bg-sky-50', border: 'border-sky-200' },
-  Zap: { icon: <Zap className="w-6 h-6 text-amber-500" />, bg: 'bg-amber-50 dark:bg-amber-950/40', border: 'border-amber-200 dark:border-amber-800' },
-  Hammer: { icon: <Hammer className="w-6 h-6 text-rose-500" />, bg: 'bg-rose-50', border: 'border-rose-200' },
-  Settings: { icon: <Settings className="w-6 h-6 text-emerald-600" />, bg: 'bg-emerald-50', border: 'border-emerald-200' },
-  ShieldCheck: { icon: <ShieldCheck className="w-6 h-6 text-teal-600" />, bg: 'bg-teal-50 dark:bg-teal-950/40', border: 'border-teal-200 dark:border-teal-800' },
-  Droplets: { icon: <Droplets className="w-6 h-6 text-blue-600" />, bg: 'bg-blue-50', border: 'border-blue-200' },
-  Flame: { icon: <Flame className="w-6 h-6 text-rose-600" />, bg: 'bg-rose-50', border: 'border-rose-200' },
-  Lightbulb: { icon: <Lightbulb className="w-6 h-6 text-yellow-600" />, bg: 'bg-yellow-50', border: 'border-yellow-200' },
-  Sparkles: { icon: <Sparkles className="w-6 h-6 text-teal-600" />, bg: 'bg-teal-50 dark:bg-teal-950/40', border: 'border-teal-200 dark:border-teal-800' },
-};
-
-function getServiceVisuals(category: { name: string; icon?: string }) {
-  if (category.icon && CATEGORY_ICON_MAP[category.icon]) {
-    return CATEGORY_ICON_MAP[category.icon];
-  }
-  const cat = (category.name || '').toLowerCase();
-  if (cat.includes('plom') || cat.includes('agua') || cat.includes('cañ')) {
-    return { icon: <Wrench className="w-6 h-6 text-sky-600" />, bg: 'bg-sky-50', border: 'border-sky-200' };
-  }
-  if (cat.includes('elect') || cat.includes('luz') || cat.includes('tensión')) {
-    return { icon: <Zap className="w-6 h-6 text-amber-500" />, bg: 'bg-amber-50 dark:bg-amber-950/40', border: 'border-amber-200 dark:border-amber-800' };
-  }
-  if (cat.includes('repar') || cat.includes('hogar') || cat.includes('cerraj')) {
-    return { icon: <Hammer className="w-6 h-6 text-rose-500" />, bg: 'bg-rose-50', border: 'border-rose-200' };
-  }
-  if (cat.includes('manten') || cat.includes('prevent') || cat.includes('general')) {
-    return { icon: <Settings className="w-6 h-6 text-emerald-600" />, bg: 'bg-emerald-50', border: 'border-emerald-200' };
-  }
-  return { icon: <ShieldCheck className="w-6 h-6 text-teal-600" />, bg: 'bg-teal-50 dark:bg-teal-950/40', border: 'border-teal-200 dark:border-teal-800' };
-}
 
 export const ServicesSection: React.FC = () => {
   const { navigate, catalogCategories, services } = useApp();
@@ -71,7 +29,7 @@ export const ServicesSection: React.FC = () => {
 
         <div className={`grid grid-cols-2 ${gridColsClass} gap-4`}>
           {activeCategories.map((category) => {
-            const visuals = getServiceVisuals(category);
+            const Icon = categoryBrandIcon(category);
             const count = services.filter((s) => s.category === category.name && s.active !== false).length;
 
             return (
@@ -80,9 +38,7 @@ export const ServicesSection: React.FC = () => {
                 onClick={() => navigate(`/services-category/${encodeURIComponent(category.name)}`)}
                 className="text-left bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 transition-all duration-200 hover:-translate-y-0.5 hover:border-teal-300 hover:shadow-[0_8px_24px_-12px_rgba(15,23,42,0.15)] focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 focus-visible:ring-offset-2 group"
               >
-                <div className={`w-11 h-11 rounded-xl ${visuals.bg} ${visuals.border} border flex items-center justify-center mb-3.5`}>
-                  {visuals.icon}
-                </div>
+                <Icon className="w-12 h-12 mb-3 text-[#1f45b8] dark:text-[#7aa2ff] transition-transform duration-200 group-hover:-translate-y-0.5" />
                 <h3 className="font-bold text-[15px] text-slate-900 dark:text-slate-100">{category.name}</h3>
                 <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed line-clamp-2">
                   {category.description || `${count} servicio${count !== 1 ? 's' : ''}`}

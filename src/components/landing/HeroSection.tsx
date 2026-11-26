@@ -1,5 +1,6 @@
 import React from 'react';
-import { Download, PlayCircle, Clock, ShieldCheck, MessageCircle } from 'lucide-react';
+import { Download, PlayCircle } from 'lucide-react';
+import { TrackingIcon, GuaranteeIcon, ClaimIcon } from '../brand/BrandIcons';
 import tecnicoHeroWebp from '../../assets/landing/tecnico-hero.webp';
 import tecnicoHeroPng from '../../assets/landing/tecnico-hero.png';
 
@@ -9,9 +10,9 @@ interface HeroSectionProps {
 }
 
 const BENEFITS = [
-  { icon: <Clock className="w-4 h-4" strokeWidth={1.75} />, label: 'Seguimiento paso a paso' },
-  { icon: <ShieldCheck className="w-4 h-4" strokeWidth={1.75} />, label: 'Garantía de 30 días' },
-  { icon: <MessageCircle className="w-4 h-4" strokeWidth={1.75} />, label: 'Apertura de reclamo 48 hs' },
+  { icon: <TrackingIcon className="w-6 h-6" />, label: 'Seguimiento paso a paso' },
+  { icon: <GuaranteeIcon className="w-6 h-6" />, label: 'Garantía de 30 días' },
+  { icon: <ClaimIcon className="w-6 h-6" />, label: 'Apertura de reclamo 48 hs' },
 ];
 
 const TechnicianPicture: React.FC<{ className: string }> = ({ className }) => (
@@ -67,7 +68,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onDownloadClick, onHow
           <ul className="mt-8 flex flex-wrap justify-center lg:justify-start gap-x-6 gap-y-3 text-sm text-blue-50">
             {BENEFITS.map((b) => (
               <li key={b.label} className="flex items-center gap-2">
-                <span className="flex items-center justify-center w-7 h-7 rounded-full bg-teal-400/10 text-teal-300">
+                <span className="flex items-center justify-center text-[#9db8ff]">
                   {b.icon}
                 </span>
                 {b.label}
