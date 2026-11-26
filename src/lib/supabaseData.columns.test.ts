@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { TECHNICIAN_COLUMNS_ADMIN, TECHNICIAN_COLUMNS_SHARED } from './supabaseData';
+import { mergePublicTechnicians, TECHNICIAN_COLUMNS_ADMIN, TECHNICIAN_COLUMNS_SHARED } from './supabaseData';
 
 /**
  * Regresión para el hallazgo de RLS de `technicians`: la fila ya está bien
@@ -46,5 +46,23 @@ describe('columnas de technicians en el catálogo compartido', () => {
       expect(admin).toContain(col);
     }
     expect(admin.length).toBe(shared.length + ADMIN_ONLY_COLUMNS.length);
+  });
+});
+
+describe('mergePublicTechnicians', () => {
+  const own = [{ id: 'a', name: 'Beto', phone: '111', email: 'beto@x.com' }] as never;
+
+  it('suma los técnicos visibles solo por sus datos públicos, sin teléfono ni correo', () => {
+    const publicRows = [{ id: 'b', name: 'Ana', phone: '222', email: 'ana@x.com' }] as never;
+    const merged = mergePublicTechnicians(own, publicRows);
+    expect(merged.map((t) => t.name)).toEqual(['Ana', 'Beto']);
+    expect(merged[0].phone).toBe('');
+    expect(merged[0].email).toBe('');
+  });
+
+  it('no pisa la fila propia, que conserva sus datos de contacto', () => {
+    const merged = mergePublicTechnicians(own, [{ id: 'a', name: 'Beto' }] as never);
+    expect(merged).toHaveLength(1);
+    expect(merged[0].phone).toBe('111');
   });
 });

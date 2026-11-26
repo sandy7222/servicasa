@@ -447,6 +447,22 @@ export const TECHNICIAN_COLUMNS_SHARED =
 // que ya hace ProfessionalProfile.tsx con address/work_phone/bio.
 export const TECHNICIAN_COLUMNS_ADMIN = `${TECHNICIAN_COLUMNS_SHARED},work_phone,address,work_zone_lat,work_zone_lng,work_zone_radius_km,work_zone_city,work_zone_province,is_available`;
 
+async function fetchPublicTechnicianRows(): Promise<Partial<DbTechnician>[]> {
+  const { data, error } = await supabase.rpc('technician_public_rows' as never);
+  // Si falla, se sigue con lo que ya trajo la tabla: no puede dejar la app sin cargar.
+  if (error) return [];
+  return (data ?? []) as unknown as Partial<DbTechnician>[];
+}
+
+/** Agrega los técnicos que solo se ven por sus datos públicos, siempre sin teléfono ni correo. */
+export function mergePublicTechnicians(ownRows: DbTechnician[], publicRows: Partial<DbTechnician>[]): DbTechnician[] {
+  const ownIds = new Set(ownRows.map((row) => row.id));
+  const extra = publicRows
+    .filter((row) => row.id && !ownIds.has(row.id))
+    .map((row) => ({ ...row, phone: '', email: '' }) as DbTechnician);
+  return [...ownRows, ...extra].sort((a, b) => a.name.localeCompare(b.name, 'es'));
+}
+
 export async function fetchCatalog(isAdmin: boolean) {
   const technicianColumns = isAdmin ? TECHNICIAN_COLUMNS_ADMIN : TECHNICIAN_COLUMNS_SHARED;
   const [techRes, techSpecialtiesRes, techCoverageRes, custRes, matRes, orderRes, svcRes, catRes, subcatRes] = await Promise.all([
@@ -653,7 +669,11 @@ export async function fetchCatalog(isAdmin: boolean) {
     });
   });
 
-  const technicians = (techRes.data as unknown as DbTechnician[]).map((row) =>
+  // El cliente no puede leer la tabla technicians (tiene teléfono, correo, DNI y domicilio): de su
+  // técnico recibe solo los datos públicos, sin contacto. El técnico y el admin ya traen su fila completa.
+  const ownRows = techRes.data as unknown as DbTechnician[];
+  const technicianRows = isAdmin ? ownRows : mergePublicTechnicians(ownRows, await fetchPublicTechnicianRows());
+  const technicians = technicianRows.map((row) =>
     mapTechnician(row, specialtiesByTechnician.get(row.id) ?? [], coverageByTechnician.get(row.id) ?? [])
   );
 

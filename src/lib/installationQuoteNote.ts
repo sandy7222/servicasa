@@ -22,7 +22,8 @@ export type QuoteNoteData = {
   /** Fecha de la nota, ya formateada (ej.: 24/11/2026). */
   date: string;
   projectName: string;
-  technician: { name: string; phone?: string; email?: string };
+  // Sin teléfono ni correo: el cliente se contacta con el técnico solo por la app.
+  technician: { name: string };
   client: { name?: string; document?: string; address?: string };
   scope: string[];
   exclusions: string;
@@ -72,7 +73,7 @@ table.p tr.tot td { background: #dfe6f1; font-weight: bold; font-size: 9.6pt; }
 <div class="top"><img src="${esc(d.logoUrl)}" alt="TecniUrbano"><h1>Nota de presupuesto</h1><div class="num"><b>${esc(d.date)}</b></div></div>
 <table class="meta">
 <tr><td class="k">Prestador:</td><td>${esc(d.technician.name)}</td></tr>
-<tr><td class="k">Contacto:</td><td>Teléfono: ${blank(d.technician.phone, '______________')} &nbsp; Correo: ${blank(d.technician.email, '______________________')}</td></tr>
+<tr><td class="k">Contacto:</td><td>Por la app TecniUrbano (tecniurbano.online)</td></tr>
 <tr><td class="k">Cliente:</td><td>${blank(d.client.name, '______________________________')} &nbsp; CUIT/DNI: ${blank(d.client.document, '______________')}</td></tr>
 <tr><td class="k">Obra:</td><td>${blank(d.client.address, '______________________________')}${d.projectName && !(d.client.address ?? '').includes(d.projectName) ? ` — ${esc(d.projectName)}` : ''}</td></tr>
 </table>

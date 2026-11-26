@@ -133,7 +133,7 @@ export const InstallationProjectView: React.FC = () => {
     orders?: ServiceOrder[];
     refreshRemoteData?: () => Promise<void> | void;
     navigate: (path: string) => void;
-    technicians?: Array<{ id: string; name: string; phone?: string; email?: string }>;
+    technicians?: Array<{ id: string; name: string }>;
     currentUser?: { technicianId?: string; id?: string } | null;
     showToast?: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
   };
@@ -596,7 +596,7 @@ export const InstallationProjectView: React.FC = () => {
             value={draft.budget}
             quoteOrders={quoteOrders.map((o) => ({ id: o.id, title: o.title, clientName: o.clientName }))}
             onPassToQuote={cloud && PASS_TO_QUOTE_ENABLED ? passToQuote : undefined}
-            technician={technician ? { name: technician.name, phone: technician.phone, email: technician.email } : undefined}
+            technician={technician ? { name: technician.name } : undefined}
             onChange={(budget) => setDraft((d) => ({ ...d, budget }))}
           />
         )}

@@ -66,7 +66,7 @@ type Props = {
   result: ProjectResult;
   value: BudgetDraft | undefined;
   onChange: (next: BudgetDraft) => void;
-  technician?: { name: string; phone?: string; email?: string };
+  technician?: { name: string };
   /** Órdenes del técnico con presupuesto editable (borrador o sin presupuesto). */
   quoteOrders?: Array<{ id: string; title: string; clientName?: string }>;
   /** Pasa los ítems de material al borrador de la orden. */

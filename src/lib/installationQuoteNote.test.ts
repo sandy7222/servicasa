@@ -13,6 +13,14 @@ const base: QuoteNoteData = {
 };
 
 describe('buildQuoteNoteHtml', () => {
+  it('no imprime teléfono ni correo del técnico: el contacto es por la app', () => {
+    const technician = { name: 'Juan Pérez', phone: '1133334444', email: 'juan@correo.com' };
+    const html = buildQuoteNoteHtml({ ...base, technician });
+    expect(html).toContain('Por la app TecniUrbano');
+    expect(html).not.toContain('1133334444');
+    expect(html).not.toContain('juan@correo.com');
+  });
+
   const html = buildQuoteNoteHtml(base);
   it('lleva el logo, la fecha, el total y el anticipo con su porcentaje', () => {
     expect(html).toContain('src="https://app.test/logo.png"');
